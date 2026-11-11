@@ -64,7 +64,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 diagnostics")
 @ResourceLock("DB")
-public class V1DiagnosticResourceTest {
+class V1DiagnosticResourceTest {
 
 	private V1Client admin;
 	private V1Client reader;

@@ -43,7 +43,7 @@ import net.netshot.netshot.testing.api.v1.V1Client.Answer;
  */
 @ApiTest
 @DisplayName("v1 request bodies in XML")
-public class V1XmlRequestTest {
+class V1XmlRequestTest {
 
 	private V1Client admin;
 

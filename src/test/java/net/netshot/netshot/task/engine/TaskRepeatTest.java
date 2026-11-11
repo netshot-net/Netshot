@@ -47,7 +47,7 @@ import net.netshot.netshot.testing.TestWiring;
 @DatabaseTest
 @DisplayName("Recurring task rescheduling after execution (TaskManager.repeatTask, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class TaskRepeatTest {
+class TaskRepeatTest {
 
 	@BeforeAll
 	void initDb() throws Exception {

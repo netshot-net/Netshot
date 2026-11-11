@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 
 @ScriptEngineTest
 @DisplayName("Simple Text Rule")
-public class TextRuleTest {
+class TextRuleTest {
 
 	static RuleEvaluators evaluators;
 

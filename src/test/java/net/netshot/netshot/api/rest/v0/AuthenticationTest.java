@@ -67,7 +67,7 @@ import org.junit.jupiter.api.BeforeEach;
 @ApiTest
 @V0Enabled
 @DisplayName("v0 request authentication")
-public class AuthenticationTest {
+class AuthenticationTest {
 
 	/** API client of the current test, authenticated with the admin token. */
 	private V0Client apiClient;

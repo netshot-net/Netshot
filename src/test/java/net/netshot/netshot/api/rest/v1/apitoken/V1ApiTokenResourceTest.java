@@ -46,7 +46,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 API tokens")
 @ResourceLock("DB")
-public class V1ApiTokenResourceTest {
+class V1ApiTokenResourceTest {
 
 	private TestServer server;
 	private V1Client admin;

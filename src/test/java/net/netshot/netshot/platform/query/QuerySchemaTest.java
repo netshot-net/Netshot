@@ -38,7 +38,7 @@ import net.netshot.netshot.testing.UnitTest;
  */
 @UnitTest
 @DisplayName("List query schema")
-public class QuerySchemaTest {
+class QuerySchemaTest {
 
 	private static final QuerySchema SCHEMA;
 

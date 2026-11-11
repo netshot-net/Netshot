@@ -53,7 +53,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 system")
 @ResourceLock("DB")
-public class V1SystemResourceTest {
+class V1SystemResourceTest {
 
 	private TestServer server;
 	private V1Client admin;

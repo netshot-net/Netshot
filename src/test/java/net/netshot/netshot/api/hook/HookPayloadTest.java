@@ -77,7 +77,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  */
 @ContractTest
 @TestInstance(Lifecycle.PER_CLASS)
-public class HookPayloadTest {
+class HookPayloadTest {
 
 	/** When the test started (the dates near it are normalized in the outputs). */
 	private final long startTime = System.currentTimeMillis();

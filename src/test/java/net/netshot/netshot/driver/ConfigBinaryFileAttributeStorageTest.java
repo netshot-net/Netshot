@@ -39,7 +39,7 @@ import net.netshot.netshot.testing.UnitTest;
  */
 @UnitTest
 @DisplayName("ConfigBinaryFileAttribute storage lifecycle test")
-public class ConfigBinaryFileAttributeStorageTest {
+class ConfigBinaryFileAttributeStorageTest {
 
 	@BeforeEach
 	void setUp() throws IOException {

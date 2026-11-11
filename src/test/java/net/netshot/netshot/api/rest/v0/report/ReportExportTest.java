@@ -64,7 +64,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
 @ContractTest
 @V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
-public class ReportExportTest {
+class ReportExportTest {
 
 	private static final Path FIXTURES = Path.of("src", "test", "resources", "v0-report-export");
 	private static final String UPDATE_PROPERTY = "netshot.report.export.update";

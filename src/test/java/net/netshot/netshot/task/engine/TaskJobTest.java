@@ -51,7 +51,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 @DatabaseTest
 @DisplayName("Task execution with a failing handler (TaskJob, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class TaskJobTest {
+class TaskJobTest {
 
 	Device device;
 

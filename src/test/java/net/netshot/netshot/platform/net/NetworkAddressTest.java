@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
-public class NetworkAddressTest {
+class NetworkAddressTest {
 
 	@Nested
 	@DisplayName("IPv4 Address tests")

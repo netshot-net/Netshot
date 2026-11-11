@@ -69,7 +69,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 @TestProperty(name = "netshot.snapshots.binary.path", value = V1ConfigResourceTest.BINARY_PATH)
 @DisplayName("v1 configurations")
 @ResourceLock("DB")
-public class V1ConfigResourceTest {
+class V1ConfigResourceTest {
 
 	/** Where the binary files of the configurations are stored by the tests. */
 	static final String BINARY_PATH = "/tmp/netshot-v1-config-test";

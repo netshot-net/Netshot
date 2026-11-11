@@ -31,7 +31,7 @@ import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @UnitTest
-public class CliTest {
+class CliTest {
 
 	/**
 	 * CLI class to mock a connection to a device.

@@ -63,7 +63,7 @@ import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
 @TestProperty(name = "netshot.aaa.maxidletime", value = "10")
 @DisplayName("v1 request authentication")
 @TestInstance(Lifecycle.PER_CLASS)
-public class V1AuthenticationTest {
+class V1AuthenticationTest {
 
 	private static final String USERNAME = "testuser";
 	private static final String PASSWORD = "testpassword";

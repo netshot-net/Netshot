@@ -73,7 +73,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
  */
 @SimulatorTest
 @DisplayName("SSH rekey behavior")
-public class RekeyTest {
+class RekeyTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

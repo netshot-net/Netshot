@@ -52,7 +52,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("HPE ArubaOS-Switch driver test")
-public class HPEArubaOSSwitchDriverTest {
+class HPEArubaOSSwitchDriverTest {
 
 	private static final String DRIVER = "HPEArubaOSSwitch";
 

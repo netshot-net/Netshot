@@ -41,7 +41,7 @@ import net.netshot.netshot.testing.UnitTest;
  */
 @UnitTest
 @DisplayName("Configuration reference documentation")
-public class ConfigurationReferenceTest {
+class ConfigurationReferenceTest {
 
 	private static final Path REFERENCE = Path.of("docs", "content", "configuration-reference.md");
 

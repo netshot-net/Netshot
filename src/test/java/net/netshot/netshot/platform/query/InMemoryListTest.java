@@ -33,7 +33,7 @@ import net.netshot.netshot.testing.UnitTest;
  */
 @UnitTest
 @DisplayName("In memory list queries")
-public class InMemoryListTest {
+class InMemoryListTest {
 
 	private record Item(String name, String color, Integer count) {
 	}

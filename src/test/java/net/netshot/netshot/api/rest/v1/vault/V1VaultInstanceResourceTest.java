@@ -52,7 +52,7 @@ import net.netshot.netshot.vault.VaultInstanceRepository;
 @ResourceLock("DB")
 @V1Endpoints({"GET /vault-instances", "GET /vault-instances/{id}", "POST /vault-instances", "PUT /vault-instances/{id}",
 	"PATCH /vault-instances/{id}", "DELETE /vault-instances/{id}", "POST /vault-instances/{id}/test", "POST /vault-instances/test"})
-public class V1VaultInstanceResourceTest {
+class V1VaultInstanceResourceTest {
 
 	private static final String SECRET_ID = "app-role-SECRET-id";
 	private static final String CLIENT_SECRET = "jwt-client-SECRET";

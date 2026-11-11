@@ -57,7 +57,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
  */
 @DatabaseTest
 @ExtendWith(UtcTimeZoneExtension.class)
-public class PurgeTest {
+class PurgeTest {
 	static final int DEVICES = 10;
 	static final int CONFIGS_PER_DAY = 4;
 	static final int DAYS = 30;
@@ -186,7 +186,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Initial count test")
 	@ResourceLock("DB")
-	public void initialCountTest() {
+	void initialCountTest() {
 		// Check number of items before purge task
 		this.assertDeviceCount(DEVICES);
 		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
@@ -199,7 +199,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Task purge test")
 	@ResourceLock("DB")
-	public void taskPurgeTest() {
+	void taskPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(purgeDays, 0, 0, 0, 0, null, null);
 
@@ -212,7 +212,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Per-group task purge test")
 	@ResourceLock("DB")
-	public void perGroupTaskPurgeTest() {
+	void perGroupTaskPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(purgeDays, 0, 0, 0, 0, group1.id(), null);
 
@@ -227,7 +227,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Config purge test")
 	@ResourceLock("DB")
-	public void configPurgeTest() {
+	void configPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, purgeDays, 0, 0, 0, null, null);
 
@@ -240,7 +240,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Per-group config purge test")
 	@ResourceLock("DB")
-	public void perGroupConfigPurgeTest() {
+	void perGroupConfigPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, purgeDays, 0, 0, 0, group1.id(), null);
 
@@ -255,7 +255,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Oversized config purge test")
 	@ResourceLock("DB")
-	public void oversizedConfigPurgeTest() {
+	void oversizedConfigPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, purgeDays, 2, 0, 0, null, null);
 
@@ -271,7 +271,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Oversized config purge test, on the size of a binary file")
 	@ResourceLock("DB")
-	public void oversizedBinaryFileConfigPurgeTest() {
+	void oversizedBinaryFileConfigPurgeTest() {
 		// A device with small configurations gets an old one with a big binary file
 		long deviceId = this.group1Devices().get(0);
 		Config config = FakeDeviceFactory.getFakeCiscoIosConfig(TestDevices.find(deviceId));
@@ -298,7 +298,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Sparse config purge test")
 	@ResourceLock("DB")
-	public void sparseConfigPurgeTest() {
+	void sparseConfigPurgeTest() {
 		final int purgeDays = 18;
 		final int keepDays = 2; // Keep one config every two days
 		this.purge(0, purgeDays, 0, keepDays, 0, null, null);
@@ -315,7 +315,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Module purge test")
 	@ResourceLock("DB")
-	public void modulePurgeTest() {
+	void modulePurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, 0, 0, 0, purgeDays, null, null);
 
@@ -328,7 +328,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Per-group module purge test")
 	@ResourceLock("DB")
-	public void perGroupModulePurgeTest() {
+	void perGroupModulePurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, 0, 0, 0, purgeDays, group1.id(), null);
 
@@ -359,7 +359,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Per-device-list task purge test")
 	@ResourceLock("DB")
-	public void perDeviceListTaskPurgeTest() {
+	void perDeviceListTaskPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(purgeDays, 0, 0, 0, 0, null, this.group1Devices());
 
@@ -373,7 +373,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Per-device-list config purge test")
 	@ResourceLock("DB")
-	public void perDeviceListConfigPurgeTest() {
+	void perDeviceListConfigPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, purgeDays, 0, 0, 0, null, this.group1Devices());
 
@@ -387,7 +387,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Per-device-list oversized config purge test")
 	@ResourceLock("DB")
-	public void perDeviceListOversizedConfigPurgeTest() {
+	void perDeviceListOversizedConfigPurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, purgeDays, 2, 0, 0, null, this.group1Devices());
 
@@ -398,7 +398,7 @@ public class PurgeTest {
 	@Test
 	@DisplayName("Per-device-list module purge test")
 	@ResourceLock("DB")
-	public void perDeviceListModulePurgeTest() {
+	void perDeviceListModulePurgeTest() {
 		final int purgeDays = 18;
 		this.purge(0, 0, 0, 0, purgeDays, null, this.group1Devices());
 

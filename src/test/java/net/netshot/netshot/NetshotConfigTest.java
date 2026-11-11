@@ -35,7 +35,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Configuration items")
-public class NetshotConfigTest {
+class NetshotConfigTest {
 
 	private static final String KEY = "netshot.test.secret";
 

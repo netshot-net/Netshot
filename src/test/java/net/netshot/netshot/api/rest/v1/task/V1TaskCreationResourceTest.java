@@ -65,7 +65,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 task creation")
 @ResourceLock("DB")
-public class V1TaskCreationResourceTest {
+class V1TaskCreationResourceTest {
 
 	private V1Client admin;
 	private Domain domain;

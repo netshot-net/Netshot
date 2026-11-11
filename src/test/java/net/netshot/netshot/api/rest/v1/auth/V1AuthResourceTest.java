@@ -52,7 +52,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 authentication (session, current user, own password)")
 @ResourceLock("DB")
-public class V1AuthResourceTest {
+class V1AuthResourceTest {
 
 	private static final String USERNAME = "sessionuser";
 	private static final String PASSWORD = "Sessionpassword1";

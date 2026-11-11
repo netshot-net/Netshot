@@ -38,7 +38,7 @@ import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest
 @DisplayName("v0 web application")
-public class V0ApplicationTest {
+class V0ApplicationTest {
 
 	@Test
 	@DisplayName("Makes the wiring injectable into the resources")

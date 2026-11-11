@@ -40,7 +40,7 @@ import net.netshot.netshot.testing.TestNetwork;
 
 @ScriptEngineTest
 @DisplayName("Syslog server service")
-public class SyslogServerTest {
+class SyslogServerTest {
 
 	@AfterEach
 	void resetConfig() {

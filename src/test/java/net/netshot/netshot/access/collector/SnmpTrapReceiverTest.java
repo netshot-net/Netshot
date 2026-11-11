@@ -31,7 +31,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("SNMP trap receiver")
-public class SnmpTrapReceiverTest {
+class SnmpTrapReceiverTest {
 
 	@Test
 	@DisplayName("No SNMPv3 user without netshot.snmptrap.user")

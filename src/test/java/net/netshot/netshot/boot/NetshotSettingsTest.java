@@ -40,7 +40,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Catalog of the configuration settings")
-public class NetshotSettingsTest {
+class NetshotSettingsTest {
 
 	private static final JavaClasses MAIN_CLASSES = new ClassFileImporter()
 		.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)

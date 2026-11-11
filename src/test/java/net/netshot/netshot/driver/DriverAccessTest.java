@@ -40,7 +40,7 @@ import net.netshot.netshot.testing.ScriptEngineTest;
  */
 @ScriptEngineTest
 @DisplayName("Device driver access test")
-public class DriverAccessTest {
+class DriverAccessTest {
 
 	private static final String TEST_DRIVER_JS = """
 		var Info = {

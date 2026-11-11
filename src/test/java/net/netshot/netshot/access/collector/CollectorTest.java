@@ -33,7 +33,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Collector address of a domain")
-public class CollectorTest {
+class CollectorTest {
 
 	@AfterEach
 	void resetConfig() {

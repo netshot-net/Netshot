@@ -57,7 +57,7 @@ import net.netshot.netshot.testing.api.v1.V1Client.Answer;
 })
 @DisplayName("v1 domains")
 @ResourceLock("DB")
-public class V1DomainResourceTest {
+class V1DomainResourceTest {
 
 	private TestServer server;
 	private V1Client admin;

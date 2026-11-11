@@ -53,7 +53,7 @@ import net.netshot.netshot.vault.SecretResolver;
  * throughout (trust/certificate behavior is out of scope for Phase 1 tests).
  */
 @ScriptEngineTest
-public class HttpTest {
+class HttpTest {
 
 	private HttpServer server;
 	private int port;

@@ -40,7 +40,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @ScriptEngineTest
 @DisplayName("Snapshot configuration dump")
-public class SnapshotDumpTest {
+class SnapshotDumpTest {
 
 	@TempDir
 	Path tempDir;

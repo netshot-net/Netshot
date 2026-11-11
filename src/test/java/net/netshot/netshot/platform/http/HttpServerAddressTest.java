@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
-public class HttpServerAddressTest {
+class HttpServerAddressTest {
 
 	@Test
 	@DisplayName("Port comes from the base URL")

@@ -29,7 +29,7 @@ import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest
 @DisplayName("v1 web application")
-public class V1ApplicationTest {
+class V1ApplicationTest {
 
 	@Test
 	@DisplayName("Makes the wiring injectable into the resources")
