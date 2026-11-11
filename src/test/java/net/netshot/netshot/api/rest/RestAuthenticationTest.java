@@ -61,6 +61,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestServer;
@@ -70,6 +71,7 @@ import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
 import org.junit.jupiter.api.BeforeEach;
 
 @ApiTest
+@V0Enabled
 // Very low value for session expiration testing
 @TestProperty(name = "netshot.aaa.maxidletime", value = "10")
 public class RestAuthenticationTest {

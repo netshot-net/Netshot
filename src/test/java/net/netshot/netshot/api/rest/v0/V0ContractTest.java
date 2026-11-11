@@ -34,6 +34,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.v0.V0ContractCase.Reply;
 import net.netshot.netshot.testing.api.v0.V0ContractCase;
@@ -57,6 +58,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
  * asserting.</p>
  */
 @ContractTest
+@V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class V0ContractTest {

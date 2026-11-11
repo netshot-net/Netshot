@@ -40,12 +40,14 @@ import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestCompliance;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.v0.V0Client;
 
 @ApiTest
+@V0Enabled
 @DisplayName("Compliance tests")
 @ResourceLock("DB")
 public class ComplianceResourceTest {

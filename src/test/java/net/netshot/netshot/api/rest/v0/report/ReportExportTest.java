@@ -49,6 +49,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.contract.ContractSeed;
 
@@ -61,6 +62,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
  * {@code -Dnetshot.report.export.update=true} to (re)write them.
  */
 @ContractTest
+@V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
 public class ReportExportTest {
 

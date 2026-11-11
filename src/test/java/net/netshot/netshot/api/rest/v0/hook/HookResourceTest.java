@@ -32,6 +32,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.v0.V0Client;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 @ApiTest
+@V0Enabled
 @DisplayName("Webhook API Tests")
 public class HookResourceTest {
 

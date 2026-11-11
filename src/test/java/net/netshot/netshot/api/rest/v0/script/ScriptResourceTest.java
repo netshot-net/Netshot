@@ -30,6 +30,7 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
@@ -45,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 @ApiTest
+@V0Enabled
 @DisplayName("Script tests")
 @ResourceLock("DB")
 public class ScriptResourceTest {

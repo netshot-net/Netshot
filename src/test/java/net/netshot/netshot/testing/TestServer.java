@@ -19,12 +19,12 @@
 package net.netshot.netshot.testing;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Map;
+
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.testing.api.v0.V0Client;
 
 /**
  * The REST server of an {@link ApiTest} or {@link ContractTest} class, which the test methods (including
@@ -56,6 +56,20 @@ public final class TestServer {
 	}
 
 	/**
+	 * Gets the server of the test class, for an extension.
+	 *
+	 * @param context the extension context (of the class, of a test, or of a nested class)
+	 * @return the server
+	 */
+	public static TestServer of(ExtensionContext context) {
+		TestServer server = context.getStore(Kinds.NAMESPACE).get(TestServer.class, TestServer.class);
+		if (server == null) {
+			throw new IllegalStateException("No test server: annotate the test class with @ApiTest or @ContractTest");
+		}
+		return server;
+	}
+
+	/**
 	 * Gets the URL of the REST API.
 	 *
 	 * @return the URL, such as {@code http://localhost:12345/api}
@@ -80,26 +94,5 @@ public final class TestServer {
 	 */
 	URI apiUri() {
 		return URI.create(this.apiUrl);
-	}
-
-	/**
-	 * Creates an API client authenticated with the admin token.
-	 *
-	 * @return the client
-	 * @throws URISyntaxException never, the URL being valid
-	 */
-	public V0Client client() throws URISyntaxException {
-		return this.client(UiUser.LEVEL_ADMIN);
-	}
-
-	/**
-	 * Creates an API client authenticated with the token of a permission level.
-	 *
-	 * @param level the permission level ({@code UiUser.LEVEL_*})
-	 * @return the client
-	 * @throws URISyntaxException never, the URL being valid
-	 */
-	public V0Client client(int level) throws URISyntaxException {
-		return new V0Client(this.apiUrl, API_TOKENS.get(level));
 	}
 }

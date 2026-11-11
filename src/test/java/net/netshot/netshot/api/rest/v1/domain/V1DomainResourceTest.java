@@ -383,26 +383,17 @@ public class V1DomainResourceTest {
 	}
 
 	@Test
-	@DisplayName("OpenAPI document, and v0 unchanged beside v1")
+	@DisplayName("OpenAPI document")
 	void openApi() throws Exception {
 		Answer doc = new V1Client(this.server, null).get("/openapi.json");
 		Assertions.assertEquals(200, doc.status(), doc.toString());
 		JsonNode openApi = doc.json();
 		Assertions.assertTrue(openApi.get("paths").has("/domains/{id}"), doc.body());
 		Assertions.assertTrue(openApi.get("components").get("schemas").has("Domain"), doc.body());
-		Assertions.assertFalse(openApi.get("paths").has("/serverinfo"), "v0 resources in the v1 document");
+		Assertions.assertFalse(openApi.get("paths").has("/serverinfo"), "Resources of another API in the v1 document");
 		Assertions.assertTrue(openApi.get("paths").has("/devices"), doc.body());
 		Answer yaml = new V1Client(this.server, null).get("/openapi.yaml", "Accept", "application/yaml");
 		Assertions.assertEquals(200, yaml.status(), yaml.toString());
 		Assertions.assertTrue(yaml.body().contains("/domains/{id}:"), yaml.body());
-
-		this.create("Paris", null, "10.0.1.1");
-		java.net.http.HttpResponse<String> v0 = java.net.http.HttpClient.newHttpClient().send(
-			java.net.http.HttpRequest.newBuilder(java.net.URI.create(this.server.apiUrl() + "/domains"))
-				.header("X-Netshot-API-Token", TestServer.API_TOKENS.get(UiUser.LEVEL_ADMIN))
-				.header("Accept", "application/json").build(),
-			java.net.http.HttpResponse.BodyHandlers.ofString());
-		Assertions.assertEquals(200, v0.statusCode());
-		Assertions.assertTrue(v0.body().startsWith("[{"), v0.body());
 	}
 }

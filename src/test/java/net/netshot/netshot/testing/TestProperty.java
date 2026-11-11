@@ -28,9 +28,9 @@ import java.lang.annotation.Target;
 /**
  * A Netshot configuration property set by the extensions of {@link ScriptEngineTest}, {@link DatabaseTest},
  * {@link ApiTest} and {@link ContractTest} before the test class, on top of their defaults (which it
- * overrides).
+ * overrides). It can also be set on an annotation, which then sets the property on the classes it annotates.
  */
-@Target(ElementType.TYPE)
+@Target({ ElementType.TYPE, ElementType.ANNOTATION_TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Repeatable(TestProperties.class)

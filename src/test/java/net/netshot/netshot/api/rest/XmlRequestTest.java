@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestServer;
 
 /**
@@ -45,6 +46,7 @@ import net.netshot.netshot.testing.TestServer;
  * the XML request is not significant.
  */
 @ApiTest
+@V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
 public class XmlRequestTest {
 
