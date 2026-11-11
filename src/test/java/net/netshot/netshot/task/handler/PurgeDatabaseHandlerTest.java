@@ -57,7 +57,8 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
  */
 @DatabaseTest
 @ExtendWith(UtcTimeZoneExtension.class)
-class PurgeTest {
+@DisplayName("Purge database task (PurgeDatabaseHandler)")
+class PurgeDatabaseHandlerTest {
 	static final int DEVICES = 10;
 	static final int CONFIGS_PER_DAY = 4;
 	static final int DAYS = 30;
