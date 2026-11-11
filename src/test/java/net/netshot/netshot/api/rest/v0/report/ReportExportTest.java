@@ -57,7 +57,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
  * The XLSX export ({@code GET /reports/export}) with the combinations of options the
  * contract goldens don't reach. The workbook is dumped cell by cell (sheet names, column
  * widths, freeze panes, auto filters, values, number formats, bold titles, formulas) and
- * compared to the dumps stored under {@code src/test/resources/report-export/}, which were
+ * compared to the dumps stored under {@code src/test/resources/v0-report-export/}, which were
  * produced by the former {@code RestService} implementation. Run with
  * {@code -Dnetshot.report.export.update=true} to (re)write them.
  */
@@ -66,7 +66,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
 @TestInstance(Lifecycle.PER_CLASS)
 public class ReportExportTest {
 
-	private static final Path FIXTURES = Path.of("src", "test", "resources", "report-export");
+	private static final Path FIXTURES = Path.of("src", "test", "resources", "v0-report-export");
 	private static final String UPDATE_PROPERTY = "netshot.report.export.update";
 	private static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 	/** Sheets whose row order is not defined by the queries. */
