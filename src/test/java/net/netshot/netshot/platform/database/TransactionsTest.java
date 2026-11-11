@@ -35,7 +35,7 @@ import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-public class TransactionsTest {
+class TransactionsTest {
 
 	/**
 	 * Gets the transaction support of the wiring of the class.

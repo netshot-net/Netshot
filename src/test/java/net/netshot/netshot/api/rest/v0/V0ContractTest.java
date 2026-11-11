@@ -61,7 +61,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
 @V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class V0ContractTest {
+class V0ContractTest {
 
 	private String apiUrl;
 	private final long startTime = System.currentTimeMillis();

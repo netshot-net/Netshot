@@ -31,7 +31,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Encrypted columns (jOOQ converter)")
-public class LocalSecretConverterTest {
+class LocalSecretConverterTest {
 
 	@BeforeAll
 	static void config() {

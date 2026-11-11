@@ -33,7 +33,7 @@ import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest(boot = Boot.MIGRATED)
 @TestInstance(Lifecycle.PER_CLASS)
-public class WiringTest {
+class WiringTest {
 
 	@Test
 	@DisplayName("Wiring.init() builds the wiring")

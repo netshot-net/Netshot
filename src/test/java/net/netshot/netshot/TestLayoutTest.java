@@ -19,6 +19,7 @@
 package net.netshot.netshot;
 
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,7 +32,9 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -59,14 +62,14 @@ import net.netshot.netshot.testing.UnitTest;
  * Rules on the layout of the tests: a test lives in the package of the code it tests (the root package only
  * holds the tests of the whole application and TestConfig, the shared helpers are in the testing package),
  * the simple names of the test classes are unique (the expected files of DtoContract are stored under the
- * simple name of the class), and each test class has a kind (several only among the kinds needing Docker),
+ * simple name of the class), the test classes and methods are package-private, and each test class has a kind (several only among the kinds needing Docker),
  * which the unit and script engine tests respect (they run without Docker). The tests and helpers of a version
  * of the REST API (packages {@code api.rest.vN} and {@code testing.api.vN}) are the only ones to use that
  * version, so that a version can be removed with its packages; its helpers are named after it ({@code V1Client}).
  */
 @UnitTest
 @DisplayName("Layout of the tests")
-public class TestLayoutTest {
+class TestLayoutTest {
 
 	private static final String ROOT = "net.netshot.netshot";
 
@@ -79,6 +82,10 @@ public class TestLayoutTest {
 	/** The annotations giving the kind of a test class (see the {@code testing} package). */
 	private static final List<Class<? extends Annotation>> KINDS = List.of(
 		UnitTest.class, ScriptEngineTest.class, DatabaseTest.class, ApiTest.class, ContractTest.class, SimulatorTest.class);
+
+	/** The annotations of the test methods. */
+	private static final List<Class<? extends Annotation>> TEST_ANNOTATIONS = List.of(
+		Test.class, RepeatedTest.class, TestFactory.class);
 
 	/** The kinds of tests run by the {@code fast} Maven profile, without Docker. */
 	private static final List<Class<? extends Annotation>> FAST_KINDS = List.of(UnitTest.class, ScriptEngineTest.class);
@@ -191,6 +198,23 @@ public class TestLayoutTest {
 			.toList();
 		Assertions.assertEquals(List.of(), violations,
 			"@UnitTest/@ScriptEngineTest classes needing a database, a server or a container: give them the kind they need");
+	}
+
+	@Test
+	@DisplayName("The test classes and the test methods are package-private")
+	void packagePrivate() {
+		List<String> publicOnes = new ArrayList<>();
+		for (JavaClass testClass : testClasses) {
+			if (testClass.getModifiers().contains(JavaModifier.PUBLIC)) {
+				publicOnes.add(testClass.getName());
+			}
+			testClass.getMethods().stream()
+				.filter(m -> TEST_ANNOTATIONS.stream().anyMatch(m::isAnnotatedWith))
+				.filter(m -> m.getModifiers().contains(JavaModifier.PUBLIC))
+				.forEach(m -> publicOnes.add(testClass.getName() + "." + m.getName()));
+		}
+		Assertions.assertEquals(List.of(), publicOnes.stream().sorted().toList(),
+			"Test classes and methods to make package-private (JUnit doesn't need them public)");
 	}
 
 	@Test

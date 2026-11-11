@@ -58,7 +58,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 devices")
 @ResourceLock("DB")
-public class V1DeviceResourceTest {
+class V1DeviceResourceTest {
 
 	private V1Client admin;
 	private Domain paris;

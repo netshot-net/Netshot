@@ -56,7 +56,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("Palo Alto PAN-OS driver test")
-public class PaloAltoPANOSDriverTest {
+class PaloAltoPANOSDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

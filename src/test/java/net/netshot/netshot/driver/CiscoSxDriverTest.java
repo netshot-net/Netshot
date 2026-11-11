@@ -55,7 +55,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("Cisco Sx driver test")
-public class CiscoSxDriverTest {
+class CiscoSxDriverTest {
 
 	private static final String DRIVER = "CiscoSx";
 

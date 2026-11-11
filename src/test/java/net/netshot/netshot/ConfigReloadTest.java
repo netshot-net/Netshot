@@ -51,7 +51,7 @@ import net.netshot.netshot.vault.VaultManager;
  */
 @UnitTest
 @DisplayName("Configuration reload")
-public class ConfigReloadTest {
+class ConfigReloadTest {
 
 	@TempDir
 	Path tempDir;

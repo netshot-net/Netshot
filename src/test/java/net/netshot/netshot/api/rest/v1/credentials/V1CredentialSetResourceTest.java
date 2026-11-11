@@ -56,7 +56,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 @ResourceLock("DB")
 @V1Endpoints({"GET /credential-sets", "GET /credential-sets/{id}", "POST /credential-sets", "PUT /credential-sets/{id}",
 	"PATCH /credential-sets/{id}", "DELETE /credential-sets/{id}"})
-public class V1CredentialSetResourceTest {
+class V1CredentialSetResourceTest {
 
 	private static final String PASSWORD = "Pa55-w0rd-SECRET";
 	private static final String ENABLE = "3nable-SECRET";

@@ -52,7 +52,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 @TestProperty(name = "netshot.shutdown.timeout", value = "1")
 @DisplayName("Task manager shutdown (DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class TaskManagerShutdownTest {
+class TaskManagerShutdownTest {
 
 	private static final long OTHER_TASK_ID = 999998L;
 

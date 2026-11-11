@@ -87,7 +87,7 @@ import net.netshot.netshot.testing.api.v1.V1Resources.Endpoint;
 @ApiTest
 @DisplayName("v1 versions of the objects")
 @ResourceLock("DB")
-public class V1VersioningSweepTest {
+class V1VersioningSweepTest {
 
 	/** The objects which can be deleted but not changed, and have no version (why). */
 	private static final Map<String, String> UNVERSIONED = Map.of(

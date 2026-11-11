@@ -42,7 +42,7 @@ import org.junit.jupiter.api.Test;
  * {@link UserDeviceScript}).
  */
 @ScriptEngineTest
-public class UserDeviceScriptTest {
+class UserDeviceScriptTest {
 
 	/** Any already-loaded driver works here - the script's JS context is borrowed from it, not executed against a real device. */
 	private static final String DRIVER_NAME = "CiscoIOS12";

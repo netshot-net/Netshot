@@ -44,7 +44,7 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
 @DatabaseTest(boot = Boot.MANUAL)
 @Testcontainers
-public class VaultTest {
+class VaultTest {
 
 	@Nested
 	@DisplayName("Vault key path test")

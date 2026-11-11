@@ -55,7 +55,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 device tasks")
 @ResourceLock("DB")
-public class V1DeviceTaskResourceTest {
+class V1DeviceTaskResourceTest {
 
 	private V1Client reader;
 	private Device router1;

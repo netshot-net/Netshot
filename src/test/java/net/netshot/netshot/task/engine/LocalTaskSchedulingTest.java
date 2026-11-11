@@ -56,7 +56,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 @DatabaseTest
 @DisplayName("Loading of the local tasks into the runner scheduler (DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class LocalTaskSchedulingTest {
+class LocalTaskSchedulingTest {
 
 	private static final String RUNNER_ID = "testrunner0000000001";
 
