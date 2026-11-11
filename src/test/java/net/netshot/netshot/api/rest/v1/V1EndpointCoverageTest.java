@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 
 import jakarta.ws.rs.HttpMethod;
 import net.netshot.netshot.testing.UnitTest;
-import net.netshot.netshot.testing.api.V1Endpoints;
+import net.netshot.netshot.testing.api.v1.V1Endpoints;
 
 /**
  * Checks that every endpoint of the v1 API (every resource method of {@code api.rest.v1}) is declared as covered

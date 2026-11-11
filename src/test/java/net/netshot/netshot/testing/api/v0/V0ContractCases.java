@@ -16,16 +16,17 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.testing.contract;
+package net.netshot.netshot.testing.api.v0;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import net.netshot.netshot.testing.contract.ApiContractCase.Builder;
-import net.netshot.netshot.testing.contract.ApiContractCase.Reply;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Transform;
+import net.netshot.netshot.testing.api.v0.V0ContractCase.Builder;
+import net.netshot.netshot.testing.api.v0.V0ContractCase.Reply;
+import net.netshot.netshot.testing.contract.ContractSeed;
+import net.netshot.netshot.testing.contract.Golden.Transform;
 
 /**
  * The catalogue of API contract cases: reads first (they do not change the
@@ -34,17 +35,17 @@ import net.netshot.netshot.testing.contract.ApiContractGolden.Transform;
  * <p>Building the catalogue does not touch the database: paths and bodies
  * are suppliers resolved when the case runs.</p>
  */
-public final class ApiContractCases {
+public final class V0ContractCases {
 
-	private ApiContractCases() {
+	private V0ContractCases() {
 	}
 
 	/** Builds the lists of cases. */
 	private static final class Catalogue {
-		final ApiContractSeed seed;
-		final List<ApiContractCase> cases = new ArrayList<>();
+		final ContractSeed seed;
+		final List<V0ContractCase> cases = new ArrayList<>();
 
-		Catalogue(ApiContractSeed seed) {
+		Catalogue(ContractSeed seed) {
 			this.seed = seed;
 		}
 
@@ -84,24 +85,24 @@ public final class ApiContractCases {
 		 * @param template the path of the endpoint
 		 */
 		void getUnordered(String template) {
-			this.add(ApiContractCase.builder("GET", template).path(template).accept(ApiContractCase.JSON).sortRoot());
-			this.add(ApiContractCase.builder("GET", template).path(template).accept(ApiContractCase.XML).sortRoot());
+			this.add(V0ContractCase.builder("GET", template).path(template).accept(V0ContractCase.JSON).sortRoot());
+			this.add(V0ContractCase.builder("GET", template).path(template).accept(V0ContractCase.XML).sortRoot());
 		}
 
 		void getJson(String template, String variant, Supplier<String> path) {
-			this.add(ApiContractCase.builder("GET", template).variant(variant).path(path).accept(ApiContractCase.JSON));
+			this.add(V0ContractCase.builder("GET", template).variant(variant).path(path).accept(V0ContractCase.JSON));
 		}
 
 		void getXml(String template, String variant, Supplier<String> path) {
-			this.add(ApiContractCase.builder("GET", template).variant(variant).path(path).accept(ApiContractCase.XML));
+			this.add(V0ContractCase.builder("GET", template).variant(variant).path(path).accept(V0ContractCase.XML));
 		}
 
 		void getOctet(String template, String variant, Supplier<String> path) {
-			this.add(ApiContractCase.builder("GET", template).variant(variant).path(path).accept(ApiContractCase.OCTET));
+			this.add(V0ContractCase.builder("GET", template).variant(variant).path(path).accept(V0ContractCase.OCTET));
 		}
 
 		void getYaml(String template, String variant, Supplier<String> path) {
-			this.add(ApiContractCase.builder("GET", template).variant(variant).path(path).accept(ApiContractCase.YAML));
+			this.add(V0ContractCase.builder("GET", template).variant(variant).path(path).accept(V0ContractCase.YAML));
 		}
 
 		/**
@@ -112,7 +113,7 @@ public final class ApiContractCases {
 		 * @param token the API token to use
 		 */
 		void getAs(String template, String variant, Supplier<String> path, String token) {
-			this.add(ApiContractCase.builder("GET", template).variant(variant).path(path).token(token));
+			this.add(V0ContractCase.builder("GET", template).variant(variant).path(path).token(token));
 		}
 
 		void add(Builder builder) {
@@ -160,7 +161,7 @@ public final class ApiContractCases {
 
 		void writeAs(String method, String template, String variant, Supplier<String> path, Supplier<String> body,
 			String remember, String token) {
-			Builder builder = ApiContractCase.builder(method, template).variant(variant).path(path);
+			Builder builder = V0ContractCase.builder(method, template).variant(variant).path(path);
 			if (body != null) {
 				builder.body(body);
 			}
@@ -184,7 +185,7 @@ public final class ApiContractCases {
 		}
 	}
 
-	public static List<ApiContractCase> all(ApiContractSeed seed) {
+	public static List<V0ContractCase> all(ContractSeed seed) {
 		Catalogue c = new Catalogue(seed);
 		reads(c);
 		writes(c);
@@ -200,8 +201,8 @@ public final class ApiContractCases {
 		c.get("/user");
 		c.get("/users");
 		c.get("/apitokens");
-		c.add(ApiContractCase.builder("GET", "/devicetypes").transform(Transform.DEVICE_TYPES));
-		c.add(ApiContractCase.builder("GET", "/devicetypes").accept(ApiContractCase.XML).transform(Transform.DEVICE_TYPES));
+		c.add(V0ContractCase.builder("GET", "/devicetypes").transform(Transform.DEVICE_TYPES));
+		c.add(V0ContractCase.builder("GET", "/devicetypes").accept(V0ContractCase.XML).transform(Transform.DEVICE_TYPES));
 
 		// Domains
 		c.get("/domains");
@@ -237,7 +238,7 @@ public final class ApiContractCases {
 
 		// Configs
 		c.get("/configs");
-		c.get("/configs", "filtered", c.path("/configs?after=" + (ApiContractSeed.D2021 - 1) + "&domain=%d&group=%d",
+		c.get("/configs", "filtered", c.path("/configs?after=" + (ContractSeed.D2021 - 1) + "&domain=%d&group=%d",
 			"domain.paris", "group.static"));
 		c.getOctet("/configs/{id}/{item}", "runningConfig", c.path("/configs/%d/runningConfig", "config.router1.last"));
 		c.getOctet("/configs/{id}/{item}", "binaryFile", c.path("/configs/%d/backupFile", "config.router1.last"));
@@ -252,7 +253,7 @@ public final class ApiContractCases {
 		c.get("/tasks");
 		c.get("/tasks", "status", () -> "/tasks?status=SUCCESS&status=FAILURE");
 		c.get("/tasks", "type", () -> "/tasks?type=TakeSnapshotTask&type=CheckComplianceTask");
-		c.get("/tasks", "dates", () -> "/tasks?after=" + (ApiContractSeed.D2021 - 1) + "&before=" + (ApiContractSeed.D2021 + 25000));
+		c.get("/tasks", "dates", () -> "/tasks?after=" + (ContractSeed.D2021 - 1) + "&before=" + (ContractSeed.D2021 + 25000));
 		c.get("/tasks", "paged", () -> "/tasks?offset=2&limit=3");
 		c.get("/tasks", "parent", c.path("/tasks?parentTaskId=%d", "task.group"));
 		c.get("/tasks/{id}", "snapshot", c.path("/tasks/%d", "task.snapshot"));
@@ -269,8 +270,8 @@ public final class ApiContractCases {
 		c.getOctet("/tasks/{id}/debuglog", "nodebuglog", c.path("/tasks/%d/debuglog", "task.failed"));
 		c.get("/tasks/summary");
 		c.get("/tasks/summary", "parent", c.path("/tasks/summary?parentTaskId=%d", "task.group"));
-		c.get("/tasks/stats", "default", () -> "/tasks/stats?after=" + (ApiContractSeed.D2021 - 1) + "&before="
-			+ (ApiContractSeed.D2022 + 10000) + "&buckets=4");
+		c.get("/tasks/stats", "default", () -> "/tasks/stats?after=" + (ContractSeed.D2021 - 1) + "&before="
+			+ (ContractSeed.D2022 + 10000) + "&buckets=4");
 
 		// Credential sets, Vault instances
 		c.get("/credentialsets");
@@ -320,19 +321,19 @@ public final class ApiContractCases {
 		c.get("/reports/groupconfignoncompliantdevices/{id}", "default", c.path("/reports/groupconfignoncompliantdevices/%d", "group.dynamic"));
 		c.get("/reports/groupconfignoncompliantdevices/{id}", "filtered", c.path(
 			"/reports/groupconfignoncompliantdevices/%d?domain=%d&policy=%d", "group.dynamic", "domain.paris", "policy.security"));
-		c.get("/reports/hardwaresupportdevices/{type}/{date}", "eos", () -> "/reports/hardwaresupportdevices/eos/" + ApiContractSeed.D2040);
-		c.get("/reports/hardwaresupportdevices/{type}/{date}", "eol", () -> "/reports/hardwaresupportdevices/eol/" + (ApiContractSeed.D2040 + 365L * 24 * 3600 * 1000));
-		c.get("/reports/hardwaresupportdevices/{type}/{date}", "badtype", () -> "/reports/hardwaresupportdevices/eox/" + ApiContractSeed.D2040);
+		c.get("/reports/hardwaresupportdevices/{type}/{date}", "eos", () -> "/reports/hardwaresupportdevices/eos/" + ContractSeed.D2040);
+		c.get("/reports/hardwaresupportdevices/{type}/{date}", "eol", () -> "/reports/hardwaresupportdevices/eol/" + (ContractSeed.D2040 + 365L * 24 * 3600 * 1000));
+		c.get("/reports/hardwaresupportdevices/{type}/{date}", "badtype", () -> "/reports/hardwaresupportdevices/eox/" + ContractSeed.D2040);
 		c.get("/reports/hardwaresupportdevices/{type}/{date}", "filtered", c.path(
-			"/reports/hardwaresupportdevices/eos/" + ApiContractSeed.D2040 + "?domain=%d&group=%d", "domain.paris", "group.dynamic"));
+			"/reports/hardwaresupportdevices/eos/" + ContractSeed.D2040 + "?domain=%d&group=%d", "domain.paris", "group.dynamic"));
 		c.get("/reports/groupdevicesbysoftwarelevel/{id}/{level}", "gold", c.path("/reports/groupdevicesbysoftwarelevel/%d/GOLD", "group.dynamic"));
 		c.get("/reports/groupdevicesbysoftwarelevel/{id}/{level}", "silver", c.path(
 			"/reports/groupdevicesbysoftwarelevel/%d/SILVER?domain=%d", "group.static", "domain.lyon"));
 		c.get("/reports/accessfailuredevices", "default", () -> "/reports/accessfailuredevices");
 		c.get("/reports/accessfailuredevices", "filtered", c.path("/reports/accessfailuredevices?days=30&domain=%d", "domain.paris"));
-		c.add(ApiContractCase.builder("GET", "/reports/export").variant("default").path("/reports/export")
-			.accept(ApiContractCase.XLSX));
-		c.add(ApiContractCase.builder("GET", "/reports/export").variant("full").accept(ApiContractCase.XLSX)
+		c.add(V0ContractCase.builder("GET", "/reports/export").variant("default").path("/reports/export")
+			.accept(V0ContractCase.XLSX));
+		c.add(V0ContractCase.builder("GET", "/reports/export").variant("full").accept(V0ContractCase.XLSX)
 			.path(c.path("/reports/export?group=%d&domain=%d&interfaces=true&inventory=true&inventoryhistory=true"
 				+ "&locations=true&compliance=true&groups=true&devicedriverattributes=true&format=xlsx", "group.dynamic", "domain.paris")));
 
@@ -348,11 +349,11 @@ public final class ApiContractCases {
 		c.get("/hooks");
 
 		// Documentation
-		c.add(ApiContractCase.builder("GET", "/openapi.{type}").variant("json").path("/openapi.json").accept(ApiContractCase.JSON)
+		c.add(V0ContractCase.builder("GET", "/openapi.{type}").variant("json").path("/openapi.json").accept(V0ContractCase.JSON)
 			.transform(Transform.OPENAPI));
-		c.add(ApiContractCase.builder("GET", "/openapi.{type}").variant("yaml").path("/openapi.yaml").accept(ApiContractCase.YAML)
+		c.add(V0ContractCase.builder("GET", "/openapi.{type}").variant("yaml").path("/openapi.yaml").accept(V0ContractCase.YAML)
 			.transform(Transform.OPENAPI));
-		c.add(ApiContractCase.builder("GET", "/openapi").variant("accept").path("/openapi").accept(ApiContractCase.YAML)
+		c.add(V0ContractCase.builder("GET", "/openapi").variant("accept").path("/openapi").accept(V0ContractCase.YAML)
 			.transform(Transform.OPENAPI));
 
 		// Errors on reads
@@ -366,9 +367,9 @@ public final class ApiContractCases {
 		c.get("/domains", "badlimit", () -> "/domains?limit=abc");
 		c.getAs("/devices", "notoken", () -> "/devices", "");
 		c.getAs("/devices", "badtoken", () -> "/devices", "not-a-valid-token");
-		c.getAs("/users", "readonly", () -> "/users", ApiContractSeed.READONLY_TOKEN);
-		c.getAs("/devicetypes", "refresh-readonly", () -> "/devicetypes?refresh=true", ApiContractSeed.READONLY_TOKEN);
-		c.getAs("/devices", "readonly", () -> "/devices?limit=1", ApiContractSeed.READONLY_TOKEN);
+		c.getAs("/users", "readonly", () -> "/users", ContractSeed.READONLY_TOKEN);
+		c.getAs("/devicetypes", "refresh-readonly", () -> "/devicetypes?refresh=true", ContractSeed.READONLY_TOKEN);
+		c.getAs("/devices", "readonly", () -> "/devices?limit=1", ContractSeed.READONLY_TOKEN);
 	}
 
 	private static void writes(Catalogue c) {
@@ -389,15 +390,15 @@ public final class ApiContractCases {
 		c.writeAs("POST", "/domains", "created", () -> "/domains", () -> """
 			{"name": "Marseille DC", "description": "Marseille data center", "ipAddress": "10.255.2.1"}""",
 			"new.domain", null);
-		c.add(ApiContractCase.builder("POST", "/domains").variant("created-xml").path("/domains")
-			.requestContentType(ApiContractCase.XML).accept(ApiContractCase.XML)
+		c.add(V0ContractCase.builder("POST", "/domains").variant("created-xml").path("/domains")
+			.requestContentType(V0ContractCase.XML).accept(V0ContractCase.XML)
 			.body("<domain><name>Nice DC</name><description>Nice</description><ipAddress>10.255.3.1</ipAddress></domain>")
 			.afterReply(reply -> c.rememberXml("new.domain.xml", reply, "id")));
 		c.write("POST", "/domains", "malformedjson", () -> "/domains", () -> "{\"name\": \"Broken\"");
 		c.write("POST", "/domains", "wrongtype", () -> "/domains", () -> """
 			{"name": ["Not", "a", "string"], "ipAddress": "10.255.2.9"}""");
-		c.add(ApiContractCase.builder("POST", "/domains").variant("malformed-xml").path("/domains")
-			.requestContentType(ApiContractCase.XML).accept(ApiContractCase.XML)
+		c.add(V0ContractCase.builder("POST", "/domains").variant("malformed-xml").path("/domains")
+			.requestContentType(V0ContractCase.XML).accept(V0ContractCase.XML)
 			.body("<domain><name>Broken</name>"));
 		c.write("POST", "/domains", "duplicate", () -> "/domains", () -> """
 			{"name": "Marseille DC", "description": "Duplicate", "ipAddress": "10.255.2.2"}""");
@@ -489,7 +490,7 @@ public final class ApiContractCases {
 	}
 
 	private static void deviceWrites(Catalogue c) {
-		c.add(ApiContractCase.builder("POST", "/devices").variant("created").path("/devices").body(c.body("""
+		c.add(V0ContractCase.builder("POST", "/devices").variant("created").path("/devices").body(c.body("""
 			{"autoDiscover": false, "ipAddress": "10.1.9.9", "domainId": %d, "name": "new-device",
 			 "deviceType": "CiscoIOS12", "comments": "Created by the contract test", "tags": ["new", "test"],
 			 "accesses": [
@@ -497,8 +498,8 @@ public final class ApiContractCases {
 			   {"accessName": "telnet", "specificCredentialSet": {"type": "Telnet", "name": "ignored",
 			      "username": "telnetuser", "password": "telnetpass"}}]}""", "domain.paris", "cred.ssh"))
 			.afterReply(reply -> c.rememberFrom("new.device", reply, "deviceId")));
-		c.add(ApiContractCase.builder("POST", "/devices").variant("created-xml").path("/devices")
-			.requestContentType(ApiContractCase.XML).accept(ApiContractCase.XML).body(c.body("""
+		c.add(V0ContractCase.builder("POST", "/devices").variant("created-xml").path("/devices")
+			.requestContentType(V0ContractCase.XML).accept(V0ContractCase.XML).body(c.body("""
 			<RsNewDevice><autoDiscover>false</autoDiscover><ipAddress>10.1.9.20</ipAddress><domainId>%d</domainId>
 			<name>xml-device</name><deviceType>SkyhighSWG</deviceType><options><fullBackup>true</fullBackup></options>
 			<tags><tags>xml</tags></tags></RsNewDevice>""", "domain.paris"))
@@ -543,8 +544,8 @@ public final class ApiContractCases {
 			{"query": "[Name] CONTAINS \\"\\""}""");
 		c.write("POST", "/devices/search", "badquery", () -> "/devices/search", () -> """
 			{"query": "[Nope] ???"}""");
-		c.add(ApiContractCase.builder("POST", "/devices/search").variant("xml").path("/devices/search")
-			.accept(ApiContractCase.XML).requestContentType(ApiContractCase.XML)
+		c.add(V0ContractCase.builder("POST", "/devices/search").variant("xml").path("/devices/search")
+			.accept(V0ContractCase.XML).requestContentType(V0ContractCase.XML)
 			.body("<RsSearchCriteria><query>[Family] CONTAINS \"Cisco\"</query></RsSearchCriteria>"));
 		c.write("DELETE", "/devices/{id}", "deleted", c.path("/devices/%d", "new.device"), null);
 		c.write("DELETE", "/devices/{id}", "unknown", () -> "/devices/99999999", null);
@@ -555,8 +556,8 @@ public final class ApiContractCases {
 			{"name": "New policy", "targetGroups": [%d]}""", "group.static"), "new.policy", null);
 		c.write("POST", "/policies", "duplicate", () -> "/policies", () -> """
 			{"name": "New policy", "targetGroups": []}""");
-		c.add(ApiContractCase.builder("POST", "/policies").variant("xml-barelist").path("/policies")
-			.requestContentType(ApiContractCase.XML).accept(ApiContractCase.XML)
+		c.add(V0ContractCase.builder("POST", "/policies").variant("xml-barelist").path("/policies")
+			.requestContentType(V0ContractCase.XML).accept(V0ContractCase.XML)
 			.body("<policy><name>Bare list policy</name><targetGroups>1</targetGroups><targetGroups>2</targetGroups></policy>"));
 		c.write("POST", "/policies", "blankname", () -> "/policies", () -> """
 			{"name": " ", "targetGroups": []}""");
@@ -589,7 +590,7 @@ public final class ApiContractCases {
 			{"id": %d, "type": "TextRule", "name": "New text rule renamed", "policy": %d, "text": "ntp server .*",
 			 "regExp": true, "enabled": true, "invert": true, "matchAll": false, "anyBlock": true, "normalize": true,
 			 "context": "", "field": "runningConfig", "driver": "CiscoIOS12",
-			 "exemptions": {"%d": %d}}""", "new.rule.text", "new.policy", "device.router1", ApiContractSeed.D2040));
+			 "exemptions": {"%d": %d}}""", "new.rule.text", "new.policy", "device.router1", ContractSeed.D2040));
 		c.write("PUT", "/rules/{id}", "js", c.path("/rules/%d", "new.rule.js"), c.body("""
 			{"id": %d, "type": "JavaScriptRule", "name": "New JS rule", "policy": %d, "enabled": false,
 			 "script": "function check(device) { return { result: CONFORMING }; }"}""", "new.rule.js", "new.policy"));
@@ -644,13 +645,13 @@ public final class ApiContractCases {
 		c.writeAs("POST", "/hardwarerules", "created", () -> "/hardwarerules", c.body("""
 			{"group": %d, "driver": "CiscoIOS12", "partNumber": "CISCO29.*", "partNumberRegExp": true,
 			 "family": "", "familyRegExp": false, "endOfSale": %d, "endOfLife": %d}""", "group.static",
-			ApiContractSeed.D2040, ApiContractSeed.D2040 + 86400000L), "new.hardwarerule", null);
+			ContractSeed.D2040, ContractSeed.D2040 + 86400000L), "new.hardwarerule", null);
 		c.write("POST", "/hardwarerules", "badgroup", () -> "/hardwarerules", () -> """
 			{"group": 99999999, "driver": "", "partNumber": "x", "endOfSale": 1}""");
 		c.write("PUT", "/hardwarerules/{id}", "updated", c.path("/hardwarerules/%d", "new.hardwarerule"), c.body("""
 			{"id": %d, "group": -1, "driver": "", "partNumber": "", "partNumberRegExp": false,
 			 "family": "Cisco.*", "familyRegExp": true, "endOfSale": null, "endOfLife": %d}""", "new.hardwarerule",
-			ApiContractSeed.D2040));
+			ContractSeed.D2040));
 		c.write("PUT", "/hardwarerules/{id}", "unknown", () -> "/hardwarerules/99999999", () -> """
 			{"id": 99999999, "group": -1, "driver": "", "partNumber": "x"}""");
 		c.write("DELETE", "/hardwarerules/{id}", "deleted", c.path("/hardwarerules/%d", "new.hardwarerule"), null);
@@ -732,28 +733,28 @@ public final class ApiContractCases {
 
 	private static void userWrites(Catalogue c) {
 		c.writeAs("POST", "/users", "created", () -> "/users", () -> """
-			{"username": "newuser", "password": "%s", "level": 100, "local": true}""".formatted(ApiContractSeed.USER_PASSWORD),
+			{"username": "newuser", "password": "%s", "level": 100, "local": true}""".formatted(ContractSeed.USER_PASSWORD),
 			"new.user", null);
 		c.write("POST", "/users", "duplicate", () -> "/users", () -> """
-			{"username": "newuser", "password": "%s", "level": 100, "local": true}""".formatted(ApiContractSeed.USER_PASSWORD));
+			{"username": "newuser", "password": "%s", "level": 100, "local": true}""".formatted(ContractSeed.USER_PASSWORD));
 		c.write("POST", "/users", "weakpassword", () -> "/users", () -> """
 			{"username": "weakuser", "password": "a", "level": 10, "local": true}""");
 		c.write("POST", "/users", "blankname", () -> "/users", () -> """
-			{"username": " ", "password": "%s", "level": 10, "local": true}""".formatted(ApiContractSeed.USER_PASSWORD));
+			{"username": " ", "password": "%s", "level": 10, "local": true}""".formatted(ContractSeed.USER_PASSWORD));
 		c.write("PUT", "/users/{id}", "updated", c.path("/users/%d", "new.user"), c.body("""
 			{"id": %d, "username": "newuser", "level": 500, "local": true}""", "new.user"));
 		c.write("PUT", "/users/{id}", "password", c.path("/users/%d", "new.user"), c.body("""
 			{"id": %d, "username": "newuser", "password": "An0ther!Passw0rd#2", "level": 500, "local": true}""", "new.user"));
 		c.write("PUT", "/users/{id}", "unknown", () -> "/users/99999999", () -> """
 			{"id": 99999999, "username": "nope", "level": 10, "local": true}""");
-		c.add(ApiContractCase.builder("POST", "/user").variant("login").path("/user").token("").body(() -> """
-			{"username": "writer", "password": "%s"}""".formatted(ApiContractSeed.USER_PASSWORD)));
-		c.add(ApiContractCase.builder("POST", "/user").variant("badlogin").path("/user").token("").body(() -> """
+		c.add(V0ContractCase.builder("POST", "/user").variant("login").path("/user").token("").body(() -> """
+			{"username": "writer", "password": "%s"}""".formatted(ContractSeed.USER_PASSWORD)));
+		c.add(V0ContractCase.builder("POST", "/user").variant("badlogin").path("/user").token("").body(() -> """
 			{"username": "writer", "password": "wrong"}"""));
-		c.add(ApiContractCase.builder("POST", "/user").variant("unknownuser").path("/user").token("").body(() -> """
+		c.add(V0ContractCase.builder("POST", "/user").variant("unknownuser").path("/user").token("").body(() -> """
 			{"username": "nobody", "password": "wrong"}"""));
 		c.write("PUT", "/user/{id}", "password", () -> "/user/0", () -> """
-			{"username": "writer", "password": "%s", "newPassword": "Ch4nged!Passw0rd#3"}""".formatted(ApiContractSeed.USER_PASSWORD));
+			{"username": "writer", "password": "%s", "newPassword": "Ch4nged!Passw0rd#3"}""".formatted(ContractSeed.USER_PASSWORD));
 		c.write("PUT", "/user/{id}", "badpassword", () -> "/user/0", () -> """
 			{"username": "writer", "password": "wrong", "newPassword": "Ch4nged!Passw0rd#4"}""");
 		c.write("DELETE", "/user/{id}", "logout", () -> "/user/0", null);
@@ -769,7 +770,7 @@ public final class ApiContractCases {
 			{"description": "Short token", "token": "abc", "level": 10}""");
 		c.writeAs("POST", "/apitokens", "forbidden", () -> "/apitokens", () -> """
 			{"description": "Forbidden", "token": "Gh7jKl0nOp3rSt6vWx9zAb2dEf5hIj8L", "level": 10}""", null,
-			ApiContractSeed.READWRITE_TOKEN);
+			ContractSeed.READWRITE_TOKEN);
 		c.write("DELETE", "/apitokens/{id}", "deleted", c.path("/apitokens/%d", "new.token"), null);
 		c.write("DELETE", "/apitokens/{id}", "unknown", () -> "/apitokens/99999999", null);
 	}
@@ -796,7 +797,7 @@ public final class ApiContractCases {
 	}
 
 	private static void taskWrites(Catalogue c) {
-		String at = "\"scheduleType\": \"AT\", \"scheduleReference\": " + ApiContractSeed.D2040;
+		String at = "\"scheduleType\": \"AT\", \"scheduleReference\": " + ContractSeed.D2040;
 		c.writeAs("POST", "/tasks", "snapshot", () -> "/tasks", c.body("""
 			{"type": "TakeSnapshotTask", "device": %d, "comments": "Snapshot from API", "debugEnabled": true, @AT@}""".replace("@AT@", at),
 			"device.router1"), "new.task", null);
@@ -831,7 +832,7 @@ public final class ApiContractCases {
 			 "configKeepDays": 5, "moduleDaysToPurge": 40, "comments": "Purge from API", "group": %d, @AT@}""".replace("@AT@", at), "group.static"));
 		c.write("POST", "/tasks", "daily", () -> "/tasks", c.body("""
 			{"type": "TakeSnapshotTask", "device": %d, "comments": "Daily from API", "scheduleType": "DAILY",
-			 "scheduleFactor": 2, "scheduleReference": %d}""", "device.router2", ApiContractSeed.D2040));
+			 "scheduleFactor": 2, "scheduleReference": %d}""", "device.router2", ContractSeed.D2040));
 		c.write("POST", "/tasks", "badtype", () -> "/tasks", () -> """
 			{"type": "NoSuchTask", "comments": "x"}""");
 		c.write("POST", "/tasks", "baddevice", () -> "/tasks", () -> """
@@ -845,10 +846,10 @@ public final class ApiContractCases {
 		c.write("POST", "/tasks", "badpurge", () -> "/tasks", () -> """
 			{"type": "PurgeDatabaseTask", "daysToPurge": 1}""");
 		c.writeAs("POST", "/tasks", "purge-forbidden", () -> "/tasks", () -> """
-			{"type": "PurgeDatabaseTask", "daysToPurge": 30}""", null, ApiContractSeed.READWRITE_TOKEN);
+			{"type": "PurgeDatabaseTask", "daysToPurge": 30}""", null, ContractSeed.READWRITE_TOKEN);
 		c.writeAs("POST", "/tasks", "script-forbidden", () -> "/tasks", c.body("""
 			{"type": "RunDeviceScriptTask", "device": %d, "driver": "CiscoIOS12", "script": "x"}""", "device.router1"), null,
-			ApiContractSeed.READONLY_TOKEN);
+			ContractSeed.READONLY_TOKEN);
 		c.write("PUT", "/tasks/{id}", "cancelled", c.path("/tasks/%d", "new.task"), () -> """
 			{"cancelled": true}""");
 		c.write("PUT", "/tasks/{id}", "notcancellable", c.path("/tasks/%d", "task.snapshot"), () -> """
