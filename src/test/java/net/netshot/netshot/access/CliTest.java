@@ -69,7 +69,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Remove basic ANSI color codes")
-	void testBasicAnsiColorCodes() throws Exception {
+	void basicAnsiColorCodes() throws Exception {
 		// Test simple color code: bold red text
 		String input = "\u001b[1;31mHello World\u001b[0m";
 		String result = cleanUpOutput(input);
@@ -78,7 +78,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Remove multiple ANSI color codes")
-	void testMultipleAnsiColorCodes() throws Exception {
+	void multipleAnsiColorCodes() throws Exception {
 		String input = "\u001b[1;31mRed\u001b[0m \u001b[1;32mGreen\u001b[0m \u001b[1;34mBlue\u001b[0m";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Red Green Blue", result, "Multiple ANSI color codes should be removed");
@@ -86,7 +86,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Remove CSI cursor movement codes")
-	void testCsiCursorMovement() throws Exception {
+	void csiCursorMovement() throws Exception {
 		String input = "\u001b[2JCleared\u001b[H";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Cleared", result, "CSI cursor movement codes should be removed");
@@ -94,7 +94,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Remove OSC sequences with BEL terminator")
-	void testOscSequenceBel() throws Exception {
+	void oscSequenceBel() throws Exception {
 		String input = "\u001b]0;Window Title\u0007Content";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Content", result, "OSC sequences with BEL terminator should be removed");
@@ -102,7 +102,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Remove OSC sequences with ESC backslash terminator")
-	void testOscSequenceEscBackslash() throws Exception {
+	void oscSequenceEscBackslash() throws Exception {
 		String input = "\u001b]0;Window Title\u001b\\Content";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Content", result, "OSC sequences with ESC backslash terminator should be removed");
@@ -110,7 +110,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Remove character set selection codes")
-	void testCharacterSetSelection() throws Exception {
+	void characterSetSelection() throws Exception {
 		String input = "\u001b(0Line\u001b)BText";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("LineText", result, "Character set selection codes should be removed");
@@ -118,7 +118,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Remove keypad mode codes")
-	void testKeypadModes() throws Exception {
+	void keypadModes() throws Exception {
 		String input = "\u001b=Numeric\u001b>Application";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("NumericApplication", result, "Keypad mode codes should be removed");
@@ -126,7 +126,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Handle plain text without ANSI codes")
-	void testPlainText() throws Exception {
+	void plainText() throws Exception {
 		String input = "Plain text without ANSI codes";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals(input, result, "Plain text should be returned unchanged");
@@ -134,14 +134,14 @@ class CliTest {
 
 	@Test
 	@DisplayName("Handle empty and null strings")
-	void testEmptyAndNull() throws Exception {
+	void emptyAndNull() throws Exception {
 		String emptyResult = cleanUpOutput("");
 		Assertions.assertEquals("", emptyResult, "Empty string should return empty");
 	}
 
 	@Test
 	@DisplayName("Remove control characters except newline and tab")
-	void testControlCharacters() throws Exception {
+	void controlCharacters() throws Exception {
 		StringBuilder sb = new StringBuilder();
 		sb.append('A');
 		sb.append((char) 0x01);
@@ -164,7 +164,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Normalize Windows line endings (CRLF to LF)")
-	void testWindowsLineEndings() throws Exception {
+	void windowsLineEndings() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 		String input = "Line1\r\nLine2\r\nLine3";
 		String result = cleanUpOutput(input);
@@ -174,7 +174,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Don't remove standalone carriage return")
-	void testStandaloneCarriageReturn() throws Exception {
+	void standaloneCarriageReturn() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, false);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 		String input = "Before\rAfter";
@@ -184,7 +184,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Handle ESC at end of string")
-	void testEscAtEnd() throws Exception {
+	void escAtEnd() throws Exception {
 		String input = "Text\u001b";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Text", result, "ESC at end of string should be removed");
@@ -192,7 +192,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Handle incomplete ANSI sequences")
-	void testIncompleteAnsiSequence() throws Exception {
+	void incompleteAnsiSequence() throws Exception {
 		String input = "\u001b[1;31Text";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("ext", result, "Incomplete ANSI sequence consumes chars until letter found");
@@ -200,7 +200,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Complex real-world example with mixed codes")
-	void testComplexRealWorld() throws Exception {
+	void complexRealWorld() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 		String input = "\u001b[1;31mError:\u001b[0m Connection failed\r\n"
 			+ "\u001b[2JScreen cleared\u001b[H\u001b[1;32mSuccess\u001b[0m";
@@ -211,7 +211,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("CSI sequences with @ terminator (ECMA-48)")
-	void testCsiWithAtTerminator() throws Exception {
+	void csiWithAtTerminator() throws Exception {
 		String input = "\u001b[@Text";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Text", result, "CSI sequences with @ terminator should be removed");
@@ -219,7 +219,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Preserve newlines and tabs in output")
-	void testPreserveNewlinesAndTabs() throws Exception {
+	void preserveNewlinesAndTabs() throws Exception {
 		String input = "\u001b[31mRed\u001b[0m\n\tIndented\u001b[32mGreen\u001b[0m";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Red\n\tIndentedGreen", result,
@@ -228,7 +228,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test ANSI codes from Cisco devices")
-	void testCiscoAnsiCodes() throws Exception {
+	void ciscoAnsiCodes() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 		String input = "router1#\u001b[Kshow version\r\nCisco IOS Software";
 		String result = cleanUpOutput(input);
@@ -238,7 +238,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test ANSI codes with SGR parameters")
-	void testSgrParameters() throws Exception {
+	void sgrParameters() throws Exception {
 		String input = "\u001b[0mNormal \u001b[1mBold \u001b[4mUnderline \u001b[7mReverse \u001b[0mReset";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("Normal Bold Underline Reverse Reset", result,
@@ -256,7 +256,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test RGB ANSI codes")
-	void testRgbColorCodes() throws Exception {
+	void rgbColorCodes() throws Exception {
 		String input = "\u001b[38;2;255;0;0mRGB Red\u001b[0m";
 		String result = cleanUpOutput(input);
 		Assertions.assertEquals("RGB Red", result,
@@ -265,7 +265,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Performance test with large string")
-	void testPerformanceWithLargeString() throws Exception {
+	void performanceWithLargeString() throws Exception {
 		StringBuilder builder = new StringBuilder();
 		for (int i = 0; i < 1000; i++) {
 			builder.append("\u001b[1;3").append(i % 8).append("mLine ").append(i).append("\u001b[0m\n");
@@ -286,7 +286,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test stripAnsiCodes configuration - disabled")
-	void testStripAnsiCodesDisabled() throws Exception {
+	void stripAnsiCodesDisabled() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.STRIP_ANSI_CODES, false);
 
 		String input = "\u001b[1;31mRed Text\u001b[0m";
@@ -296,7 +296,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test normalizeCarriageReturns configuration - disabled")
-	void testNormalizeCarriageReturnsDisabled() throws Exception {
+	void normalizeCarriageReturnsDisabled() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, false);
 
 		String input = "Line1\r\nLine2\rLine3";
@@ -306,7 +306,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test combined configuration - both disabled")
-	void testBothConfigurationsDisabled() throws Exception {
+	void bothConfigurationsDisabled() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.STRIP_ANSI_CODES, false);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, false);
 
@@ -317,7 +317,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test stripAnsiCodes enabled, normalizeCarriageReturns disabled")
-	void testStripAnsiOnly() throws Exception {
+	void stripAnsiOnly() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.STRIP_ANSI_CODES, true);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, false);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, false);
@@ -330,7 +330,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processBackspaces with single backspace")
-	void testProcessBackspacesSingle() throws Exception {
+	void processBackspacesSingle() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_BACKSPACES, true);
 
 		String input = "hello\b";
@@ -342,7 +342,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processBackspaces with consecutive backspaces")
-	void testProcessBackspacesConsecutive() throws Exception {
+	void processBackspacesConsecutive() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_BACKSPACES, true);
 
 		// This should delete 'c' then 'b' then 'a'
@@ -355,7 +355,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processBackspaces with multiple sequences")
-	void testProcessBackspacesMultipleSequences() throws Exception {
+	void processBackspacesMultipleSequences() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_BACKSPACES, true);
 
 		String input = "test\bing message\b";
@@ -367,7 +367,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processBackspaces with typo correction simulation")
-	void testProcessBackspacesTypoCorrection() throws Exception {
+	void processBackspacesTypoCorrection() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_BACKSPACES, true);
 
 		// Simulate typing "teh" then backspacing to correct to "the"
@@ -380,7 +380,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processBackspaces disabled")
-	void testProcessBackspacesDisabled() throws Exception {
+	void processBackspacesDisabled() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_BACKSPACES, false);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, false);
 
@@ -393,7 +393,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processBackspaces with no backspaces")
-	void testProcessBackspacesNone() throws Exception {
+	void processBackspacesNone() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_BACKSPACES, true);
 
 		String input = "normal text";
@@ -405,7 +405,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processBackspaces at beginning of string")
-	void testProcessBackspacesAtBeginning() throws Exception {
+	void processBackspacesAtBeginning() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_BACKSPACES, true);
 
 		// Backspace at the beginning has nothing to delete, should be removed
@@ -421,7 +421,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test removeBeforeCarriageReturn for pager sequences")
-	void testRemoveBeforeCarriageReturn() throws Exception {
+	void removeBeforeCarriageReturn() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, true);
 
 		// Simulate pager: text + pager prompt + \r + spaces (same length as prompt) + \r + continuation
@@ -447,7 +447,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test removeBeforeCarriageReturn with newlines")
-	void testRemoveBeforeCarriageReturnWithNewlines() throws Exception {
+	void removeBeforeCarriageReturnWithNewlines() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, true);
 
 		// Each line should be processed independently
@@ -461,7 +461,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test removeBeforeCarriageReturn disabled")
-	void testRemoveBeforeCarriageReturnDisabled() throws Exception {
+	void removeBeforeCarriageReturnDisabled() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, false);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, false);
 
@@ -474,7 +474,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processCarriageReturns with multiple \\r on same line")
-	void testProcessCarriageReturnsMultiple() throws Exception {
+	void processCarriageReturnsMultiple() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, true);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 
@@ -488,7 +488,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processCarriageReturns with \\r at end of line")
-	void testProcessCarriageReturnsAtEnd() throws Exception {
+	void processCarriageReturnsAtEnd() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, true);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 
@@ -502,7 +502,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processCarriageReturns with consecutive \\r characters")
-	void testProcessCarriageReturnsConsecutive() throws Exception {
+	void processCarriageReturnsConsecutive() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, true);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 
@@ -516,7 +516,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processCarriageReturns with empty result")
-	void testProcessCarriageReturnsEmpty() throws Exception {
+	void processCarriageReturnsEmpty() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, true);
 
 		// Only \r characters, no content after
@@ -529,7 +529,7 @@ class CliTest {
 
 	@Test
 	@DisplayName("Test processCarriageReturns with mixed content")
-	void testProcessCarriageReturnsMixed() throws Exception {
+	void processCarriageReturnsMixed() throws Exception {
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.PROCESS_CARRIAGE_RETURNS, true);
 		cli.setOuputCleanUpAction(Cli.CleanUpAction.NORMALIZE_LINE_ENDINGS, true);
 
