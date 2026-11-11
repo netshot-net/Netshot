@@ -47,7 +47,7 @@ import jakarta.ws.rs.HttpMethod;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.api.v0.V0ContractCase;
 import net.netshot.netshot.testing.api.v0.V0ContractCases;
-import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.testing.api.v0.V0ContractGolden;
 import net.netshot.netshot.testing.contract.ContractSeed;
 
 /**
@@ -221,17 +221,17 @@ public class V0ContractCoverageTest {
 		Assertions.assertTrue(duplicates.isEmpty(), "Duplicate case names: " + duplicates);
 
 		Set<String> orphans = new TreeSet<>();
-		if (Files.isDirectory(Golden.GOLDEN_DIR)) {
-			try (Stream<Path> files = Files.list(Golden.GOLDEN_DIR)) {
+		if (Files.isDirectory(V0ContractGolden.DIR)) {
+			try (Stream<Path> files = Files.list(V0ContractGolden.DIR)) {
 				files.map(file -> file.getFileName().toString())
-					.filter(name -> !name.equals(Golden.STATUS_FILE) && !names.contains(name))
+					.filter(name -> !name.equals(V0ContractGolden.STATUS_FILE) && !names.contains(name))
 					.forEach(orphans::add);
 			}
 		}
 		Assertions.assertTrue(orphans.isEmpty(), "Golden files without a case (stale?): " + orphans);
 
 		Set<String> statusKeys = new TreeMap<String, String>(
-			Golden.readStatuses().entrySet().stream()
+			V0ContractGolden.readStatuses().entrySet().stream()
 				.collect(java.util.stream.Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()))).keySet();
 		Set<String> missingStatuses = new TreeSet<>(names);
 		missingStatuses.removeAll(statusKeys);

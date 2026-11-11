@@ -38,6 +38,7 @@ import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.v0.V0ContractCase.Reply;
 import net.netshot.netshot.testing.api.v0.V0ContractCase;
 import net.netshot.netshot.testing.api.v0.V0ContractCases;
+import net.netshot.netshot.testing.api.v0.V0ContractGolden;
 import net.netshot.netshot.testing.contract.Golden.Format;
 import net.netshot.netshot.testing.contract.Golden;
 import net.netshot.netshot.testing.contract.ContractSeed;
@@ -45,7 +46,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
 /**
  * Golden file contract tests of the REST API: the wire format (JSON, XML,
  * YAML, plain text...) and HTTP status of every endpoint are recorded under
- * {@code src/test/resources/api-contract/} and must not change when the
+ * {@code src/test/resources/v0-contract/} and must not change when the
  * implementation is refactored.
  *
  * <p>The server is booted against a fresh PostgreSQL schema, which is then
@@ -79,7 +80,7 @@ public class V0ContractTest {
 	List<DynamicTest> contractCases() {
 		Golden golden = new Golden(this.startTime);
 		boolean update = Golden.isUpdateMode();
-		java.util.Properties expectedStatuses = Golden.readStatuses();
+		java.util.Properties expectedStatuses = V0ContractGolden.readStatuses();
 		List<DynamicTest> tests = new ArrayList<>();
 		List<V0ContractCase> cases = V0ContractCases.all(this.seed);
 		for (V0ContractCase contractCase : cases) {
@@ -94,11 +95,11 @@ public class V0ContractTest {
 						+ Golden.normalizeHeader(reply.contentDisposition()) + "\n" + actual;
 				}
 				if (update) {
-					Golden.writeGolden(fileName, actual);
+					V0ContractGolden.write(fileName, actual);
 					this.recordedStatuses.put(fileName, status);
 					return;
 				}
-				String expected = Golden.readGolden(fileName);
+				String expected = V0ContractGolden.read(fileName);
 				Assertions.assertNotNull(expected, "No golden file for case " + fileName
 					+ " (run with -D" + Golden.UPDATE_PROPERTY + "=true to create it)");
 				Assertions.assertEquals(expectedStatuses.getProperty(fileName), status,
@@ -112,7 +113,7 @@ public class V0ContractTest {
 		if (update) {
 			// Persist the statuses once all cases have run.
 			tests.add(DynamicTest.dynamicTest("(write statuses)", () -> {
-				Golden.writeStatuses(this.recordedStatuses);
+				V0ContractGolden.writeStatuses(this.recordedStatuses);
 			}));
 		}
 		return tests;
