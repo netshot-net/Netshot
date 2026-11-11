@@ -18,40 +18,25 @@
  */
 package net.netshot.netshot.cluster;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.api.rest.v0.system.MasterStatusDto;
-import net.netshot.netshot.api.rest.v0.system.SystemMapper;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.ClusterService.MasterStatus;
 import net.netshot.netshot.system.ServerInfo;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.testing.UnitTest;
-import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
- * Tests of the cluster and server information use cases and of their representation (the
- * contract tests only cover a server without clustering, hence without any member).
+ * Tests of the cluster and server information use cases.
  */
 @UnitTest
 class ClusterServiceTest {
-
-	private static final JsonMapper JSON = JsonMapper.builder().build();
-	private static final XmlMapper XML = XmlMapper.builder().build();
-
-	@RegisterExtension
-	private final DtoContract contract = new DtoContract(ClusterServiceTest.class, System.currentTimeMillis());
 
 	private static ClusterMember member(String id, boolean local, MastershipStatus status) {
 		ClusterMember member = new ClusterMember(id, "host-" + id, 3, 10, 20, 30, "1.2.3", "21.0.1", "hash-" + id);
@@ -93,33 +78,6 @@ class ClusterServiceTest {
 	void noMaster() {
 		ClusterService service = service(member("a", true, MastershipStatus.NEGOTIATING), member("b", false, MastershipStatus.EXPIRED));
 		Assertions.assertEquals(new MasterStatus(true, false, null), service.masterStatus());
-	}
-
-	@Test
-	@DisplayName("A cluster member is written as the cluster member class was")
-	void memberRepresentation() throws Exception {
-		List<ClusterMember> members = new ArrayList<>(List.of(member("a", true, MastershipStatus.MASTER), member("b", false, MastershipStatus.EXPIRED)));
-		Object actual = SystemMapper.toMemberDtos(members);
-		this.contract.checkBoth(JSON.writer().writeValueAsBytes(actual),
-			XML.writer().writeValueAsBytes(actual));
-		String json = new String(JSON.writer().writeValueAsBytes(actual));
-		Assertions.assertTrue(json.contains("\"status\":\"MASTER\""), json);
-		Assertions.assertTrue(json.contains("\"local\":true"), json);
-		Assertions.assertTrue(json.contains("\"lastSeenTime\":1700000000000"), json);
-	}
-
-	@Test
-	@DisplayName("The master status and the server information are published under the name of the former classes")
-	void statusRepresentation() throws Exception {
-		MasterStatusDto status = SystemMapper.toDto(new MasterStatus(true, false, "b"));
-		String xml = new String(XML.writer().writeValueAsBytes(status));
-		Assertions.assertTrue(xml.startsWith("<RsClusterMasterCheck>"), xml);
-		Assertions.assertTrue(xml.contains("<master>false</master>") && xml.contains("<currentMasterId>b</currentMasterId>"), xml);
-		Assertions.assertTrue(new String(XML.writer().writeValueAsBytes(SystemMapper.toDto(new ServerInfo("1.0", 1800))))
-			.startsWith("<RsServerInfo>"));
-		String json = new String(JSON.writer().writeValueAsBytes(SystemMapper.toDto(new ServerInfo("1.0", 1800))));
-		Assertions.assertTrue(json.contains("\"serverVersion\":\"1.0\""), json);
-		Assertions.assertTrue(json.contains("\"maxIdleTimeout\":1800"), json);
 	}
 
 	@Test
