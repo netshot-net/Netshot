@@ -43,6 +43,7 @@ import net.netshot.netshot.testing.UnitTest;
  * required by each method (as it was on the former {@code RestService}), and the paths they answer.
  */
 @UnitTest
+@DisplayName("v0 access control of the AAA and system endpoints")
 class AaaResourceSecurityTest {
 
 	private static void collect(Map<String, String> into, Class<?> resource) {

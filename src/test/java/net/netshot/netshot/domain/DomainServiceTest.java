@@ -44,6 +44,7 @@ import net.netshot.netshot.testing.DatabaseTest;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Domain service")
 class DomainServiceTest {
 
 	private Transactions transactions;

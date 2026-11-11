@@ -48,6 +48,7 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Vault instance service")
 class VaultInstanceServiceTest {
 
 	private Transactions transactions;

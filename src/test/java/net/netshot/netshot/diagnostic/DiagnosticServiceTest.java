@@ -52,6 +52,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Diagnostic service")
 class DiagnosticServiceTest {
 
 	private final AtomicInteger counter = new AtomicInteger();

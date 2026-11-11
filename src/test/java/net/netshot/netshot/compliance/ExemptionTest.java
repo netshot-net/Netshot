@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
+@DisplayName("Compliance exemptions")
 class ExemptionTest {
 
 	@Test

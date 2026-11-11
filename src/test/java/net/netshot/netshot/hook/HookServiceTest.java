@@ -46,6 +46,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Hook service")
 class HookServiceTest {
 
 	private Transactions transactions;

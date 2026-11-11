@@ -56,6 +56,7 @@ import net.netshot.netshot.vault.VaultInstance;
  * requests read like they used to be (defaults for absent properties, {@code =} for unchanged secrets).
  */
 @UnitTest
+@DisplayName("v0 Vault instance DTOs")
 class VaultInstanceDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

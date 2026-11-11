@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
+@DisplayName("Network addresses")
 class NetworkAddressTest {
 
 	@Nested

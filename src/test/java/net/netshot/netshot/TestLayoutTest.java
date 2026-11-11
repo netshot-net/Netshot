@@ -42,6 +42,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.junit.AnalyzeClasses;
 
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.boot.Wiring;
@@ -62,7 +63,7 @@ import net.netshot.netshot.testing.UnitTest;
  * Rules on the layout of the tests: a test lives in the package of the code it tests (the root package only
  * holds the tests of the whole application and TestConfig, the shared helpers are in the testing package),
  * the simple names of the test classes are unique (the expected files of DtoContract are stored under the
- * simple name of the class), the test classes and methods are package-private, and each test class has a kind (several only among the kinds needing Docker),
+ * simple name of the class), the test classes and methods are package-private and the classes have a display name, and each test class has a kind (several only among the kinds needing Docker),
  * which the unit and script engine tests respect (they run without Docker). The tests and helpers of a version
  * of the REST API (packages {@code api.rest.vN} and {@code testing.api.vN}) are the only ones to use that
  * version, so that a version can be removed with its packages; its helpers are named after it ({@code V1Client}).
@@ -198,6 +199,19 @@ class TestLayoutTest {
 			.toList();
 		Assertions.assertEquals(List.of(), violations,
 			"@UnitTest/@ScriptEngineTest classes needing a database, a server or a container: give them the kind they need");
+	}
+
+	@Test
+	@DisplayName("The test classes have a display name")
+	void displayNames() {
+		List<String> unnamed = testClasses.stream()
+			// The ArchUnit engine, which runs the @AnalyzeClasses classes, ignores the display names
+			.filter(c -> !c.isAnnotatedWith(AnalyzeClasses.class))
+			.filter(c -> !c.isAnnotatedWith(DisplayName.class))
+			.map(JavaClass::getName)
+			.sorted()
+			.toList();
+		Assertions.assertEquals(List.of(), unnamed, "Test classes to annotate with @DisplayName");
 	}
 
 	@Test

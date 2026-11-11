@@ -56,6 +56,7 @@ import net.netshot.netshot.testing.TestDrivers;
  * The findSections cases (legacy helper, JavaScript only) only run on the JavaScript side.
  */
 @ScriptEngineTest
+@DisplayName("Script toolbox (JavaScript and Python)")
 class ToolboxTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();

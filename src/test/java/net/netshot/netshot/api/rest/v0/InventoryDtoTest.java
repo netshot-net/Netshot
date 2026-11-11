@@ -77,6 +77,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * that the requests are read like the former request classes were.
  */
 @ScriptEngineTest
+@DisplayName("v0 inventory DTOs")
 class InventoryDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

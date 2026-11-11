@@ -43,6 +43,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestInstance;
@@ -64,6 +65,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
 @ContractTest
 @V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("v0 XLSX report export")
 class ReportExportTest {
 
 	private static final Path FIXTURES = Path.of("src", "test", "resources", "v0-report-export");

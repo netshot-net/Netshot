@@ -38,6 +38,7 @@ import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDatabase;
 
 @DatabaseTest(boot = Boot.MIGRATED)
+@DisplayName("jOOQ schema")
 class JooqSchemaTest {
 
 	/** The committed generated classes (the tests run from the project directory). */

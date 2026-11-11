@@ -31,6 +31,7 @@ import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @UnitTest
+@DisplayName("CLI output cleanup (escape sequences, backspaces, carriage returns)")
 class CliTest {
 
 	/**

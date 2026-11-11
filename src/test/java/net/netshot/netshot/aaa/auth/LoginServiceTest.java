@@ -57,6 +57,7 @@ import net.netshot.netshot.testing.TestWiring;
 @TestProperty(name = "netshot.aaa.passwordpolicy.minnumericalchars", value = "1")
 @TestProperty(name = "netshot.aaa.passwordpolicy.maxduration", value = "30")
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Login service")
 class LoginServiceTest {
 
 	private static final String PASSWORD = "Passw0rd-one";
