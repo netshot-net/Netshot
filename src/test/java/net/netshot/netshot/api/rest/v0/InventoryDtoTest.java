@@ -67,7 +67,7 @@ import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.Golden;
 import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
@@ -181,7 +181,7 @@ class InventoryDtoTest {
 		List<DeviceDriver> drivers = new ArrayList<>(TestDrivers.registry().getAllDrivers());
 		Assertions.assertFalse(drivers.isEmpty());
 		List<DeviceTypeDto> dtos = new ArrayList<>(DeviceCatalogMapper.toDeviceTypeDtos(drivers));
-		this.contract.checkBoth(json(dtos), xml(dtos), ApiContractGolden.Transform.DEVICE_TYPES);
+		this.contract.checkBoth(json(dtos), xml(dtos), Golden.Transform.DEVICE_TYPES);
 		Assertions.assertTrue(drivers.stream().anyMatch(d -> !d.getOptions().isEmpty()), "a driver with options is covered");
 	}
 

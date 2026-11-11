@@ -34,7 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  *
  * <p>Before each test, the API tokens of {@link TestServer#API_TOKENS} replace the users (they are removed
  * after the test). The test methods can receive the {@link TestServer} and an admin
- * {@link net.netshot.netshot.testing.api.NetshotApiClient} as parameters.</p>
+ * {@link net.netshot.netshot.testing.api.v0.V0Client} as parameters.</p>
  *
  * <p>Tagged {@code api}: needs Docker.</p>
  */

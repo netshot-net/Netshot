@@ -36,9 +36,9 @@ import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.api.V1Client;
-import net.netshot.netshot.testing.api.V1Endpoints;
-import net.netshot.netshot.testing.api.V1Client.Answer;
+import net.netshot.netshot.testing.api.v1.V1Client;
+import net.netshot.netshot.testing.api.v1.V1Endpoints;
+import net.netshot.netshot.testing.api.v1.V1Client.Answer;
 
 /**
  * The domains of the v1 API, over HTTP: also the reference test of the v1 conventions (envelope, filters,

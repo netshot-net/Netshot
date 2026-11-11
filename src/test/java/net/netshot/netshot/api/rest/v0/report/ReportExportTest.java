@@ -50,7 +50,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.contract.ApiContractSeed;
+import net.netshot.netshot.testing.contract.ContractSeed;
 
 /**
  * The XLSX export ({@code GET /reports/export}) with the combinations of options the
@@ -73,13 +73,13 @@ public class ReportExportTest {
 	private String apiUrl;
 	private final long startTime = System.currentTimeMillis();
 	private HttpClient httpClient;
-	private ApiContractSeed seed;
+	private ContractSeed seed;
 
 	@BeforeAll
 	void bootAndSeed(TestServer server) throws Exception {
 		this.apiUrl = server.apiUrl();
 		this.httpClient = HttpClient.newHttpClient();
-		this.seed = new ApiContractSeed(this.apiUrl, this.httpClient);
+		this.seed = new ContractSeed(this.apiUrl, this.httpClient);
 		this.seed.seed();
 	}
 
@@ -108,7 +108,7 @@ public class ReportExportTest {
 					.version(HttpClient.Version.HTTP_1_1)
 					.uri(URI.create(this.apiUrl + "/reports/export" + variant.getValue().get()))
 					.header("Accept", XLSX)
-					.header("X-Netshot-API-Token", ApiContractSeed.ADMIN_TOKEN)
+					.header("X-Netshot-API-Token", ContractSeed.ADMIN_TOKEN)
 					.GET().build(), HttpResponse.BodyHandlers.ofByteArray());
 				Assertions.assertEquals(200, response.statusCode());
 				Assertions.assertTrue(response.headers().firstValue("Content-Disposition").orElse("")

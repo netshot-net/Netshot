@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
+package net.netshot.netshot.api.rest.v0;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -45,14 +45,14 @@ import org.junit.jupiter.api.Test;
 import jakarta.ws.rs.HttpMethod;
 
 import net.netshot.netshot.testing.UnitTest;
-import net.netshot.netshot.testing.contract.ApiContractCase;
-import net.netshot.netshot.testing.contract.ApiContractCases;
-import net.netshot.netshot.testing.contract.ApiContractGolden;
-import net.netshot.netshot.testing.contract.ApiContractSeed;
+import net.netshot.netshot.testing.api.v0.V0ContractCase;
+import net.netshot.netshot.testing.api.v0.V0ContractCases;
+import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.testing.contract.ContractSeed;
 
 /**
  * Guard for the API contract tests: every JAX-RS resource method of the
- * application must be covered by a contract case (see {@link ApiContractCases}),
+ * application must be covered by a contract case (see {@link V0ContractCases}),
  * or listed, with a reason, in {@link #EXCLUSIONS}.
  *
  * <p>The resource methods are discovered by scanning the classes of the
@@ -64,11 +64,11 @@ import net.netshot.netshot.testing.contract.ApiContractSeed;
  * <p>This test does not need any database or server.</p>
  */
 @UnitTest
-public class ApiContractCoverageTest {
+public class V0ContractCoverageTest {
 
 	/**
 	 * Resource methods with no contract case, and why. The key is
-	 * {@code "<HTTP method> <path template>"}, as in {@link ApiContractCase#key()}.
+	 * {@code "<HTTP method> <path template>"}, as in {@link V0ContractCase#key()}.
 	 * There is no GET exclusion: every read endpoint has a case.
 	 */
 	private static final Map<String, String> EXCLUSIONS = Map.of();
@@ -92,7 +92,7 @@ public class ApiContractCoverageTest {
 				// The v1 API has its own contract tests
 				continue;
 			}
-			Class<?> clazz = Class.forName(className, false, ApiContractCoverageTest.class.getClassLoader());
+			Class<?> clazz = Class.forName(className, false, V0ContractCoverageTest.class.getClassLoader());
 			jakarta.ws.rs.Path classPath = clazz.getAnnotation(jakarta.ws.rs.Path.class);
 			if (classPath == null) {
 				continue;
@@ -104,7 +104,7 @@ public class ApiContractCoverageTest {
 				}
 				jakarta.ws.rs.Path methodPath = method.getAnnotation(jakarta.ws.rs.Path.class);
 				String path = classPath.value() + "/" + (methodPath == null ? "" : methodPath.value());
-				keys.add(httpMethod + " " + ApiContractCase.normalizeTemplate(path));
+				keys.add(httpMethod + " " + V0ContractCase.normalizeTemplate(path));
 			}
 		}
 		return keys;
@@ -127,7 +127,7 @@ public class ApiContractCoverageTest {
 	private static List<String> findClassNames() throws IOException, URISyntaxException {
 		List<String> names = new ArrayList<>();
 		String resource = ROOT_PACKAGE.replace('.', '/');
-		Enumeration<URL> roots = ApiContractCoverageTest.class.getClassLoader().getResources(resource);
+		Enumeration<URL> roots = V0ContractCoverageTest.class.getClassLoader().getResources(resource);
 		while (roots.hasMoreElements()) {
 			URL root = roots.nextElement();
 			if ("file".equals(root.getProtocol())) {
@@ -170,7 +170,7 @@ public class ApiContractCoverageTest {
 		Set<String> resourceMethods = findResourceMethods();
 		Assertions.assertFalse(resourceMethods.isEmpty(), "No JAX-RS resource method found, the scan is broken");
 		Set<String> covered = new HashSet<>();
-		for (ApiContractCase contractCase : ApiContractCases.all(new ApiContractSeed(null, null))) {
+		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed(null, null))) {
 			covered.add(contractCase.key());
 		}
 
@@ -182,7 +182,7 @@ public class ApiContractCoverageTest {
 		}
 		Assertions.assertTrue(missing.isEmpty(),
 			"Resource methods with neither an API contract case nor an exclusion (add cases in "
-				+ "ApiContractCases, or exclusions with a reason in ApiContractCoverageTest): " + missing);
+				+ "V0ContractCases, or exclusions with a reason in V0ContractCoverageTest): " + missing);
 
 		List<String> staleExclusions = new ArrayList<>();
 		for (Map.Entry<String, String> exclusion : EXCLUSIONS.entrySet()) {
@@ -200,7 +200,7 @@ public class ApiContractCoverageTest {
 	void everyCaseTargetsAResourceMethod() throws Exception {
 		Set<String> resourceMethods = findResourceMethods();
 		List<String> unknown = new ArrayList<>();
-		for (ApiContractCase contractCase : ApiContractCases.all(new ApiContractSeed(null, null))) {
+		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed(null, null))) {
 			if (!resourceMethods.contains(contractCase.key()) && !EXTERNAL_CASES.contains(contractCase.key())) {
 				unknown.add(contractCase.key() + " (" + contractCase.fileName() + ")");
 			}
@@ -213,7 +213,7 @@ public class ApiContractCoverageTest {
 	void goldenFilesMatchCases() throws IOException {
 		Set<String> names = new HashSet<>();
 		List<String> duplicates = new ArrayList<>();
-		for (ApiContractCase contractCase : ApiContractCases.all(new ApiContractSeed(null, null))) {
+		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed(null, null))) {
 			if (!names.add(contractCase.fileName())) {
 				duplicates.add(contractCase.fileName());
 			}
@@ -221,17 +221,17 @@ public class ApiContractCoverageTest {
 		Assertions.assertTrue(duplicates.isEmpty(), "Duplicate case names: " + duplicates);
 
 		Set<String> orphans = new TreeSet<>();
-		if (Files.isDirectory(ApiContractGolden.GOLDEN_DIR)) {
-			try (Stream<Path> files = Files.list(ApiContractGolden.GOLDEN_DIR)) {
+		if (Files.isDirectory(Golden.GOLDEN_DIR)) {
+			try (Stream<Path> files = Files.list(Golden.GOLDEN_DIR)) {
 				files.map(file -> file.getFileName().toString())
-					.filter(name -> !name.equals(ApiContractGolden.STATUS_FILE) && !names.contains(name))
+					.filter(name -> !name.equals(Golden.STATUS_FILE) && !names.contains(name))
 					.forEach(orphans::add);
 			}
 		}
 		Assertions.assertTrue(orphans.isEmpty(), "Golden files without a case (stale?): " + orphans);
 
 		Set<String> statusKeys = new TreeMap<String, String>(
-			ApiContractGolden.readStatuses().entrySet().stream()
+			Golden.readStatuses().entrySet().stream()
 				.collect(java.util.stream.Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()))).keySet();
 		Set<String> missingStatuses = new TreeSet<>(names);
 		missingStatuses.removeAll(statusKeys);

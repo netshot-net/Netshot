@@ -64,8 +64,8 @@ import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.api.NetshotApiClient;
-import net.netshot.netshot.testing.api.NetshotApiClient.WrongApiResponseException;
+import net.netshot.netshot.testing.api.v0.V0Client;
+import net.netshot.netshot.testing.api.v0.V0Client.WrongApiResponseException;
 import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -75,10 +75,10 @@ import org.junit.jupiter.api.BeforeEach;
 public class RestAuthenticationTest {
 
 	/** API client of the current test, authenticated with the admin token. */
-	private NetshotApiClient apiClient;
+	private V0Client apiClient;
 
 	@BeforeEach
-	void createApiClient(NetshotApiClient client) {
+	void createApiClient(V0Client client) {
 		this.apiClient = client;
 	}
 
