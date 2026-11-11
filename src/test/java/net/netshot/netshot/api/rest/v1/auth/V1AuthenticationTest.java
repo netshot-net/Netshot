@@ -59,8 +59,8 @@ import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
  * (log in and out, current user, own password) is tested by {@link V1AuthResourceTest}.
  */
 @ApiTest
-// Very low value for session expiration testing
-@TestProperty(name = "netshot.aaa.maxidletime", value = "10")
+// The lowest session idle timeout (5 s), for the expiration tests
+@TestProperty(name = "netshot.aaa.maxidletime", value = "5")
 @DisplayName("v1 request authentication")
 @TestInstance(Lifecycle.PER_CLASS)
 class V1AuthenticationTest {
@@ -174,7 +174,7 @@ class V1AuthenticationTest {
 		void sessionTimeout() throws Exception {
 			String cookie = this.logIn();
 			Assertions.assertEquals(200, status("/domains", "Cookie", cookie));
-			Thread.sleep(Duration.ofSeconds(15));
+			Thread.sleep(Duration.ofSeconds(7));
 			Assertions.assertEquals(401, status("/domains", "Cookie", cookie), "The session didn't expire");
 		}
 	}
@@ -265,11 +265,12 @@ class V1AuthenticationTest {
 			Answer login = this.logIn(authorizationCode);
 			Assertions.assertEquals(201, login.status(), login.toString());
 			String cookie = sessionCookie(login);
-			Thread.sleep(Duration.ofSeconds(5));
+			// Each request restarts the idle time: the session outlives the timeout as long as it is used
+			Thread.sleep(Duration.ofSeconds(3));
 			Assertions.assertEquals(200, status("/auth/me", "Cookie", cookie), "Expired before the idle timeout");
-			Thread.sleep(Duration.ofSeconds(8));
+			Thread.sleep(Duration.ofSeconds(3));
 			Assertions.assertEquals(200, status("/auth/me", "Cookie", cookie), "Expired before the idle timeout");
-			Thread.sleep(Duration.ofSeconds(15));
+			Thread.sleep(Duration.ofSeconds(7));
 			Assertions.assertEquals(401, status("/auth/me", "Cookie", cookie), "The session didn't expire after the idle timeout");
 		}
 
