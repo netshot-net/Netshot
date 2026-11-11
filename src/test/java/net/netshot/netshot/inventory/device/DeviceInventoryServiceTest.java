@@ -55,6 +55,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Device inventory service")
 class DeviceInventoryServiceTest {
 
 	private Transactions transactions;

@@ -36,6 +36,7 @@ import net.netshot.netshot.testing.UnitTest;
  * Tests of the cluster and server information use cases.
  */
 @UnitTest
+@DisplayName("Cluster service")
 class ClusterServiceTest {
 
 	private static ClusterMember member(String id, boolean local, MastershipStatus status) {

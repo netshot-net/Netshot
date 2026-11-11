@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
@@ -77,6 +78,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  */
 @ContractTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Web hook payloads")
 class HookPayloadTest {
 
 	/** When the test started (the dates near it are normalized in the outputs). */

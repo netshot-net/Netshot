@@ -69,6 +69,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * only cover the kinds of objects the seed data holds.)
  */
 @ScriptEngineTest
+@DisplayName("v0 compliance DTOs")
 class ComplianceDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

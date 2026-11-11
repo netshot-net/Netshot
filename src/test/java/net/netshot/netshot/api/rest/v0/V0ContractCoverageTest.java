@@ -64,6 +64,7 @@ import net.netshot.netshot.testing.contract.ContractSeed;
  * <p>This test does not need any database or server.</p>
  */
 @UnitTest
+@DisplayName("v0 contract coverage")
 class V0ContractCoverageTest {
 
 	/**
