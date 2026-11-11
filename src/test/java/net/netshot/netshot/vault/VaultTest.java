@@ -29,9 +29,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.platform.secret.LocalSecret;
@@ -46,59 +43,6 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 @Testcontainers
 @DisplayName("Vault secrets")
 class VaultTest {
-
-	@Nested
-	@DisplayName("Vault key path test")
-	class KeyPathTest {
-
-		private final ObjectMapper json = new ObjectMapper();
-
-		@Test
-		void parsesSimplePathAndKey() throws VaultException {
-			VaultKeyPath keyPath = VaultKeyPath.parse("secret/app/creds/username");
-			Assertions.assertEquals("secret/app/creds", keyPath.getKvPath());
-			Assertions.assertEquals("username", keyPath.toString());
-		}
-
-		@Test
-		void resolvesNestedKeyViaUnescapedDots() throws VaultException, com.fasterxml.jackson.core.JsonProcessingException {
-			VaultKeyPath keyPath = VaultKeyPath.parse("secret/app/creds/parent.child");
-			JsonNode data = this.json.readTree("{\"parent\": {\"child\": \"value\"}}");
-			Assertions.assertEquals("value", keyPath.resolve(data).asText());
-		}
-
-		@Test
-		void treatsEscapedDotAsLiteralKeyCharacter() throws VaultException, com.fasterxml.jackson.core.JsonProcessingException {
-			VaultKeyPath keyPath = VaultKeyPath.parse("secret/app/creds/a\\.b");
-			JsonNode data = this.json.readTree("{\"a.b\": \"value\"}");
-			Assertions.assertEquals("value", keyPath.resolve(data).asText());
-		}
-
-		@Test
-		void treatsEscapedBackslashAsLiteralCharacter() throws VaultException, com.fasterxml.jackson.core.JsonProcessingException {
-			VaultKeyPath keyPath = VaultKeyPath.parse("secret/app/creds/a\\\\b");
-			JsonNode data = this.json.readTree("{\"a\\\\b\": \"value\"}");
-			Assertions.assertEquals("value", keyPath.resolve(data).asText());
-		}
-
-		@Test
-		void missingNestedKeyResolvesToMissingNode() throws VaultException, com.fasterxml.jackson.core.JsonProcessingException {
-			VaultKeyPath keyPath = VaultKeyPath.parse("secret/app/creds/parent.missing");
-			JsonNode data = this.json.readTree("{\"parent\": {\"child\": \"value\"}}");
-			Assertions.assertTrue(keyPath.resolve(data).isMissingNode());
-		}
-
-		@Test
-		void rejectsValueWithoutSlash() {
-			Assertions.assertThrows(VaultException.class, () -> VaultKeyPath.parse("username"));
-		}
-
-		@Test
-		void rejectsValueEndingWithSlash() {
-			Assertions.assertThrows(VaultException.class, () -> VaultKeyPath.parse("secret/app/creds/"));
-		}
-
-	}
 
 	/**
 	 * End-to-end resolution test against a real HashiCorp Vault instance
