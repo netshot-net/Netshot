@@ -21,10 +21,14 @@ package net.netshot.netshot.task.handler;
 import java.time.Instant;
 import java.util.List;
 
+import org.apache.sshd.common.config.keys.KeyUtils;
+import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -34,6 +38,9 @@ import org.testcontainers.junit.jupiter.Container;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
+import net.netshot.netshot.inventory.device.DeviceUpdate;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -45,6 +52,7 @@ import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Characterization of {@link TakeSnapshotHandler}, run through the task engine against a Cisco IOS
@@ -211,5 +219,117 @@ class TakeSnapshotHandlerTest {
 		Device reloaded = reload(device);
 		Assertions.assertNull(reloaded.lastSnapshotSuccessDate());
 		Assertions.assertNull(reloaded.lastSnapshotFailureDate());
+	}
+
+	/**
+	 * The SSH host key verification of the snapshots, with the keys saved in the database.
+	 */
+	@Nested
+	@DisplayName("SSH host key verification")
+	class HostKeyVerification {
+
+		/**
+		 * Changes the SSH access of a device as the device service does for the web UI and the API.
+		 *
+		 * @param device the device
+		 * @param mode the verification mode
+		 * @param trustedKeys the trusted keys, or null for none
+		 * @return the access as stored
+		 */
+		private DeviceAccess setAccess(Device device, SshHostKeyVerification mode, String trustedKeys) {
+			DeviceAccess ssh = reload(device).getDeviceAccess("ssh").toBuilder()
+				.sshHostKeyVerification(mode).sshTrustedHostKeys(trustedKeys).build();
+			TestWiring.get().deviceService().update(device.id(), new DeviceUpdate(null, null, null, null, List.of(ssh), null, null, null));
+			return reload(device).getDeviceAccess("ssh");
+		}
+
+		private Task snapshot(Device device) throws Exception {
+			return TaskRunner.load(TakeSnapshotHandlerTest.this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, false, false)));
+		}
+
+		/**
+		 * Builds another key of the algorithm of a trusted key.
+		 *
+		 * @param trustedKey the trusted key line
+		 * @return the line of another key
+		 */
+		private String otherKey(String trustedKey) throws Exception {
+			String algorithm = trustedKey.substring(0, trustedKey.indexOf(' '));
+			int size = KeyPairProvider.SSH_RSA.equals(algorithm) ? 2048
+				: algorithm.endsWith("384") ? 384 : algorithm.endsWith("521") ? 521 : 256;
+			return PublicKeyEntry.toString(KeyUtils.generateKeyPair(algorithm, size).getPublic());
+		}
+
+		@Test
+		@DisplayName("Trust any (the default of an access): the snapshot succeeds, no key is saved")
+		void trustAny() throws Exception {
+			Device device = SimulatedRouter.persist(CONTAINER);
+			Assertions.assertEquals(SshHostKeyVerification.TRUST_ANY, device.getDeviceAccess("ssh").sshHostKeyVerification());
+			Assertions.assertEquals(Status.SUCCESS, this.snapshot(device).status());
+			Assertions.assertNull(reload(device).getDeviceAccess("ssh").sshTrustedHostKeys());
+		}
+
+		@Test
+		@DisplayName("Trust known: the first snapshot learns and saves the host key, the next one verifies it")
+		void learnsThenVerifies() throws Exception {
+			Device device = SimulatedRouter.persist(CONTAINER);
+			this.setAccess(device, SshHostKeyVerification.TRUST_KNOWN, null);
+
+			Task first = this.snapshot(device);
+			Assertions.assertEquals(Status.SUCCESS, first.status(), first.log());
+			Assertions.assertTrue(first.log().contains("New SSH host key accepted and saved for access 'ssh'"), first.log());
+			DeviceAccess learned = reload(device).getDeviceAccess("ssh");
+			Assertions.assertNotNull(learned.sshTrustedHostKeys());
+			Assertions.assertNotNull(learned.sshTrustedHostKeysSince());
+
+			Task second = this.snapshot(device);
+			Assertions.assertEquals(Status.SUCCESS, second.status(), second.log());
+			Assertions.assertFalse(second.log().contains("New SSH host key"), second.log());
+			DeviceAccess verified = reload(device).getDeviceAccess("ssh");
+			Assertions.assertEquals(learned.sshTrustedHostKeys(), verified.sshTrustedHostKeys());
+			Assertions.assertEquals(learned.sshTrustedHostKeysSince(), verified.sshTrustedHostKeysSince());
+		}
+
+		@Test
+		@DisplayName("Trust known: a changed host key fails the snapshot with the reason; once cleared, the key is learned again")
+		void changedThenCleared() throws Exception {
+			Device device = SimulatedRouter.persist(CONTAINER);
+			this.setAccess(device, SshHostKeyVerification.TRUST_KNOWN, null);
+			Assertions.assertEquals(Status.SUCCESS, this.snapshot(device).status());
+			String realKey = reload(device).getDeviceAccess("ssh").sshTrustedHostKeys();
+
+			// Another key set through the device service, as the web UI or the API would
+			String otherKey = this.otherKey(realKey);
+			this.setAccess(device, SshHostKeyVerification.TRUST_KNOWN, otherKey);
+			Task refused = this.snapshot(device);
+			Assertions.assertEquals(Status.FAILURE, refused.status());
+			Assertions.assertTrue(refused.log().contains("does not match the key trusted so far"), refused.log());
+			Assertions.assertEquals(otherKey, reload(device).getDeviceAccess("ssh").sshTrustedHostKeys(), "The trusted key changed");
+
+			// Cleared: learned again
+			DeviceAccess cleared = this.setAccess(device, SshHostKeyVerification.TRUST_KNOWN, null);
+			Assertions.assertNull(cleared.sshTrustedHostKeys());
+			Assertions.assertEquals(Status.SUCCESS, this.snapshot(device).status());
+			Assertions.assertEquals(realKey, reload(device).getDeviceAccess("ssh").sshTrustedHostKeys());
+		}
+
+		@Test
+		@DisplayName("Trust known: the right key set before the first snapshot is verified, nothing is learned")
+		void keySetBeforeFirstSnapshot() throws Exception {
+			Device learner = SimulatedRouter.persist(CONTAINER);
+			this.setAccess(learner, SshHostKeyVerification.TRUST_KNOWN, null);
+			Assertions.assertEquals(Status.SUCCESS, this.snapshot(learner).status());
+			String realKey = reload(learner).getDeviceAccess("ssh").sshTrustedHostKeys();
+			TaskRunner.cleanDatabase();
+
+			Device device = SimulatedRouter.persist(CONTAINER);
+			DeviceAccess set = this.setAccess(device, SshHostKeyVerification.TRUST_KNOWN, realKey);
+			Task task = this.snapshot(device);
+			Assertions.assertEquals(Status.SUCCESS, task.status(), task.log());
+			Assertions.assertFalse(task.log().contains("New SSH host key"), task.log());
+			DeviceAccess after = reload(device).getDeviceAccess("ssh");
+			Assertions.assertEquals(set.sshTrustedHostKeys(), after.sshTrustedHostKeys());
+			Assertions.assertEquals(set.sshTrustedHostKeysSince(), after.sshTrustedHostKeysSince());
+		}
 	}
 }

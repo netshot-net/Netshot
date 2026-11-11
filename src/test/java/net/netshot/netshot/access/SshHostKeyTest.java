@@ -20,6 +20,8 @@ package net.netshot.netshot.access;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.util.ArrayList;
@@ -29,7 +31,11 @@ import java.util.List;
 import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
 import org.apache.sshd.common.keyprovider.KeyPairProvider;
+import org.apache.sshd.server.Environment;
+import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.SshServer;
+import org.apache.sshd.server.channel.ChannelSession;
+import org.apache.sshd.server.command.Command;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -90,9 +96,47 @@ class SshHostKeyTest {
 		server.setPort(0);
 		server.setKeyPairProvider(KeyPairProvider.wrap(hostKey));
 		server.setPasswordAuthenticator((_, password, _) -> "good".equals(password));
+		// The access manager opens a shell, and its disconnection waits for the device to close it
+		server.setShellFactory(_ -> new ExitingShell());
 		server.start();
 		this.servers.add(server);
 		return server.getPort();
+	}
+
+	/** A shell which exits at once, as a device does after the commands of a driver. */
+	private static final class ExitingShell implements Command {
+
+		private ExitCallback exitCallback;
+
+		@Override
+		public void setInputStream(InputStream in) {
+			// Nothing is read
+		}
+
+		@Override
+		public void setOutputStream(OutputStream out) {
+			// Nothing is written
+		}
+
+		@Override
+		public void setErrorStream(OutputStream err) {
+			// Nothing is written
+		}
+
+		@Override
+		public void setExitCallback(ExitCallback callback) {
+			this.exitCallback = callback;
+		}
+
+		@Override
+		public void start(ChannelSession channel, Environment env) {
+			this.exitCallback.onExit(0);
+		}
+
+		@Override
+		public void destroy(ChannelSession channel) {
+			// Nothing to stop
+		}
 	}
 
 	@AfterEach
@@ -237,21 +281,97 @@ class SshHostKeyTest {
 	}
 
 	/**
-	 * Builds a device whose SSH access verifies the host keys, as the device creation sets it, and has no trusted key yet.
+	 * Builds a device with given accesses.
 	 *
+	 * @param accesses the accesses (none for a device whose SSH access has no settings)
 	 * @return the device
 	 */
-	private static DeviceDraft newDevice() {
+	private static DeviceDraft device(DeviceAccess... accesses) {
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
-		DeviceAccess ssh = DeviceAccess.of("ssh").toBuilder().sshHostKeyVerification(SshHostKeyVerification.TRUST_KNOWN).build();
-		return new DeviceDraft(Device.create("CiscoIOS12", null, domain, "test").toBuilder().accesses(List.of(ssh)).build());
+		return new DeviceDraft(Device.create("CiscoIOS12", null, domain, "test").toBuilder().accesses(List.of(accesses)).build());
+	}
+
+	/**
+	 * Builds a device whose SSH access verifies the host keys (trust known), with given trusted keys.
+	 *
+	 * @param trustedKeys the trusted keys, or null for none yet
+	 * @return the device
+	 */
+	private static DeviceDraft trustKnownDevice(String trustedKeys) {
+		return device(DeviceAccess.of("ssh").toBuilder().sshHostKeyVerification(SshHostKeyVerification.TRUST_KNOWN)
+			.sshTrustedHostKeys(trustedKeys).build());
+	}
+
+	/**
+	 * Resolves the SSH access of a device, through a new access manager.
+	 *
+	 * @param device the device
+	 * @param port the port of the SSH server
+	 * @param taskContext the task context
+	 * @return null if the access was resolved, the failure otherwise
+	 */
+	private static Exception connect(DeviceDraft device, int port, FakeTaskContext taskContext) {
+		AccessManager manager = accessManager(device, List.of(account("good")), taskContext);
+		try {
+			resolution(manager, port, new ArrayList<>()).ensureResolved(true);
+			return null;
+		}
+		catch (Exception e) {
+			return e;
+		}
+		finally {
+			manager.disconnectAll();
+		}
 	}
 
 	@Test
-	@DisplayName("The host key learned by a successful connection is saved on the access of the device, then verified")
+	@DisplayName("Trust any (the default mode of an access): any host key is accepted, none is saved")
+	void trustAnyAccess() throws IOException {
+		DeviceDraft device = device(DeviceAccess.of("ssh"));
+		Assertions.assertEquals(SshHostKeyVerification.TRUST_ANY, device.getDeviceAccess("ssh").sshHostKeyVerification());
+		Assertions.assertNull(connect(device, this.startServer(HOST_KEY), new FakeTaskContext()));
+		Assertions.assertNull(connect(device, this.startServer(OTHER_HOST_KEY), new FakeTaskContext()));
+		Assertions.assertNull(device.getDeviceAccess("ssh").sshTrustedHostKeys());
+	}
+
+	@Test
+	@DisplayName("An access without settings (one-time credentials) accepts any host key, and saves none")
+	void accessWithoutSettings() throws IOException {
+		DeviceDraft device = device();
+		Assertions.assertNull(connect(device, this.startServer(HOST_KEY), new FakeTaskContext()));
+		Assertions.assertNull(connect(device, this.startServer(OTHER_HOST_KEY), new FakeTaskContext()));
+		DeviceAccess access = device.getDeviceAccess("ssh");
+		Assertions.assertTrue(access == null || access.sshTrustedHostKeys() == null, String.valueOf(access));
+	}
+
+	@Test
+	@DisplayName("Trust known: a key set by hand is verified from the first connection, nothing is learned")
+	void keySetByHand() throws IOException {
+		DeviceDraft device = trustKnownDevice(line(HOST_KEY));
+		Assertions.assertNull(connect(device, this.startServer(HOST_KEY), new FakeTaskContext()));
+		FakeTaskContext taskContext = new FakeTaskContext();
+		Assertions.assertNotNull(connect(device, this.startServer(OTHER_HOST_KEY), taskContext));
+		Assertions.assertTrue(taskContext.getLog().contains("does not match the key trusted so far"), taskContext.getLog());
+		Assertions.assertEquals(line(HOST_KEY), device.getDeviceAccess("ssh").sshTrustedHostKeys());
+		Assertions.assertNull(device.getDeviceAccess("ssh").sshTrustedHostKeysSince(), "A key was learned");
+	}
+
+	@Test
+	@DisplayName("Trust known: once the known key is cleared, the next connection learns the key again")
+	void clearedKeyIsLearnedAgain() throws IOException {
+		DeviceDraft device = trustKnownDevice(line(HOST_KEY));
+		int otherPort = this.startServer(OTHER_HOST_KEY);
+		Assertions.assertNotNull(connect(device, otherPort, new FakeTaskContext()), "Changed key accepted");
+		DeviceDraft cleared = trustKnownDevice(null);
+		Assertions.assertNull(connect(cleared, otherPort, new FakeTaskContext()));
+		Assertions.assertEquals(line(OTHER_HOST_KEY), cleared.getDeviceAccess("ssh").sshTrustedHostKeys());
+	}
+
+	@Test
+	@DisplayName("Trust known: the host key learned by a successful connection is saved on the access of the device, then verified")
 	void savesLearnedHostKey() throws IOException {
 		int port = this.startServer(HOST_KEY);
-		DeviceDraft device = newDevice();
+		DeviceDraft device = trustKnownDevice(null);
 		AccessManager manager = accessManager(device, List.of(account("good")), new FakeTaskContext());
 		try {
 			Assertions.assertNotNull(resolution(manager, port, new ArrayList<>()).ensureResolved(true));
@@ -262,6 +382,10 @@ class SshHostKeyTest {
 		DeviceAccess access = device.getDeviceAccess("ssh");
 		Assertions.assertEquals(line(HOST_KEY), access.sshTrustedHostKeys());
 		Assertions.assertNotNull(access.sshTrustedHostKeysSince());
+
+		// A new connection to the same server: accepted, nothing changes
+		Assertions.assertNull(connect(device, port, new FakeTaskContext()));
+		Assertions.assertEquals(access, device.getDeviceAccess("ssh"));
 
 		// Another server answering on the address of the device: refused, the other credential sets aren't tried,
 		// the reason is in the task log
@@ -284,7 +408,7 @@ class SshHostKeyTest {
 	@DisplayName("A host key seen by a connection which failed to log in is not saved")
 	void failedLoginSavesNothing() throws IOException {
 		int port = this.startServer(HOST_KEY);
-		DeviceDraft device = newDevice();
+		DeviceDraft device = trustKnownDevice(null);
 		AccessManager manager = accessManager(device, List.of(account("bad")), new FakeTaskContext());
 		try {
 			Assertions.assertThrows(Exception.class, () -> resolution(manager, port, new ArrayList<>()).ensureResolved(true));

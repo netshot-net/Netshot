@@ -21,6 +21,9 @@ package net.netshot.netshot.api.rest.v1.device;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.sshd.common.config.keys.KeyUtils;
+import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +41,7 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
@@ -362,6 +366,47 @@ class V1DeviceWriteResourceTest {
 		Device other = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(this.paris, null, 2));
 		Answer duplicate = this.admin.put(path, "{\"mgmtAddress\": \"" + other.mgmtAddress() + "\", \"mgmtDomain\": " + this.paris.id() + "}");
 		Assertions.assertEquals(409, duplicate.status(), duplicate.toString());
+	}
+
+	@Test
+	@DisplayName("SSH host keys: trust any by default; known keys set (normalized), cleared and refused when invalid")
+	void sshHostKeys() throws Exception {
+		String key = PublicKeyEntry.toString(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP256, 256).getPublic());
+		Answer added = this.admin.post("/devices", this.creation(", \"accesses\": [{\"accessName\": \"ssh\"}]"));
+		Assertions.assertEquals(202, added.status(), added.toString());
+		long id = this.storedDevice(added).id();
+		String path = "/devices/" + id;
+		JsonNode ssh = this.admin.get(path).json().get("accesses").get(0);
+		Assertions.assertEquals("TRUST_ANY", ssh.get("sshHostKeyVerification").asText(), ssh.toString());
+		Assertions.assertTrue(ssh.path("sshTrustedHostKeys").isNull() || ssh.path("sshTrustedHostKeys").isMissingNode(), ssh.toString());
+		Assertions.assertEquals("SYSTEM_TRUSTSTORE", ssh.get("httpsCaTrustMode").asText(), ssh.toString());
+
+		Answer set = this.admin.patch(path, """
+			{"accesses": [{"accessName": "ssh", "sshHostKeyVerification": "TRUST_KNOWN",
+			"sshTrustedHostKeys": "# Router 1\\nrouter1.example.net %s root@router1"}]}""".formatted(key));
+		Assertions.assertEquals(200, set.status(), set.toString());
+		JsonNode known = set.json().get("accesses").get(0);
+		Assertions.assertEquals("TRUST_KNOWN", known.get("sshHostKeyVerification").asText());
+		Assertions.assertEquals(key, known.get("sshTrustedHostKeys").asText());
+		Assertions.assertFalse(known.path("sshTrustedHostKeysSince").isNull(), known.toString());
+		Assertions.assertEquals(key, TestDevices.find(id).getDeviceAccess("ssh").sshTrustedHostKeys());
+
+		Answer invalid = this.admin.patch(path, """
+			{"accesses": [{"accessName": "ssh", "sshHostKeyVerification": "TRUST_KNOWN", "sshTrustedHostKeys": "ssh-rsa AAAA"}]}""");
+		Assertions.assertEquals(400, invalid.status(), invalid.toString());
+		Assertions.assertEquals(key, TestDevices.find(id).getDeviceAccess("ssh").sshTrustedHostKeys(), "Changed by a refused request");
+
+		Answer cleared = this.admin.patch(path, """
+			{"accesses": [{"accessName": "ssh", "sshHostKeyVerification": "TRUST_KNOWN", "sshTrustedHostKeys": null}]}""");
+		Assertions.assertEquals(200, cleared.status(), cleared.toString());
+		DeviceAccess stored = TestDevices.find(id).getDeviceAccess("ssh");
+		Assertions.assertEquals(SshHostKeyVerification.TRUST_KNOWN, stored.sshHostKeyVerification());
+		Assertions.assertNull(stored.sshTrustedHostKeys());
+		Assertions.assertNull(stored.sshTrustedHostKeysSince());
+
+		Answer any = this.admin.patch(path, "{\"accesses\": [{\"accessName\": \"ssh\", \"sshHostKeyVerification\": \"TRUST_ANY\"}]}");
+		Assertions.assertEquals(200, any.status(), any.toString());
+		Assertions.assertEquals(SshHostKeyVerification.TRUST_ANY, TestDevices.find(id).getDeviceAccess("ssh").sshHostKeyVerification());
 	}
 
 	@Test
