@@ -123,7 +123,7 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
         authKey: access?.specificCredentialSet ? PASSWORD_UNCHANGED : "",
         privType: specific?.privType as HashingAlgorithm | undefined,
         privKey: access?.specificCredentialSet ? PASSWORD_UNCHANGED : "",
-        sshHostKeyVerification: access?.sshHostKeyVerification ?? SshHostKeyVerification.TrustKnown,
+        sshHostKeyVerification: access?.sshHostKeyVerification ?? SshHostKeyVerification.TrustAny,
         sshTrustedHostKeys: access?.sshTrustedHostKeys ?? "",
         httpsCaTrustMode: access?.httpsCaTrustMode ?? HttpsCaTrustMode.SystemTruststore,
         httpsCustomCaCertificate: access?.httpsCustomCaCertificate ?? "",

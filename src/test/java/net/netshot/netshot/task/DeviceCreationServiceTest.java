@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.sshd.common.config.keys.KeyUtils;
+import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -143,6 +146,26 @@ class DeviceCreationServiceTest {
 	}
 
 	@Test
+	@DisplayName("create() stores the trusted SSH host keys of an access normalized, and refuses an invalid one")
+	void createTrustedHostKeys() throws Exception {
+		String key = PublicKeyEntry.toString(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP256, 256).getPublic());
+		DeviceAccess ssh = access("ssh").toBuilder().sshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN)
+			.sshTrustedHostKeys("# Router 1\n\nrouter1.example.net " + key + " root@router1\n").build();
+		Device created = this.deviceOf(this.creationService.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
+			"CiscoIOS12", List.of(ssh), null, null, null, AUTHOR)));
+		DeviceAccess stored = this.service.get(created.id()).getDeviceAccess("ssh");
+		Assertions.assertEquals(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN, stored.sshHostKeyVerification());
+		Assertions.assertEquals(key, stored.sshTrustedHostKeys(), "Comments, blank lines, host name and key comment dropped");
+		Assertions.assertNotNull(stored.sshTrustedHostKeysSince());
+
+		String address = this.nextAddress();
+		DeviceAccess invalid = access("ssh").toBuilder().sshTrustedHostKeys("ssh-ed25519 not-a-key").build();
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.creationService.create(new DeviceCreation(false, address,
+			this.domainId, "CiscoIOS12", List.of(invalid), null, null, null, AUTHOR)));
+		Assertions.assertEquals(0, this.countDevices(address));
+	}
+
+	@Test
 	@DisplayName("create() accepts comments of up to 4096 characters, and refuses longer ones")
 	void createCommentsLength() {
 		String address = this.nextAddress();
@@ -182,13 +205,13 @@ class DeviceCreationServiceTest {
 	}
 
 	@Test
-	@DisplayName("create() applies the strict SSH host key verification to an access which has none")
+	@DisplayName("create() applies the default SSH host key verification (trust any) and HTTPS trust (system) to an access which has none")
 	void createDefaultHostKeyVerification() {
 		DeviceAccess ssh = access("ssh").toBuilder().sshHostKeyVerification(null).httpsCaTrustMode(null).build();
 		Device created = this.deviceOf(this.creationService.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
 			"CiscoIOS12", List.of(ssh), null, null, null, AUTHOR)));
 		DeviceAccess stored = this.service.get(created.id()).getDeviceAccess("ssh");
-		Assertions.assertEquals(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN, stored.sshHostKeyVerification());
+		Assertions.assertEquals(DeviceAccess.SshHostKeyVerification.TRUST_ANY, stored.sshHostKeyVerification());
 		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, stored.httpsCaTrustMode());
 	}
 

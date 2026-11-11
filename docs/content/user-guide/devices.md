@@ -112,8 +112,8 @@ Each network access on a device — not just the primary one — carries its own
 
 **SSH host key verification**, for SSH-based access:
 
-- **Trust known keys** (the default for a new access) — trust on first use: while no key is known, the first host key presented is learned and saved on the access once the connection succeeds; afterwards, only a matching key is accepted, and a key of another algorithm is rejected rather than silently trusted. Known keys can also be pasted in manually (one per line, `<algorithm> <base64-key>` format, `known_hosts`-style without a hostname prefix). The verification also applies to the additional SSH sessions opened by a driver to download files (SCP/SFTP).
-- **Trust any** — accept any host key presented by the device (offers no protection against interception). The accesses of the devices created before the verification existed keep this behavior after an upgrade.
+- **Trust any** (the default) — accept any host key presented by the device (offers no protection against interception). No key is learned nor saved.
+- **Trust known keys** — to choose in the access settings (web UI or REST API) to verify the host key. Trust on first use: while no key is known, the first host key presented is learned and saved on the access once the connection succeeds; afterwards, only a matching key is accepted, a different one fails the connection (the task log tells why), and a key of another algorithm is rejected rather than silently trusted. Known keys can also be pasted in manually (one per line, `<algorithm> <base64-key>`; a `known_hosts` line is accepted, its host names and comment are dropped). After an expected change of the key (device reinstalled), clear the known keys: the next connection learns the new key. The verification also applies to the additional SSH sessions opened by a driver to download files (SCP/SFTP).
 
 **HTTPS certificate trust**, for HTTP(S)-based access:
 

@@ -35,8 +35,8 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * (in the device representation) and read (in the requests which add or edit a device).
  *
  * <p>When read, the {@code sshHostKeyVerification} is {@code TRUST_ANY} if the property is absent
- * from the request, and {@code null} if it is explicitly null (the device service then applies
- * {@code TRUST_KNOWN}): see {@link SshHostKeyVerificationDeserializer}.</p>
+ * from the request, and {@code null} if it is explicitly null (the device service then applies its
+ * default, also {@code TRUST_ANY}): see {@link SshHostKeyVerificationDeserializer}.</p>
  *
  * @param accessName the access name, as declared by the device driver
  * @param address the address to connect to instead of the management address
@@ -64,7 +64,7 @@ public record DeviceAccessDto(
 	/**
 	 * Reads the SSH host key verification mode, giving a different meaning to an absent property
 	 * (the default mode, {@code TRUST_ANY}) and to an explicit null (no mode: the device service
-	 * applies {@code TRUST_KNOWN}), as the request used to be read.
+	 * applies its default, also {@code TRUST_ANY}), as the request used to be read.
 	 */
 	public static final class SshHostKeyVerificationDeserializer extends JsonDeserializer<SshHostKeyVerification> {
 
