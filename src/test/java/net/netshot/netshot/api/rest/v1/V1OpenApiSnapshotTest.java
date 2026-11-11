@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import io.swagger.v3.core.util.Json;
 import net.netshot.netshot.testing.UnitTest;
-import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.Golden;
 
 /**
  * Keeps the snapshot of the OpenAPI document of the v1 API, which the web UI generates its API types from
@@ -53,14 +53,14 @@ public class V1OpenApiSnapshotTest {
 			}
 		});
 		String document = Json.pretty().writeValueAsString(V1OpenApiResource.build(application)) + "\n";
-		if (ApiContractGolden.isUpdateMode()) {
+		if (Golden.isUpdateMode()) {
 			Files.createDirectories(SNAPSHOT.getParent());
 			Files.writeString(SNAPSHOT, document, StandardCharsets.UTF_8);
 		}
 		Assertions.assertTrue(Files.exists(SNAPSHOT), "No OpenAPI snapshot at " + SNAPSHOT
-			+ " (run with -D" + ApiContractGolden.UPDATE_PROPERTY + "=true)");
+			+ " (run with -D" + Golden.UPDATE_PROPERTY + "=true)");
 		Assertions.assertEquals(Files.readString(SNAPSHOT, StandardCharsets.UTF_8), document,
-			"The OpenAPI snapshot of the web UI is outdated: run with -D" + ApiContractGolden.UPDATE_PROPERTY
+			"The OpenAPI snapshot of the web UI is outdated: run with -D" + Golden.UPDATE_PROPERTY
 				+ "=true, then npm run api:types in src/main/resources/webui");
 	}
 }

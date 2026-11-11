@@ -57,7 +57,7 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.Golden;
 import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
@@ -170,8 +170,8 @@ class TaskDtoTest {
 	}
 
 	private void assertRepresentation(TaskDto dto, String message) throws Exception {
-		this.contract.check(message, ApiContractGolden.Format.JSON, json(dto));
-		this.contract.check(message, ApiContractGolden.Format.XML, xml(dto));
+		this.contract.check(message, Golden.Format.JSON, json(dto));
+		this.contract.check(message, Golden.Format.XML, xml(dto));
 	}
 
 	@Test
@@ -196,7 +196,7 @@ class TaskDtoTest {
 	void listRepresentation() throws Exception {
 		List<Task> tasks = this.allTasks();
 		List<TaskDto> dtos = tasks.stream().map(task -> TaskMapper.toDto(TestDrivers.registry(), task)).toList();
-		this.contract.check("listRepresentation", ApiContractGolden.Format.JSON, JSON.writer()
+		this.contract.check("listRepresentation", Golden.Format.JSON, JSON.writer()
 			.forType(new TypeReference<List<TaskDto>>() { }).writeValueAsBytes(dtos));
 	}
 

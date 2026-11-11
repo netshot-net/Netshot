@@ -47,8 +47,8 @@ import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.contract.ApiContractGolden;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.testing.contract.Golden.Format;
 
 /**
  * Golden file tests of the web hook payloads: the body posted for each task type that can trigger
@@ -150,8 +150,8 @@ public class WebHookContractTest {
 			Assertions.assertEquals(FORMATS.size(), this.received.size(), "Number of hook requests for " + caseName);
 			for (Map.Entry<WebHook.Action, Format> action : FORMATS.entrySet()) {
 				Received request = this.received.stream().filter(r -> r.path().equals("/" + action.getKey())).findFirst().orElseThrow();
-				String canonical = new ApiContractGolden(this.startTime)
-					.canonicalize(action.getValue(), request.body(), ApiContractGolden.Transform.NONE, false);
+				String canonical = new Golden(this.startTime)
+					.canonicalize(action.getValue(), request.body(), Golden.Transform.NONE, false);
 				payloads.put(action.getValue(), "# Content-Type: " + request.contentType() + "\n" + canonical);
 			}
 		}
@@ -171,15 +171,15 @@ public class WebHookContractTest {
 					Map<Format, String> payloads = cache.updateAndGet(known -> known != null ? known : this.payloads(task.getKey(), task.getValue()));
 					String actual = payloads.get(format);
 					if (update) {
-						ApiContractGolden.writeGolden(GOLDEN_DIR, fileName, actual);
+						Golden.writeGolden(GOLDEN_DIR, fileName, actual);
 						return;
 					}
-					String expected = ApiContractGolden.readGolden(GOLDEN_DIR, fileName);
+					String expected = Golden.readGolden(GOLDEN_DIR, fileName);
 					Assertions.assertNotNull(expected, "No golden file " + fileName
 						+ " (run with -D" + UPDATE_PROPERTY + "=true to create it)");
 					if (!expected.equals(actual)) {
 						Assertions.fail("Hook payload changed for " + fileName + ":\n"
-							+ ApiContractGolden.diff(expected, actual, fileName));
+							+ Golden.diff(expected, actual, fileName));
 					}
 				}));
 			}

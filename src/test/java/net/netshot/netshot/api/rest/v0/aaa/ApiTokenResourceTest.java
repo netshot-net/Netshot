@@ -33,7 +33,7 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.api.v0.V0Client;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,14 +45,14 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 public class ApiTokenResourceTest {
 
 	/** API client of the current test, authenticated with the admin token. */
-	private NetshotApiClient apiClient;
+	private V0Client apiClient;
 
 	private final Transactions transactions = TestWiring.get().transactions();
 
 	private final ApiTokenRepository repository = new ApiTokenRepository();
 
 	@BeforeEach
-	void createApiClient(NetshotApiClient client) {
+	void createApiClient(V0Client client) {
 		this.apiClient = client;
 	}
 

@@ -24,7 +24,7 @@ import java.util.Map;
 
 import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.api.v0.V0Client;
 
 /**
  * The REST server of an {@link ApiTest} or {@link ContractTest} class, which the test methods (including
@@ -88,7 +88,7 @@ public final class TestServer {
 	 * @return the client
 	 * @throws URISyntaxException never, the URL being valid
 	 */
-	public NetshotApiClient client() throws URISyntaxException {
+	public V0Client client() throws URISyntaxException {
 		return this.client(UiUser.LEVEL_ADMIN);
 	}
 
@@ -99,7 +99,7 @@ public final class TestServer {
 	 * @return the client
 	 * @throws URISyntaxException never, the URL being valid
 	 */
-	public NetshotApiClient client(int level) throws URISyntaxException {
-		return new NetshotApiClient(this.apiUrl, API_TOKENS.get(level));
+	public V0Client client(int level) throws URISyntaxException {
+		return new V0Client(this.apiUrl, API_TOKENS.get(level));
 	}
 }

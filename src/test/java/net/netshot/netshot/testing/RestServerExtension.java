@@ -28,7 +28,7 @@ import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.platform.database.schema.Tables;
-import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.api.v0.V0Client;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -46,7 +46,7 @@ import org.quartz.impl.SchedulerRepository;
  * the annotated class, starts the task manager and the REST server (waiting for it to listen); after it,
  * stops the server and clears the schedulers. For an {@link ApiTest}, also replaces the users by the API
  * tokens of {@link TestServer#API_TOKENS} before each test, and removes the tokens after it. Resolves the
- * {@link TestServer} and (admin) {@link NetshotApiClient} parameters.
+ * {@link TestServer} and (admin) {@link V0Client} parameters.
  */
 public final class RestServerExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback,
 	ParameterResolver {
@@ -127,7 +127,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 	@Override
 	public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
 		Class<?> type = parameterContext.getParameter().getType();
-		return type == TestServer.class || type == NetshotApiClient.class;
+		return type == TestServer.class || type == V0Client.class;
 	}
 
 	@Override

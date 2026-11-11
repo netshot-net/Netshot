@@ -83,7 +83,7 @@ import com.github.difflib.patch.Patch;
  * are replaced by a placeholder named after the key.</li>
  * </ul>
  */
-public final class ApiContractGolden {
+public final class Golden {
 
 	/** Placeholder for timestamps generated while the test runs. */
 	public static final String NOW_PLACEHOLDER = "<now>";
@@ -144,7 +144,7 @@ public final class ApiContractGolden {
 	 * Builds a golden helper.
 	 * @param startTime the time the test run started (epoch milliseconds)
 	 */
-	public ApiContractGolden(long startTime) {
+	public Golden(long startTime) {
 		this.windowStart = startTime - WINDOW;
 		this.windowEnd = startTime + WINDOW;
 	}
@@ -261,7 +261,7 @@ public final class ApiContractGolden {
 			object.properties().forEach(entry -> dropSchemas(entry.getValue()));
 		}
 		else if (node instanceof ArrayNode array) {
-			array.forEach(ApiContractGolden::dropSchemas);
+			array.forEach(Golden::dropSchemas);
 		}
 	}
 

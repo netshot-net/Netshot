@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.testing.api;
+package net.netshot.netshot.testing.api.v0;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -29,7 +29,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
  * throws {@code NetshotException}); the tests keep it as the reference the rendering of the errors is
  * compared with.
  */
-public class NetshotBadRequestException extends WebApplicationException {
+public class V0BadRequestException extends WebApplicationException {
 
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = -4538169756895835186L;
@@ -40,7 +40,7 @@ public class NetshotBadRequestException extends WebApplicationException {
 	 * @param message the message
 	 * @param reason the reason
 	 */
-	public NetshotBadRequestException(String message, ErrorCode reason) {
+	public V0BadRequestException(String message, ErrorCode reason) {
 		super(Response.status(reason.getHttpStatus())
 			.entity(new RsErrorBean(message, reason.getCode())).build());
 	}

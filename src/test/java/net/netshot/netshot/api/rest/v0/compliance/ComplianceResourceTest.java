@@ -43,7 +43,7 @@ import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestCompliance;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.api.v0.V0Client;
 
 @ApiTest
 @DisplayName("Compliance tests")
@@ -51,10 +51,10 @@ import net.netshot.netshot.testing.api.NetshotApiClient;
 public class ComplianceResourceTest {
 
 	/** API client of the current test, authenticated with the admin token. */
-	private NetshotApiClient apiClient;
+	private V0Client apiClient;
 
 	@BeforeEach
-	void createApiClient(NetshotApiClient client) {
+	void createApiClient(V0Client client) {
 		this.apiClient = client;
 	}
 

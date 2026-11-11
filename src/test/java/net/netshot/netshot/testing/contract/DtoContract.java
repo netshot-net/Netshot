@@ -31,11 +31,11 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.platform.secret.Secret;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.Golden.Format;
 
 /**
  * Expected files of the DTO tests: what a DTO writes (JSON, XML or YAML, in the canonical form of
- * {@link ApiContractGolden}) is compared with a stored file, so the tests need no other object to
+ * {@link Golden}) is compared with a stored file, so the tests need no other object to
  * compute the expectation.
  *
  * <p>Files live under {@code src/test/resources/dto-contract/<test class>/<case>.<extension>}. They are
@@ -53,12 +53,12 @@ public final class DtoContract implements BeforeEachCallback {
 
 	/**
 	 * Start time far away from any value the tests hold: no number is taken for a timestamp generated
-	 * while the test runs (the window around the start time is the one of {@link ApiContractGolden}).
+	 * while the test runs (the window around the start time is the one of {@link Golden}).
 	 */
 	private static final long NEVER = Long.MIN_VALUE / 4;
 
 	private final Path dir;
-	private final ApiContractGolden golden;
+	private final Golden golden;
 	private final Map<String, Integer> counters = new HashMap<>();
 	private String method = "";
 
@@ -78,7 +78,7 @@ public final class DtoContract implements BeforeEachCallback {
 	 */
 	public DtoContract(Class<?> testClass, long startTime) {
 		this.dir = DIR.resolve(testClass.getSimpleName());
-		this.golden = new ApiContractGolden(startTime);
+		this.golden = new Golden(startTime);
 	}
 
 	public static boolean isUpdateMode() {
@@ -97,7 +97,7 @@ public final class DtoContract implements BeforeEachCallback {
 	 * @param xml what the DTO writes in XML
 	 */
 	public void checkBoth(byte[] json, byte[] xml) {
-		this.checkBoth(json, xml, ApiContractGolden.Transform.NONE);
+		this.checkBoth(json, xml, Golden.Transform.NONE);
 	}
 
 	/**
@@ -107,7 +107,7 @@ public final class DtoContract implements BeforeEachCallback {
 	 * @param xml what the DTO writes in XML
 	 * @param transform the projection to apply to the bodies before they are compared
 	 */
-	public void checkBoth(byte[] json, byte[] xml, ApiContractGolden.Transform transform) {
+	public void checkBoth(byte[] json, byte[] xml, Golden.Transform transform) {
 		int count = this.counters.merge(this.method, 1, Integer::sum);
 		String name = this.method + "-" + count;
 		this.check(name, Format.JSON, json, transform);
@@ -121,7 +121,7 @@ public final class DtoContract implements BeforeEachCallback {
 	 * @param body the body written by the DTO
 	 */
 	public void check(String name, Format format, byte[] body) {
-		this.check(name, format, body, ApiContractGolden.Transform.NONE);
+		this.check(name, format, body, Golden.Transform.NONE);
 	}
 
 	/**
@@ -131,7 +131,7 @@ public final class DtoContract implements BeforeEachCallback {
 	 * @param body the body written by the DTO
 	 * @param transform the projection to apply to the body before it is compared
 	 */
-	public void check(String name, Format format, byte[] body, ApiContractGolden.Transform transform) {
+	public void check(String name, Format format, byte[] body, Golden.Transform transform) {
 		this.checkCanonical(name, format, this.golden.canonicalize(format, body, transform, false));
 	}
 
@@ -144,15 +144,15 @@ public final class DtoContract implements BeforeEachCallback {
 	public void checkCanonical(String name, Format format, String actual) {
 		String fileName = name.replaceAll("[^A-Za-z0-9._-]+", "_") + "." + format.extension;
 		if (isUpdateMode()) {
-			ApiContractGolden.writeGolden(this.dir, fileName, actual);
+			Golden.writeGolden(this.dir, fileName, actual);
 			return;
 		}
-		String expected = ApiContractGolden.readGolden(this.dir, fileName);
+		String expected = Golden.readGolden(this.dir, fileName);
 		Assertions.assertNotNull(expected, "No expected file " + this.dir.resolve(fileName)
 			+ " (run with -D" + UPDATE_PROPERTY + "=true to create it)");
 		if (!expected.equals(actual)) {
 			Assertions.fail("The " + format + " written for " + this.dir.getFileName() + "/" + fileName + " changed:\n"
-				+ ApiContractGolden.diff(expected, actual, fileName));
+				+ Golden.diff(expected, actual, fileName));
 		}
 	}
 
@@ -164,10 +164,10 @@ public final class DtoContract implements BeforeEachCallback {
 	public void checkText(String name, String actual) {
 		String fileName = name.replaceAll("[^A-Za-z0-9._-]+", "_") + ".txt";
 		if (isUpdateMode()) {
-			ApiContractGolden.writeGolden(this.dir, fileName, actual);
+			Golden.writeGolden(this.dir, fileName, actual);
 			return;
 		}
-		String expected = ApiContractGolden.readGolden(this.dir, fileName);
+		String expected = Golden.readGolden(this.dir, fileName);
 		Assertions.assertNotNull(expected, "No expected file " + this.dir.resolve(fileName)
 			+ " (run with -D" + UPDATE_PROPERTY + "=true to create it)");
 		Assertions.assertEquals(expected, actual, "The text of " + this.dir.getFileName() + "/" + fileName + " changed");

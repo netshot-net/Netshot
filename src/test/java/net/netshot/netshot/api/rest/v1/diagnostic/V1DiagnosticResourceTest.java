@@ -44,9 +44,9 @@ import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.api.V1Client;
-import net.netshot.netshot.testing.api.V1Client.Answer;
-import net.netshot.netshot.testing.api.V1Endpoints;
+import net.netshot.netshot.testing.api.v1.V1Client;
+import net.netshot.netshot.testing.api.v1.V1Client.Answer;
+import net.netshot.netshot.testing.api.v1.V1Endpoints;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 /**

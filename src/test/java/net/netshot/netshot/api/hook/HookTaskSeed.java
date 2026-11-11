@@ -38,11 +38,11 @@ import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.contract.ApiContractSeed;
+import net.netshot.netshot.testing.contract.ContractSeed;
 
 /**
  * The dataset of the web hook tests ({@code @ContractTest} classes, whose tasks are stored but never
- * run): the one of {@link ApiContractSeed}, plus a few tasks (one for each task type not covered by
+ * run): the one of {@link ContractSeed}, plus a few tasks (one for each task type not covered by
  * the seed).
  */
 final class HookTaskSeed {
@@ -59,7 +59,7 @@ final class HookTaskSeed {
 	 * @throws Exception if the seed fails
 	 */
 	static Map<String, Long> seed(String apiUrl) throws Exception {
-		ApiContractSeed seed = new ApiContractSeed(apiUrl, HttpClient.newHttpClient());
+		ContractSeed seed = new ContractSeed(apiUrl, HttpClient.newHttpClient());
 		seed.seed();
 		Map<String, Long> taskIds = new LinkedHashMap<>();
 		addTasks(seed, taskIds);
@@ -72,7 +72,7 @@ final class HookTaskSeed {
 	 * @param seed the seeded dataset
 	 * @param taskIds the map to fill with the task IDs, by case name
 	 */
-	private static void addTasks(ApiContractSeed seed, Map<String, Long> taskIds) {
+	private static void addTasks(ContractSeed seed, Map<String, Long> taskIds) {
 		String[] seeded = {
 			"TakeSnapshotTask=task.snapshot", "TakeSnapshotTask-failed=task.failed",
 			"CheckComplianceTask=task.compliance", "RunDiagnosticsTask=task.diagnostics",
@@ -86,7 +86,7 @@ final class HookTaskSeed {
 		}
 		TestWiring.get().transactions().run(dsl -> {
 			DeviceGroup group = new GroupRepository().find(dsl, seed.id("group.static"));
-			long created = ApiContractSeed.D2022 + 10000;
+			long created = ContractSeed.D2022 + 10000;
 
 			Task groupSoftware = taskData(dsl, GroupBasedTask.of(new CheckGroupSoftwareTask(group.id(), null), group.name(),
 				"Group software", "tester"), Task.Status.SUCCESS, created, "Software checked");

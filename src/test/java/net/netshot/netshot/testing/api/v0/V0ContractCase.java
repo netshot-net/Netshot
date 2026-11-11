@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.testing.contract;
+package net.netshot.netshot.testing.api.v0;
 
 import java.io.IOException;
 import java.net.URI;
@@ -29,8 +29,9 @@ import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Transform;
+import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.testing.contract.Golden.Format;
+import net.netshot.netshot.testing.contract.Golden.Transform;
 
 /**
  * One API contract case: a request and the name of the golden file its
@@ -41,7 +42,7 @@ import net.netshot.netshot.testing.contract.ApiContractGolden.Transform;
  * seeded (or once a previous case created something). Building the case list
  * itself does not need a database, which is what the coverage guard relies on.</p>
  */
-public final class ApiContractCase {
+public final class V0ContractCase {
 
 	public static final String JSON = "application/json";
 	public static final String XML = "application/xml";
@@ -68,7 +69,7 @@ public final class ApiContractCase {
 		}
 
 		JsonNode json() {
-			return ApiContractGolden.parseJson(new String(this.body, StandardCharsets.UTF_8));
+			return Golden.parseJson(new String(this.body, StandardCharsets.UTF_8));
 		}
 	}
 
@@ -90,7 +91,7 @@ public final class ApiContractCase {
 	/** Whether the items of the root list have no defined order. */
 	public final boolean sortRoot;
 
-	private ApiContractCase(Builder builder) {
+	private V0ContractCase(Builder builder) {
 		this.method = builder.method;
 		this.template = builder.template;
 		this.variant = builder.variant;
@@ -266,8 +267,8 @@ public final class ApiContractCase {
 			return this;
 		}
 
-		ApiContractCase build() {
-			return new ApiContractCase(this);
+		V0ContractCase build() {
+			return new V0ContractCase(this);
 		}
 	}
 }

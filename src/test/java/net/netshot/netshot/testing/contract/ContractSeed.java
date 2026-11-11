@@ -115,7 +115,7 @@ import net.netshot.netshot.testing.TestWiring;
  * normalizer masks), and entities with children are persisted child by child
  * rather than through a cascade over an unordered set.</p>
  */
-public final class ApiContractSeed {
+public final class ContractSeed {
 
 	public static final String ADMIN_TOKEN = "hLXg3ABu1qWJPle3Z3Z22X0aLkx5T354";
 	public static final String READONLY_TOKEN = "mwAPEe0mQlBvKuUYYS5MiFsmnVRWZpca";
@@ -136,7 +136,7 @@ public final class ApiContractSeed {
 	private final HttpClient httpClient;
 	private final Map<String, Long> ids = new HashMap<>();
 
-	public ApiContractSeed(String apiUrl, HttpClient httpClient) {
+	public ContractSeed(String apiUrl, HttpClient httpClient) {
 		this.apiUrl = apiUrl;
 		this.httpClient = httpClient;
 	}
@@ -183,7 +183,7 @@ public final class ApiContractSeed {
 				HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 			Assertions.assertTrue(response.statusCode() >= 200 && response.statusCode() < 300,
 				"Seed call %s %s failed with %d: %s".formatted(method, path, response.statusCode(), response.body()));
-			return response.body().isBlank() ? null : ApiContractGolden.parseJson(response.body());
+			return response.body().isBlank() ? null : Golden.parseJson(response.body());
 		}
 		catch (IOException e) {
 			throw new RuntimeException(e);

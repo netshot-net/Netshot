@@ -73,10 +73,10 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.api.V1Client;
-import net.netshot.netshot.testing.api.V1Client.Answer;
-import net.netshot.netshot.testing.api.V1Resources;
-import net.netshot.netshot.testing.api.V1Resources.Endpoint;
+import net.netshot.netshot.testing.api.v1.V1Client;
+import net.netshot.netshot.testing.api.v1.V1Client.Answer;
+import net.netshot.netshot.testing.api.v1.V1Resources;
+import net.netshot.netshot.testing.api.v1.V1Resources.Endpoint;
 
 /**
  * Checks the versions of the v1 API on every object which can be changed, found by scanning the resources (an
