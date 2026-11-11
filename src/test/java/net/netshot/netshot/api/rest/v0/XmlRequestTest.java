@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
+package net.netshot.netshot.api.rest.v0;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -41,12 +42,13 @@ import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestServer;
 
 /**
- * Checks that the request bodies are accepted in XML as well as in JSON: what gets stored from
+ * Checks that the v0 request bodies are accepted in XML as well as in JSON: what gets stored from
  * an XML request must be what gets stored from the equivalent JSON request. The root element of
  * the XML request is not significant.
  */
 @ApiTest
 @V0Enabled
+@DisplayName("v0 request bodies in XML")
 @TestInstance(Lifecycle.PER_CLASS)
 public class XmlRequestTest {
 
