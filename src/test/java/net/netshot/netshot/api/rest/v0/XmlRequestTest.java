@@ -50,7 +50,7 @@ import net.netshot.netshot.testing.TestServer;
 @V0Enabled
 @DisplayName("v0 request bodies in XML")
 @TestInstance(Lifecycle.PER_CLASS)
-public class XmlRequestTest {
+class XmlRequestTest {
 
 	private static final String TOKEN = TestServer.API_TOKENS.get(UiUser.LEVEL_ADMIN);
 	private String apiUrl;

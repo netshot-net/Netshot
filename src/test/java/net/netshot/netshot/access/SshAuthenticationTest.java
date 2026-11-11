@@ -51,7 +51,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
  */
 @UnitTest
 @DisplayName("SSH authentication outcome")
-public class SshAuthenticationTest {
+class SshAuthenticationTest {
 
 	/** How long the server takes to check a password of the "slow" user (ms), longer than the timeout of the client. */
 	private static final int SLOW_CHECK = 5000;

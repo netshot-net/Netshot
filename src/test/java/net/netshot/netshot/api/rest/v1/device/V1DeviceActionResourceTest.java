@@ -68,7 +68,7 @@ import net.netshot.netshot.userscript.ScriptService;
 })
 @DisplayName("v1 device actions")
 @ResourceLock("DB")
-public class V1DeviceActionResourceTest {
+class V1DeviceActionResourceTest {
 
 	private static final String SCRIPT = "function run(cli, device) {\n  cli.command('show clock');\n}";
 

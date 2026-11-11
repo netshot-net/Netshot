@@ -63,7 +63,7 @@ import net.netshot.netshot.testing.contract.Golden.Format;
  */
 @ContractTest
 @TestInstance(Lifecycle.PER_CLASS)
-public class WebHookContractTest {
+class WebHookContractTest {
 
 	/** System property, set to true to rewrite the golden files. */
 	static final String UPDATE_PROPERTY = "netshot.hook.contract.update";

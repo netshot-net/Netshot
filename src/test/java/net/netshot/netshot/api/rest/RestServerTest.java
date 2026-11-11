@@ -36,7 +36,7 @@ import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest
 @DisplayName("Web/REST server service")
-public class RestServerTest {
+class RestServerTest {
 
 	@Test
 	@DisplayName("Listens once started, counts the requests by status class, and releases the port when stopped")

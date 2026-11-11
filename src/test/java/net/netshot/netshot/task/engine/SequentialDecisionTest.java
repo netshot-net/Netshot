@@ -32,7 +32,7 @@ import java.util.Properties;
 
 @UnitTest
 @DisplayName("Sequential group-task scheduling decisions")
-public class SequentialDecisionTest {
+class SequentialDecisionTest {
 
 	@BeforeAll
 	static void initNetshot() {

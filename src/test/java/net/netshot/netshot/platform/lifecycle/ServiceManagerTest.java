@@ -30,7 +30,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Service manager")
-public class ServiceManagerTest {
+class ServiceManagerTest {
 
 	/** The start and stop calls, in order. */
 	private final List<String> calls = new ArrayList<>();

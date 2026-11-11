@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 
 @UnitTest
 @DisplayName("Next execution time of tasks")
-public class TaskExecutionTimeTest {
+class TaskExecutionTimeTest {
 
 	@BeforeAll
 	static void initNetshot() {

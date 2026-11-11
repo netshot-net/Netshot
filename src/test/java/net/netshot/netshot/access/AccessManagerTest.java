@@ -57,7 +57,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
  */
 @DatabaseTest
 @DisplayName("AccessManager tests")
-public class AccessManagerTest {
+class AccessManagerTest {
 
 	/** A minimal fake {@link Client} whose connect() behavior is scripted by the test. */
 	private final class FakeClient implements Client {

@@ -53,7 +53,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("JuniperJunos driver test")
-public class JuniperJunosDriverTest {
+class JuniperJunosDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

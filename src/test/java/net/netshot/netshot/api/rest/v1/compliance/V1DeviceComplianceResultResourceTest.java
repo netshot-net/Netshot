@@ -59,7 +59,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 @V1Endpoints({"GET /devices/{id}/compliance-results"})
 @DisplayName("v1 device compliance results")
 @ResourceLock("DB")
-public class V1DeviceComplianceResultResourceTest {
+class V1DeviceComplianceResultResourceTest {
 
 	private V1Client reader;
 	private Device router1;

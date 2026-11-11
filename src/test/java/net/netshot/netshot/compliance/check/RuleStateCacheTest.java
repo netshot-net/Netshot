@@ -28,7 +28,7 @@ import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
-public class RuleStateCacheTest {
+class RuleStateCacheTest {
 
 	@Test
 	@DisplayName("The state is prepared once per rule instance, even for equal rules")
