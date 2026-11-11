@@ -32,6 +32,7 @@ import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.v0.V0Client;
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 @ApiTest
+@V0Enabled
 @DisplayName("User management API Tests")
 public class UserResourceTest {
 

@@ -38,11 +38,13 @@ import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.api.v0.V0Client;
 
 @ApiTest
+@V0Enabled
 @DisplayName("Report tests")
 @ResourceLock("DB")
 public class ReportResourceTest {
