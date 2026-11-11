@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.hook;
 
-import java.net.http.HttpClient;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,14 +51,13 @@ final class HookTaskSeed {
 	}
 
 	/**
-	 * Seeds the dataset through the REST API and the database.
+	 * Seeds the dataset through the services and the database.
 	 *
-	 * @param apiUrl the URL of the REST API of the test server
 	 * @return the IDs of the tasks by case name (a task type, optionally followed by a variant after a dash), in a stable order
 	 * @throws Exception if the seed fails
 	 */
-	static Map<String, Long> seed(String apiUrl) throws Exception {
-		ContractSeed seed = new ContractSeed(apiUrl, HttpClient.newHttpClient());
+	static Map<String, Long> seed() throws Exception {
+		ContractSeed seed = new ContractSeed();
 		seed.seed();
 		Map<String, Long> taskIds = new LinkedHashMap<>();
 		addTasks(seed, taskIds);

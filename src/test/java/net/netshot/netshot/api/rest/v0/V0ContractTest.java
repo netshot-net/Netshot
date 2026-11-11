@@ -72,7 +72,7 @@ public class V0ContractTest {
 	void bootAndSeed(TestServer server) throws Exception {
 		this.apiUrl = server.apiUrl();
 		this.httpClient = HttpClient.newHttpClient();
-		this.seed = new ContractSeed(this.apiUrl, this.httpClient);
+		this.seed = new ContractSeed();
 		this.seed.seed();
 	}
 

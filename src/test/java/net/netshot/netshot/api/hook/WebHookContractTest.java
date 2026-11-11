@@ -45,7 +45,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.testing.ContractTest;
-import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.contract.Golden;
 import net.netshot.netshot.testing.contract.Golden.Format;
@@ -99,8 +98,8 @@ public class WebHookContractTest {
 	private final List<Received> received = new ArrayList<>();
 
 	@BeforeAll
-	void seedAndStartReceiver(TestServer server) throws Exception {
-		this.taskIds = HookTaskSeed.seed(server.apiUrl());
+	void seedAndStartReceiver() throws Exception {
+		this.taskIds = HookTaskSeed.seed();
 		this.receiver = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
 		this.receiver.createContext("/", exchange -> {
 			Received request = new Received(exchange.getRequestURI().getPath(),
