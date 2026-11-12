@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.net.ssl.SSLException;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +43,10 @@ import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.protocol.AuthScheme;
 import net.netshot.netshot.driver.protocol.HttpConfig;
 import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestTls;
+import net.netshot.netshot.testing.TestTls.Identity;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 import net.netshot.netshot.vault.SecretResolver;
 
@@ -242,4 +247,31 @@ class HttpTest {
 		Assertions.assertEquals("{\"name\":\"test\"}", this.lastBody.get());
 	}
 
+
+	@Test
+	@DisplayName("HTTPS: the CA trust policy of the access applies (system trust store by default, custom CA)")
+	void httpsTrustPolicy() throws IOException {
+		Identity authority = TestTls.authority("Device CA");
+		try (TestTls.Server server = new TestTls.Server(TestTls.server(authority, "localhost"), "{\"status\": \"ok\"}")) {
+			Http byDefault = new Http("localhost", server.port(), true, new FakeTaskContext(), SecretResolver.LOCAL);
+			IOException e = Assertions.assertThrows(IOException.class,
+				() -> byDefault.request("GET", "/status", null, null, null, null, new HttpConfig(), null));
+			Assertions.assertNotNull(findSslException(e), "Not refused by TLS: " + e);
+
+			Http customCa = new Http("localhost", server.port(), true, new FakeTaskContext(), SecretResolver.LOCAL);
+			customCa.applyTrustPolicy(HttpsCaTrustMode.CUSTOM_CA, authority.pem());
+			HttpResult result = customCa.request("GET", "/status", null, null, null, null, new HttpConfig(), null);
+			Assertions.assertEquals(200, result.getStatus());
+			Assertions.assertEquals("{\"status\": \"ok\"}", result.getBody());
+		}
+	}
+
+	private static SSLException findSslException(Throwable failure) {
+		for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+			if (cause instanceof SSLException ssl) {
+				return ssl;
+			}
+		}
+		return null;
+	}
 }

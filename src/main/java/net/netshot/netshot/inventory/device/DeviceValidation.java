@@ -187,7 +187,7 @@ public final class DeviceValidation {
 			}
 			DeviceAccess access = input.toBuilder()
 				.sshHostKeyVerification(input.sshHostKeyVerification() == null
-					? DeviceAccess.SshHostKeyVerification.TRUST_KNOWN : input.sshHostKeyVerification())
+					? DeviceAccess.SshHostKeyVerification.TRUST_ANY : input.sshHostKeyVerification())
 				.sshTrustedHostKeys(normalizeSshTrustedHostKeys(input.sshTrustedHostKeys(), input.accessName()))
 				.httpsCaTrustMode(input.httpsCaTrustMode() == null ? HttpsCaTrustMode.SYSTEM_TRUSTSTORE : input.httpsCaTrustMode())
 				.build();

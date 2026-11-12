@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.sshd.common.config.keys.KeyUtils;
+import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -143,6 +146,45 @@ class DeviceServiceTest {
 		Assertions.assertEquals(Map.of("fullBackup", true), this.service.get(created.id()).options());
 		Device updated = this.service.update(created.id(), new DeviceUpdate(null, null, null, null, null, null, Map.of("fullBackup", "false"), null));
 		Assertions.assertEquals(Map.of("fullBackup", false), updated.options());
+	}
+
+	@Test
+	@DisplayName("update() sets, replaces and clears the trusted SSH host keys of an access, and refuses an invalid one")
+	void updateTrustedHostKeys() throws Exception {
+		Device created = this.createDevice(this.nextAddress());
+		String key = PublicKeyEntry.toString(KeyUtils.generateKeyPair(KeyPairProvider.ECDSA_SHA2_NISTP256, 256).getPublic());
+		String otherKey = PublicKeyEntry.toString(KeyUtils.generateKeyPair(KeyPairProvider.SSH_ED25519, 256).getPublic());
+		DeviceAccess known = access("ssh").toBuilder().sshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN).build();
+
+		DeviceAccess set = this.updateAccess(created, known.toBuilder().sshTrustedHostKeys(key + " comment").build());
+		Assertions.assertEquals(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN, set.sshHostKeyVerification());
+		Assertions.assertEquals(key, set.sshTrustedHostKeys());
+		Assertions.assertNotNull(set.sshTrustedHostKeysSince());
+
+		DeviceAccess replaced = this.updateAccess(created, known.toBuilder().sshTrustedHostKeys(key + "\n" + otherKey).build());
+		Assertions.assertEquals(key + "\n" + otherKey, replaced.sshTrustedHostKeys());
+		Assertions.assertNotNull(replaced.sshTrustedHostKeysSince());
+
+		DeviceAccess cleared = this.updateAccess(created, known.toBuilder().sshTrustedHostKeys("").build());
+		Assertions.assertEquals(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN, cleared.sshHostKeyVerification());
+		Assertions.assertNull(cleared.sshTrustedHostKeys());
+		Assertions.assertNull(cleared.sshTrustedHostKeysSince());
+
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+			() -> this.updateAccess(created, known.toBuilder().sshTrustedHostKeys("ssh-rsa AAAA").build()));
+		Assertions.assertNull(this.service.get(created.id()).getDeviceAccess("ssh").sshTrustedHostKeys(), "Changed by a refused update");
+	}
+
+	/**
+	 * Replaces the accesses of a device by one access.
+	 *
+	 * @param device the device
+	 * @param access the access
+	 * @return the access as stored
+	 */
+	private DeviceAccess updateAccess(Device device, DeviceAccess access) {
+		this.service.update(device.id(), new DeviceUpdate(null, null, null, null, List.of(access), null, null, null));
+		return this.service.get(device.id()).getDeviceAccess(access.accessName());
 	}
 
 	@Test
