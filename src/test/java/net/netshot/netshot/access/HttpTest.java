@@ -20,10 +20,15 @@ package net.netshot.netshot.access;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -38,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.protocol.AuthScheme;
@@ -264,6 +270,35 @@ class HttpTest {
 			Assertions.assertEquals(200, result.getStatus());
 			Assertions.assertEquals("{\"status\": \"ok\"}", result.getBody());
 		}
+	}
+
+	@Test
+	@DisplayName("A device which accepts the connection but never answers makes the request fail after the receive timeout")
+	void receiveTimeout() throws IOException {
+		Properties original = TestConfig.properties();
+		Properties config = TestConfig.properties();
+		config.setProperty("netshot.httpclient.receivetimeout", "500");
+		TestConfig.init(config);
+		// The kernel completes the TCP handshake (backlog) but nothing ever reads or answers
+		try (ServerSocket silent = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+			Http http = new Http("127.0.0.1", silent.getLocalPort(), false, new FakeTaskContext(), SecretResolver.LOCAL);
+			IOException e = Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10),
+				() -> Assertions.assertThrows(IOException.class,
+					() -> http.request("GET", "/status", null, null, null, null, new HttpConfig(), null)));
+			Assertions.assertNotNull(findCause(e, SocketTimeoutException.class), "Not a read timeout: " + e);
+		}
+		finally {
+			TestConfig.init(original);
+		}
+	}
+
+	private static <T extends Throwable> T findCause(Throwable failure, Class<T> type) {
+		for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+			if (type.isInstance(cause)) {
+				return type.cast(cause);
+			}
+		}
+		return null;
 	}
 
 	private static SSLException findSslException(Throwable failure) {

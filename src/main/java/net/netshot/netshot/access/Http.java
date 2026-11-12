@@ -30,6 +30,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.HostnameVerifier;
@@ -52,11 +53,15 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.protocol.AuthScheme;
 import net.netshot.netshot.driver.protocol.HttpConfig;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -75,6 +80,45 @@ import net.netshot.netshot.vault.VaultException;
 public class Http implements Client {
 
 	public static final int DEFAULT_PORT = DriverProtocol.HTTPS.defaultPort();
+
+	/**
+	 * The settings of the HTTP client.
+	 *
+	 * @param connectionTimeout the connection timeout (ms)
+	 * @param receiveTimeout the receive (socket read) timeout (ms)
+	 */
+	public record Settings(int connectionTimeout, int receiveTimeout) {
+
+		/** Connection timeout (ms). */
+		static final Setting<Integer> CONNECTION_TIMEOUT = Setting.integer("netshot.httpclient.connectiontimeout")
+			.defaultValue(5000).range(1, Integer.MAX_VALUE).live();
+
+		/** Receive timeout (ms). */
+		static final Setting<Integer> RECEIVE_TIMEOUT = Setting.integer("netshot.httpclient.receivetimeout")
+			.defaultValue(60000).range(1, Integer.MAX_VALUE).live();
+
+		/**
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT));
+			log.debug("The device HTTP client settings are {}", settings);
+			return settings;
+		}
+	}
+
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+
+	/**
+	 * Gets the settings of the HTTP client.
+	 * @return the settings
+	 */
+	public static Settings settings() {
+		return SETTINGS.get();
+	}
 
 	/**
 	 * The result of an HTTP request, handed back to JS.
@@ -180,7 +224,12 @@ public class Http implements Client {
 		}
 		try {
 			ClientConfig config = new ClientConfig();
-			ClientBuilder builder = ClientBuilder.newBuilder().withConfig(config);
+			Settings settings = Http.settings();
+			// Without timeouts, a device which accepts the connection but never answers
+			// would block the task (and hold the device lock) forever
+			ClientBuilder builder = ClientBuilder.newBuilder().withConfig(config)
+				.connectTimeout(settings.connectionTimeout(), TimeUnit.MILLISECONDS)
+				.readTimeout(settings.receiveTimeout(), TimeUnit.MILLISECONDS);
 			if (this.tls) {
 				SSLContext sslContext = HttpsTrustPolicy.buildSslContext(this.caTrustMode, this.customCaCertificate);
 				builder.sslContext(sslContext);

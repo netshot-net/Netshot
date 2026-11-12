@@ -291,6 +291,13 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 | `netshot.cli.ssh.rekeyblockslimit` | Re-key device SSH sessions after this number of cipher blocks. Default: `0` (no limit). | Yes |
 | `netshot.cli.ssh.rekeypacketslimit` | Re-key device SSH sessions after this number of packets. Default: `2147483648` (2³¹). `0` disables this limit. | Yes |
 
+## HTTP connections to devices
+
+| Parameter | Description | Reload |
+|---|---|---|
+| `netshot.httpclient.connectiontimeout` | Max time (ms) to establish the connection to a device's HTTP(S) API. Default: `5000`. | Yes |
+| `netshot.httpclient.receivetimeout` | Max time (ms) to wait for data from a device's HTTP(S) API (between two reads, not for the whole response). Default: `60000`. | Yes |
+
 ## JavaScript VM
 
 | Parameter | Description | Reload |
