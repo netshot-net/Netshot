@@ -34,7 +34,7 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * @param port the port to use instead of the default one
  * @param globalCredentialSet the global credential set to use, instead of trying the ones of the domain
  * @param specificCredentialSet the credential set specific to the device, instead of a global one
- * @param sshHostKeyVerification how to verify the SSH host key (trust known keys by default)
+ * @param sshHostKeyVerification how to verify the SSH host key (trust any by default)
  * @param sshTrustedHostKeys the trusted SSH host keys (one per line)
  * @param httpsCaTrustMode how to verify the HTTPS server certificate (the system trust store by default)
  * @param httpsCustomCaCertificate the CA certificate to trust, with the {@code CUSTOM_CA} mode

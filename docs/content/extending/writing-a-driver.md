@@ -470,7 +470,32 @@ Other methods: `tryNextCredentials()` (manual credential fallback, see above), `
 | `config.download(key, fileName, options)` | Pulls a file off the device over SCP/SFTP into a `BinaryFile` config attribute. `options`: `method` (`sftp`/`scp`), `storeFileName`, `newSession`, `checksum`. |
 | `config.commitDownload(key, tempFilePath, options)` | The HTTP counterpart to `download()`: moves a file already fetched via `http.download(...)` into a `BinaryFile` config attribute. `options`: `storeFileName`, `checksum`. |
 | `config.computeHash(...parts)` / `getHash()` / `getLastHash()` / `isChangedHash()` | Build and compare a custom hash across arbitrary text parts, for drivers whose "did anything change" logic isn't a simple field comparison. |
-| `config.requestUpload(options)` / `awaitUpload(ticketId, timeout)` / `commitUpload(ticketId, fileId, key, options)` | For devices that push their backup to Netshot themselves (e.g. over the [embedded SSH/SCP/SFTP server](../configuration-reference.md#embedded-ssh-server)) rather than being pulled from: request a one-time upload ticket, wait for the device to use it, then commit the uploaded file into a config attribute. |
+| `config.requestUpload(options)` / `awaitUpload(ticketId, timeout)` / `commitUpload(ticketId, fileId, key, options)` | For devices that push their backup to Netshot themselves (e.g. over the [embedded SSH/SCP/SFTP server](../configuration-reference.md#embedded-ssh-server)) rather than being pulled from: request a one-time upload ticket, wait for the device to use it, then commit the uploaded file into a config attribute. See [Uploads to Netshot](#uploads-to-netshot). |
+
+#### Uploads to Netshot
+
+`config.requestUpload(options)` registers a one-time upload ticket on the embedded SSH server and returns it. `options` (optional): `method` (`scp` or `sftp`, both allowed by default) and `sourceIp` (the only address the device may connect from). It fails when the SSH server isn't running. The ticket holds:
+
+| Field | Content |
+|---|---|
+| `id` | The ticket ID, for `awaitUpload` and `commitUpload`. |
+| `username`, `password` | One-time credentials of the ticket. |
+| `host`, `port` | The address of Netshot as the devices of the domain see it (the server address of the domain, or its cluster override) and the external port of the SSH server (`netshot.sshserver.externalport`). |
+| `hostkeys` | The public host keys of the SSH server, by key algorithm: `{"ssh-ed25519": "AAAAC3Nz...", "ecdsa-sha2-nistp256": "AAAAE2Vj...", "ssh-rsa": "AAAAB3Nz..."}`, one per key type of `netshot.sshserver.hostkeyalgorithms`. |
+
+To let the device verify Netshot's host key rather than accept any, declare the keys on the device before it connects, in the form its platform expects. Most take a `known_hosts` line, built as:
+
+```javascript
+const ticket = config.requestUpload({ method: "sftp" });
+for (const algorithm of Object.keys(ticket.hostkeys)) {
+	const knownHost = `${ticket.host} ${algorithm} ${ticket.hostkeys[algorithm]}`;
+	// Declare knownHost on the device (platform-specific CLI or API call)
+}
+```
+
+Then `awaitUpload(ticket.id, timeout)` waits for the device to upload (timeout in milliseconds, 60 s by default; the result has `completed`, `fileCount` and `files` with their `id`, `name` and `size`), and `commitUpload(ticket.id, fileId, key, options)` stores an uploaded file into a `BinaryFile` config attribute (`options.storeName`, `options.checksum`).
+
+The host keys are stored in `netshot.sshserver.hostkeypath`: set it to a persistent folder, otherwise they are generated again after a restart and the keys declared on the devices don't match any more. In a cluster, each node presents its own keys: share that folder between the nodes, or declare the keys at each upload.
 
 ## Debugging a driver
 

@@ -112,14 +112,14 @@ Each network access on a device — not just the primary one — carries its own
 
 **SSH host key verification**, for SSH-based access:
 
-- **Trust any** — accept any host key presented by the device (legacy/default behavior; offers no protection against interception).
-- **Trust known keys** — trust-on-first-use: the first key seen for a given algorithm is learned and pinned automatically; afterwards, only a matching key is accepted, and a key for a new algorithm is rejected rather than silently trusted. Known keys can also be pasted in manually (one per line, `<algorithm> <base64-key>` format, `known_hosts`-style without a hostname prefix).
+- **Trust any** (the default) — accept any host key presented by the device (offers no protection against interception). No key is learned nor saved.
+- **Trust known keys** — to choose in the access settings (web UI or REST API) to verify the host key. Trust on first use: while no key is known, the first host key presented is learned and saved on the access once the connection succeeds; afterwards, only a matching key is accepted, a different one fails the connection (the task log tells why), and a key of another algorithm is rejected rather than silently trusted. Known keys can also be pasted in manually (one per line, `<algorithm> <base64-key>`; a `known_hosts` line is accepted, its host names and comment are dropped). After an expected change of the key (device reinstalled), clear the known keys: the next connection learns the new key. The verification also applies to the additional SSH sessions opened by a driver to download files (SCP/SFTP).
 
 **HTTPS certificate trust**, for HTTP(S)-based access:
 
-- **Trust any** — accept any server certificate, no hostname check. Historical/default behavior.
-- **System truststore** — validate against the JVM's default trust store; the connection hostname is verified against the certificate.
-- **Custom CA** — validate against a CA certificate you paste in (PEM); the connection hostname is verified against the certificate.
+- **System truststore** (the default) — validate against the JVM's default trust store; the connection hostname is verified against the certificate.
+- **Custom CA** — validate against a CA certificate you paste in (PEM, one certificate or a bundle); the connection hostname is verified against the certificate.
+- **Trust any** — accept any server certificate, no hostname check (offers no protection against interception).
 
 !!! note
     Hostname verification isn't offered as an independent toggle: outside of **Trust any**, it's always enabled together with certificate validation — checking the hostname alone, without validating the certificate chain, wouldn't add real protection.

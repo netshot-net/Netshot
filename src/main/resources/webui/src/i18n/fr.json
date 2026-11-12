@@ -173,7 +173,7 @@
       "sshAuthMethod": "Méthode d'authentification",
       "sshHostKeyVerification": "Vérification de la clé d'hôte SSH",
       "sshHostKeyVerificationTrustAny": "Tout accepter",
-      "sshHostKeyVerificationTrustAnyDescription": "Accepter toute clé d'hôte sans vérification (non recommandé)",
+      "sshHostKeyVerificationTrustAnyDescription": "Accepter toute clé d'hôte, sans vérification (par défaut)",
       "sshHostKeyVerificationTrustKnown": "Faire confiance aux clés connues",
       "sshHostKeyVerificationTrustKnownDescription": "Apprendre la clé si non définie, puis toujours la vérifier",
       "sshTrustedHostKeys": "Clés d'hôte de confiance",

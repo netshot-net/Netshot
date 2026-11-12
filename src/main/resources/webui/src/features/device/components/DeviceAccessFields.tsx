@@ -365,14 +365,14 @@ const SSH_AUTH_METHOD_OPTIONS = [
 
 const SSH_HOST_KEY_VERIFICATION_OPTIONS = [
   {
-    label: "device.sshHostKeyVerificationTrustKnown",
-    description: "device.sshHostKeyVerificationTrustKnownDescription",
-    value: SshHostKeyVerification.TrustKnown,
-  },
-  {
     label: "device.sshHostKeyVerificationTrustAny",
     description: "device.sshHostKeyVerificationTrustAnyDescription",
     value: SshHostKeyVerification.TrustAny,
+  },
+  {
+    label: "device.sshHostKeyVerificationTrustKnown",
+    description: "device.sshHostKeyVerificationTrustKnownDescription",
+    value: SshHostKeyVerification.TrustKnown,
   },
 ] as const
 
@@ -771,7 +771,7 @@ export default function DeviceAccessFields({ control, setValue, accessDefinition
           authKey: preserveSecret(existing?.authKey),
           privType: existing?.privType,
           privKey: preserveSecret(existing?.privKey),
-          sshHostKeyVerification: existing?.sshHostKeyVerification ?? SshHostKeyVerification.TrustKnown,
+          sshHostKeyVerification: existing?.sshHostKeyVerification ?? SshHostKeyVerification.TrustAny,
           sshTrustedHostKeys: existing?.sshTrustedHostKeys ?? "",
           httpsCaTrustMode: existing?.httpsCaTrustMode ?? HttpsCaTrustMode.SystemTruststore,
           httpsCustomCaCertificate: existing?.httpsCustomCaCertificate ?? "",

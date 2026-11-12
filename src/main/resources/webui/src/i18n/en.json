@@ -173,7 +173,7 @@
       "sshAuthMethod": "Authentication method",
       "sshHostKeyVerification": "SSH host key verification",
       "sshHostKeyVerificationTrustAny": "Trust any",
-      "sshHostKeyVerificationTrustAnyDescription": "Accept any host key without verification (not recommended)",
+      "sshHostKeyVerificationTrustAnyDescription": "Accept any host key, without verification (default)",
       "sshHostKeyVerificationTrustKnown": "Trust known keys",
       "sshHostKeyVerificationTrustKnownDescription": "Learn the key if unset, then always verify it",
       "sshTrustedHostKeys": "Trusted host keys",

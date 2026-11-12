@@ -213,7 +213,7 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 
 #### Helpers
 
-- `testing`: the kind annotations and their extensions, `TestDrivers` (the drivers of the resource folder, loaded once), `TestNetwork` (free ports), `DeviceSimulators`;
+- `testing`: the kind annotations and their extensions, `TestDrivers` (the drivers of the resource folder, loaded once), `TestNetwork` (free ports), `DeviceSimulators`, `TestTls` (certificate authorities and server certificates made with BouncyCastle when the tests run, and an HTTPS server on the loopback);
 - `testing.fake`: the test doubles (`FakeDeviceFactory`, `FakeTaskContext`, `FakeOidcIdpServer`);
 - `testing.api.v1`: `V1Client` (HTTP client of the v1 API), `@V1Endpoints` and its extension, `V1Resources` (the v1 endpoints, scanned from the resources);
 - `testing.api.v0`: `V0Client` (HTTP client of the v0 API), `@V0Enabled`, the v0 contract (`V0ContractCases`, `V0ContractCase`, `V0ContractGolden`: the folder of its golden files and the projections of its responses) and `V0BadRequestException` (the former exception, as a reference);

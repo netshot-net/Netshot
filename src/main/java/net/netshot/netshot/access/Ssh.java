@@ -454,7 +454,22 @@ public class Ssh extends Cli {
 	}
 
 	/**
-	 * Create a SSH object by duplicating another one.
+	 * Gives the reason of a refused host key to an exception of the SSH library, if that is why it was raised.
+	 *
+	 * @param e the exception of the SSH library
+	 * @return the exception to throw: an explicit one for a refused host key, the given one otherwise
+	 */
+	private IOException hostKeyFailure(SshException e) {
+		if (e.getDisconnectCode() != SshConstants.SSH2_DISCONNECT_HOST_KEY_NOT_VERIFIABLE) {
+			return e;
+		}
+		String reason = this.hostKeyVerifier == null ? null : this.hostKeyVerifier.getLastRejectionReason();
+		return new IOException("SSH host key verification failed" + (reason == null ? "." : ": " + reason), e);
+	}
+
+	/**
+	 * Create a SSH object by duplicating another one (to open another session to the same device, with the same
+	 * credentials, timeouts and host key verification).
 	 *
 	 * @param other the other SSH object
 	 */
@@ -466,6 +481,10 @@ public class Ssh extends Cli {
 		this.password = other.password;
 		this.privateKey = other.privateKey;
 		this.sshConfig = other.sshConfig;
+		this.hostKeyVerifier = other.hostKeyVerifier;
+		this.connectionTimeout = other.connectionTimeout;
+		this.receiveTimeout = other.receiveTimeout;
+		this.commandTimeout = other.commandTimeout;
 	}
 
 	/*(non-Javadoc)
@@ -497,12 +516,7 @@ public class Ssh extends Cli {
 					.getSession();
 			}
 			catch (SshException e) {
-				if (e.getDisconnectCode() == SshConstants.SSH2_DISCONNECT_HOST_KEY_NOT_VERIFIABLE) {
-					String reason = this.hostKeyVerifier == null ? null : this.hostKeyVerifier.getLastRejectionReason();
-					throw new IOException("SSH host key verification failed"
-						+ (reason == null ? "." : ": " + reason), e);
-				}
-				throw e;
+				throw this.hostKeyFailure(e);
 			}
 
 			// Add session listener to trace protocol negotiation details.
@@ -800,6 +814,10 @@ public class Ssh extends Cli {
 				if (e.getCause() != null && e.getCause() instanceof InvalidCredentialsException credException) {
 					// Already intercepted by *AuthenticationReporter
 					throw credException;
+				}
+				if (e.getDisconnectCode() == SshConstants.SSH2_DISCONNECT_HOST_KEY_NOT_VERIFIABLE) {
+					// The key exchange ends while the authentication is already under way
+					throw this.hostKeyFailure(e);
 				}
 				if (e.getDisconnectCode() == 0
 						|| e.getDisconnectCode() == SshConstants.SSH2_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE) {
