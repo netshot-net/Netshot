@@ -31,7 +31,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Device access replace test")
-public class DeviceAccessReplaceTest {
+class DeviceAccessReplaceTest {
 
 	private Device fakeDevice() {
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();

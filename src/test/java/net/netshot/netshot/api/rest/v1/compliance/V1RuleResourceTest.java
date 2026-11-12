@@ -69,7 +69,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 compliance rules")
 @ResourceLock("DB")
-public class V1RuleResourceTest {
+class V1RuleResourceTest {
 
 	private V1Client admin;
 	private V1Client reader;

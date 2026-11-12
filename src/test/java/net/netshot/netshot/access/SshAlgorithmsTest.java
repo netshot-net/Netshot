@@ -48,7 +48,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
  */
 @SimulatorTest
 @DisplayName("SSH algorithms of an access")
-public class SshAlgorithmsTest {
+class SshAlgorithmsTest {
 
 	@Container
 	private static final GenericContainer<?> CONTAINER = DeviceSimulators.ssh("Cisco_IOS");

@@ -60,7 +60,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("CiscoIOS12 driver test")
-public class CiscoIOS12DriverTest {
+class CiscoIOS12DriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

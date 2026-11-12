@@ -32,7 +32,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Connection pools")
-public class ConnectionPoolsTest {
+class ConnectionPoolsTest {
 
 	private static final String URL = "jdbc:postgresql://db.invalid:5432/netshot";
 

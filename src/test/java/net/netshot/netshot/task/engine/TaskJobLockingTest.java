@@ -53,7 +53,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 @TestProperty(name = "netshot.tasks.devicelock.pollintervalms", value = "500")
 @DisplayName("Task execution with task/device locks (TaskJob, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class TaskJobLockingTest {
+class TaskJobLockingTest {
 
 	private static final long OTHER_TASK_ID = 999999L;
 

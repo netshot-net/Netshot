@@ -54,7 +54,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 device statistics")
 @ResourceLock("DB")
-public class V1DeviceStatsTest {
+class V1DeviceStatsTest {
 
 	private V1Client reader;
 	private Domain paris;

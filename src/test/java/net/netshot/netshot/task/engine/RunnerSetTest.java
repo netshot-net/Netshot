@@ -32,7 +32,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Cluster runner selection")
-public class RunnerSetTest {
+class RunnerSetTest {
 
 	private static final int DEVICE_COUNT = 10000;
 
