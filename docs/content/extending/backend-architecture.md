@@ -220,6 +220,8 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 - `testing.contract`: the golden file helpers shared by all the contracts (`Golden`: canonical rendering and file store, `DtoContract`) and the dataset of the contract tests (`ContractSeed`);
 - `TestConfig.init` (replaces the configuration) stays in the root package, as it calls the protected `Netshot.initConfig`.
 
+The helpers used by the tests of a single package stay in that package: `cluster.ClusterPeer` (a fake cluster member, which sends and receives the cluster messages as raw JSON on the PostgreSQL channel) and `cluster.RecordingNode` (records what `ClusterManager` asks the local node), with which `ClusterManagerTest` runs a real cluster manager with short timers (`ClusterManager.Timers`).
+
 `TestLayoutTest` fails when a test class or a helper (other than `TestConfig`) is left in the root package, when a test class or a test method is `public` (JUnit doesn't need it), when a test class has no `@DisplayName` (except the ArchUnit ones, whose engine ignores it), when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class), when a test class has no kind, or a unit or script engine kind with another one, when a unit or script engine test uses the database, the REST server, the wiring or a container (it would fail without Docker), when a class outside `api.rest.vN` and `testing.api.vN` uses one of their classes or a main class of `api.rest.vN`, and when a helper of `testing.api` is not in the package of a version or isn't named after it. `ArchitectureTest` checks that the `api.rest.vN` packages of the main code don't depend on each other.
 
 ## Wiring
