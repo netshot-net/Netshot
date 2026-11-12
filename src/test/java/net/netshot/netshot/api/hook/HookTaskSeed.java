@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.hook;
 
-import java.net.http.HttpClient;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,11 +37,11 @@ import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.contract.ApiContractSeed;
+import net.netshot.netshot.testing.contract.ContractSeed;
 
 /**
  * The dataset of the web hook tests ({@code @ContractTest} classes, whose tasks are stored but never
- * run): the one of {@link ApiContractSeed}, plus a few tasks (one for each task type not covered by
+ * run): the one of {@link ContractSeed}, plus a few tasks (one for each task type not covered by
  * the seed).
  */
 final class HookTaskSeed {
@@ -52,14 +51,13 @@ final class HookTaskSeed {
 	}
 
 	/**
-	 * Seeds the dataset through the REST API and the database.
+	 * Seeds the dataset through the services and the database.
 	 *
-	 * @param apiUrl the URL of the REST API of the test server
 	 * @return the IDs of the tasks by case name (a task type, optionally followed by a variant after a dash), in a stable order
 	 * @throws Exception if the seed fails
 	 */
-	static Map<String, Long> seed(String apiUrl) throws Exception {
-		ApiContractSeed seed = new ApiContractSeed(apiUrl, HttpClient.newHttpClient());
+	static Map<String, Long> seed() throws Exception {
+		ContractSeed seed = new ContractSeed();
 		seed.seed();
 		Map<String, Long> taskIds = new LinkedHashMap<>();
 		addTasks(seed, taskIds);
@@ -72,7 +70,7 @@ final class HookTaskSeed {
 	 * @param seed the seeded dataset
 	 * @param taskIds the map to fill with the task IDs, by case name
 	 */
-	private static void addTasks(ApiContractSeed seed, Map<String, Long> taskIds) {
+	private static void addTasks(ContractSeed seed, Map<String, Long> taskIds) {
 		String[] seeded = {
 			"TakeSnapshotTask=task.snapshot", "TakeSnapshotTask-failed=task.failed",
 			"CheckComplianceTask=task.compliance", "RunDiagnosticsTask=task.diagnostics",
@@ -86,7 +84,7 @@ final class HookTaskSeed {
 		}
 		TestWiring.get().transactions().run(dsl -> {
 			DeviceGroup group = new GroupRepository().find(dsl, seed.id("group.static"));
-			long created = ApiContractSeed.D2022 + 10000;
+			long created = ContractSeed.D2022 + 10000;
 
 			Task groupSoftware = taskData(dsl, GroupBasedTask.of(new CheckGroupSoftwareTask(group.id(), null), group.name(),
 				"Group software", "tester"), Task.Status.SUCCESS, created, "Software checked");

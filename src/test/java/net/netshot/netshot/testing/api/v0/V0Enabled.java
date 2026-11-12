@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.testing.api;
+package net.netshot.netshot.testing.api.v0;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -26,22 +26,16 @@ import java.lang.annotation.Target;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import net.netshot.netshot.testing.TestProperty;
+
 /**
- * Declares the v1 API endpoints a test class covers, as {@code "METHOD /path/template"} under {@code /api/v1}
- * ({@code "GET /domains/{id}"}). Every endpoint of the v1 API must be declared by a test class
- * ({@code V1EndpointCoverageTest}), and the class must really call each endpoint it declares through a
- * {@link V1Client} (checked after the class by {@link V1EndpointsExtension}).
+ * Serves the v0 API (off by default, {@code netshot.http.api.v0.enabled}) to an {@link net.netshot.netshot.testing.ApiTest} or
+ * {@link net.netshot.netshot.testing.ContractTest} class, whose test methods can then receive an admin {@link V0Client} as a parameter.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@ExtendWith(V1EndpointsExtension.class)
-public @interface V1Endpoints {
-
-	/**
-	 * Gets the covered endpoints.
-	 *
-	 * @return the endpoints, {@code "METHOD /path/template"}
-	 */
-	String[] value();
+@TestProperty(name = "netshot.http.api.v0.enabled", value = "true")
+@ExtendWith(V0ClientResolver.class)
+public @interface V0Enabled {
 }

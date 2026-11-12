@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Assertions;
@@ -58,7 +60,9 @@ import net.netshot.netshot.testing.UnitTest;
  * holds the tests of the whole application and TestConfig, the shared helpers are in the testing package),
  * the simple names of the test classes are unique (the expected files of DtoContract are stored under the
  * simple name of the class), and each test class has a kind (several only among the kinds needing Docker),
- * which the unit and script engine tests respect (they run without Docker).
+ * which the unit and script engine tests respect (they run without Docker). The tests and helpers of a version
+ * of the REST API (packages {@code api.rest.vN} and {@code testing.api.vN}) are the only ones to use that
+ * version, so that a version can be removed with its packages; its helpers are named after it ({@code V1Client}).
  */
 @UnitTest
 @DisplayName("Layout of the tests")
@@ -87,6 +91,13 @@ public class TestLayoutTest {
 	/** The methods of {@link Database} which need a database (the others only read the configuration). */
 	private static final Set<String> DATABASE_METHODS = Set.of(
 		"update", "init", "getConnection");
+
+	/** The packages of a version of the REST API, in the main and the test code (group 1: the version, e.g. v1). */
+	private static final Pattern API_VERSION_PACKAGE = Pattern.compile(
+		Pattern.quote(ROOT) + "\\.(?:api\\.rest|testing\\.api)\\.(v\\d+)(?:\\..*)?");
+
+	/** The package of the helpers of the API versions, which only holds the packages of the versions. */
+	private static final String API_HELPERS = ROOT + ".testing.api";
 
 	/** The package of the containers, which the tests of the fast kinds must not use. */
 	private static final String CONTAINER_PACKAGE = "org.testcontainers";
@@ -180,6 +191,51 @@ public class TestLayoutTest {
 			.toList();
 		Assertions.assertEquals(List.of(), violations,
 			"@UnitTest/@ScriptEngineTest classes needing a database, a server or a container: give them the kind they need");
+	}
+
+	@Test
+	@DisplayName("Only the tests and helpers of an API version use that version")
+	void apiVersionsIndependent() {
+		List<String> violations = importedClasses.stream()
+			.flatMap(c -> c.getDirectDependenciesFromSelf().stream())
+			.filter(d -> {
+				String target = apiVersion(d.getTargetClass());
+				return target != null && !target.equals(apiVersion(d.getOriginClass()));
+			})
+			.map(d -> "%s -> %s".formatted(topLevel(d.getOriginClass()).getName(), d.getTargetClass().getName()))
+			.distinct()
+			.sorted()
+			.toList();
+		Assertions.assertEquals(List.of(), violations,
+			"Classes using an API version they don't belong to: move them to api.rest.vN (tests) or testing.api.vN (helpers)");
+	}
+
+	@Test
+	@DisplayName("The helpers of an API version are in its package and named after it")
+	void apiVersionHelpers() {
+		List<String> misnamed = importedClasses.stream()
+			.filter(JavaClass::isTopLevelClass)
+			.filter(c -> c.getPackageName().equals(API_HELPERS) || c.getPackageName().startsWith(API_HELPERS + "."))
+			.filter(c -> {
+				String version = apiVersion(c);
+				return version == null || !c.getSimpleName().startsWith(version.toUpperCase());
+			})
+			.map(JavaClass::getName)
+			.sorted()
+			.toList();
+		Assertions.assertEquals(List.of(), misnamed,
+			"Helpers to move to testing.api.vN, with a name starting with VN (V1Client)");
+	}
+
+	/**
+	 * Gets the version of the REST API a class belongs to.
+	 *
+	 * @param javaClass the class
+	 * @return the version (e.g. v1), or null if the class belongs to no version
+	 */
+	private static String apiVersion(JavaClass javaClass) {
+		Matcher matcher = API_VERSION_PACKAGE.matcher(javaClass.getPackageName());
+		return matcher.matches() ? matcher.group(1) : null;
 	}
 
 	/**

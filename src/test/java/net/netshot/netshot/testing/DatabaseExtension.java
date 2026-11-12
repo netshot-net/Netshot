@@ -69,8 +69,6 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 		if (Kinds.usesRestServer(testClass)) {
 			TestServer server = new TestServer(TestNetwork.freeLocalApiUrl());
 			base.setProperty("netshot.http.ssl.enabled", "false");
-			// The legacy API is off by default: the tests of the legacy API (and its contract) need it
-			base.setProperty("netshot.http.api.v0.enabled", "true");
 			base.setProperty("netshot.http.baseurl", server.baseUrl());
 			context.getStore(Kinds.NAMESPACE).put(TestServer.class, server);
 		}

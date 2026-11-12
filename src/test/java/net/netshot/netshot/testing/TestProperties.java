@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
 /**
  * Container of the repeated {@link TestProperty} annotations.
  */
-@Target(ElementType.TYPE)
+@Target({ ElementType.TYPE, ElementType.ANNOTATION_TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface TestProperties {
