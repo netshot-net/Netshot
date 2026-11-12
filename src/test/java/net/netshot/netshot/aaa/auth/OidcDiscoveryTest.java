@@ -39,7 +39,7 @@ import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
 
 @UnitTest
 @DisplayName("OIDC IdP discovery service")
-public class OidcDiscoveryTest {
+class OidcDiscoveryTest {
 
 	private FakeOidcIdpServer idpServer;
 

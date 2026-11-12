@@ -57,7 +57,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 device interfaces and modules")
 @ResourceLock("DB")
-public class V1DeviceInventoryResourceTest {
+class V1DeviceInventoryResourceTest {
 
 	private V1Client reader;
 	private Device router1;

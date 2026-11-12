@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Test;
 
 @ScriptEngineTest
 @DisplayName("JavaScript Rule")
-public class JsRuleTest {
+class JsRuleTest {
 
 	static JsRuleRuntime jsRuntime;
 	static RuleEvaluators evaluators;

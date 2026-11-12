@@ -32,11 +32,11 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Encryption and hashing basic tests")
-public class CryptoTest {
+class CryptoTest {
 
 	@Test
 	@DisplayName("MD5/DES-based decryption test")
-	public void md5DesDecryptTest() {
+	void md5DesDecryptTest() {
 		String plain = "admin";
 		String encrypted = "ACdTtNiLgWBoGs3qq+mbNA==";
 		PasswordBasedEncryptor encryptor = new Md5DesPasswordBasedEncryptor("netshot");
@@ -46,7 +46,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("MD5/DES-based encryption test")
-	public void md5DesEncryptTest() {
+	void md5DesEncryptTest() {
 		String plain = "admin";
 		String expected = "ACdTtNiLgWBoGs3qq+mbNA==";
 		byte[] salt = new byte[] { 0x00, 0x27, 0x53, (byte) 0xb4, (byte) 0xd8, (byte) 0x8b, (byte) 0x81, 0x60 };
@@ -57,7 +57,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("MD5/DES-based encryption then decryption test")
-	public void md5DesEncryptDecryptTest() {
+	void md5DesEncryptDecryptTest() {
 		String plain = "somesecretdata";
 		PasswordBasedEncryptor encryptor = new Md5DesPasswordBasedEncryptor("netshot");
 		String encrypted = encryptor.encrypt(plain);
@@ -67,7 +67,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("SHA2/AES-based decryption test")
-	public void sha2AesDecryptTest() {
+	void sha2AesDecryptTest() {
 		String plain = "admin";
 		String encrypted = "AAkFZdFiJCIIVngREmchB39WJQgeZnh7FvpkmYjpeVEWusV3R9V2iA==";
 		PasswordBasedEncryptor encryptor = new Sha2AesPasswordBasedEncryptor("netshot");
@@ -77,7 +77,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("SHA2/AES-based encryption test")
-	public void sha2AesEncryptTest() {
+	void sha2AesEncryptTest() {
 		String plain = "admin";
 		String expected = "AAkFZdFiJCIIVngREmchB39WJQgeZnh7FvpkmYjpeVEWusV3R9V2iA==";
 		byte[] salt = new byte[] { 0x00, 0x09, 0x05, 0x65, (byte) 0xd1, 0x62, 0x24, 0x22 };
@@ -92,7 +92,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("SHA2/AES-based encryption then decryption test")
-	public void sha2AesEncryptDecryptTest() {
+	void sha2AesEncryptDecryptTest() {
 		String plain = "somesecretdata";
 		PasswordBasedEncryptor encryptor = new Sha2AesPasswordBasedEncryptor("netshot");
 		String encrypted = encryptor.encrypt(plain);
@@ -102,7 +102,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("MD5-based hash check test")
-	public void md5HashCheckTest() throws InvalidClassException {
+	void md5HashCheckTest() throws InvalidClassException {
 		String sensitive = "netshot";
 		String hashString = "7htrot2BNjUV/g57h/HJ/C1N0Fqrj+QQ";
 		Hash hash = Hash.fromHashString(hashString);
@@ -111,7 +111,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("MD5-based hash compute test")
-	public void md5HashComputeTest() throws InvalidClassException {
+	void md5HashComputeTest() throws InvalidClassException {
 		String sensitive = "netshot";
 		Md5BasedHash hash = new Md5BasedHash();
 		hash.setSalt(new byte[] {
@@ -127,7 +127,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("SHA256-based (no salt) raw hash check test")
-	public void sha256NoSaltRawHashCheckTest() throws InvalidClassException {
+	void sha256NoSaltRawHashCheckTest() throws InvalidClassException {
 		String sensitive = "HzpCNm3PTgp7mxGNKZqNFrRUBjD6wbaR";
 		String hashString = "ehn2Pt13CGKsMESmWGkCGA+5p7W9WC6cgFxoW8BGKXw=";
 		Hash hash = Sha2BasedHash.fromRawHashString(hashString);
@@ -136,7 +136,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("SHA256-based (no salt) hash check test")
-	public void sha256NoSaltHashCheckTest() throws InvalidClassException {
+	void sha256NoSaltHashCheckTest() throws InvalidClassException {
 		String sensitive = "HzpCNm3PTgp7mxGNKZqNFrRUBjD6wbaR";
 		String hashString = "$5$t=1000$ehn2Pt13CGKsMESmWGkCGA+5p7W9WC6cgFxoW8BGKXw";
 		Hash hash = Hash.fromHashString(hashString);
@@ -145,7 +145,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("SHA256-based hash compute test")
-	public void sha256HashComputeTest() throws InvalidClassException {
+	void sha256HashComputeTest() throws InvalidClassException {
 		String sensitive = "HzpCNm3PTgp7mxGNKZqNFrRUBjD6wbaR";
 		Sha2BasedHash hash = new Sha2BasedHash();
 		hash.setSalt(null);
@@ -159,7 +159,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("Argon2id valid check test")
-	public void argon2idValidCheckTest() throws InvalidClassException {
+	void argon2idValidCheckTest() throws InvalidClassException {
 		String sensitive = "netshot1";
 		String hashString = "$argon2id$v=19$m=9216,t=4,p=1$VUFuaDdSZ3FTd3FHQ1J5MQ$DZio5sjMQZygXu9iIaN66w";
 		Hash hash = Hash.fromHashString(hashString);
@@ -168,7 +168,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("Argon2id invalid check test")
-	public void argon2idInvalidCheckTest() throws InvalidClassException {
+	void argon2idInvalidCheckTest() throws InvalidClassException {
 		String sensitive = "netshot1";
 		String hashString = "$argon2id$v=19$m=9216,t=4,p=1$VUFuaDdSZ3FTd3FHQ1J5MQ$DZio5sjMQZygXu9iIAN66w";
 		Hash hash = Hash.fromHashString(hashString);
@@ -177,7 +177,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("Argon2id compute and check test")
-	public void argon2idComputeCheckTest() {
+	void argon2idComputeCheckTest() {
 		String sensitive = "Netshot101$";
 		Hash hash = new Argon2idHash(sensitive);
 		Assertions.assertTrue(hash.check(sensitive), "The hash was not properly computed or validated");
@@ -185,7 +185,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("Argon2id compute test")
-	public void argon2idComputeTest() {
+	void argon2idComputeTest() {
 		String sensitive = "netshot";
 		Argon2idHash hash = new Argon2idHash();
 		hash.setSalt(new byte[] {
@@ -201,7 +201,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator default generation test")
-	public void passwordGeneratorDefaultTest() {
+	void passwordGeneratorDefaultTest() {
 		String password = PasswordGenerator.generateDefault();
 		Assertions.assertNotNull(password, "Password should not be null");
 		Assertions.assertEquals(16, password.length(), "Default password length should be 16");
@@ -212,7 +212,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator custom length test")
-	public void passwordGeneratorCustomLengthTest() {
+	void passwordGeneratorCustomLengthTest() {
 		int expectedLength = 24;
 		String password = PasswordGenerator.builder()
 			.length(expectedLength)
@@ -223,7 +223,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator alphanumeric only test")
-	public void passwordGeneratorAlphanumericTest() {
+	void passwordGeneratorAlphanumericTest() {
 		String password = PasswordGenerator.generateAlphanumeric(20);
 		Assertions.assertEquals(20, password.length(), "Password length should be 20");
 		Pattern alphanumeric = Pattern.compile("^[A-Za-z0-9]+$");
@@ -233,7 +233,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator with special characters test")
-	public void passwordGeneratorWithSpecialCharsTest() {
+	void passwordGeneratorWithSpecialCharsTest() {
 		String password = PasswordGenerator.builder()
 			.length(20)
 			.includeSpecialChars(true)
@@ -258,7 +258,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator exclude ambiguous characters test")
-	public void passwordGeneratorExcludeAmbiguousTest() {
+	void passwordGeneratorExcludeAmbiguousTest() {
 		String password = PasswordGenerator.builder()
 			.length(50)
 			.excludeAmbiguous(true)
@@ -272,7 +272,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator custom character set test")
-	public void passwordGeneratorCustomCharSetTest() {
+	void passwordGeneratorCustomCharSetTest() {
 		String customChars = "ABC123";
 		String password = PasswordGenerator.builder()
 			.length(20)
@@ -288,7 +288,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator uniqueness test")
-	public void passwordGeneratorUniquenessTest() {
+	void passwordGeneratorUniquenessTest() {
 		Set<String> passwords = new HashSet<>();
 		for (int i = 0; i < 100; i++) {
 			passwords.add(PasswordGenerator.generateDefault());
@@ -298,7 +298,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator reusable instance test")
-	public void passwordGeneratorReusableInstanceTest() {
+	void passwordGeneratorReusableInstanceTest() {
 		PasswordGenerator generator = PasswordGenerator.builder()
 			.length(12)
 			.includeUppercase(true)
@@ -317,7 +317,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator minimum length validation test")
-	public void passwordGeneratorMinimumLengthTest() {
+	void passwordGeneratorMinimumLengthTest() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			PasswordGenerator.builder().length(0).build();
 		}, "Should throw exception for length 0");
@@ -329,7 +329,7 @@ public class CryptoTest {
 
 	@Test
 	@DisplayName("PasswordGenerator no character sets enabled test")
-	public void passwordGeneratorNoCharSetsTest() {
+	void passwordGeneratorNoCharSetsTest() {
 		Assertions.assertThrows(IllegalStateException.class, () -> {
 			PasswordGenerator.builder()
 				.includeUppercase(false)

@@ -31,7 +31,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @UnitTest
 @DisplayName("Telnet config merge test")
-public class TelnetConfigMergeTest {
+class TelnetConfigMergeTest {
 
 	/**
 	 * Reads a private {@link TelnetConfig} field via reflection - mirrors how

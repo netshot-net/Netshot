@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Timeout;
 
 @ScriptEngineTest
 @DisplayName("Python Rule")
-public class PyRuleTest {
+class PyRuleTest {
 
 	static PyRuleRuntime pyRuntime;
 	static RuleEvaluators evaluators;

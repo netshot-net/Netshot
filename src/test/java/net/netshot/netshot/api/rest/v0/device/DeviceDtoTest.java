@@ -79,6 +79,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * (The API contract tests only cover the kinds the seed data holds.)
  */
 @ScriptEngineTest
+@DisplayName("v0 device DTOs")
 class DeviceDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

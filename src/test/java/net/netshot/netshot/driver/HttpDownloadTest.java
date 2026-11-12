@@ -71,7 +71,7 @@ import net.netshot.netshot.vault.SecretResolver;
  */
 @ScriptEngineTest
 @DisplayName("HTTP client binary download test")
-public class HttpDownloadTest {
+class HttpDownloadTest {
 
 	private HttpServer fakeServer;
 	private int port;

@@ -53,7 +53,8 @@ import net.netshot.netshot.vault.SecretResolver;
  * throughout (trust/certificate behavior is out of scope for Phase 1 tests).
  */
 @ScriptEngineTest
-public class HttpTest {
+@DisplayName("HTTP access (authentication schemes)")
+class HttpTest {
 
 	private HttpServer server;
 	private int port;

@@ -48,7 +48,8 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
  * Tests of the registry of the diagnostic adapters.
  */
 @ScriptEngineTest
-public class DiagnosticAdaptersTest {
+@DisplayName("Diagnostic adapters")
+class DiagnosticAdaptersTest {
 
 	@SuppressWarnings("unchecked")
 	private static Set<Class<? extends Diagnostic>> concreteDiagnosticClasses() {

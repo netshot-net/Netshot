@@ -38,7 +38,7 @@ import net.netshot.netshot.testing.contract.Golden;
  */
 @UnitTest
 @DisplayName("v1 OpenAPI snapshot of the web UI")
-public class V1OpenApiSnapshotTest {
+class V1OpenApiSnapshotTest {
 
 	/** The snapshot, in the web UI sources. */
 	static final Path SNAPSHOT = Path.of("src/main/resources/webui/src/api/openapi.json");

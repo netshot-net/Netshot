@@ -30,7 +30,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Time buckets of the statistics")
-public class IntervalTest {
+class IntervalTest {
 
 	private static final ZoneId PARIS = ZoneId.of("Europe/Paris");
 

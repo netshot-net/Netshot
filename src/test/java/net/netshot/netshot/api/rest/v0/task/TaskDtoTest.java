@@ -67,6 +67,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * The creation request is read like it always was.
  */
 @ScriptEngineTest
+@DisplayName("v0 task DTOs")
 class TaskDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

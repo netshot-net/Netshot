@@ -37,7 +37,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Configuration store")
-public class ConfigStoreTest {
+class ConfigStoreTest {
 
 	/** Settings declared as in the code, to build a catalog from this class. */
 	static final class Declared {

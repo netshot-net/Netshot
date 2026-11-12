@@ -28,7 +28,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Device config tests")
-public class ConfigTest {
+class ConfigTest {
 
 	@Test
 	@DisplayName("Config line parents")

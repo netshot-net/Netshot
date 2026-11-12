@@ -51,6 +51,7 @@ import net.netshot.netshot.testing.TestWiring;
 @TestProperty(name = "netshot.aaa.passwordpolicy.maxhistory", value = "2")
 @TestProperty(name = "netshot.aaa.passwordpolicy.maxduration", value = "30")
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("User service")
 class UserServiceTest {
 
 	private static final String ADMIN = "the-admin";

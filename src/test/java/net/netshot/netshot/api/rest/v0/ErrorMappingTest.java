@@ -30,7 +30,8 @@ import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.api.v0.V0BadRequestException;
 
 @UnitTest
-public class ErrorMappingTest {
+@DisplayName("v0 error mapping")
+class ErrorMappingTest {
 
 	private final NetshotExceptionMapper mapper = new NetshotExceptionMapper(new Oidc(Netshot.config()));
 

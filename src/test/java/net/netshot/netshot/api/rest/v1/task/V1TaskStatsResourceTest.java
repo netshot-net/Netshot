@@ -60,7 +60,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 task statistics")
 @ResourceLock("DB")
-public class V1TaskStatsResourceTest {
+class V1TaskStatsResourceTest {
 
 	private static final String DAY_START = "2030-01-01T00:00:00Z";
 	private static final String DAY_END = "2030-01-02T00:00:00Z";

@@ -43,7 +43,7 @@ import net.netshot.netshot.testing.TestWiring;
 @DatabaseTest
 @DisplayName("Orphaned DELAYED task cleanup (TaskManager, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class OrphanedDelayedCleanupTest {
+class OrphanedDelayedCleanupTest {
 
 	Domain domain;
 	Device device;

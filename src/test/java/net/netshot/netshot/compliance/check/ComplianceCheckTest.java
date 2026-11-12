@@ -51,7 +51,8 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
  * and the checker looping over the rules of a policy.
  */
 @ScriptEngineTest
-public class ComplianceCheckTest {
+@DisplayName("Compliance check (rule evaluators and policy checker)")
+class ComplianceCheckTest {
 
 	private static RuleEvaluators evaluators;
 

@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -63,7 +64,8 @@ import net.netshot.netshot.testing.contract.Golden.Format;
  */
 @ContractTest
 @TestInstance(Lifecycle.PER_CLASS)
-public class WebHookContractTest {
+@DisplayName("Web hook contract (golden files)")
+class WebHookContractTest {
 
 	/** System property, set to true to rewrite the golden files. */
 	static final String UPDATE_PROPERTY = "netshot.hook.contract.update";

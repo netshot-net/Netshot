@@ -77,7 +77,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @DatabaseTest
 @DisplayName("Device finder test")
-public class FinderTest {
+class FinderTest {
 
 	// Test data accessible to all tests
 	protected static List<Domain> testDomains = new ArrayList<>();

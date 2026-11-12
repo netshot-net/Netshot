@@ -26,6 +26,7 @@ import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestFactory;
@@ -61,7 +62,8 @@ import net.netshot.netshot.testing.contract.ContractSeed;
 @V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class V0ContractTest {
+@DisplayName("v0 contract (golden files)")
+class V0ContractTest {
 
 	private String apiUrl;
 	private final long startTime = System.currentTimeMillis();

@@ -59,7 +59,7 @@ import net.netshot.netshot.testing.TestWiring;
 @DatabaseTest
 @DisplayName("Remove orphan binary files (PurgeDatabaseTask, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class OrphanBinaryFilePurgeTest {
+class OrphanBinaryFilePurgeTest {
 
 	Path storagePath;
 

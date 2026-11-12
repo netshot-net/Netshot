@@ -53,6 +53,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * absent properties, absent or null triggers).
  */
 @UnitTest
+@DisplayName("v0 hook DTOs")
 class HookDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

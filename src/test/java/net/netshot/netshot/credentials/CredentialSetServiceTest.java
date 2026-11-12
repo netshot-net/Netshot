@@ -62,6 +62,7 @@ import net.netshot.netshot.vault.VaultInstanceRepository;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Credential set service")
 class CredentialSetServiceTest {
 
 	private Transactions transactions;

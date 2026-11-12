@@ -56,7 +56,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("ZPENodeGrid driver test")
-public class ZPENodeGridDriverTest {
+class ZPENodeGridDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

@@ -60,7 +60,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 groups")
 @ResourceLock("DB")
-public class V1GroupResourceTest {
+class V1GroupResourceTest {
 
 	private V1Client admin;
 	private V1Client reader;

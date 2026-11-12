@@ -50,7 +50,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("Cisco AsyncOS driver test")
-public class CiscoAsyncOSDriverTest {
+class CiscoAsyncOSDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

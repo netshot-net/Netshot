@@ -65,6 +65,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Device creation service")
 class DeviceCreationServiceTest {
 
 	private static final String AUTHOR = "tester";

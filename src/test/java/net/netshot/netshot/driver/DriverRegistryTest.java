@@ -35,7 +35,7 @@ import net.netshot.netshot.testing.ScriptEngineTest;
 
 @ScriptEngineTest
 @DisplayName("Driver registry")
-public class DriverRegistryTest {
+class DriverRegistryTest {
 
 	private static final String BUNDLED_DRIVER = "CiscoIOS12";
 

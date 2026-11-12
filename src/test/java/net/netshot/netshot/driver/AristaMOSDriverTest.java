@@ -54,7 +54,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("Arista MOS driver test")
-public class AristaMOSDriverTest {
+class AristaMOSDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

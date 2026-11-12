@@ -48,7 +48,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
  */
 @ScriptEngineTest
 @DisplayName("Options block test")
-public class OptionsBlockTest {
+class OptionsBlockTest {
 
 	private static final String OPTIONS_DRIVER_JS = """
 		var Info = {

@@ -34,7 +34,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Configuration settings")
-public class SettingTest {
+class SettingTest {
 
 	@TempDir
 	Path tempDir;

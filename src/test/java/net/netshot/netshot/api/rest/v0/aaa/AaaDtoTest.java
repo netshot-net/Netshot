@@ -44,6 +44,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * classes were.
  */
 @UnitTest
+@DisplayName("v0 user and API token DTOs")
 class AaaDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

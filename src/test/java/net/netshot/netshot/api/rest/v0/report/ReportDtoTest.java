@@ -51,6 +51,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * including the values the seed data of the contract tests don't hold (null dates and flags).
  */
 @UnitTest
+@DisplayName("v0 report DTOs")
 class ReportDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

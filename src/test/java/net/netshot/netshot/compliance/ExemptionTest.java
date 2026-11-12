@@ -28,7 +28,8 @@ import org.junit.jupiter.api.Test;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
-public class ExemptionTest {
+@DisplayName("Compliance exemptions")
+class ExemptionTest {
 
 	@Test
 	@DisplayName("An exemption is active until its expiration date, and never without date")

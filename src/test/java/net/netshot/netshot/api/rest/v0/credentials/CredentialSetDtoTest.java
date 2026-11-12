@@ -61,6 +61,7 @@ import net.netshot.netshot.testing.contract.DtoContract;
  * it; the requests are read like they used to be.
  */
 @UnitTest
+@DisplayName("v0 credential set DTOs")
 class CredentialSetDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

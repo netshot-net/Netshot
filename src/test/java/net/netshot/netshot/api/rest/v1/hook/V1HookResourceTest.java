@@ -50,7 +50,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 hooks")
 @ResourceLock("DB")
-public class V1HookResourceTest {
+class V1HookResourceTest {
 
 	private TestServer server;
 	private V1Client admin;

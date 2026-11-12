@@ -68,7 +68,8 @@ import net.netshot.netshot.testing.TestDatabase;
  * and checks the result.
  */
 @DatabaseTest(boot = Boot.MANUAL)
-public class DatabaseMigrationTest {
+@DisplayName("Database data migrators")
+class DatabaseMigrationTest {
 
 	private TestDatabase database;
 

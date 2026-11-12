@@ -64,7 +64,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 })
 @DisplayName("v1 list export")
 @ResourceLock("DB")
-public class V1ListExportTest {
+class V1ListExportTest {
 
 	private static final String CSV = "text/csv";
 	private static final String XLSX = ExportFormat.APPLICATION_XLSX;
