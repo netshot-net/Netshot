@@ -64,10 +64,9 @@ import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.contract.ApiContractGolden;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.testing.contract.Golden.Format;
 import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
@@ -89,8 +88,8 @@ public class HookPayloadTest {
 	private final DtoContract contract = new DtoContract(HookPayloadTest.class, this.startTime);
 
 	@BeforeAll
-	void seed(TestServer server) throws Exception {
-		this.taskIds = HookTaskSeed.seed(server.apiUrl());
+	void seed() throws Exception {
+		this.taskIds = HookTaskSeed.seed();
 	}
 
 	/** Writes an object like the web hook sender does. */
@@ -127,7 +126,7 @@ public class HookPayloadTest {
 	}
 
 	private String canonical(Format format, byte[] body) {
-		return new ApiContractGolden(this.startTime).canonicalize(format, body, ApiContractGolden.Transform.NONE, false);
+		return new Golden(this.startTime).canonicalize(format, body, Golden.Transform.NONE, false);
 	}
 
 	private static final Format[] FORMATS = { Format.JSON, Format.XML, Format.YAML };

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
+package net.netshot.netshot.api.rest.v0;
 
 import java.net.http.HttpClient;
 import java.util.ArrayList;
@@ -34,36 +34,39 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.contract.ApiContractCase.Reply;
-import net.netshot.netshot.testing.contract.ApiContractCase;
-import net.netshot.netshot.testing.contract.ApiContractCases;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
-import net.netshot.netshot.testing.contract.ApiContractGolden;
-import net.netshot.netshot.testing.contract.ApiContractSeed;
+import net.netshot.netshot.testing.api.v0.V0ContractCase.Reply;
+import net.netshot.netshot.testing.api.v0.V0ContractCase;
+import net.netshot.netshot.testing.api.v0.V0ContractCases;
+import net.netshot.netshot.testing.api.v0.V0ContractGolden;
+import net.netshot.netshot.testing.contract.Golden.Format;
+import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.testing.contract.ContractSeed;
 
 /**
  * Golden file contract tests of the REST API: the wire format (JSON, XML,
  * YAML, plain text...) and HTTP status of every endpoint are recorded under
- * {@code src/test/resources/api-contract/} and must not change when the
+ * {@code src/test/resources/v0-contract/} and must not change when the
  * implementation is refactored.
  *
  * <p>The server is booted against a fresh PostgreSQL schema, which is then
- * filled with a deterministic dataset (see {@link ApiContractSeed}). The cases
- * ({@link ApiContractCases}) run in order: first the read-only ones, then the
+ * filled with a deterministic dataset (see {@link ContractSeed}). The cases
+ * ({@link V0ContractCases}) run in order: first the read-only ones, then the
  * write ones, which change the dataset as they go. Run with
  * {@code -Dnetshot.contract.update=true} to (re)write the golden files instead of
  * asserting.</p>
  */
 @ContractTest
+@V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ApiContractTest {
+public class V0ContractTest {
 
 	private String apiUrl;
 	private final long startTime = System.currentTimeMillis();
 	private HttpClient httpClient;
-	private ApiContractSeed seed;
+	private ContractSeed seed;
 	/** Statuses recorded (update mode) or to check, by golden file name. */
 	private final Map<String, String> recordedStatuses = new TreeMap<>();
 
@@ -71,48 +74,48 @@ public class ApiContractTest {
 	void bootAndSeed(TestServer server) throws Exception {
 		this.apiUrl = server.apiUrl();
 		this.httpClient = HttpClient.newHttpClient();
-		this.seed = new ApiContractSeed(this.apiUrl, this.httpClient);
+		this.seed = new ContractSeed();
 		this.seed.seed();
 	}
 
 	@TestFactory
 	List<DynamicTest> contractCases() {
-		ApiContractGolden golden = new ApiContractGolden(this.startTime);
-		boolean update = ApiContractGolden.isUpdateMode();
-		java.util.Properties expectedStatuses = ApiContractGolden.readStatuses();
+		Golden golden = new Golden(this.startTime);
+		boolean update = Golden.isUpdateMode();
+		java.util.Properties expectedStatuses = V0ContractGolden.readStatuses();
 		List<DynamicTest> tests = new ArrayList<>();
-		List<ApiContractCase> cases = ApiContractCases.all(this.seed);
-		for (ApiContractCase contractCase : cases) {
+		List<V0ContractCase> cases = V0ContractCases.all(this.seed);
+		for (V0ContractCase contractCase : cases) {
 			String fileName = contractCase.fileName();
 			tests.add(DynamicTest.dynamicTest(fileName, () -> {
-				Reply reply = contractCase.send(this.httpClient, this.apiUrl, ApiContractSeed.ADMIN_TOKEN);
+				Reply reply = contractCase.send(this.httpClient, this.apiUrl, ContractSeed.ADMIN_TOKEN);
 				String status = reply.status() + ";" + contentTypeBase(reply.contentType());
 				Format format = contractCase.format();
 				String actual = golden.canonicalize(format, reply.body(), contractCase.transform, contractCase.sortRoot);
 				if (reply.contentDisposition() != null) {
 					actual = "# Content-Disposition: "
-						+ ApiContractGolden.normalizeHeader(reply.contentDisposition()) + "\n" + actual;
+						+ Golden.normalizeHeader(reply.contentDisposition()) + "\n" + actual;
 				}
 				if (update) {
-					ApiContractGolden.writeGolden(fileName, actual);
+					V0ContractGolden.write(fileName, actual);
 					this.recordedStatuses.put(fileName, status);
 					return;
 				}
-				String expected = ApiContractGolden.readGolden(fileName);
+				String expected = V0ContractGolden.read(fileName);
 				Assertions.assertNotNull(expected, "No golden file for case " + fileName
-					+ " (run with -D" + ApiContractGolden.UPDATE_PROPERTY + "=true to create it)");
+					+ " (run with -D" + Golden.UPDATE_PROPERTY + "=true to create it)");
 				Assertions.assertEquals(expectedStatuses.getProperty(fileName), status,
 					"HTTP status/content type changed for case " + fileName);
 				if (!expected.equals(actual)) {
 					Assertions.fail("API contract broken for case " + fileName + ":\n"
-						+ ApiContractGolden.diff(expected, actual, fileName));
+						+ Golden.diff(expected, actual, fileName));
 				}
 			}));
 		}
 		if (update) {
 			// Persist the statuses once all cases have run.
 			tests.add(DynamicTest.dynamicTest("(write statuses)", () -> {
-				ApiContractGolden.writeStatuses(this.recordedStatuses);
+				V0ContractGolden.writeStatuses(this.recordedStatuses);
 			}));
 		}
 		return tests;

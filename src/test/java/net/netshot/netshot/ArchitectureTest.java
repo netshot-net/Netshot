@@ -21,6 +21,7 @@ package net.netshot.netshot;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,6 +113,16 @@ public final class ArchitectureTest {
 	static final ArchRule HOOK_CHANNEL_DOES_NOT_DEPEND_ON_REST_CHANNEL = 
 		noClasses().that().resideInAPackage(ROOT + "api.hook..")
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "api.rest..")
+			.allowEmptyShould(true);
+
+	/**
+	 * The versions of the REST API (api.rest.v0, api.rest.v1...) are independent: each can be removed without
+	 * touching the others (only the REST server, in api.rest, knows all of them).
+	 */
+	@ArchTest
+	static final ArchRule REST_API_VERSIONS_ARE_INDEPENDENT =
+		slices().matching(ROOT + "api.rest.(*)..").namingSlices("REST API $1")
+			.should().notDependOnEachOther()
 			.allowEmptyShould(true);
 
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
