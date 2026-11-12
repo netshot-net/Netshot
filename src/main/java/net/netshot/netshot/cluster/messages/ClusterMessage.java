@@ -19,6 +19,10 @@
 package net.netshot.netshot.cluster.messages;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -91,6 +95,36 @@ public abstract class ClusterMessage {
 	 * Hidden constructor.
 	 */
 	protected ClusterMessage() {
+	}
+
+	/**
+	 * Splits the message into two smaller ones (when it is too long to be sent).
+	 * @return the two messages, or an empty list when the message can't be split
+	 */
+	public List<ClusterMessage> split() {
+		return List.of();
+	}
+
+	/**
+	 * Splits a collection of items into two messages, with the header of this message.
+	 * @param <T> the type of the items
+	 * @param items the items
+	 * @param factory builds a message (with an empty header) holding some items
+	 * @return the two messages, or an empty list when there are less than two items
+	 */
+	protected <T> List<ClusterMessage> split(Collection<T> items, Function<List<T>, ClusterMessage> factory) {
+		if (items.size() < 2) {
+			return List.of();
+		}
+		List<T> list = new ArrayList<>(items);
+		int half = list.size() / 2;
+		List<ClusterMessage> messages = List.of(factory.apply(list.subList(0, half)), factory.apply(list.subList(half, list.size())));
+		for (ClusterMessage message : messages) {
+			message.instanceId = this.instanceId;
+			message.currentTime = this.currentTime;
+			message.upTime = this.upTime;
+		}
+		return messages;
 	}
 
 	@Override
