@@ -20,6 +20,7 @@ package net.netshot.netshot.cluster.messages;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import jakarta.xml.bind.annotation.XmlElement;
@@ -59,5 +60,14 @@ public class VaultInstanceChangedMessage extends ClusterMessage {
 
 	public void addVaultInstanceIds(Collection<Long> newVaultInstanceIds) {
 		this.vaultInstanceIds.addAll(newVaultInstanceIds);
+	}
+
+	@Override
+	public List<ClusterMessage> split() {
+		return this.split(this.vaultInstanceIds, ids -> {
+			VaultInstanceChangedMessage message = new VaultInstanceChangedMessage();
+			message.addVaultInstanceIds(ids);
+			return message;
+		});
 	}
 }

@@ -27,6 +27,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -457,6 +458,40 @@ class ClusterManagerTest {
 			peer.await("ReloadDrivers", _ -> true);
 			Assertions.assertEquals(List.of(), peer.received("AssignTasks"));
 			Assertions.assertEquals(List.of(), peer.received("AutoSnapshot"));
+		}
+
+		@Test
+		@DisplayName("Automatic snapshot requests for many devices all reach the master (split over several messages)")
+		void largeAutoSnapshotRequest() throws Exception {
+			ClusterPeer master = peer(ID_3, 100);
+			master.announce("MASTER");
+			ClusterManager manager = start(ID_2, 100, new RecordingNode());
+			awaitMember(manager, master);
+			Set<Long> deviceIds = LongStream.range(0, 2000).map(i -> 1_000_000_000_000L + i).boxed().collect(Collectors.toSet());
+			deviceIds.forEach(manager::requestAutoSnapshot);
+			Set<Long> received = new HashSet<>();
+			await(() -> {
+				received.clear();
+				master.received("AutoSnapshot").forEach(m -> received.addAll(ids(m.path("deviceIds"))));
+				return received.size() >= deviceIds.size();
+			}, "all the devices reach the master");
+			Assertions.assertEquals(deviceIds, received);
+		}
+
+		@Test
+		@DisplayName("Vault requests for many instances all reach the members (split over several messages)")
+		void largeVaultRequest() throws Exception {
+			ClusterPeer peer = peer(ID_1, 100);
+			ClusterManager manager = start(ID_2, 100, new RecordingNode());
+			Set<Long> vaultIds = LongStream.range(0, 2000).map(i -> 1_000_000_000_000L + i).boxed().collect(Collectors.toSet());
+			vaultIds.forEach(manager::requestVaultInstanceReload);
+			Set<Long> received = new HashSet<>();
+			await(() -> {
+				received.clear();
+				peer.received("VaultInstanceChanged").forEach(m -> received.addAll(ids(m.path("vaultInstanceIds"))));
+				return received.size() >= vaultIds.size();
+			}, "all the Vault instances reach the members");
+			Assertions.assertEquals(vaultIds, received);
 		}
 
 		private static Set<Long> ids(JsonNode array) {
