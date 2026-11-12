@@ -20,6 +20,7 @@ package net.netshot.netshot.cluster;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -81,6 +82,9 @@ public class ClusterManager implements Service, ClusterCoordinator {
 
 	/** Netshot clustering version. */
 	protected static final int CLUSTERING_VERSION = 1;
+
+	/** Maximum size of a message (PostgreSQL notification payloads must be shorter than 8000 bytes). */
+	private static final int MAX_MESSAGE_BYTES = 7999;
 
 	/** Duration of a worker action (ms) above which a warning is logged. */
 	private static final int SLOW_WORKER_ACTION_WARNING = 10000;
@@ -497,21 +501,31 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	 */
 	private void sendMessage(Connection connection, ClusterMessage message) throws SQLException {
 		message.setMessageId(this.lastMessageId.incrementAndGet());
-		try (Statement statement = connection.createStatement()) {
-			String content = this.jsonWriter.forType(ClusterMessage.class).writeValueAsString(message);
-			// Can't make it work with a prepared statement so escape the quotes
-			content = content.replace("'", "''");
-			if (content.length() > 7999) {
-				log.error("Cluster message {} is too long, cannot send it", message.getClass().getSimpleName());
-			}
-			else {
-				log.trace("Sending message to {}: {}", ClusterManager.NOTIFICATION_CHANNEL, content);
-				statement.execute(String.format("NOTIFY %s, '%s'", ClusterManager.NOTIFICATION_CHANNEL, content));
-				this.sentMessages.incrementAndGet();
-			}
+		String content;
+		try {
+			content = this.jsonWriter.forType(ClusterMessage.class).writeValueAsString(message);
 		}
 		catch (JsonProcessingException e) {
-			log.error("Can't serialize Hello cluster message");
+			log.error("Can't serialize cluster message {}", message.getClass().getSimpleName(), e);
+			return;
+		}
+		if (content.getBytes(StandardCharsets.UTF_8).length > MAX_MESSAGE_BYTES) {
+			List<ClusterMessage> parts = message.split();
+			if (parts.isEmpty()) {
+				log.error("Cluster message {} is too long, cannot send it", message.getClass().getSimpleName());
+				return;
+			}
+			log.debug("Cluster message {} is too long, splitting it", message.getClass().getSimpleName());
+			for (ClusterMessage part : parts) {
+				this.sendMessage(connection, part);
+			}
+			return;
+		}
+		try (Statement statement = connection.createStatement()) {
+			log.trace("Sending message to {}: {}", ClusterManager.NOTIFICATION_CHANNEL, content);
+			// Can't make it work with a prepared statement so escape the quotes
+			statement.execute(String.format("NOTIFY %s, '%s'", ClusterManager.NOTIFICATION_CHANNEL, content.replace("'", "''")));
+			this.sentMessages.incrementAndGet();
 		}
 	}
 

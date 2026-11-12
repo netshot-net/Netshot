@@ -20,6 +20,7 @@ package net.netshot.netshot.cluster.messages;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import jakarta.xml.bind.annotation.XmlElement;
@@ -59,5 +60,14 @@ public class AutoSnapshotMessage extends ClusterMessage {
 
 	public void addDeviceIds(Collection<Long> newDeviceIds) {
 		this.deviceIds.addAll(newDeviceIds);
+	}
+
+	@Override
+	public List<ClusterMessage> split() {
+		return this.split(this.deviceIds, ids -> {
+			AutoSnapshotMessage message = new AutoSnapshotMessage();
+			message.addDeviceIds(ids);
+			return message;
+		});
 	}
 }

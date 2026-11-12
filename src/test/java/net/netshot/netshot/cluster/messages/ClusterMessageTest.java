@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.cluster.messages;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -70,5 +71,33 @@ class ClusterMessageTest {
 		VaultInstanceChangedMessage vault = new VaultInstanceChangedMessage(MEMBER);
 		vault.addVaultInstanceIds(List.of(3L));
 		Assertions.assertEquals(Set.of(3L), ((VaultInstanceChangedMessage) roundTrip(vault)).getVaultInstanceIds());
+	}
+
+	@Test
+	@DisplayName("A message with items splits into two halves with the same header")
+	void split() {
+		AutoSnapshotMessage message = new AutoSnapshotMessage(MEMBER);
+		message.addDeviceIds(List.of(1L, 2L, 3L, 4L, 5L));
+		List<ClusterMessage> parts = message.split();
+		Assertions.assertEquals(2, parts.size());
+		Set<Long> ids = new HashSet<>();
+		for (ClusterMessage part : parts) {
+			AutoSnapshotMessage snapshot = (AutoSnapshotMessage) part;
+			Assertions.assertTrue(snapshot.getDeviceIds().size() >= 2);
+			Assertions.assertEquals(message.getInstanceId(), part.getInstanceId());
+			Assertions.assertEquals(message.getCurrentTime(), part.getCurrentTime());
+			Assertions.assertEquals(message.getUpTime(), part.getUpTime());
+			ids.addAll(snapshot.getDeviceIds());
+		}
+		Assertions.assertEquals(message.getDeviceIds(), ids);
+	}
+
+	@Test
+	@DisplayName("A message without items to share can't be split")
+	void noSplit() {
+		VaultInstanceChangedMessage vault = new VaultInstanceChangedMessage(MEMBER);
+		vault.addVaultInstanceIds(List.of(3L));
+		Assertions.assertEquals(List.of(), vault.split());
+		Assertions.assertEquals(List.of(), new HelloClusterMessage(MEMBER).split());
 	}
 }
