@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v1.config;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +46,6 @@ import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.v1.V1Client;
 import net.netshot.netshot.testing.api.v1.V1Client.Answer;
@@ -66,13 +64,9 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 	"GET /configs/{id}/diff",
 	"GET /devices/{id}/configs"
 })
-@TestProperty(name = "netshot.snapshots.binary.path", value = V1ConfigResourceTest.BINARY_PATH)
 @DisplayName("v1 configurations")
 @ResourceLock("DB")
 class V1ConfigResourceTest {
-
-	/** Where the binary files of the configurations are stored by the tests. */
-	static final String BINARY_PATH = "/tmp/netshot-v1-config-test";
 
 	private static final Instant JANUARY = Instant.parse("2026-01-01T10:00:00Z");
 	private static final Instant FEBRUARY = Instant.parse("2026-02-01T10:00:00Z");
@@ -91,7 +85,6 @@ class V1ConfigResourceTest {
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {
-		Files.createDirectories(Path.of(BINARY_PATH));
 		TestDrivers.reload();
 	}
 
