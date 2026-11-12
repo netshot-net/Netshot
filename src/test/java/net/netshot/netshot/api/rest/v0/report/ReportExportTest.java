@@ -49,22 +49,24 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.contract.ApiContractSeed;
+import net.netshot.netshot.testing.contract.ContractSeed;
 
 /**
  * The XLSX export ({@code GET /reports/export}) with the combinations of options the
  * contract goldens don't reach. The workbook is dumped cell by cell (sheet names, column
  * widths, freeze panes, auto filters, values, number formats, bold titles, formulas) and
- * compared to the dumps stored under {@code src/test/resources/report-export/}, which were
+ * compared to the dumps stored under {@code src/test/resources/v0-report-export/}, which were
  * produced by the former {@code RestService} implementation. Run with
  * {@code -Dnetshot.report.export.update=true} to (re)write them.
  */
 @ContractTest
+@V0Enabled
 @TestInstance(Lifecycle.PER_CLASS)
 public class ReportExportTest {
 
-	private static final Path FIXTURES = Path.of("src", "test", "resources", "report-export");
+	private static final Path FIXTURES = Path.of("src", "test", "resources", "v0-report-export");
 	private static final String UPDATE_PROPERTY = "netshot.report.export.update";
 	private static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 	/** Sheets whose row order is not defined by the queries. */
@@ -73,13 +75,13 @@ public class ReportExportTest {
 	private String apiUrl;
 	private final long startTime = System.currentTimeMillis();
 	private HttpClient httpClient;
-	private ApiContractSeed seed;
+	private ContractSeed seed;
 
 	@BeforeAll
 	void bootAndSeed(TestServer server) throws Exception {
 		this.apiUrl = server.apiUrl();
 		this.httpClient = HttpClient.newHttpClient();
-		this.seed = new ApiContractSeed(this.apiUrl, this.httpClient);
+		this.seed = new ContractSeed();
 		this.seed.seed();
 	}
 
@@ -108,7 +110,7 @@ public class ReportExportTest {
 					.version(HttpClient.Version.HTTP_1_1)
 					.uri(URI.create(this.apiUrl + "/reports/export" + variant.getValue().get()))
 					.header("Accept", XLSX)
-					.header("X-Netshot-API-Token", ApiContractSeed.ADMIN_TOKEN)
+					.header("X-Netshot-API-Token", ContractSeed.ADMIN_TOKEN)
 					.GET().build(), HttpResponse.BodyHandlers.ofByteArray());
 				Assertions.assertEquals(200, response.statusCode());
 				Assertions.assertTrue(response.headers().firstValue("Content-Disposition").orElse("")

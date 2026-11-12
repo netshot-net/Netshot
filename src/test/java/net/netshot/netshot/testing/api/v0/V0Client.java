@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.testing.api;
+package net.netshot.netshot.testing.api.v0;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,11 +46,13 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.Getter;
 import lombok.Setter;
+import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.testing.TestServer;
 
 /**
  * Simple wrapper for Netshot REST API.
  */
-public class NetshotApiClient {
+public class V0Client {
 
 	/**
 	 * Simple exception to catch unexpected response and attach it.
@@ -107,18 +109,28 @@ public class NetshotApiClient {
 
 	private CookieManager cookieManager;
 
-	private NetshotApiClient(String apiUrl) throws URISyntaxException {
+	private V0Client(String apiUrl) throws URISyntaxException {
 		this.cookieManager = new CookieManager();
 		this.httpClient = HttpClient.newBuilder().cookieHandler(this.cookieManager).build();
 		this.apiUrl = new URI(apiUrl);
 	}
 
-	public NetshotApiClient(String apiUrl, String apiToken) throws URISyntaxException {
+	/**
+	 * Creates a client of the v0 API of a test server, authenticated with the admin token.
+	 *
+	 * @param server the test server
+	 * @throws URISyntaxException never, the URL being valid
+	 */
+	public V0Client(TestServer server) throws URISyntaxException {
+		this(server.apiUrl(), TestServer.API_TOKENS.get(UiUser.LEVEL_ADMIN));
+	}
+
+	public V0Client(String apiUrl, String apiToken) throws URISyntaxException {
 		this(apiUrl);
 		this.apiToken = apiToken;
 	}
 
-	public NetshotApiClient(String apiUrl, String username, String password) throws URISyntaxException {
+	public V0Client(String apiUrl, String username, String password) throws URISyntaxException {
 		this(apiUrl);
 		this.username = username;
 		this.password = password;

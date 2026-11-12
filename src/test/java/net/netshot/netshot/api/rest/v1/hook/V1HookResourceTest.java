@@ -35,9 +35,9 @@ import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.api.V1Client;
-import net.netshot.netshot.testing.api.V1Client.Answer;
-import net.netshot.netshot.testing.api.V1Endpoints;
+import net.netshot.netshot.testing.api.v1.V1Client;
+import net.netshot.netshot.testing.api.v1.V1Client.Answer;
+import net.netshot.netshot.testing.api.v1.V1Endpoints;
 
 @ApiTest
 @V1Endpoints({

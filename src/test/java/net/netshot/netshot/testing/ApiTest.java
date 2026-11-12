@@ -33,8 +33,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * server on a free local port for the test class, and stops them after it.
  *
  * <p>Before each test, the API tokens of {@link TestServer#API_TOKENS} replace the users (they are removed
- * after the test). The test methods can receive the {@link TestServer} and an admin
- * {@link net.netshot.netshot.testing.api.NetshotApiClient} as parameters.</p>
+ * after the test). The test methods can receive the {@link TestServer} as a parameter, to build
+ * the clients of the API version they test.</p>
  *
  * <p>Tagged {@code api}: needs Docker.</p>
  */

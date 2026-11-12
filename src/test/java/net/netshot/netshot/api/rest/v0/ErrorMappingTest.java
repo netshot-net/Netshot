@@ -27,7 +27,7 @@ import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.UnitTest;
-import net.netshot.netshot.testing.api.NetshotBadRequestException;
+import net.netshot.netshot.testing.api.v0.V0BadRequestException;
 
 @UnitTest
 public class ErrorMappingTest {
@@ -35,10 +35,10 @@ public class ErrorMappingTest {
 	private final NetshotExceptionMapper mapper = new NetshotExceptionMapper(new Oidc(Netshot.config()));
 
 	@Test
-	@DisplayName("NetshotException is rendered like NetshotBadRequestException, for every error code")
+	@DisplayName("NetshotException is rendered like the former NetshotBadRequestException, for every error code")
 	void sameRenderingForEveryCode() {
 		for (ErrorCode code : ErrorCode.values()) {
-			Response expected = this.mapper.toResponse(new NetshotBadRequestException("Some message", code));
+			Response expected = this.mapper.toResponse(new V0BadRequestException("Some message", code));
 			Response actual = this.mapper.toResponse(new NetshotException(code, "Some message"));
 			Assertions.assertEquals(expected.getStatus(), actual.getStatus(), code.name());
 			Assertions.assertEquals(code.getHttpStatus(), actual.getStatus(), code.name());

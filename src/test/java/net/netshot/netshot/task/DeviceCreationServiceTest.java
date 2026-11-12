@@ -34,6 +34,7 @@ import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
 import net.netshot.netshot.credentials.DeviceCredentialSet;
+import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
@@ -138,6 +139,18 @@ class DeviceCreationServiceTest {
 	 */
 	private static DeviceCredentialSet credentialRef(long id) {
 		return DeviceSshAccount.builder().id(id).name("ref").build();
+	}
+
+	@Test
+	@DisplayName("create() accepts comments of up to 4096 characters, and refuses longer ones")
+	void createCommentsLength() {
+		String address = this.nextAddress();
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.creationService.create(new DeviceCreation(false, address,
+			this.domainId, "CiscoIOS12", null, null, "x".repeat(Device.MAX_COMMENTS_LENGTH + 1), null, AUTHOR)));
+		Assertions.assertEquals(0, this.countDevices(address));
+		Device device = this.deviceOf(this.creationService.create(new DeviceCreation(false, address,
+			this.domainId, "CiscoIOS12", null, null, "y".repeat(Device.MAX_COMMENTS_LENGTH), null, AUTHOR)));
+		Assertions.assertEquals(Device.MAX_COMMENTS_LENGTH, device.comments().length());
 	}
 
 	@Test
@@ -293,6 +306,12 @@ class DeviceCreationServiceTest {
 		DeviceAccess unknownGlobal = access("ssh").toBuilder().globalCredentialSet(credentialRef(99999999L)).build();
 		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(unknownGlobal), null, null, null, AUTHOR)));
+		// An HTTP account (not a SNMP community, which the discovery tests would find)
+		long httpAccountId = TestDevices.addCredentialSet(DeviceHttpAccount.builder().username(Secret.local("api"))
+			.password(Secret.local("secret")).name("Lab HTTP account").build()).id();
+		DeviceAccess wrongFamily = access("ssh").toBuilder().globalCredentialSet(credentialRef(httpAccountId)).build();
+		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE, () -> this.creationService.create(
+			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(wrongFamily), null, null, null, AUTHOR)));
 		Assertions.assertEquals(0, this.countDevices(address));
 		Assertions.assertTrue(this.submittedTasks.isEmpty());
 	}

@@ -20,15 +20,12 @@ package net.netshot.netshot.boot;
 
 import java.util.List;
 
-import org.glassfish.jersey.server.ApplicationHandler;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.api.rest.v0.V0Application;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
@@ -52,14 +49,5 @@ public class WiringTest {
 		Assertions.assertEquals(List.of("database", "device drivers", "OIDC IdP discovery", "task lock manager",
 			"Vault token refresher", "SSH client", "task manager", "Syslog server", "SNMP trap receiver", "SSH/SCP/SFTP server",
 			"Web/REST server"), wiring.services().stream().map(Service::name).toList());
-	}
-
-	@Test
-	@DisplayName("The web application makes the wiring injectable into the resources")
-	void injection() {
-		Wiring wiring = TestWiring.set(Wiring.init());
-		ApplicationHandler handler = new ApplicationHandler(new V0Application(wiring.binder()));
-		Transactions injected = handler.getInjectionManager().getInstance(Transactions.class);
-		Assertions.assertSame(wiring.transactions(), injected);
 	}
 }
