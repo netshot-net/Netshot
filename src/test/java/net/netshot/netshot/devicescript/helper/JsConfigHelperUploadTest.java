@@ -39,7 +39,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @UnitTest
 @DisplayName("Upload tickets of the configuration helper")
-public class JsConfigHelperUploadTest {
+class JsConfigHelperUploadTest {
 
 	@TempDir
 	Path tempDir;

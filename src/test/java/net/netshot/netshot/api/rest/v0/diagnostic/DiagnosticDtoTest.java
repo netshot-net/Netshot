@@ -63,6 +63,7 @@ import net.netshot.netshot.userscript.DeviceJsScript;
  * XML), and that the requests are read like the former request classes did.
  */
 @ScriptEngineTest
+@DisplayName("v0 diagnostic and script DTOs")
 class DiagnosticDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

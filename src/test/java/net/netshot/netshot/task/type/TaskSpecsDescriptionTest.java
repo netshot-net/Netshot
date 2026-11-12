@@ -29,7 +29,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Task type descriptions")
-public class TaskSpecsDescriptionTest {
+class TaskSpecsDescriptionTest {
 
 	private static Object defaultValue(Class<?> type) {
 		if (type == boolean.class) {

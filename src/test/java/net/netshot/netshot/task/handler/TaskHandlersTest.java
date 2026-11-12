@@ -43,7 +43,7 @@ import net.netshot.netshot.testing.UnitTest;
  */
 @UnitTest
 @DisplayName("Task handlers")
-public class TaskHandlersTest {
+class TaskHandlersTest {
 
 	/**
 	 * All the handlers; they only keep their collaborators, so none is needed to build them.

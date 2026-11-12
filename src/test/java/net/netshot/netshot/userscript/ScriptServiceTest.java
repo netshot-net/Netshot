@@ -42,6 +42,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Command script service")
 class ScriptServiceTest {
 
 	private static final String SCRIPT = "function run(cli, device) {\n  cli.command('show clock');\n}";

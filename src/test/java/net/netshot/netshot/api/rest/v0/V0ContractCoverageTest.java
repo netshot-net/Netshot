@@ -64,7 +64,8 @@ import net.netshot.netshot.testing.contract.ContractSeed;
  * <p>This test does not need any database or server.</p>
  */
 @UnitTest
-public class V0ContractCoverageTest {
+@DisplayName("v0 contract coverage")
+class V0ContractCoverageTest {
 
 	/**
 	 * Resource methods with no contract case, and why. The key is

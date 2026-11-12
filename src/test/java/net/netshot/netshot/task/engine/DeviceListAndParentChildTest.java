@@ -45,7 +45,7 @@ import net.netshot.netshot.testing.TestWiring;
 @DatabaseTest
 @DisplayName("Group task device list / parent-child tracking (DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class DeviceListAndParentChildTest {
+class DeviceListAndParentChildTest {
 
 	Domain domain;
 	Device device1;

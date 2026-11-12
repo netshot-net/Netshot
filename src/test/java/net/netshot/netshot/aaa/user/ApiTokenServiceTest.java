@@ -40,6 +40,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("API token service")
 class ApiTokenServiceTest {
 
 	private static final String TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012345";

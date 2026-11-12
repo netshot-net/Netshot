@@ -59,7 +59,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 hardware rules")
 @ResourceLock("DB")
-public class V1HardwareRuleResourceTest {
+class V1HardwareRuleResourceTest {
 
 	private V1Client admin;
 	private V1Client reader;

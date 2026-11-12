@@ -61,7 +61,7 @@ import net.netshot.netshot.testing.UnitTest;
  */
 @UnitTest
 @AnalyzeClasses(packages = "net.netshot.netshot", importOptions = ImportOption.DoNotIncludeTests.class)
-public final class ArchitectureTest {
+final class ArchitectureTest {
 
 	private static final String ROOT = "net.netshot.netshot.";
 

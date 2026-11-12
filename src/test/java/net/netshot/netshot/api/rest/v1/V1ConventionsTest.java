@@ -42,7 +42,7 @@ import net.netshot.netshot.testing.UnitTest;
  */
 @UnitTest
 @DisplayName("v1 conventions")
-public class V1ConventionsTest {
+class V1ConventionsTest {
 
 	@Test
 	@DisplayName("Only a version mismatch is a 412 in v1")

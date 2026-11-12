@@ -51,7 +51,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @SimulatorTest
 @DisplayName("GenericSNMP driver test")
-public class GenericSNMPDriverTest {
+class GenericSNMPDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 

@@ -44,7 +44,7 @@ import net.netshot.netshot.testing.TestDatabase;
  */
 @DatabaseTest(boot = Boot.MANUAL)
 @DisplayName("Task and device locks (TaskLockManager)")
-public class TaskLockManagerTest {
+class TaskLockManagerTest {
 
 	private String url;
 	private String username;

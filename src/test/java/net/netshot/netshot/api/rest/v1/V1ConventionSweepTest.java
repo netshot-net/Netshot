@@ -51,7 +51,7 @@ import net.netshot.netshot.testing.api.v1.V1Resources.Endpoint;
 @ApiTest
 @DisplayName("v1 conventions on every endpoint")
 @ResourceLock("DB")
-public class V1ConventionSweepTest {
+class V1ConventionSweepTest {
 
 	/** The endpoints which need no authentication (any change here is a security decision). */
 	private static final Set<String> PUBLIC = Set.of(

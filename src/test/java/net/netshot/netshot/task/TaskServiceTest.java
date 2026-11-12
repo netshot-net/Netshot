@@ -60,6 +60,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Task service")
 class TaskServiceTest {
 
 	private static final String AUTHOR = "tester";

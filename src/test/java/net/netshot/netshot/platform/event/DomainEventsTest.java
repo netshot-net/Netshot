@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.testing.UnitTest;
@@ -30,6 +31,7 @@ import net.netshot.netshot.testing.UnitTest;
  * Tests of the domain events publisher.
  */
 @UnitTest
+@DisplayName("Domain events")
 class DomainEventsTest {
 
 	private record First(String name) {

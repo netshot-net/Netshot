@@ -59,6 +59,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Configuration service")
 class ConfigServiceTest {
 
 	private static final long D2020 = 1_577_880_000_000L;

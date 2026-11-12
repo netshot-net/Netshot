@@ -47,7 +47,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
  */
 @UnitTest
 @DisplayName("v1 endpoint coverage")
-public class V1EndpointCoverageTest {
+class V1EndpointCoverageTest {
 
 	private static final String ROOT_PACKAGE = "net.netshot.netshot";
 

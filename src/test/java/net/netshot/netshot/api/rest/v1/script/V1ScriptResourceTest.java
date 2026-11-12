@@ -55,7 +55,7 @@ import net.netshot.netshot.testing.api.v1.V1Endpoints;
 })
 @DisplayName("v1 scripts")
 @ResourceLock("DB")
-public class V1ScriptResourceTest {
+class V1ScriptResourceTest {
 
 	private static final String CODE = "function run(cli, device) {\\n  cli.command('show clock');\\n}";
 

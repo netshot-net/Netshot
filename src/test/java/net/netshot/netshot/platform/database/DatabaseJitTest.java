@@ -39,7 +39,7 @@ import net.netshot.netshot.testing.TestWiring;
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("PostgreSQL sessions without JIT")
-public class DatabaseJitTest {
+class DatabaseJitTest {
 
 	private static String jit(Connection connection) throws SQLException {
 		try (Statement statement = connection.createStatement(); ResultSet result = statement.executeQuery("show jit")) {

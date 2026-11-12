@@ -59,7 +59,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 @DatabaseTest
 @DisplayName("Tasks interrupted while running (DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class InterruptedTaskTest {
+class InterruptedTaskTest {
 
 	private Device device;
 
