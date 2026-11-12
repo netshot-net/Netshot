@@ -45,7 +45,7 @@ Each instance joining the cluster requires a unique identifier. This should be s
 
 Cluster members exchange HA messages using the PostgreSQL notification system as message bus. Thus, there is no need to open an additional protocol/port on firewalls, or to install anything else. Only access to the PostgreSQL server/cluster from each Netshot cluster member is required.
 
-Each member sends a hello message every 6 seconds; a member not heard from for 30 seconds is considered gone. Hello messages are handled by a dedicated thread with its own database connection, while the actions triggered by cluster messages (loading or assigning tasks, refreshing drivers...) run on a separate worker thread using a small dedicated connection pool (see `netshot.db.pooler.system.*` in the [configuration reference](configuration-reference.md)): a busy instance (e.g. with all its task threads running long device sessions) keeps announcing itself to the cluster.
+Each member sends a hello message every 6 seconds; a member not heard from for 30 seconds is considered gone, and runs tasks again as soon as it is heard from again. Hello messages are handled by a dedicated thread with its own database connection, while the actions triggered by cluster messages (loading or assigning tasks, refreshing drivers...) run on a separate worker thread using a small dedicated connection pool (see `netshot.db.pooler.system.*` in the [configuration reference](configuration-reference.md)): a busy instance (e.g. with all its task threads running long device sessions) keeps announcing itself to the cluster.
 
 ### Task and device locking
 
