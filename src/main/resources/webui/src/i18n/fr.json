@@ -462,6 +462,7 @@
       "select": "Sélectionner",
       "selectAll": "Tout sélectionner",
       "attribute": "Attribut",
+      "attributes": "Attributs",
       "selectAttribute": "Sélectionner un attribut...",
       "selectDeviceToBegin": "Sélectionnez un équipement pour commencer",
       "selectDiagnosticToBegin": "Sélectionnez un diagnostic pour commencer",
