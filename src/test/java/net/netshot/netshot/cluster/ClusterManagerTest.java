@@ -279,6 +279,20 @@ class ClusterManagerTest {
 			Assertions.assertTrue(node.reassignOrphanTasks.get() > reassigned, "The tasks of the expired master are reassigned");
 		}
 
+		@Test
+		@DisplayName("An expired member coming back is a member again")
+		void expiredComesBack() throws Exception {
+			ClusterPeer peer = peer(ID_1, 100);
+			peer.announce("MEMBER");
+			RecordingNode node = new RecordingNode();
+			ClusterManager manager = start(ID_2, 100, node);
+			await(() -> node.runners.equals(List.of(ID_1, ID_2)), "both members run the tasks");
+			peer.announce(null);
+			await(() -> members(manager).get(ID_1) == MastershipStatus.EXPIRED, "the member expires");
+			peer.announce("MEMBER");
+			await(() -> members(manager).get(ID_1) == MastershipStatus.MEMBER, "the member is back");
+			await(() -> node.runners.equals(List.of(ID_1, ID_2)), "both members run the tasks again");
+		}
 	}
 
 	@Nested
