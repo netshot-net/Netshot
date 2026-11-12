@@ -665,8 +665,10 @@ public class ClusterManager implements Service, ClusterCoordinator {
 									continue;
 								}
 								ClusterMember oldMember = this.members.get(message.getInstanceId());
+								// An expired member coming back runs tasks again
 								if (oldMember == null || oldMember.getRunnerPriority() != member.getRunnerPriority()
-									|| oldMember.getRunnerWeight() != member.getRunnerWeight()) {
+									|| oldMember.getRunnerWeight() != member.getRunnerWeight()
+									|| MastershipStatus.EXPIRED.equals(oldMember.getStatus())) {
 									runnerChanged = true;
 								}
 								if (oldMember == null) {
