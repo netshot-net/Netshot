@@ -46,13 +46,14 @@ public final class DatabaseErrors {
 
 	/**
 	 * Tells whether a jOOQ statement failed on a foreign key (the row is still referenced, or
-	 * references a missing one), from the SQL state of the failure ({@code 23503}).
+	 * references a missing one), from the SQL state of the failure: {@code 23503}, or {@code 23001}
+	 * ({@code restrict_violation}) which PostgreSQL 18+ reports for an {@code ON DELETE RESTRICT} foreign key.
 	 *
 	 * @param e the failure
 	 * @return true for a foreign key violation
 	 */
 	public static boolean isForeignKeyViolation(DataAccessException e) {
-		return "23503".equals(e.sqlState());
+		return "23503".equals(e.sqlState()) || "23001".equals(e.sqlState());
 	}
 
 	/**
