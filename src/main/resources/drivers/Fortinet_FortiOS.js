@@ -24,7 +24,7 @@ const Info = {
 	name: "FortinetFortiOS", /* Unique identifier of the driver within Netshot. */
 	description: "Fortinet FortiOS", /* Description to be used in the UI. */
 	author: "Netshot Team",
-	version: "7.4" /* Version will appear in the Admin tab. */
+	version: "7.5" /* Version will appear in the Admin tab. */
 };
 
 /**
@@ -137,8 +137,8 @@ const CLI = {
 			}
 		}
 	},
-	basic: { /* The basic FortiOS prompt; recent FortiOS versions add the HA role after the hostname: "FGT(Primary) # ". */
-		prompt: /^[A-Za-z0-9_\-\~]+?(\((?:Primary|Secondary)\))?\s(\([A-Za-z0-9_\-\~\. ]+?\)\s)?[#$]\s?$/,
+	basic: { /* The basic FortiOS prompt; recent FortiOS versions add the HA role after the hostname: "FGT(Primary) # ". STS builds add a "(STS)" marker near the prompt symbol: "FGT (global) (STS)#". */
+		prompt: /^[A-Za-z0-9_\-\~]+?(\((?:Primary|Secondary)\))?\s(\([A-Za-z0-9_\-\~\. ]+?\)\s)?(\(STS\)\s?)?[#$]\s?$/,
 		error: /^(Unknown action|Command fail)/m,
 		pager: { /* 'pager': define how to handle the pager for long outputs. */
 			match: /^--More-- /,
