@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.credentials;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,7 +45,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.credentials.CredentialSetService;
+import net.netshot.netshot.credentials.DeviceCredentialSet;
+import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.credentials.DeviceSshKeyAccount;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 
 /**
  * The REST resource of the global credential sets: list, add, edit and delete.
@@ -58,6 +65,12 @@ import net.netshot.netshot.credentials.CredentialSetService;
 public class CredentialSetResource {
 
 	private final CredentialSetService credentialSetService;
+
+	/** An unknown Vault instance, in any of the secret fields, as v0 always reported it. */
+	private static final V0Errors.Translation[] INVALID_VAULT = Stream.of("username", "password", "superPassword", "privateKey",
+		"community", "authKey", "privKey")
+		.map(field -> V0Errors.target(field + "Vault", ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE, "Invalid Vault instance."))
+		.toArray(V0Errors.Translation[]::new);
 
 	@Context
 	private HttpServletRequest request;
@@ -140,9 +153,16 @@ public class CredentialSetResource {
 	public CredentialSetDto addCredentialSet(CredentialSetDto credentialSet)
 		throws WebApplicationException {
 		log.debug("REST request, add credentials.");
-		CredentialSetDto created = CredentialSetMapper.toDto(this.credentialSetService.create(CredentialSetMapper.toEntity(credentialSet)));
+		DeviceCredentialSet posted = CredentialSetMapper.toEntity(credentialSet);
+		// The name is checked before the domain
+		if (posted.name() == null || posted.name().trim().isEmpty()) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, "Invalid name for the credential set");
+		}
+		DeviceCredentialSet created = V0Errors.translate(
+			() -> this.credentialSetService.create(CredentialSetMapper.toDefinition(posted, null)),
+			translations(V0Errors.target("mgmtDomain", ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain")));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return created;
+		return CredentialSetMapper.toDto(created);
 	}
 
 	/**
@@ -166,6 +186,25 @@ public class CredentialSetResource {
 	public CredentialSetDto setCredentialSet(@PathParam("id") @Parameter(description = "Credential set ID") Long id,
 		CredentialSetDto rsCredentialSet) throws WebApplicationException {
 		log.debug("REST request, edit credentials {}", id);
-		return CredentialSetMapper.toDto(this.credentialSetService.update(id, CredentialSetMapper.toEntity(rsCredentialSet)));
+		DeviceCredentialSet posted = CredentialSetMapper.toEntity(rsCredentialSet);
+		DeviceCredentialSet updated = V0Errors.translate(() -> this.credentialSetService.update(id, existing -> {
+			if (existing instanceof DeviceSshKeyAccount && posted instanceof DeviceSshAccount) {
+				// The SSH key accounts used to be a kind of SSH accounts
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
+					"The posted credential type doesn't match the existing one.");
+			}
+			if (!existing.getClass().equals(posted.getClass())) {
+				// A credential set of another type was not found
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS, "Unable to find the credential set.");
+			}
+			return CredentialSetMapper.toDefinition(posted, existing);
+		}, null), translations(
+			V0Errors.code(ErrorCode.NETSHOT_CREDENTIALS_NOT_FOUND, ErrorCode.NETSHOT_INVALID_CREDENTIALS, "Unable to find the credential set."),
+			V0Errors.target("mgmtDomain", ErrorCode.NETSHOT_INVALID_DOMAIN, "The domain doesn't exist.")));
+		return CredentialSetMapper.toDto(updated);
+	}
+
+	private static V0Errors.Translation[] translations(V0Errors.Translation... translations) {
+		return Stream.concat(Stream.of(translations), Stream.of(INVALID_VAULT)).toArray(V0Errors.Translation[]::new);
 	}
 }

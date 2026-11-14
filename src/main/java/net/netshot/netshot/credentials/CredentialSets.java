@@ -69,7 +69,7 @@ public final class CredentialSets {
 	 * @return the credential set, with its vaultable fields resolved
 	 * @throws NetshotException if a referenced Vault instance doesn't exist
 	 */
-	public static DeviceCredentialSet resolveVaultableFields(DSLContext dsl, DeviceCredentialSet target, DeviceCredentialSet source) {
+	private static DeviceCredentialSet resolveVaultableFields(DSLContext dsl, DeviceCredentialSet target, DeviceCredentialSet source) {
 		return switch (target) {
 			case DeviceSshAccount t -> {
 				DeviceSshAccount s = (DeviceSshAccount) source;
@@ -146,7 +146,7 @@ public final class CredentialSets {
 	 *        then means "unchanged" too, and the private key is always replaced)
 	 * @return the merged credential set
 	 */
-	public static DeviceCredentialSet merge(DeviceCredentialSet existing, DeviceCredentialSet incoming, boolean specific) {
+	private static DeviceCredentialSet merge(DeviceCredentialSet existing, DeviceCredentialSet incoming, boolean specific) {
 		return switch (existing) {
 			case DeviceSshAccount e -> {
 				DeviceSshAccount i = (DeviceSshAccount) incoming;

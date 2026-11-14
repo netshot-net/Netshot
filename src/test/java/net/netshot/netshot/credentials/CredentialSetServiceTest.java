@@ -20,6 +20,7 @@ package net.netshot.netshot.credentials;
 
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
+import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
 import net.netshot.netshot.domain.Domain;
@@ -54,6 +56,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
+import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.vault.VaultInstanceRepository;
 
 /**
@@ -98,75 +101,102 @@ class CredentialSetServiceTest {
 		return TestDevices.findCredentialSet(id);
 	}
 
-	private Domain domainRef() {
-		return Domain.reference(this.domainId);
+	private static SecretChange local(String value) {
+		return value == null ? SecretChange.UNCHANGED : new SecretChange.Local(value);
 	}
 
-	private static DeviceSnmpv1Community snmpv1(String community, String name) {
-		return DeviceSnmpv1Community.builder().community(Secret.local(community)).name(name).build();
+	private static CredentialSetDefinition definition(Kind kind, String name, Long domainId, String username, String password,
+		String superPassword) {
+		return new CredentialSetDefinition(kind, name, domainId, local(username), local(password), local(superPassword), null, null,
+			null, null, null, null);
 	}
 
-	private static DeviceSnmpv3Community snmpv3(String community, String name, String username, AuthProtocol authType, String authKey,
+	private static CredentialSetDefinition ssh(String name, String username, String password, String superPassword) {
+		return definition(Kind.SSH, name, null, username, password, superPassword);
+	}
+
+	private static CredentialSetDefinition sshKey(String name, String username, String privateKey, String password) {
+		return new CredentialSetDefinition(Kind.SSH_KEY, name, null, local(username), local(password), null, local(privateKey), null,
+			null, null, null, null);
+	}
+
+	private static CredentialSetDefinition snmpv1(String name, String community) {
+		return new CredentialSetDefinition(Kind.SNMP_V1, name, null, null, null, null, null, local(community), null, null, null, null);
+	}
+
+	private static CredentialSetDefinition snmpv3(String name, String username, AuthProtocol authType, String authKey,
 		PrivProtocol privType, String privKey) {
-		return DeviceSnmpv3Community.builder().community(Secret.local(community)).name(name).username(Secret.local(username))
-			.authType(authType).authKey(Secret.local(authKey)).privType(privType).privKey(Secret.local(privKey)).build();
-	}
-
-	private static DeviceSshKeyAccount sshKey(String username, String privateKey, String password, String superPassword, String name) {
-		return DeviceSshKeyAccount.builder().username(Secret.local(username)).privateKey(Secret.local(privateKey)).password(Secret.local(password))
-			.superPassword(Secret.local(superPassword)).name(name).build();
+		return new CredentialSetDefinition(Kind.SNMP_V3, name, null, local(username), null, null, null, null, authType, local(authKey),
+			privType, local(privKey));
 	}
 
 	private DeviceSshAccount createSsh(String username, String password, String superPassword) {
-		return (DeviceSshAccount) this.service.create(DeviceSshAccount.builder().username(Secret.local(username)).password(Secret.local(password))
-			.superPassword(Secret.local(superPassword)).name(this.nextName()).build());
+		return (DeviceSshAccount) this.service.create(ssh(this.nextName(), username, password, superPassword));
+	}
+
+	private DeviceCredentialSet update(long id, CredentialSetDefinition definition) {
+		return this.service.update(id, definition, null);
+	}
+
+	private static void assertParameter(String target, Executable executable) {
+		Assertions.assertEquals(target, assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, executable).getTarget());
 	}
 
 	@Test
 	@DisplayName("create() stores every kind of credential set, as a global one")
 	void createEveryKind() {
-		DeviceSnmpv1Community v1 = DeviceSnmpv1Community.builder().community(Secret.local("c1")).name(this.nextName()).deviceSpecific(true).build();
-		DeviceSnmpv2cCommunity v2 = DeviceSnmpv2cCommunity.builder().community(Secret.local("c2")).name(this.nextName()).deviceSpecific(true).build();
-		DeviceSnmpv3Community v3 = snmpv3("ctx", this.nextName(), "u", AuthProtocol.MD5, "ak", PrivProtocol.DES, "pk").toBuilder().deviceSpecific(true).build();
-		DeviceSshAccount ssh = DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(Secret.local("s")).name(this.nextName())
-			.deviceSpecific(true).build();
-		DeviceSshKeyAccount key = sshKey("u", "key", "p", "s", this.nextName()).toBuilder().deviceSpecific(true).build();
-		DeviceTelnetAccount telnet = DeviceTelnetAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(Secret.local("s")).name(this.nextName())
-			.deviceSpecific(true).build();
-		DeviceHttpAccount http = DeviceHttpAccount.builder().username(Secret.local("u")).password(Secret.local("p")).name(this.nextName()).deviceSpecific(true).build();
-		Map<String, Long> ids = new HashMap<>();
-		for (DeviceCredentialSet credentialSet : List.of(v1, v2, v3, ssh, key, telnet, http)) {
-			DeviceCredentialSet created = this.service.create(credentialSet);
-			ids.put(credentialSet.name(), created.id());
+		Map<CredentialSetDefinition, Class<?>> kinds = new LinkedHashMap<>();
+		kinds.put(snmpv1(this.nextName(), "c1"), DeviceSnmpv1Community.class);
+		kinds.put(new CredentialSetDefinition(Kind.SNMP_V2C, this.nextName(), null, null, null, null, null, local("c2"), null, null,
+			null, null), DeviceSnmpv2cCommunity.class);
+		kinds.put(snmpv3(this.nextName(), "u", AuthProtocol.MD5, "ak", PrivProtocol.DES, "pk"), DeviceSnmpv3Community.class);
+		kinds.put(ssh(this.nextName(), "u", "p", "s"), DeviceSshAccount.class);
+		kinds.put(sshKey(this.nextName(), "u", "key", "p"), DeviceSshKeyAccount.class);
+		kinds.put(definition(Kind.TELNET, this.nextName(), null, "u", "p", "s"), DeviceTelnetAccount.class);
+		kinds.put(definition(Kind.HTTP, this.nextName(), null, "u", "p", null), DeviceHttpAccount.class);
+		Map<Kind, Long> ids = new HashMap<>();
+		kinds.forEach((definition, type) -> {
+			DeviceCredentialSet created = this.service.create(definition);
+			ids.put(definition.kind(), created.id());
 			Assertions.assertTrue(created.id() > 0);
 			DeviceCredentialSet reloaded = this.stored(created.id());
-			Assertions.assertEquals(credentialSet.getClass(), reloaded.getClass());
-			Assertions.assertEquals(credentialSet.name(), reloaded.name());
+			Assertions.assertEquals(type, reloaded.getClass());
+			Assertions.assertEquals(definition.name(), reloaded.name());
 			Assertions.assertFalse(reloaded.deviceSpecific(), "a credential set created through the use case is a global one");
-		}
-		Assertions.assertEquals(Secret.local("pk"), ((DeviceSnmpv3Community) this.stored(ids.get(v3.name()))).privKey());
-		Assertions.assertEquals(Secret.local("key"), ((DeviceSshKeyAccount) this.stored(ids.get(key.name()))).privateKey());
+		});
+		Assertions.assertEquals(Secret.local("pk"), ((DeviceSnmpv3Community) this.stored(ids.get(Kind.SNMP_V3))).privKey());
+		Assertions.assertEquals(Secret.local("key"), ((DeviceSshKeyAccount) this.stored(ids.get(Kind.SSH_KEY))).privateKey());
 	}
 
 	@Test
-	@DisplayName("create() checks the name first, then the domain")
+	@DisplayName("create() trims the name, and refuses a blank name and an unknown domain")
 	void createValidation() {
-		DeviceSshAccount blank = DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(null).name("  ").mgmtDomain(this.domainRef()).build();
-		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.service.create(blank));
-		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.service.create(DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p"))
-			.superPassword(null).name(null).build()));
+		DeviceCredentialSet padded = this.service.create(ssh("  " + this.nextName() + " ", "u", "p", null));
+		Assertions.assertFalse(padded.name().startsWith(" ") || padded.name().endsWith(" "));
+		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.service.create(ssh("  ", "u", "p", null)));
+		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.service.create(ssh(null, "u", "p", null)));
+		assertParameter("mgmtDomain", () -> this.service.create(definition(Kind.SSH, this.nextName(), 99999999L, "u", "p", null)));
+	}
 
-		DeviceSshAccount badDomain = DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(null).name(this.nextName())
-			.mgmtDomain(Domain.reference(99999999L)).build();
-		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN, () -> this.service.create(badDomain));
+	@Test
+	@DisplayName("create() refuses a credential set without the properties its type requires, or SNMPv3 privacy without authentication")
+	void createRequiredProperties() {
+		assertParameter("password", () -> this.service.create(ssh(this.nextName(), "u", null, null)));
+		assertParameter("username", () -> this.service.create(ssh(this.nextName(), null, "p", null)));
+		assertParameter("privateKey", () -> this.service.create(sshKey(this.nextName(), "u", null, null)));
+		assertParameter("community", () -> this.service.create(snmpv1(this.nextName(), null)));
+		assertParameter("authKey", () -> this.service.create(snmpv3(this.nextName(), "u", AuthProtocol.SHA, null, PrivProtocol.NONE, null)));
+		assertParameter("privType", () -> this.service.create(snmpv3(this.nextName(), "u", AuthProtocol.NONE, null, PrivProtocol.AES128, "pk")));
+		// The keys of a protocol which is not used are dropped
+		DeviceSnmpv3Community noPriv = (DeviceSnmpv3Community) this.service.create(
+			snmpv3(this.nextName(), "u", AuthProtocol.SHA, "ak", PrivProtocol.NONE, "pk"));
+		Assertions.assertNull(noPriv.privKey());
 	}
 
 	@Test
 	@DisplayName("create() resolves the domain")
 	void createWithDomain() {
-		DeviceSshAccount ssh = DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(null).name(this.nextName()).mgmtDomain(this.domainRef())
-			.build();
-		DeviceCredentialSet created = this.service.create(ssh);
+		DeviceCredentialSet created = this.service.create(definition(Kind.SSH, this.nextName(), this.domainId, "u", "p", null));
 		Assertions.assertEquals("Credentials domain", created.mgmtDomain().name());
 		Assertions.assertEquals(this.domainId, this.stored(created.id()).mgmtDomain().id());
 	}
@@ -174,21 +204,20 @@ class CredentialSetServiceTest {
 	@Test
 	@DisplayName("create() refuses an unknown Vault instance and stores nothing")
 	void createInvalidVault() {
-		DeviceSshAccount ssh = DeviceSshAccount.builder().username(null).password(null).superPassword(null).name(this.nextName())
-			.password(Secret.vault(99999999L, "a/b")).build();
+		CredentialSetDefinition definition = new CredentialSetDefinition(Kind.SSH, this.nextName(), null, local("u"),
+			new SecretChange.Referenced(99999999L, "a/b"), null, null, null, null, null, null, null);
 		int before = this.service.list(Page.ALL).size();
-		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE, () -> this.service.create(ssh));
+		assertParameter("passwordVault", () -> this.service.create(definition));
 		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
 	}
 
 	@Test
-	@DisplayName("create() holds a secret in a Vault instance when asked to, and drops the local value")
+	@DisplayName("create() holds a secret in a Vault instance when asked to")
 	void createWithVault() {
-		DeviceSshAccount ssh = DeviceSshAccount.builder().username(Secret.local("local-user")).password(Secret.local("local-pass")).superPassword(null).name(this.nextName())
-			.password(Secret.vault(this.vaultId, "netshot/ssh")).build();
-		DeviceSshAccount created = (DeviceSshAccount) this.service.create(ssh);
+		DeviceSshAccount created = (DeviceSshAccount) this.service.create(new CredentialSetDefinition(Kind.SSH, this.nextName(), null,
+			local("local-user"), new SecretChange.Referenced(this.vaultId, "netshot/ssh"), null, null, null, null, null, null, null));
 		DeviceSshAccount reloaded = (DeviceSshAccount) this.stored(created.id());
-		Assertions.assertInstanceOf(VaultSecret.class, reloaded.password(), "the local value is dropped");
+		Assertions.assertInstanceOf(VaultSecret.class, reloaded.password());
 		Assertions.assertEquals(this.vaultId, Secret.vaultInstanceId(reloaded.password()));
 		Assertions.assertEquals("netshot/ssh", Secret.vaultPath(reloaded.password()));
 		Assertions.assertEquals(Secret.local("local-user"), reloaded.username());
@@ -199,36 +228,29 @@ class CredentialSetServiceTest {
 	void createDuplicate() {
 		DeviceSshAccount first = this.createSsh("u", "p", null);
 		int before = this.service.list(Page.ALL).size();
-		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS, () -> this.service.create(DeviceSshAccount.builder().username(Secret.local("o")).password(Secret.local("o"))
-			.superPassword(null).name(first.name()).build()));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS, () -> this.service.create(DeviceTelnetAccount.builder().username(Secret.local("o")).password(Secret.local("o"))
-			.superPassword(null).name(first.name())
-			.build()));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS, () -> this.service.create(ssh(first.name(), "o", "o", null)));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS,
+			() -> this.service.create(definition(Kind.TELNET, first.name(), null, "o", "o", null)));
 		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
-	}
-
-	@Test
-	@DisplayName("create() ignores the ID of the given credential set: the database assigns one")
-	void createWithId() {
-		DeviceSshAccount ssh = DeviceSshAccount.builder().id(77_777_777L).username(Secret.local("u")).password(Secret.local("p")).superPassword(null).name(this.nextName()).build();
-		DeviceCredentialSet created = this.service.create(ssh);
-		Assertions.assertNotEquals(77_777_777L, created.id());
-		Assertions.assertEquals(ssh.name(), this.stored(created.id()).name());
 	}
 
 	@Test
 	@DisplayName("list() returns the global credential sets only, and honours the page")
 	void list() {
 		DeviceSshAccount global = this.createSsh("u", "p", null);
-		DeviceCredentialSet specific = TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(null)
-			.name(DeviceCredentialSet.generateSpecificName())
-			.deviceSpecific(true).build());
+		DeviceCredentialSet specific = this.addSpecific();
 		List<DeviceCredentialSet> all = this.service.list(Page.ALL);
 		Assertions.assertTrue(all.stream().anyMatch(cs -> cs.id() == global.id()));
 		Assertions.assertTrue(all.stream().noneMatch(cs -> cs.id() == specific.id()));
 		Assertions.assertTrue(all.stream().noneMatch(DeviceCredentialSet::deviceSpecific));
 		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
 		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+	}
+
+	private DeviceCredentialSet addSpecific() {
+		return TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(null)
+			.name(DeviceCredentialSet.generateSpecificName())
+			.deviceSpecific(true).build());
 	}
 
 	@Test
@@ -243,7 +265,7 @@ class CredentialSetServiceTest {
 		Assertions.assertThrows(IllegalArgumentException.class, password::reveal, "the value is only decrypted when revealed");
 		Assertions.assertEquals("s", ((LocalSecret) listed.superPassword()).reveal());
 		// A value which was read is written back as it is stored, without being decrypted
-		this.service.update(ssh.id(), DeviceSshAccount.builder().username(Secret.local("u2")).name(ssh.name()).build());
+		this.update(ssh.id(), ssh(ssh.name(), "u2", null, null));
 		Assertions.assertEquals("not-encrypted", this.transactions.read(dsl -> dsl.fetchValue(
 			"select password from device_credential_set where id = ?", ssh.id())));
 	}
@@ -251,9 +273,8 @@ class CredentialSetServiceTest {
 	@Test
 	@DisplayName("list() returns credential sets whose domain and Vault references can be read without a session")
 	void listIsReadable() {
-		DeviceSshAccount ssh = DeviceSshAccount.builder().username(Secret.local("u")).password(null).superPassword(null).name(this.nextName())
-			.mgmtDomain(this.domainRef()).password(Secret.vault(this.vaultId, "p")).build();
-		DeviceCredentialSet created = this.service.create(ssh);
+		DeviceCredentialSet created = this.service.create(new CredentialSetDefinition(Kind.SSH, this.nextName(), this.domainId, local("u"),
+			new SecretChange.Referenced(this.vaultId, "p"), null, null, null, null, null, null, null));
 		DeviceSshAccount listed = (DeviceSshAccount) this.service.list(Page.ALL).stream()
 			.filter(cs -> cs.id() == created.id()).findFirst().orElseThrow();
 		Assertions.assertEquals("Credentials domain", listed.mgmtDomain().name());
@@ -261,79 +282,78 @@ class CredentialSetServiceTest {
 	}
 
 	@Test
-	@DisplayName("update() keeps the secrets which are not given, and changes the other fields")
+	@DisplayName("update() keeps the secrets which are unchanged, changes or clears the others")
 	void updateKeepsSecrets() {
 		DeviceSshAccount created = this.createSsh("user", "pass", "enable");
-		DeviceSshAccount incoming = DeviceSshAccount.builder().username(Secret.local("user2")).password(null).superPassword(null).name(this.nextName()).build();
-		DeviceSshAccount updated = (DeviceSshAccount) this.service.update(created.id(), incoming);
+		String name = this.nextName();
+		DeviceSshAccount updated = (DeviceSshAccount) this.update(created.id(), ssh(name, "user2", null, null));
 		Assertions.assertEquals(created.id(), updated.id());
 		DeviceSshAccount reloaded = (DeviceSshAccount) this.stored(created.id());
 		Assertions.assertEquals(Secret.local("user2"), reloaded.username());
 		Assertions.assertEquals(Secret.local("pass"), reloaded.password());
 		Assertions.assertEquals(Secret.local("enable"), reloaded.superPassword());
-		Assertions.assertEquals(incoming.name(), reloaded.name());
+		Assertions.assertEquals(name, reloaded.name());
 
-		this.service.update(created.id(), DeviceSshAccount.builder().username(Secret.local("user3")).password(Secret.local("newpass")).superPassword(Secret.local("newenable"))
-			.name(incoming.name()).build());
+		this.update(created.id(), ssh(name, "user3", "newpass", "newenable"));
 		reloaded = (DeviceSshAccount) this.stored(created.id());
 		Assertions.assertEquals(Secret.local("newpass"), reloaded.password());
 		Assertions.assertEquals(Secret.local("newenable"), reloaded.superPassword());
 
-		// The username is not a secret: not giving it clears it
-		this.service.update(created.id(), DeviceSshAccount.builder().username(null).password(null).superPassword(null).name(incoming.name()).build());
-		Assertions.assertNull(((DeviceSshAccount) this.stored(created.id())).username());
+		// An optional secret can be cleared, a required one can't
+		this.update(created.id(), new CredentialSetDefinition(Kind.SSH, name, null, null, null, SecretChange.CLEARED, null, null, null,
+			null, null, null));
+		Assertions.assertNull(((DeviceSshAccount) this.stored(created.id())).superPassword());
+		assertParameter("username", () -> this.update(created.id(), new CredentialSetDefinition(Kind.SSH, name, null,
+			SecretChange.CLEARED, null, null, null, null, null, null, null, null)));
+		Assertions.assertEquals(Secret.local("user3"), ((DeviceSshAccount) this.stored(created.id())).username());
 	}
 
 	@Test
-	@DisplayName("update() of a SSH key account keeps the private key when it is not given, and changes it when it is")
+	@DisplayName("update() of a SSH key account keeps the private key when it is unchanged, and changes it when it is given")
 	void updateSshKey() {
-		DeviceSshKeyAccount created = (DeviceSshKeyAccount) this.service.create(
-			sshKey("u", "the-key", "p", null, this.nextName()));
-		this.service.update(created.id(), sshKey("u", null, null, null, created.name()));
+		DeviceSshKeyAccount created = (DeviceSshKeyAccount) this.service.create(sshKey(this.nextName(), "u", "the-key", "p"));
+		this.update(created.id(), sshKey(created.name(), "u", null, null));
 		DeviceSshKeyAccount reloaded = (DeviceSshKeyAccount) this.stored(created.id());
 		Assertions.assertEquals(Secret.local("p"), reloaded.password(), "the password is kept");
-		Assertions.assertEquals(Secret.local("the-key"), reloaded.privateKey(), "the private key is kept when it is not given");
-		this.service.update(created.id(), sshKey("u", "new-key", null, null, created.name()));
+		Assertions.assertEquals(Secret.local("the-key"), reloaded.privateKey(), "the private key is kept");
+		this.update(created.id(), sshKey(created.name(), "u", "new-key", null));
 		Assertions.assertEquals(Secret.local("new-key"), ((DeviceSshKeyAccount) this.stored(created.id())).privateKey());
 	}
 
 	@Test
-	@DisplayName("update() keeps the SNMP and HTTP secrets which are not given")
+	@DisplayName("update() keeps the SNMP and HTTP secrets which are unchanged")
 	void updateOtherKinds() {
-		DeviceSnmpv1Community v1 = (DeviceSnmpv1Community) this.service.create(snmpv1("c1", this.nextName()));
-		this.service.update(v1.id(), snmpv1(null, v1.name()));
+		DeviceSnmpv1Community v1 = (DeviceSnmpv1Community) this.service.create(snmpv1(this.nextName(), "c1"));
+		this.update(v1.id(), snmpv1(v1.name(), null));
 		Assertions.assertEquals(Secret.local("c1"), ((DeviceSnmpv1Community) this.stored(v1.id())).community());
-		this.service.update(v1.id(), snmpv1("c2", v1.name()));
+		this.update(v1.id(), snmpv1(v1.name(), "c2"));
 		Assertions.assertEquals(Secret.local("c2"), ((DeviceSnmpv1Community) this.stored(v1.id())).community());
 
 		DeviceSnmpv3Community v3 = (DeviceSnmpv3Community) this.service.create(
-			snmpv3("ctx", this.nextName(), "u", AuthProtocol.MD5, "ak", PrivProtocol.DES, "pk"));
-		this.service.update(v3.id(), snmpv3(null, v3.name(), "u2", AuthProtocol.SHA, null, PrivProtocol.AES128, null));
+			snmpv3(this.nextName(), "u", AuthProtocol.MD5, "ak", PrivProtocol.DES, "pk"));
+		this.update(v3.id(), snmpv3(v3.name(), "u2", AuthProtocol.SHA, null, PrivProtocol.AES128, null));
 		DeviceSnmpv3Community reloaded = (DeviceSnmpv3Community) this.stored(v3.id());
 		Assertions.assertEquals(Secret.local("u2"), reloaded.username());
 		Assertions.assertEquals(AuthProtocol.SHA, reloaded.authType());
 		Assertions.assertEquals(PrivProtocol.AES128, reloaded.privType());
 		Assertions.assertEquals(Secret.local("ak"), reloaded.authKey());
 		Assertions.assertEquals(Secret.local("pk"), reloaded.privKey());
-		Assertions.assertEquals(Secret.local("ctx"), reloaded.community(), "the context community is kept");
 
-		DeviceHttpAccount http = (DeviceHttpAccount) this.service.create(DeviceHttpAccount.builder().username(Secret.local("u")).password(Secret.local("p")).name(this.nextName()).build());
-		this.service.update(http.id(), DeviceHttpAccount.builder().username(Secret.local("u2")).password(null).name(http.name()).build());
+		DeviceHttpAccount http = (DeviceHttpAccount) this.service.create(definition(Kind.HTTP, this.nextName(), null, "u", "p", null));
+		this.update(http.id(), definition(Kind.HTTP, http.name(), null, "u2", null, null));
 		DeviceHttpAccount reloadedHttp = (DeviceHttpAccount) this.stored(http.id());
 		Assertions.assertEquals(Secret.local("u2"), reloadedHttp.username());
 		Assertions.assertEquals(Secret.local("p"), reloadedHttp.password());
 	}
 
 	@Test
-	@DisplayName("update() reports an unknown credential set, or one of another kind, the same way")
+	@DisplayName("update() reports an unknown credential set, and refuses a change of type")
 	void updateNotFound() {
-		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS, () -> this.service.update(99999999L, DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p"))
-			.superPassword(null).name("x").build()));
+		assertError(ErrorCode.NETSHOT_CREDENTIALS_NOT_FOUND, () -> this.update(99999999L, ssh("x", "u", "p", null)));
 		DeviceSshAccount created = this.createSsh("u", "p", null);
-		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS, () -> this.service.update(created.id(), DeviceTelnetAccount.builder().username(Secret.local("u")).password(Secret.local("p"))
-			.superPassword(null)
-			.name(created.name()).build()));
-		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS, () -> this.service.update(created.id(), sshKey("u", "k", "p", null, created.name())));
+		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
+			() -> this.update(created.id(), definition(Kind.TELNET, created.name(), null, "u", "p", null)));
+		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE, () -> this.update(created.id(), sshKey(created.name(), "u", "k", "p")));
 	}
 
 	@Test
@@ -341,17 +361,9 @@ class CredentialSetServiceTest {
 	void updateNameChecks() {
 		DeviceSshAccount first = this.createSsh("first", "p", null);
 		DeviceSshAccount second = this.createSsh("second", "p", null);
-		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.service.update(second.id(), DeviceSshAccount.builder().username(Secret.local("changed"))
-			.password(Secret.local("p")).superPassword(null)
-			.name(" ")
-			.build()));
-		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.service.update(second.id(), DeviceSshAccount.builder().username(Secret.local("changed"))
-			.password(Secret.local("p")).superPassword(null)
-			.name(null)
-			.build()));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS, () -> this.service.update(second.id(), DeviceSshAccount.builder().username(Secret.local("changed")).password(Secret.local("p"))
-			.superPassword(null)
-			.name(first.name()).build()));
+		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.update(second.id(), ssh(" ", "changed", "p", null)));
+		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, () -> this.update(second.id(), ssh(null, "changed", "p", null)));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS, () -> this.update(second.id(), ssh(first.name(), "changed", "p", null)));
 		DeviceSshAccount reloaded = (DeviceSshAccount) this.stored(second.id());
 		Assertions.assertEquals(Secret.local("second"), reloaded.username());
 		Assertions.assertEquals(second.name(), reloaded.name());
@@ -361,17 +373,15 @@ class CredentialSetServiceTest {
 	@DisplayName("update() sets and clears the domain, and refuses an unknown domain without changing anything")
 	void updateDomain() {
 		DeviceSshAccount created = this.createSsh("u", "p", null);
-		DeviceSshAccount withDomain = DeviceSshAccount.builder().username(Secret.local("u")).password(null).superPassword(null).name(created.name()).mgmtDomain(this.domainRef()).build();
-		this.service.update(created.id(), withDomain);
+		CredentialSetDefinition withDomain = definition(Kind.SSH, created.name(), this.domainId, "u", null, null);
+		this.update(created.id(), withDomain);
 		Assertions.assertEquals(this.domainId, this.stored(created.id()).mgmtDomain().id());
 
-		this.service.update(created.id(), DeviceSshAccount.builder().username(Secret.local("u")).password(null).superPassword(null).name(created.name()).build());
+		this.update(created.id(), ssh(created.name(), "u", null, null));
 		Assertions.assertNull(this.stored(created.id()).mgmtDomain());
 
-		this.service.update(created.id(), withDomain);
-		DeviceSshAccount unknownDomain = DeviceSshAccount.builder().username(Secret.local("u")).password(null).superPassword(null).name(created.name())
-			.mgmtDomain(Domain.reference(99999999L)).build();
-		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN, () -> this.service.update(created.id(), unknownDomain));
+		this.update(created.id(), withDomain);
+		assertParameter("mgmtDomain", () -> this.update(created.id(), definition(Kind.SSH, created.name(), 99999999L, "u", null, null)));
 		Assertions.assertEquals(this.domainId, this.stored(created.id()).mgmtDomain().id(), "the domain is unchanged");
 	}
 
@@ -379,35 +389,31 @@ class CredentialSetServiceTest {
 	@DisplayName("update() switches a field to a Vault instance and back, and refuses an unknown Vault instance")
 	void updateVault() {
 		DeviceSshAccount created = this.createSsh("u", "p", null);
-		DeviceSshAccount toVault = DeviceSshAccount.builder().username(Secret.local("u")).password(null).superPassword(null).name(created.name())
-			.password(Secret.vault(this.vaultId, "a/b")).build();
-		this.service.update(created.id(), toVault);
+		this.update(created.id(), new CredentialSetDefinition(Kind.SSH, created.name(), null, local("u"),
+			new SecretChange.Referenced(this.vaultId, "a/b"), null, null, null, null, null, null, null));
 		DeviceSshAccount reloaded = (DeviceSshAccount) this.stored(created.id());
 		Assertions.assertInstanceOf(VaultSecret.class, reloaded.password(), "the local value is dropped");
 		Assertions.assertEquals(this.vaultId, Secret.vaultInstanceId(reloaded.password()));
 
-		this.service.update(created.id(), DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("again")).superPassword(null).name(created.name()).build());
+		this.update(created.id(), ssh(created.name(), "u", "again", null));
 		reloaded = (DeviceSshAccount) this.stored(created.id());
 		Assertions.assertEquals(Secret.local("again"), reloaded.password());
 		Assertions.assertNull(Secret.vaultInstanceId(reloaded.password()));
 		Assertions.assertNull(Secret.vaultPath(reloaded.password()));
 
-		DeviceSshAccount badVault = DeviceSshAccount.builder().username(Secret.local("changed")).password(null).superPassword(null).name(created.name())
-			.password(Secret.vault(99999999L, null)).build();
-		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE, () -> this.service.update(created.id(), badVault));
+		assertParameter("passwordVault", () -> this.update(created.id(), new CredentialSetDefinition(Kind.SSH, created.name(), null,
+			local("changed"), new SecretChange.Referenced(99999999L, null), null, null, null, null, null, null, null)));
 		Assertions.assertEquals(Secret.local("u"), ((DeviceSshAccount) this.stored(created.id())).username());
 	}
 
 	@Test
-	@DisplayName("update() also edits a credential set specific to a device access (no check on that)")
+	@DisplayName("update() refuses a credential set specific to a device access: it is changed with its access")
 	void updateDeviceSpecific() {
-		DeviceCredentialSet specific = TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(null)
-			.name(DeviceCredentialSet.generateSpecificName())
-			.deviceSpecific(true).build());
-		DeviceCredentialSet updated = this.service.update(specific.id(), DeviceSshAccount.builder().username(Secret.local("changed")).password(null).superPassword(null).name("Now named")
-			.build());
-		Assertions.assertEquals("Now named", updated.name());
-		Assertions.assertTrue(this.stored(specific.id()).deviceSpecific());
+		DeviceCredentialSet specific = this.addSpecific();
+		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> this.update(specific.id(), ssh("Now named", "changed", null, null)));
+		DeviceCredentialSet reloaded = this.stored(specific.id());
+		Assertions.assertEquals(specific.name(), reloaded.name());
+		Assertions.assertTrue(reloaded.deviceSpecific());
 	}
 
 	@Test
@@ -423,9 +429,7 @@ class CredentialSetServiceTest {
 	@Test
 	@DisplayName("delete() refuses a credential set specific to a device access")
 	void deleteDeviceSpecific() {
-		DeviceCredentialSet specific = TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p")).superPassword(null)
-			.name(DeviceCredentialSet.generateSpecificName())
-			.deviceSpecific(true).build());
+		DeviceCredentialSet specific = this.addSpecific();
 		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> this.service.delete(specific.id()));
 		Assertions.assertNotNull(this.stored(specific.id()));
 	}
