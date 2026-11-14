@@ -211,14 +211,24 @@ public class VaultInstanceService {
 	}
 
 	/**
-	 * Adds a Vault instance (v1 API: the definition is checked).
+	 * Adds a Vault instance.
 	 *
 	 * @param definition the definition
 	 * @return the new Vault instance
 	 * @throws NetshotException if the definition is invalid, the name is already used, or the instance can't be stored
 	 */
 	public VaultInstance create(VaultInstanceDefinition definition) {
-		return this.create(assemble(null, definition));
+		HashicorpVaultKv2Instance vaultInstance = assemble(null, definition);
+		VaultInstance created;
+		try {
+			created = this.transactions.write(dsl -> this.repository.add(dsl, vaultInstance));
+		}
+		catch (DataAccessException e) {
+			log.error("Can't add the Vault instance.", e);
+			throw saveFailure(e);
+		}
+		AAA_LOG.info("{} has been created.", created);
+		return created;
 	}
 
 	/**
@@ -315,14 +325,23 @@ public class VaultInstanceService {
 	}
 
 	/**
-	 * Tests the connection and authentication to a Vault instance which isn't saved (nothing is stored).
+	 * Tests the connection and authentication to a Vault instance as defined, without storing anything: a new one, or
+	 * an existing one as it would be changed (the secrets the definition leaves unchanged are the stored ones).
 	 *
-	 * @param definition the definition (its secrets must be given)
+	 * @param existingId the ID of the existing Vault instance the definition changes, or null for a new one
+	 * @param definition the definition
 	 * @return the outcome of the login
-	 * @throws NetshotException if the definition is invalid
+	 * @throws NetshotException if the existing Vault instance doesn't exist, or the definition is invalid
 	 */
-	public VaultConnectionTestResult test(VaultInstanceDefinition definition) {
-		return this.tryLogin(assemble(null, definition));
+	public VaultConnectionTestResult test(Long existingId, VaultInstanceDefinition definition) {
+		HashicorpVaultKv2Instance existing = null;
+		if (existingId != null) {
+			if (!(this.get(existingId) instanceof HashicorpVaultKv2Instance hcInstance)) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE, "Unsupported Vault instance type");
+			}
+			existing = hcInstance;
+		}
+		return this.tryLogin(assemble(existing, definition));
 	}
 
 	private VaultConnectionTestResult tryLogin(HashicorpVaultKv2Instance instance) {
@@ -335,93 +354,6 @@ public class VaultInstanceService {
 			AAA_LOG.warn("Test connection to Vault instance '{}' failed: {}", instance.name(), e.getMessage());
 			return new VaultConnectionTestResult(false, e.getMessage());
 		}
-	}
-
-	/**
-	 * Adds a Vault instance.
-	 *
-	 * @param vaultInstance the Vault instance to add (its ID is ignored)
-	 * @return the new Vault instance
-	 * @throws NetshotException if the name is blank or already used, or the Vault instance can't be stored
-	 */
-	public VaultInstance create(VaultInstance vaultInstance) {
-		if (vaultInstance.name() == null || "".equals(vaultInstance.name().trim())) {
-			log.error("Invalid Vault instance name.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, "Invalid name for the Vault instance");
-		}
-		VaultInstance created;
-		try {
-			created = this.transactions.write(dsl -> this.repository.add(dsl, vaultInstance));
-		}
-		catch (DataAccessException e) {
-			log.error("Can't add the Vault instance.", e);
-			throw saveFailure(e);
-		}
-		AAA_LOG.info("{} has been created.", created);
-		return created;
-	}
-
-	/**
-	 * Edits a Vault instance. The secrets which are {@code null} in the new definition are kept.
-	 *
-	 * @param id the Vault instance ID
-	 * @param incoming the new definition, of the same kind as the existing Vault instance
-	 * @return the edited Vault instance
-	 * @throws NetshotException if the Vault instance doesn't exist or is of another kind, the name
-	 *         is blank or already used, or the Vault instance can't be stored
-	 */
-	public VaultInstance update(long id, VaultInstance incoming) {
-		VaultInstance vaultInstance;
-		try {
-			vaultInstance = this.transactions.write(dsl -> {
-				this.repository.lock(dsl, id);
-				VaultInstance existing = this.repository.find(dsl, id);
-				if (existing == null || !existing.getClass().equals(incoming.getClass())) {
-					// A Vault instance of another type is not found, as with the former query by type
-					log.error("Unable to find the Vault instance {}.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");
-				}
-				if (incoming.name() == null || "".equals(incoming.name().trim())) {
-					log.error("Invalid Vault instance name.");
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, "Invalid name for the Vault instance");
-				}
-				VaultInstance edited = switch (existing) {
-					case HashicorpVaultKv2Instance hcInstance -> {
-						HashicorpVaultKv2Instance rsHcInstance = (HashicorpVaultKv2Instance) incoming;
-						yield hcInstance.toBuilder()
-							.name(rsHcInstance.name())
-							.baseUrl(rsHcInstance.baseUrl())
-							.namespace(rsHcInstance.namespace())
-							.httpsCaTrustMode(rsHcInstance.httpsCaTrustMode())
-							.httpsCustomCaCertificate(rsHcInstance.httpsCustomCaCertificate())
-							.kvMountPath(rsHcInstance.kvMountPath())
-							.authMethod(rsHcInstance.authMethod())
-							.appRoleMountPath(rsHcInstance.appRoleMountPath())
-							.appRoleId(rsHcInstance.appRoleId())
-							.appRoleSecretId(rsHcInstance.appRoleSecretId() != null ? rsHcInstance.appRoleSecretId() : hcInstance.appRoleSecretId())
-							.jwtMountPath(rsHcInstance.jwtMountPath())
-							.jwtIdpTokenEndpoint(rsHcInstance.jwtIdpTokenEndpoint())
-							.jwtClientId(rsHcInstance.jwtClientId())
-							.jwtClientSecret(rsHcInstance.jwtClientSecret() != null ? rsHcInstance.jwtClientSecret() : hcInstance.jwtClientSecret())
-							.jwtVaultRole(rsHcInstance.jwtVaultRole())
-							.jwtScope(rsHcInstance.jwtScope())
-							.build();
-					}
-				};
-				VaultInstance saved = this.repository.save(dsl, edited);
-				if (saved == null) {
-					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");
-				}
-				return saved;
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to save the Vault instance {}.", id, e);
-			throw saveFailure(e);
-		}
-		AAA_LOG.info("{} has been edited", vaultInstance);
-		this.changeNotifier.changed(id);
-		return vaultInstance;
 	}
 
 	private static NetshotException saveFailure(DataAccessException e) {
@@ -467,47 +399,4 @@ public class VaultInstanceService {
 		return deleted;
 	}
 
-	/**
-	 * Tests the connection and authentication to a Vault instance, without persisting anything.
-	 * It works both for a new, not yet saved instance (no {@code id}) and for re-testing an existing
-	 * one without having to enter the unchanged secrets again (the secrets which are {@code null}
-	 * in the definition fall back to the values currently stored for that ID).
-	 *
-	 * @param id the ID of the existing Vault instance being tested, or null when testing a new one
-	 * @param incoming the Vault instance configuration to test
-	 * @throws NetshotException if the kind of Vault instance is not supported, the existing Vault
-	 *         instance doesn't exist, or the login fails
-	 */
-	public void testConnection(Long id, VaultInstance incoming) {
-		if (!(incoming instanceof HashicorpVaultKv2Instance rsHcInstance)) {
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE, "Unsupported Vault instance type");
-		}
-		HashicorpVaultKv2Instance hcInstance = rsHcInstance;
-		if (id != null) {
-			// Overlay onto the persisted secrets, so re-testing an already-saved
-			// instance without touching its masked secret field(s) still works.
-			hcInstance = this.transactions.read(dsl -> {
-				VaultInstance existing = this.repository.find(dsl, id);
-				if (!(existing instanceof HashicorpVaultKv2Instance existingHc)) {
-					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");
-				}
-				return rsHcInstance.toBuilder()
-					.id(0)
-					.version(0)
-					.changeDate(null)
-					.appRoleSecretId(rsHcInstance.appRoleSecretId() != null ? rsHcInstance.appRoleSecretId() : existingHc.appRoleSecretId())
-					.jwtClientSecret(rsHcInstance.jwtClientSecret() != null ? rsHcInstance.jwtClientSecret() : existingHc.jwtClientSecret())
-					.build();
-			});
-		}
-		try {
-			this.connectionTester.test(hcInstance);
-			AAA_LOG.info("Test connection to Vault instance '{}' succeeded.", hcInstance.name());
-		}
-		catch (VaultException e) {
-			AAA_LOG.warn("Test connection to Vault instance '{}' failed: {}", hcInstance.name(), e.getMessage());
-			throw new NetshotException(ErrorCode.NETSHOT_VAULT_CONNECTION_FAILED,
-				"Vault connection test failed: " + e.getMessage());
-		}
-	}
 }

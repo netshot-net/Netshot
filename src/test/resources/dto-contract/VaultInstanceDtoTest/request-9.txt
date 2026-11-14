@@ -1,15 +1,13 @@
-HashicorpVaultKv2Instance
+VaultInstanceDefinition
 appRoleId=null
 appRoleMountPath=approle
-appRoleSecretId===
+appRoleSecretId=Local[value===]
 authMethod=APPROLE
 baseUrl=https://x
-changeDate=null
 httpsCaTrustMode=SYSTEM_TRUSTSTORE
 httpsCustomCaCertificate=null
-id=0
 jwtClientId=null
-jwtClientSecret=null
+jwtClientSecret=Unchanged[]
 jwtIdpTokenEndpoint=null
 jwtMountPath=jwt
 jwtScope=null
@@ -17,4 +15,3 @@ jwtVaultRole=null
 kvMountPath=secret
 name=n
 namespace=null
-version=0

@@ -465,17 +465,17 @@ public final class V0ContractCases {
 		c.write("PUT", "/vaultinstances/{id}", "duplicate", c.path("/vaultinstances/%d", "new.vault"), c.body("""
 			{"type": "Vault KV v2", "id": %d, "name": "Main vault", "baseUrl": "https://vault4.example.net:8200",
 			 "authMethod": "APPROLE", "appRoleId": "role-10", "appRoleSecretId": "="}""", "new.vault"));
-		// v0 neither trims the name nor checks the properties the authentication method requires (frozen behavior)
+		// The name is trimmed
 		c.write("PUT", "/vaultinstances/{id}", "untrimmed", c.path("/vaultinstances/%d", "new.vault"), c.body("""
 			{"type": "Vault KV v2", "id": %d, "name": "  New vault spaced  ", "baseUrl": "https://vault4.example.net:8200",
-			 "authMethod": "APPROLE"}""", "new.vault"));
+			 "authMethod": "APPROLE", "appRoleId": "role-10"}""", "new.vault"));
 		c.write("POST", "/vaultinstances/test", "unreachable", () -> "/vaultinstances/test", () -> """
 			{"type": "Vault KV v2", "name": "Unreachable", "baseUrl": "http://127.0.0.1:1",
 			 "authMethod": "APPROLE", "appRoleId": "role", "appRoleSecretId": "secret"}""");
-		c.writeAs("POST", "/vaultinstances", "norole", () -> "/vaultinstances", () -> """
+		// The properties of the authentication method are required
+		c.write("POST", "/vaultinstances", "norole", () -> "/vaultinstances", () -> """
 			{"type": "Vault KV v2", "name": "  Vault without role  ", "baseUrl": "https://vault5.example.net:8200",
-			 "authMethod": "APPROLE"}""", "new.vault.norole", null);
-		c.write("DELETE", "/vaultinstances/{id}", "norole", c.path("/vaultinstances/%d", "new.vault.norole"), null);
+			 "authMethod": "APPROLE"}""");
 		c.writeAs("POST", "/credentialsets", "untrimmed", () -> "/credentialsets", () -> """
 			{"type": "Telnet", "name": "  Spaced telnet  ", "username": "other", "password": "other"}""", "new.cred.spaced", null);
 		c.write("DELETE", "/credentialsets/{id}", "untrimmed", c.path("/credentialsets/%d", "new.cred.spaced"), null);

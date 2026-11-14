@@ -235,7 +235,7 @@ public class VaultInstanceResource {
 		+ "success=false and the reason.")
 	public VaultConnectionTestDto testVaultInstanceDefinition(VaultInstanceRequest vaultInstanceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return VaultInstanceMapper.toDto(this.vaultInstanceService.test(VaultInstanceMapper.toDefinition(vaultInstanceRequest)));
+		return VaultInstanceMapper.toDto(this.vaultInstanceService.test(null, VaultInstanceMapper.toDefinition(vaultInstanceRequest)));
 	}
 
 	private VaultInstanceDto respond(VaultInstance vaultInstance, Selection selection) {
