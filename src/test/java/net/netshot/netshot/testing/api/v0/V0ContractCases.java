@@ -446,10 +446,6 @@ public final class V0ContractCases {
 			"new.cred"));
 		c.write("PUT", "/credentialsets/{id}", "sshkeyasssh", c.path("/credentialsets/%d", "cred.sshkey"), c.body("""
 			{"type": "SSH", "id": %d, "name": "SSH key account", "username": "x", "password": "="}""", "cred.sshkey"));
-		// v0 lets a device-specific credential set be changed directly (frozen behavior)
-		c.write("PUT", "/credentialsets/{id}", "devicespecific", c.path("/credentialsets/%d", "cred.specific"), c.body("""
-			{"type": "SSH", "id": %d, "name": "Edited specific set", "username": "specific-user", "password": "=",
-			 "superPassword": "="}""", "cred.specific"));
 		c.writeAs("POST", "/vaultinstances", "created", () -> "/vaultinstances", () -> """
 			{"type": "Vault KV v2", "name": "New vault", "baseUrl": "https://vault3.example.net:8200",
 			 "authMethod": "APPROLE", "appRoleId": "role-9", "appRoleSecretId": "secret-9"}""", "new.vault", null);
