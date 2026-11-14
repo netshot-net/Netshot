@@ -493,40 +493,36 @@ class ComplianceServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("Hardware rule create(), update(), list() and delete()")
+	@DisplayName("Hardware rule add(), replace(), list() and delete()")
 	void hardwareRules() {
-		Date sale = new Date(1_700_000_000_000L);
-		Date life = new Date(1_800_000_000_000L);
-		HardwareRuleView ruleView = this.hardwareRuleService.create(
-			new HardwareRuleDefinition(this.groupId, "CiscoIOS12", "fam", false, "pn", true, sale, life));
-		HardwareRule rule = ruleView.rule();
-		Assertions.assertEquals(this.groupId, ruleView.targetGroup().id());
+		Instant sale = Instant.ofEpochMilli(1_700_000_000_000L);
+		Instant life = Instant.ofEpochMilli(1_800_000_000_000L);
+		HardwareRule rule = this.hardwareRuleService.add(
+			new HardwareRule(0, 0, null, "CiscoIOS12", this.groupId, "fam", false, "pn", true, sale, life));
+		Assertions.assertEquals(this.groupId, rule.targetGroupId());
 		Assertions.assertEquals("CiscoIOS12", rule.driver());
-		Assertions.assertEquals(sale.toInstant(), rule.endOfSale());
-		Assertions.assertEquals(life.toInstant(), rule.endOfLife());
+		Assertions.assertEquals(sale, rule.endOfSale());
+		Assertions.assertEquals(life, rule.endOfLife());
 		HardwareRuleView listedView = this.hardwareRuleService.list().stream().filter(r -> r.rule().id() == rule.id()).findFirst().orElseThrow();
 		Assertions.assertEquals("Group", listedView.targetGroup().name(), "the group is loaded by the list");
 
-		// A group which doesn't exist is refused; an unknown driver is still taken for "any driver"
-		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.hardwareRuleService.create(
-			new HardwareRuleDefinition(99999999L, "", "", false, "x", false, null, null)));
-		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.hardwareRuleService.update(rule.id(),
-			new HardwareRuleDefinition(99999999L, "", "", false, "x", false, null, null)));
-		HardwareRuleView unknownDriverView = this.hardwareRuleService.create(
-			new HardwareRuleDefinition(null, "NoSuchDriver", "", false, "x", false, null, null));
-		HardwareRule unknownDriver = unknownDriverView.rule();
-		Assertions.assertNull(unknownDriver.driver());
+		// A group or a driver which doesn't exist is refused, and nothing is changed
+		NetshotException group = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.hardwareRuleService.add(
+			new HardwareRule(0, 0, null, null, 99999999L, "", false, "x", false, null, null)));
+		Assertions.assertEquals("group", group.getTarget());
+		NetshotException driver = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.hardwareRuleService.replace(
+			rule.id(), _ -> new HardwareRule(0, 0, null, "NoSuchDriver", null, "", false, "x", false, null, null), null));
+		Assertions.assertEquals("driver", driver.getTarget());
+		Assertions.assertEquals("pn", this.hardwareRuleService.get(rule.id()).partNumber());
 
-		HardwareRuleView updatedView = this.hardwareRuleService.update(rule.id(),
-			new HardwareRuleDefinition(null, "", "", true, "other", false, null, life));
-		HardwareRule updated = updatedView.rule();
-		Assertions.assertNull(updatedView.targetGroup());
+		HardwareRule updated = this.hardwareRuleService.replace(rule.id(),
+			_ -> new HardwareRule(0, 0, null, null, null, "", true, "other", false, null, life), null);
+		Assertions.assertNull(updated.targetGroupId());
 		Assertions.assertNull(updated.driver());
 		Assertions.assertNull(updated.endOfSale());
-		Assertions.assertEquals(life.toInstant(), updated.endOfLife());
+		Assertions.assertEquals(life, updated.endOfLife());
 		Assertions.assertEquals("other", updated.partNumber());
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.hardwareRuleService.update(99999999L,
-			new HardwareRuleDefinition(null, "", "", true, "other", false, null, null)));
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.hardwareRuleService.replace(99999999L, r -> r, null));
 		Assertions.assertTrue(this.hardwareRuleService.delete(rule.id()));
 		Assertions.assertFalse(this.hardwareRuleService.delete(rule.id()));
 	}

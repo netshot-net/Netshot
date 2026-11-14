@@ -18,9 +18,7 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 
@@ -209,70 +207,6 @@ public class HardwareRuleService {
 		return rule;
 	}
 
-	private static Instant toInstant(Date date) {
-		return date == null ? null : date.toInstant();
-	}
-
-	private HardwareRule fromDefinition(long id, HardwareRuleDefinition definition) {
-		return new HardwareRule(id, 0, null, knownDriver(definition.driver()), definition.groupId(),
-			definition.family(), definition.familyRegExp(), definition.partNumber(),
-			definition.partNumberRegExp(), toInstant(definition.endOfSale()), toInstant(definition.endOfLife()));
-	}
-
-	/**
-	 * Adds a hardware rule.
-	 *
-	 * @param definition the rule
-	 * @return the new rule
-	 * @throws NetshotException if the group doesn't exist, or the rule can't be stored
-	 */
-	public HardwareRuleView create(HardwareRuleDefinition definition) {
-		HardwareRuleView rule;
-		try {
-			rule = this.transactions.write(dsl -> {
-				DeviceGroup group = this.findGroup(dsl, definition.groupId());
-				HardwareRule newRule = this.fromDefinition(0, definition);
-				return new HardwareRuleView(this.repository.find(dsl, this.repository.add(dsl, newRule)), group);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Error while saving the new rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the rule to the database");
-		}
-		AAA_LOG.info("{} has been created", rule.rule());
-		return rule;
-	}
-
-	/**
-	 * Edits a hardware rule.
-	 *
-	 * @param id the rule ID
-	 * @param definition the new properties
-	 * @return the rule
-	 * @throws NetshotException if the rule or the group doesn't exist, or the rule can't be stored
-	 */
-	public HardwareRuleView update(long id, HardwareRuleDefinition definition) {
-		HardwareRuleView rule;
-		try {
-			rule = this.transactions.write(dsl -> {
-				if (this.repository.lock(dsl, id) == null) {
-					log.error("Unable to find the rule {} to be edited.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
-				}
-				DeviceGroup group = this.findGroup(dsl, definition.groupId());
-				HardwareRule edited = this.fromDefinition(id, definition);
-				this.repository.save(dsl, edited);
-				return new HardwareRuleView(this.repository.find(dsl, id), group);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Error while saving the rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
-		}
-		AAA_LOG.info("{} has been edited", rule.rule());
-		return rule;
-	}
-
 	/**
 	 * Deletes a hardware rule.
 	 *
@@ -332,12 +266,5 @@ public class HardwareRuleService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
 		}
 		return group;
-	}
-
-	private String knownDriver(String driver) {
-		if (this.driverRegistry.getDriverByName(driver) == null) {
-			return null;
-		}
-		return driver;
 	}
 }

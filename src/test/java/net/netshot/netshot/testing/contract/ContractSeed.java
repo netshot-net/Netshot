@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +43,7 @@ import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserCreation;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.compliance.HardwareRuleDefinition;
+import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleService;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.PolicyDefinition;
@@ -518,10 +517,10 @@ public final class ContractSeed {
 		this.created("rule.software.silver", softwareRules.create(new SoftwareRuleDefinition(null,
 			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER)).rule().id());
 		HardwareRuleService hardwareRules = TestWiring.get().hardwareRuleService();
-		this.created("rule.hardware.1", hardwareRules.create(new HardwareRuleDefinition(this.id("group.dynamic"),
-			"CiscoIOS12", "", false, "CISCO2911/K9", false, new Date(D2040), new Date(D2040 + 365L * 24 * 3600 * 1000))).rule().id());
-		this.created("rule.hardware.2", hardwareRules.create(new HardwareRuleDefinition(null,
-			"", "Cisco 1900.*", true, "", false, new Date(D2022), null)).rule().id());
+		this.created("rule.hardware.1", hardwareRules.add(new HardwareRule(0, 0, null, "CiscoIOS12", this.id("group.dynamic"),
+			"", false, "CISCO2911/K9", false, Instant.ofEpochMilli(D2040), Instant.ofEpochMilli(D2040 + 365L * 24 * 3600 * 1000))).id());
+		this.created("rule.hardware.2", hardwareRules.add(new HardwareRule(0, 0, null, null, null,
+			"Cisco 1900.*", true, "", false, Instant.ofEpochMilli(D2022), null)).id());
 	}
 
 	private void seedDiagnostics() {
