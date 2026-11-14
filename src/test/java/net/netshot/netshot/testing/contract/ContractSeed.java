@@ -380,7 +380,6 @@ public final class ContractSeed {
 			DeviceCredentialSet specific = credentialSetRepository.add(dsl, DeviceSshAccount.builder()
 				.username(Secret.local("specific-user")).password(Secret.local("specific-pass")).superPassword(Secret.local("specific-enable"))
 				.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build());
-			this.remember("cred.specific", specific.id());
 			Device router1 = deviceRepository.add(dsl, device("router-paris-1", "CiscoIOS12", "10.1.1.1", paris, D2020)
 				.family("Cisco 2900")
 				.networkClass(NetworkClass.ROUTER)
