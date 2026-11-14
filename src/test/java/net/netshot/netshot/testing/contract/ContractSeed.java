@@ -46,13 +46,16 @@ import net.netshot.netshot.aaa.user.UserCreation;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.compliance.HardwareRuleDefinition;
 import net.netshot.netshot.compliance.HardwareRuleService;
+import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.RuleDefinition;
+import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.SoftwareRuleDefinition;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -498,15 +501,16 @@ public final class ContractSeed {
 		this.created("policy.empty", policies.create(new PolicyDefinition("Empty policy", Set.of())).policy().id());
 
 		RuleService rules = TestWiring.get().ruleService();
-		this.created("rule.text", rules.create(textRule(this.id("policy.security"), false, null)).id());
-		this.created("rule.regex", rules.create(new RuleDefinition("TextRule", "Hostname set", this.id("policy.security"), false,
-			null, null, "^hostname .+$", true, null, null, "runningConfig", true, true, false, false)).id());
-		this.created("rule.js", rules.create(new RuleDefinition("JavaScriptRule", "JS check", this.id("policy.routing"), false,
-			null, "function check(device) {\n  return { result: CONFORMING, comment: 'ok' };\n}",
-			null, null, null, null, null, null, null, null, null)).id());
-		this.created("rule.python", rules.create(new RuleDefinition("PythonRule", "Python check", this.id("policy.routing"), false,
-			null, "def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}",
-			null, null, null, null, null, null, null, null, null)).id());
+		this.created("rule.text", rules.add(TextRule.builder("No telnet", this.id("policy.security"))
+			.text("transport input telnet").regExp(false).context("line vty").deviceDriver("CiscoIOS12").field("runningConfig")
+			.anyBlock(false).matchAll(false).invert(true).normalize(true).build()).id());
+		this.created("rule.regex", rules.add(TextRule.builder("Hostname set", this.id("policy.security"))
+			.text("^hostname .+$").regExp(true).field("runningConfig").anyBlock(true).matchAll(true).invert(false).normalize(false)
+			.build()).id());
+		this.created("rule.js", rules.add(new JavaScriptRule(0, 0, null, "JS check", false, this.id("policy.routing"),
+			"function check(device) {\n  return { result: CONFORMING, comment: 'ok' };\n}")).id());
+		this.created("rule.python", rules.add(new PythonRule(0, 0, null, "Python check", false, this.id("policy.routing"),
+			"def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}")).id());
 
 		SoftwareRuleService softwareRules = TestWiring.get().softwareRuleService();
 		this.created("rule.software.gold", softwareRules.create(new SoftwareRuleDefinition(this.id("group.dynamic"),
@@ -518,18 +522,6 @@ public final class ContractSeed {
 			"CiscoIOS12", "", false, "CISCO2911/K9", false, new Date(D2040), new Date(D2040 + 365L * 24 * 3600 * 1000))).rule().id());
 		this.created("rule.hardware.2", hardwareRules.create(new HardwareRuleDefinition(null,
 			"", "Cisco 1900.*", true, "", false, new Date(D2022), null)).rule().id());
-	}
-
-	/**
-	 * Builds the definition of the "No telnet" text rule.
-	 * @param policyId the ID of the policy
-	 * @param enabled whether the rule is enabled
-	 * @param exemptions the exemptions (or null)
-	 * @return the definition
-	 */
-	private static RuleDefinition textRule(long policyId, boolean enabled, Map<Long, Date> exemptions) {
-		return new RuleDefinition("TextRule", "No telnet", policyId, enabled, exemptions, null, "transport input telnet", false,
-			"line vty", "CiscoIOS12", "runningConfig", false, false, true, true);
 	}
 
 	private void seedDiagnostics() {
@@ -580,8 +572,8 @@ public final class ContractSeed {
 
 	private void seedComplianceAndDiagnosticResults() {
 		// Exemption, through the service
-		TestWiring.get().ruleService().update(this.id("rule.text"), textRule(this.id("policy.security"), true,
-			Map.of(this.id("device.router2"), new Date(D2040))));
+		TestWiring.get().ruleService().replace(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
+			Map.of(this.id("device.router2"), Instant.ofEpochMilli(D2040))), null);
 		TestWiring.get().transactions().run(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));

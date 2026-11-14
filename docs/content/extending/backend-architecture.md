@@ -109,6 +109,8 @@ The former REST code threw `NetshotBadRequestException(message, ErrorCode)`, a J
 
 A helper shared by several services (for example `credentials.CredentialSets`) throws `NetshotException` too.
 
+A service has one implementation of each use case, the one of the v1 API (a missing object is a `*_NOT_FOUND`, a faulty property an `invalidParameter` naming it). The v0 API, frozen, adapts to it in its own package: its mapper builds the input of the service with the v0 semantics (a partial update computed from the current object in the change function, the defaults and the leniencies v0 always had), and its resource runs the call through `api.rest.v0.V0Errors.translate`, which reports the errors with the codes and messages v0 always used (`V0Errors.code(NETSHOT_RULE_NOT_FOUND, NETSHOT_INVALID_RULE, "Unable to find this rule.")`, `V0Errors.target("policy", ...)`). When v0 checked things in another order, the resource keeps that order (for example by checking the policy before the type of a rule). The v0 contract goldens pin the result.
+
 Inside a service, a failing query is a `DataAccessException`: catch it around the `Transactions` call and report it as `NETSHOT_DATABASE_ACCESS_ERROR` (or a more specific code when the cause is known, like a duplicate key), keeping the message the clients know. Check the failure of the business rules *inside* the transaction (the exception rolls it back) and keep the order of the checks, as it decides which error a client gets when several apply.
 
 When adding an error: add the `ErrorCode` (never change an existing numeric value or status; the web UI and the API clients depend on them).

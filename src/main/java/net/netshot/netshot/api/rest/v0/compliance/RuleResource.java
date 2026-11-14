@@ -44,8 +44,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleDefinition;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 
 /**
  * The REST resource of the compliance rules (text and script rules): list, read, add, edit,
@@ -59,6 +65,7 @@ import net.netshot.netshot.driver.DriverRegistry;
 public class RuleResource {
 
 	private final RuleService ruleService;
+	private final PolicyService policyService;
 	private final DriverRegistry driverRegistry;
 
 	@Context
@@ -68,11 +75,13 @@ public class RuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param ruleService the rule use cases
+	 * @param policyService the policy use cases (to check the policy of a rule of an unknown type, as v0 always did)
 	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public RuleResource(RuleService ruleService, DriverRegistry driverRegistry) {
+	public RuleResource(RuleService ruleService, PolicyService policyService, DriverRegistry driverRegistry) {
 		this.ruleService = ruleService;
+		this.policyService = policyService;
 		this.driverRegistry = driverRegistry;
 	}
 
@@ -165,9 +174,22 @@ public class RuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public RuleDto addRule(RuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add rule.");
-		RuleDto rule = RuleMapper.toDto(this.driverRegistry, this.ruleService.create(RuleMapper.toDefinition(rsRule)));
+		RuleDefinition definition = RuleMapper.toDefinition(rsRule);
+		if (definition.name() == null || definition.name().trim().isEmpty()) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
+		}
+		V0Errors.Translation invalidPolicy = V0Errors.code(ErrorCode.NETSHOT_POLICY_NOT_FOUND, ErrorCode.NETSHOT_INVALID_POLICY,
+			"Invalid policy.");
+		Rule newRule = RuleMapper.toNewRule(definition);
+		if (newRule == null) {
+			// The policy is checked before the type of rule
+			V0Errors.translate(() -> this.policyService.get(definition.policyId()), invalidPolicy);
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type.");
+		}
+		Rule added = V0Errors.translate(() -> this.ruleService.add(newRule),
+			V0Errors.target("policy", ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy."));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return rule;
+		return RuleMapper.toDto(this.driverRegistry, added);
 	}
 
 	/**
@@ -191,7 +213,11 @@ public class RuleResource {
 	public RuleDto setRule(@PathParam("id") @Parameter(description = "Rule ID") Long id, RuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit rule {}.", id);
-		return RuleMapper.toDto(this.driverRegistry, this.ruleService.update(id, RuleMapper.toDefinition(rsRule)));
+		RuleDefinition definition = RuleMapper.toDefinition(rsRule);
+		Rule rule = V0Errors.translate(() -> this.ruleService.replace(id, existing -> RuleMapper.toReplacement(existing, definition), null),
+			V0Errors.code(ErrorCode.NETSHOT_RULE_NOT_FOUND, ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule."),
+			V0Errors.target("exemptions", ErrorCode.NETSHOT_INVALID_DEVICE, null));
+		return RuleMapper.toDto(this.driverRegistry, rule);
 	}
 
 	/**

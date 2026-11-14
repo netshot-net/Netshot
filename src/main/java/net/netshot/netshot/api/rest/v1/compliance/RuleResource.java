@@ -59,6 +59,7 @@ import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.RuleTestResult;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -192,7 +193,7 @@ public class RuleResource {
 	public RuleDto replaceRule(@PathParam("id") @Parameter(description = "Rule ID") long id, RuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		Rule rule = RuleMapper.toRule(ruleRequest);
-		return this.respond(this.ruleService.replace(id, _ -> rule, V1Response.ifMatch(this.headers)));
+		return this.respond(this.ruleService.replace(id, _ -> Replacement.of(rule), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -213,7 +214,7 @@ public class RuleResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.ruleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(), RuleRequest.class,
-			RuleMapper::toRequest, RuleMapper::toRule), V1Response.ifMatch(this.headers)));
+			RuleMapper::toRequest, RuleMapper::toRule).andThen(Replacement::of), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
