@@ -1,5 +1,5 @@
 {
-  "appRoleId": null,
+  "appRoleId": "role-10",
   "appRoleMountPath": "approle",
   "appRoleSecretId": "=",
   "authMethod": "APPROLE",
@@ -14,7 +14,7 @@
   "jwtScope": null,
   "jwtVaultRole": null,
   "kvMountPath": "secret",
-  "name": "  New vault spaced  ",
+  "name": "New vault spaced",
   "namespace": null,
   "type": "Vault KV v2"
 }

@@ -130,8 +130,8 @@ import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.userscript.ScriptCreation;
 import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
-import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.SecretChange;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
@@ -236,17 +236,12 @@ public final class ContractSeed {
 
 	private void seedVault() {
 		VaultInstanceService vaults = TestWiring.get().vaultInstanceService();
-		this.created("vault.main", vaults.create(HashicorpVaultKv2Instance.builder("Main vault")
-			.baseUrl("https://vault.example.net:8200").namespace("netshot").kvMountPath("kv")
-			.authMethod(AuthMethod.APPROLE).appRoleMountPath("approle").appRoleId("role-1234")
-			.appRoleSecretId(Secret.local("secret-5678")).jwtClientSecret(Secret.local(null))
-			.build()).id());
-		this.created("vault.jwt", vaults.create(HashicorpVaultKv2Instance.builder("JWT vault")
-			.baseUrl("https://vault2.example.net:8200").httpsCaTrustMode(HttpsCaTrustMode.TRUST_ANY)
-			.authMethod(AuthMethod.JWT).jwtMountPath("jwt").jwtIdpTokenEndpoint("https://idp.example.net/token")
-			.jwtClientId("netshot").jwtClientSecret(Secret.local("client-secret")).jwtVaultRole("netshot-role").jwtScope("vault")
-			.appRoleSecretId(Secret.local(null))
-			.build()).id());
+		this.created("vault.main", vaults.create(new VaultInstanceDefinition("Main vault", "https://vault.example.net:8200", "netshot",
+			null, null, "kv", AuthMethod.APPROLE, "approle", "role-1234", local("secret-5678"), null, null, null,
+			SecretChange.UNCHANGED, null, null)).id());
+		this.created("vault.jwt", vaults.create(new VaultInstanceDefinition("JWT vault", "https://vault2.example.net:8200", null,
+			HttpsCaTrustMode.TRUST_ANY, null, null, AuthMethod.JWT, null, null, SecretChange.UNCHANGED, "jwt",
+			"https://idp.example.net/token", "netshot", local("client-secret"), "netshot-role", "vault")).id());
 	}
 
 	private void seedCredentialSets() {
