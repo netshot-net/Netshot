@@ -21,6 +21,7 @@ package net.netshot.netshot.compliance;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.testing.TestDevices;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.function.Executable;
 
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
+import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.compliance.CheckResult;
@@ -104,14 +106,13 @@ class ComplianceServiceTest {
 		return this.policyService.create(new PolicyDefinition(name, Set.of(groups))).policy();
 	}
 
-	private static RuleDefinition textRule(String name, long policyId) {
-		return new RuleDefinition("TextRule", name, policyId, false, Map.of(), null, "ntp server", null, null, null,
-			"runningConfig", null, null, null, null);
+	private static TextRule textRule(String name, long policyId) {
+		return TextRule.builder(name, policyId).text("ntp server").field("runningConfig").build();
 	}
 
-	private static RuleDefinition update(String name, boolean enabled, Map<Long, Date> exemptions) {
-		return new RuleDefinition("TextRule", name, 0, enabled, exemptions, null, null, null, null, null, null, null, null,
-			null, null);
+	private static RuleDefinition testDefinition() {
+		return new RuleDefinition("TextRule", "Test", 0, false, Map.of(), null, "ntp server", null, null, null,
+			"runningConfig", null, null, null, null);
 	}
 
 	// ------------------------------------------------------------------
@@ -152,7 +153,7 @@ class ComplianceServiceTest {
 	@DisplayName("Policy update() renames the policy and replaces its groups, and drops the results of the groups removed")
 	void policyUpdate() {
 		Policy policy = this.createPolicy(this.name("To update"), this.groupId);
-		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
+		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		this.transactions.run(dsl -> new RuleRepository().saveCheckResults(dsl,
 			List.of(CheckResult.of(rule.id(), this.deviceId, ResultOption.NONCONFORMING, "bad"))));
 		Assertions.assertEquals(1, this.countResults(rule.id()));
@@ -166,7 +167,7 @@ class ComplianceServiceTest {
 	@DisplayName("Policy update() keeps the results of the groups which stay")
 	void policyUpdateKeepsResults() {
 		Policy policy = this.createPolicy(this.name("To keep"), this.groupId);
-		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
+		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		this.transactions.run(dsl -> new RuleRepository().saveCheckResults(dsl,
 			List.of(CheckResult.of(rule.id(), this.deviceId, ResultOption.CONFORMING, "ok"))));
 		this.policyService.update(policy.id(), new PolicyDefinition(policy.name(), Set.of(this.groupId, this.otherGroupId)));
@@ -196,7 +197,7 @@ class ComplianceServiceTest {
 	@DisplayName("Policy delete() tells whether the policy existed, and removes its rules")
 	void policyDelete() {
 		Policy policy = this.createPolicy(this.name("To delete"));
-		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
+		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		Assertions.assertTrue(this.policyService.delete(policy.id()));
 		Assertions.assertFalse(this.policyService.delete(policy.id()));
 		Assertions.assertEquals(0, this.countResults(rule.id()));
@@ -221,14 +222,14 @@ class ComplianceServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("Rule create() stores the three kinds of rules, disabled, with the trimmed name and script")
-	void ruleCreate() {
+	@DisplayName("Rule add() stores the three kinds of rules as given")
+	void ruleAdd() {
 		Policy policy = this.createPolicy(this.name("Rules"));
-		Rule text = this.ruleService.create(new RuleDefinition("TextRule", " " + this.name("Text") + " ", policy.id(), true,
-			Map.of(), "ignored", "ntp", true, "ctx", "CiscoIOS12", "runningConfig", true, false, true, true));
+		Rule text = this.ruleService.add(TextRule.builder(this.name("Text"), policy.id()).enabled(true).text("ntp").regExp(true)
+			.context("ctx").deviceDriver("CiscoIOS12").field("runningConfig").anyBlock(true).matchAll(false).invert(true).normalize(true)
+			.build());
 		TextRule textRule = Assertions.assertInstanceOf(TextRule.class, text);
-		Assertions.assertFalse(textRule.name().startsWith(" "));
-		Assertions.assertFalse(textRule.enabled(), "a new rule is disabled");
+		Assertions.assertTrue(textRule.enabled());
 		Assertions.assertEquals("ntp", textRule.text());
 		Assertions.assertTrue(textRule.regExp());
 		Assertions.assertEquals("ctx", textRule.context());
@@ -238,12 +239,10 @@ class ComplianceServiceTest {
 		Assertions.assertFalse(textRule.matchAll());
 		Assertions.assertTrue(textRule.invert());
 		Assertions.assertTrue(textRule.normalize());
-		Rule js = this.ruleService.create(new RuleDefinition("JavaScriptRule", this.name("JS"), policy.id(), false, Map.of(),
-			"  function check(d) { return CONFORMING; }  ", null, null, null, null, null, null, null, null, null));
+		Rule js = this.ruleService.add(new JavaScriptRule(0, 0, null, this.name("JS"), false, policy.id(),
+			"function check(d) { return CONFORMING; }"));
 		Assertions.assertEquals("function check(d) { return CONFORMING; }", Assertions.assertInstanceOf(JavaScriptRule.class, js).script());
-		Rule py = this.ruleService.create(new RuleDefinition("PythonRule", this.name("Py"), policy.id(), false, Map.of(),
-			null, null, null, null, null, null, null, null, null, null));
-		Assertions.assertInstanceOf(PythonRule.class, py);
+		Rule py = this.ruleService.add(PythonRule.of(this.name("Py"), policy.id()));
 		Assertions.assertTrue(Assertions.assertInstanceOf(PythonRule.class, py).script().length() > 0, "the template script is kept");
 		Assertions.assertEquals(3, this.ruleService.listOfPolicy(policy.id(), Page.ALL).size());
 		Assertions.assertEquals(1, this.ruleService.listOfPolicy(policy.id(), new Page(1, 1)).size());
@@ -253,21 +252,19 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Rule create() reports a blank name, an unknown policy, an invalid type (in this order) and a duplicate")
-	void ruleCreateErrors() {
+	@DisplayName("Rule add() reports a blank name, an unknown policy (in this order) and a duplicate name in the policy")
+	void ruleAddErrors() {
 		Policy policy = this.createPolicy(this.name("Rule errors"));
-		assertError(ErrorCode.NETSHOT_INVALID_RULE_NAME, () -> this.ruleService.create(textRule(null, policy.id())));
-		assertError(ErrorCode.NETSHOT_INVALID_RULE_NAME, () -> this.ruleService.create(textRule("  ", 99999999L)));
-		assertError(ErrorCode.NETSHOT_INVALID_POLICY, () -> this.ruleService.create(textRule("x", 99999999L)));
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.ruleService.create(
-			new RuleDefinition("NoSuchRule", "x", policy.id(), false, Map.of(), null, null, null, null, null, null, null, null, null, null)));
-		assertError(ErrorCode.NETSHOT_INVALID_POLICY, () -> this.ruleService.create(
-			new RuleDefinition("NoSuchRule", "x", 99999999L, false, Map.of(), null, null, null, null, null, null, null, null, null, null)));
+		assertError(ErrorCode.NETSHOT_INVALID_RULE_NAME, () -> this.ruleService.add(textRule(null, policy.id())));
+		assertError(ErrorCode.NETSHOT_INVALID_RULE_NAME, () -> this.ruleService.add(textRule("  ", 99999999L)));
+		NetshotException unknownPolicy = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+			() -> this.ruleService.add(textRule("x", 99999999L)));
+		Assertions.assertEquals("policy", unknownPolicy.getTarget());
 		String name = this.name("Dup");
-		this.ruleService.create(textRule(name, policy.id()));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_RULE, () -> this.ruleService.create(textRule(name, policy.id())));
+		this.ruleService.add(textRule(name, policy.id()));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_RULE, () -> this.ruleService.add(textRule(name, policy.id())));
 		Policy other = this.createPolicy(this.name("Other policy"));
-		this.ruleService.create(textRule(name, other.id()));
+		this.ruleService.add(textRule(name, other.id()));
 	}
 
 	@Test
@@ -275,7 +272,7 @@ class ComplianceServiceTest {
 	void ruleReadErrors() {
 		Policy policy = this.createPolicy(this.name("Read"));
 		Policy other = this.createPolicy(this.name("Read other"));
-		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
+		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		Assertions.assertEquals(rule.id(), this.ruleService.getOfPolicy(policy.id(), rule.id()).id());
 		assertError(ErrorCode.NETSHOT_POLICY_NOT_FOUND, () -> this.ruleService.getOfPolicy(99999999L, rule.id()));
 		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.ruleService.getOfPolicy(other.id(), rule.id()));
@@ -285,85 +282,85 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Rule update() changes only the provided properties of the kind of the rule, and replaces the exemptions")
-	void ruleUpdate() {
-		Policy policy = this.createPolicy(this.name("Update"));
-		TextRule rule = (TextRule) this.ruleService.create(new RuleDefinition("TextRule", this.name("To update"), policy.id(),
-			false, Map.of(), null, "text", true, "ctx", "CiscoIOS12", "runningConfig", true, true, true, true));
-		Date expiration = new Date(1_700_000_000_000L);
-		TextRule updated = (TextRule) this.ruleService.update(rule.id(), update(null, true, Map.of(this.deviceId, expiration)));
-		Assertions.assertEquals(rule.name(), updated.name(), "a null name keeps the name");
-		Assertions.assertTrue(updated.enabled());
-		Assertions.assertEquals("text", updated.text(), "a null property is left alone");
-		Assertions.assertTrue(updated.regExp());
-		Assertions.assertEquals("CiscoIOS12", updated.deviceDriver());
+	@DisplayName("Rule replace() replaces the definition, keeps the exemptions unless given, and replaces all of them when given")
+	void ruleReplace() {
+		Policy policy = this.createPolicy(this.name("Replace"));
+		TextRule rule = (TextRule) this.ruleService.add(TextRule.builder(this.name("To replace"), policy.id())
+			.text("text").regExp(true).context("ctx").deviceDriver("CiscoIOS12").field("runningConfig").build());
+		Instant expiration = Instant.ofEpochMilli(1_700_000_000_000L);
+		TextRule replaced = (TextRule) this.ruleService.replace(rule.id(),
+			current -> new Replacement(((TextRule) current).toBuilder().enabled(true).text("new text").build(),
+				Map.of(this.deviceId, expiration)), null);
+		Assertions.assertEquals(rule.name(), replaced.name());
+		Assertions.assertTrue(replaced.enabled());
+		Assertions.assertEquals("new text", replaced.text());
+		Assertions.assertTrue(replaced.regExp());
+		Assertions.assertEquals(rule.version() + 1, replaced.version(), "one change of the rule");
 		List<ExemptedDevice> exempted = this.ruleService.listExemptedDevices(rule.id(), Page.ALL);
 		Assertions.assertEquals(1, exempted.size());
 		Assertions.assertEquals(this.deviceId, exempted.get(0).device().id());
 		Assertions.assertEquals("router-a", exempted.get(0).device().name());
-		Assertions.assertEquals(expiration, exempted.get(0).expirationDate());
+		Assertions.assertEquals(Date.from(expiration), exempted.get(0).expirationDate());
 
-		// The exemption is kept and its date changed
-		Date later = new Date(1_800_000_000_000L);
-		this.ruleService.update(rule.id(), update("  " + this.name("Renamed") + " ", false, Map.of(this.deviceId, later)));
-		Assertions.assertEquals(later, this.ruleService.listExemptedDevices(rule.id(), Page.ALL).get(0).expirationDate());
-		Assertions.assertFalse(this.ruleService.getOfPolicy(policy.id(), rule.id()).enabled());
+		// Without exemptions, they are kept
+		Rule renamed = this.ruleService.replace(rule.id(),
+			current -> Replacement.of(((TextRule) current).toBuilder().name(this.name("Renamed")).build()), null);
+		Assertions.assertEquals(1, this.ruleService.listExemptedDevices(rule.id(), Page.ALL).size());
 
 		// All the exemptions are replaced
-		this.ruleService.update(rule.id(), update(null, false, Map.of()));
+		this.ruleService.replace(rule.id(), current -> new Replacement(current, Map.of()), (long) renamed.version());
 		Assertions.assertTrue(this.ruleService.listExemptedDevices(rule.id(), Page.ALL).isEmpty());
 		Assertions.assertTrue(this.ruleService.listExemptedDevices(99999999L, Page.ALL).isEmpty());
-
-		RuleDefinition script = new RuleDefinition("TextRule", null, 0, false, Map.of(), null, "new text", false, null, null, null,
-			false, null, null, null);
-		TextRule textOnly = (TextRule) this.ruleService.update(rule.id(), script);
-		Assertions.assertEquals("new text", textOnly.text());
-		Assertions.assertFalse(textOnly.regExp());
-		Assertions.assertFalse(textOnly.anyBlock());
-		Assertions.assertEquals("ctx", textOnly.context());
 	}
 
 	@Test
-	@DisplayName("Rule update() sets the script of the script rules, trimmed")
-	void ruleUpdateScript() {
-		Policy policy = this.createPolicy(this.name("Update script"));
-		Rule js = this.ruleService.create(new RuleDefinition("JavaScriptRule", this.name("JS"), policy.id(), false, Map.of(),
-			null, null, null, null, null, null, null, null, null, null));
-		JavaScriptRule updated = (JavaScriptRule) this.ruleService.update(js.id(),
-			new RuleDefinition("JavaScriptRule", null, 0, true, Map.of(), "  // new\n", "ignored", null, null, null, null, null, null, null, null));
-		Assertions.assertEquals("// new", updated.script());
-		Assertions.assertTrue(updated.enabled());
-		Rule py = this.ruleService.create(new RuleDefinition("PythonRule", this.name("Py"), policy.id(), false, Map.of(),
-			null, null, null, null, null, null, null, null, null, null));
-		String before = ((PythonRule) py).script();
-		PythonRule kept = (PythonRule) this.ruleService.update(py.id(),
-			new RuleDefinition("PythonRule", null, 0, false, Map.of(), null, null, null, null, null, null, null, null, null, null));
-		Assertions.assertEquals(before, kept.script(), "no script provided");
+	@DisplayName("Rule replace() refuses a change of the kind or of the policy of the rule")
+	void ruleReplaceKindAndPolicy() {
+		Policy policy = this.createPolicy(this.name("Kind"));
+		Policy other = this.createPolicy(this.name("Kind other"));
+		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
+		NetshotException kind = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.ruleService.replace(rule.id(),
+			_ -> Replacement.of(JavaScriptRule.of(rule.name(), policy.id())), null));
+		Assertions.assertEquals("type", kind.getTarget());
+		NetshotException policyChange = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.ruleService.replace(
+			rule.id(), _ -> Replacement.of(textRule(rule.name(), other.id())), null));
+		Assertions.assertEquals("policy", policyChange.getTarget());
+		// A policy of 0 is the current one
+		Assertions.assertEquals(policy.id(), this.ruleService.replace(rule.id(), _ -> Replacement.of(textRule(rule.name(), 0)), null)
+			.policyId());
 	}
 
 	@Test
-	@DisplayName("Rule update() reports an unknown rule, a blank name, an unknown device and a duplicate name; nothing is changed")
-	void ruleUpdateErrors() {
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.ruleService.update(99999999L, update("x", false, Map.of())));
-		Policy policy = this.createPolicy(this.name("Update errors"));
+	@DisplayName("Rule replace() reports an unknown rule, a blank name, an unknown exempted device and a duplicate name; nothing is changed")
+	void ruleReplaceErrors() {
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND,
+			() -> this.ruleService.replace(99999999L, current -> Replacement.of(current), null));
+		Policy policy = this.createPolicy(this.name("Replace errors"));
 		String name = this.name("Rule");
-		Rule rule = this.ruleService.create(textRule(name, policy.id()));
-		Rule other = this.ruleService.create(textRule(this.name("Other rule"), policy.id()));
-		assertError(ErrorCode.NETSHOT_INVALID_RULE_NAME, () -> this.ruleService.update(rule.id(), update(" ", true, Map.of())));
-		Map<Long, Date> unknownDevice = new HashMap<>();
+		Rule rule = this.ruleService.add(textRule(name, policy.id()));
+		Instant expiration = Instant.ofEpochMilli(1_700_000_000_000L);
+		this.ruleService.replaceExemptions(rule.id(), Map.of(this.deviceId, expiration), null);
+		Rule other = this.ruleService.add(textRule(this.name("Other rule"), policy.id()));
+		assertError(ErrorCode.NETSHOT_INVALID_RULE_NAME,
+			() -> this.ruleService.replace(rule.id(), _ -> Replacement.of(textRule(" ", 0)), null));
+		Map<Long, Instant> unknownDevice = new HashMap<>();
 		unknownDevice.put(99999999L, null);
-		assertError(ErrorCode.NETSHOT_INVALID_DEVICE, () -> this.ruleService.update(rule.id(), update("renamed", true, unknownDevice)));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_RULE, () -> this.ruleService.update(other.id(), update(name, true, Map.of())));
+		NetshotException exempted = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+			() -> this.ruleService.replace(rule.id(), _ -> new Replacement(textRule("renamed", 0), unknownDevice), null));
+		Assertions.assertEquals("exemptions", exempted.getTarget());
+		assertError(ErrorCode.NETSHOT_DUPLICATE_RULE,
+			() -> this.ruleService.replace(other.id(), _ -> new Replacement(textRule(name, 0), Map.of()), null));
 		Rule reread = this.ruleService.getOfPolicy(policy.id(), rule.id());
 		Assertions.assertEquals(name, reread.name());
-		Assertions.assertFalse(reread.enabled());
+		Assertions.assertEquals(rule.version() + 1, reread.version(), "only the exemptions were changed");
+		Assertions.assertEquals(1, this.ruleService.listExemptedDevices(rule.id(), Page.ALL).size());
 	}
 
 	@Test
 	@DisplayName("Rule delete() tells whether the rule existed")
 	void ruleDelete() {
 		Policy policy = this.createPolicy(this.name("Delete"));
-		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
+		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		Assertions.assertTrue(this.ruleService.delete(rule.id()));
 		Assertions.assertFalse(this.ruleService.delete(rule.id()));
 		Assertions.assertTrue(this.ruleService.listOfPolicy(policy.id(), Page.ALL).isEmpty());
@@ -372,7 +369,7 @@ class ComplianceServiceTest {
 	@Test
 	@DisplayName("Rule test() reports an unknown device as not applicable, without logs")
 	void ruleTestUnknownDevice() {
-		RuleTestResult result = this.ruleService.test(99999999L, textRule("Test", 0));
+		RuleTestResult result = this.ruleService.test(99999999L, testDefinition());
 		Assertions.assertEquals(ResultOption.NOTAPPLICABLE, result.result());
 		Assertions.assertEquals("Unable to find the device", result.comment());
 		Assertions.assertNull(result.log());
@@ -380,7 +377,7 @@ class ComplianceServiceTest {
 		Assertions.assertEquals(ResultOption.NOTAPPLICABLE, this.ruleService.test(99999999L,
 			new RuleDefinition("NoSuchRule", null, 0, false, Map.of(), null, null, null, null, null, null, null, null, null, null)).result());
 		// A device without configuration is not found either
-		Assertions.assertEquals(ResultOption.NOTAPPLICABLE, this.ruleService.test(this.deviceId, textRule("Test", 0)).result());
+		Assertions.assertEquals(ResultOption.NOTAPPLICABLE, this.ruleService.test(this.deviceId, testDefinition()).result());
 	}
 
 	@Test
@@ -388,11 +385,11 @@ class ComplianceServiceTest {
 	void deviceResults() {
 		Assertions.assertTrue(this.ruleService.listDeviceResults(99999999L, Page.ALL).isEmpty());
 		Policy policy = this.createPolicy(this.name("Results"));
-		this.ruleService.create(textRule(this.name("Rule"), policy.id()));
+		this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		Assertions.assertTrue(this.ruleService.listDeviceResults(this.deviceId, Page.ALL).stream()
 			.noneMatch(r -> r.policyId() == policy.id()));
 		Policy policyWithGroup = this.createPolicy(this.name("Results group"), this.groupId);
-		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policyWithGroup.id()));
+		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policyWithGroup.id()));
 		List<DeviceRuleResult> results = this.ruleService.listDeviceResults(this.deviceId, Page.ALL);
 		DeviceRuleResult result = results.stream().filter(r -> r.ruleId() == rule.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(policyWithGroup.name(), result.policyName());

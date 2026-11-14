@@ -42,9 +42,9 @@ import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.RuleDefinition;
 import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
@@ -154,8 +154,8 @@ class ReportServiceTest {
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
 			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), TestWiring.get().transactions()));
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).policy().id();
-		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
-		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();
+		this.rule1 = ruleService.add(textRule("Report rule 1", this.policy)).id();
+		this.rule2 = ruleService.add(textRule("Report rule 2", this.policy)).id();
 		this.transactions.run(dsl -> {
 			new RuleRepository().saveCheckResults(dsl, List.of(
 				CheckResult.of(this.rule1, this.dev1, ResultOption.NONCONFORMING, "bad"),
@@ -186,9 +186,8 @@ class ReportServiceTest {
 			.build());
 	}
 
-	private static RuleDefinition textRule(String name, long policyId) {
-		return new RuleDefinition("TextRule", name, policyId, false, Map.of(), null, "ntp server", null, null, null,
-			"runningConfig", null, null, null, null);
+	private static TextRule textRule(String name, long policyId) {
+		return TextRule.builder(name, policyId).text("ntp server").field("runningConfig").build();
 	}
 
 	private static Set<Long> ids(Long... ids) {

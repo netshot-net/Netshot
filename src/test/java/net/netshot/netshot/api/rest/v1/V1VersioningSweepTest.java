@@ -66,6 +66,8 @@ import net.netshot.netshot.api.rest.v1.vault.VaultInstanceMapper;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceRequest;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.RankedSoftwareRule;
+import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.testing.ApiTest;
@@ -270,8 +272,10 @@ class V1VersioningSweepTest {
 			unchanged(wrap, UserRequest.class, UserMapper::toRequest, UserMapper::toUpdate), null));
 		changes.put("/compliance/policies/{id}", (w, id, wrap) -> w.policyService().replace(id,
 			unchanged(wrap, PolicyRequest.class, PolicyMapper::toRequest, PolicyMapper::toDefinition), null));
-		changes.put("/compliance/rules/{id}", (w, id, wrap) -> w.ruleService().replace(id,
-			unchanged(wrap, RuleRequest.class, RuleMapper::toRequest, RuleMapper::toRule), null));
+		changes.put("/compliance/rules/{id}", (w, id, wrap) -> {
+			Function<Rule, Rule> same = unchanged(wrap, RuleRequest.class, RuleMapper::toRequest, RuleMapper::toRule);
+			w.ruleService().replace(id, same.andThen(RuleService.Replacement::of), null);
+		});
 		changes.put("/compliance/software-rules/{id}", (w, id, wrap) -> {
 			Function<RankedSoftwareRule, RankedSoftwareRule> same = same(wrap);
 			w.softwareRuleService().replace(id, same.andThen(r -> new Replacement(r.rule(), null)), null);
