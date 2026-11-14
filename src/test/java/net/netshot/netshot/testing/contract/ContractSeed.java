@@ -52,7 +52,7 @@ import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.RuleService.Replacement;
-import net.netshot.netshot.compliance.SoftwareRuleDefinition;
+import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.credentials.CredentialSetRepository;
@@ -512,10 +512,10 @@ public final class ContractSeed {
 			"def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}")).id());
 
 		SoftwareRuleService softwareRules = TestWiring.get().softwareRuleService();
-		this.created("rule.software.gold", softwareRules.create(new SoftwareRuleDefinition(this.id("group.dynamic"),
-			"CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.GOLD)).rule().id());
-		this.created("rule.software.silver", softwareRules.create(new SoftwareRuleDefinition(null,
-			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER)).rule().id());
+		this.created("rule.software.gold", softwareRules.add(new SoftwareRule(0, 0, null, 0, this.id("group.dynamic"),
+			"CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.GOLD), null).rule().id());
+		this.created("rule.software.silver", softwareRules.add(new SoftwareRule(0, 0, null, 0, null,
+			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER), null).rule().id());
 		HardwareRuleService hardwareRules = TestWiring.get().hardwareRuleService();
 		this.created("rule.hardware.1", hardwareRules.add(new HardwareRule(0, 0, null, "CiscoIOS12", this.id("group.dynamic"),
 			"", false, "CISCO2911/K9", false, Instant.ofEpochMilli(D2040), Instant.ofEpochMilli(D2040 + 365L * 24 * 3600 * 1000))).id());

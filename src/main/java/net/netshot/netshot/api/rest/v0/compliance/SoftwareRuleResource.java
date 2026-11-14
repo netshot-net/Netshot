@@ -45,8 +45,15 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.compliance.RankedSoftwareRule;
+import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
+import net.netshot.netshot.compliance.SoftwareRuleView;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the software compliance rules: list, add, edit, delete and sort.
@@ -59,7 +66,15 @@ import net.netshot.netshot.driver.DriverRegistry;
 public class SoftwareRuleResource {
 
 	private final SoftwareRuleService softwareRuleService;
+	private final GroupService groupService;
 	private final DriverRegistry driverRegistry;
+
+	/** An unknown target group, as v0 always reported it. */
+	private static final V0Errors.Translation INVALID_GROUP = V0Errors.target("group", ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
+
+	/** An unknown rule, as v0 always reported it. */
+	private static final V0Errors.Translation UNKNOWN_RULE = V0Errors.code(ErrorCode.NETSHOT_RULE_NOT_FOUND, ErrorCode.NETSHOT_INVALID_RULE,
+		"Unable to find this rule.");
 
 	@Context
 	private HttpServletRequest request;
@@ -68,11 +83,13 @@ public class SoftwareRuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param softwareRuleService the software rule use cases
+	 * @param groupService the group use cases (to write the target group of a rule)
 	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, DriverRegistry driverRegistry) {
+	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, GroupService groupService, DriverRegistry driverRegistry) {
 		this.softwareRuleService = softwareRuleService;
+		this.groupService = groupService;
 		this.driverRegistry = driverRegistry;
 	}
 
@@ -116,10 +133,10 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public SoftwareRuleDto addSoftwareRule(SoftwareRuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add software rule.");
-		SoftwareRuleDto rule = SoftwareRuleMapper.toDto(this.driverRegistry, 
-			this.softwareRuleService.create(SoftwareRuleMapper.toDefinition(rsRule)));
+		SoftwareRule newRule = SoftwareRuleMapper.toRule(this.driverRegistry, SoftwareRuleMapper.toDefinition(rsRule));
+		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.add(newRule, null), INVALID_GROUP);
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return rule;
+		return this.toDto(rule.rule());
 	}
 
 	/**
@@ -171,7 +188,10 @@ public class SoftwareRuleResource {
 		SoftwareRuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit software rule {}.", id);
-		return SoftwareRuleMapper.toDto(this.driverRegistry, this.softwareRuleService.update(id, SoftwareRuleMapper.toDefinition(rsRule)));
+		SoftwareRule newRule = SoftwareRuleMapper.toRule(this.driverRegistry, SoftwareRuleMapper.toDefinition(rsRule));
+		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.replace(id, _ -> new Replacement(newRule, null), null),
+			UNKNOWN_RULE, INVALID_GROUP);
+		return this.toDto(rule.rule());
 	}
 
 	/**
@@ -196,7 +216,15 @@ public class SoftwareRuleResource {
 		@QueryParam("next") @Parameter(description = "ID of the other rule to move this rule before (omit parameter to place the rule at last position)") Long nextId)
 		throws WebApplicationException {
 		log.debug("REST request, sort software rule.");
-		this.softwareRuleService.sort(id, nextId);
+		V0Errors.translate(() -> {
+			this.softwareRuleService.moveBefore(id, nextId);
+			return null;
+		}, UNKNOWN_RULE, V0Errors.target("next", ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule."));
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
+	}
+
+	private SoftwareRuleDto toDto(SoftwareRule rule) {
+		return SoftwareRuleMapper.toDto(this.driverRegistry,
+			new SoftwareRuleView(rule, TargetGroups.find(this.groupService, rule.targetGroupId())));
 	}
 }

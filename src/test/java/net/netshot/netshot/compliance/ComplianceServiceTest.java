@@ -401,39 +401,41 @@ class ComplianceServiceTest {
 	// software rules
 	// ------------------------------------------------------------------
 
-	private static SoftwareRuleDefinition software(Long groupId, String driver, String version) {
-		return new SoftwareRuleDefinition(groupId, driver, "", false, version, false, "", false, ConformanceLevel.SILVER);
+	private static SoftwareRule software(Long groupId, String driver, String version) {
+		return new SoftwareRule(0, 0, null, 0, groupId, driver, "", false, version, false, "", false, ConformanceLevel.SILVER);
 	}
 
 	@Test
-	@DisplayName("Software rule create() takes the lowest priority; an unknown driver is ignored, an unknown group refused")
-	void softwareCreate() {
-		SoftwareRuleView ruleView = this.softwareRuleService.create(software(this.groupId, "CiscoIOS12", "1.0"));
-		SoftwareRule rule = ruleView.rule();
-		Assertions.assertEquals(this.groupId, ruleView.targetGroup().id());
+	@DisplayName("Software rule add() takes the lowest priority, or the given position; an unknown driver or group is refused")
+	void softwareAdd() {
+		RankedSoftwareRule ranked = this.softwareRuleService.add(software(this.groupId, "CiscoIOS12", "1.0"), null);
+		SoftwareRule rule = ranked.rule();
+		Assertions.assertEquals(this.groupId, rule.targetGroupId());
 		Assertions.assertEquals("CiscoIOS12", rule.driver());
 		Assertions.assertEquals(ConformanceLevel.SILVER, rule.level());
-		SoftwareRuleView anythingView = this.softwareRuleService.create(software(null, "NoSuchDriver", "2.0"));
-		SoftwareRule anything = anythingView.rule();
-		Assertions.assertNull(anythingView.targetGroup());
-		Assertions.assertNull(anything.driver());
-		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.softwareRuleService.create(software(99999999L, "", "3.0")));
-		List<SoftwareRuleView> rules = this.softwareRuleService.list(Page.ALL);
 		Assertions.assertEquals(Double.MAX_VALUE, rule.priority(), "the lowest priority, until the rules are sorted");
+		NetshotException driver = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+			() -> this.softwareRuleService.add(software(null, "NoSuchDriver", "2.0"), null));
+		Assertions.assertEquals("driver", driver.getTarget());
+		NetshotException group = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+			() -> this.softwareRuleService.add(software(99999999L, null, "3.0"), null));
+		Assertions.assertEquals("group", group.getTarget());
+		RankedSoftwareRule first = this.softwareRuleService.add(software(null, null, "4.0"), 1);
+		Assertions.assertEquals(1, first.rank());
+		Assertions.assertEquals(first.rule().id(), this.softwareOrder().get(0));
+		List<SoftwareRuleView> rules = this.softwareRuleService.list(Page.ALL);
 		SoftwareRuleView listedView = rules.stream().filter(r -> r.rule().id() == rule.id()).findFirst().orElseThrow();
 		Assertions.assertEquals("Group", listedView.targetGroup().name(), "the group is loaded by the list");
 		Assertions.assertEquals(1, this.softwareRuleService.list(new Page(0, 1)).size());
 	}
 
 	@Test
-	@DisplayName("Software rule update() replaces all the properties, delete() tells whether the rule existed")
-	void softwareUpdateDelete() {
-		SoftwareRuleView ruleView = this.softwareRuleService.create(software(this.groupId, "CiscoIOS12", "1.0"));
-		SoftwareRule rule = ruleView.rule();
-		SoftwareRuleView updatedView = this.softwareRuleService.update(rule.id(),
-			new SoftwareRuleDefinition(null, "", "fam", true, "2.0", true, "pn", true, ConformanceLevel.BRONZE));
-		SoftwareRule updated = updatedView.rule();
-		Assertions.assertNull(updatedView.targetGroup());
+	@DisplayName("Software rule replace() replaces all the properties and keeps the priority, delete() tells whether the rule existed")
+	void softwareReplaceDelete() {
+		SoftwareRule rule = this.softwareRuleService.add(software(this.groupId, "CiscoIOS12", "1.0"), null).rule();
+		SoftwareRule updated = this.softwareRuleService.replace(rule.id(), _ -> new SoftwareRuleService.Replacement(
+			new SoftwareRule(0, 0, null, 0, null, null, "fam", true, "2.0", true, "pn", true, ConformanceLevel.BRONZE), null), null).rule();
+		Assertions.assertNull(updated.targetGroupId());
 		Assertions.assertNull(updated.driver());
 		Assertions.assertEquals("fam", updated.family());
 		Assertions.assertTrue(updated.familyRegExp());
@@ -442,7 +444,9 @@ class ComplianceServiceTest {
 		Assertions.assertEquals("pn", updated.partNumber());
 		Assertions.assertTrue(updated.partNumberRegExp());
 		Assertions.assertEquals(ConformanceLevel.BRONZE, updated.level());
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.softwareRuleService.update(99999999L, software(null, "", "x")));
+		Assertions.assertEquals(rule.priority(), updated.priority());
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND,
+			() -> this.softwareRuleService.replace(99999999L, r -> new SoftwareRuleService.Replacement(r.rule(), null), null));
 		Assertions.assertTrue(this.softwareRuleService.delete(rule.id()));
 		Assertions.assertFalse(this.softwareRuleService.delete(rule.id()));
 	}
@@ -452,39 +456,40 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Software rule sort() moves a rule before another one or to the last position, and renumbers the priorities")
-	void softwareSort() {
-		long a = this.softwareRuleService.create(software(null, "", "a")).rule().id();
-		long b = this.softwareRuleService.create(software(null, "", "b")).rule().id();
-		long c = this.softwareRuleService.create(software(null, "", "c")).rule().id();
-		// The new rules all have the same priority: sort them to get a known order
-		this.softwareRuleService.sort(a, null);
-		this.softwareRuleService.sort(b, null);
-		this.softwareRuleService.sort(c, null);
+	@DisplayName("Software rule moveBefore() moves a rule before another one or to the last position, and renumbers the priorities")
+	void softwareMoveBefore() {
+		long a = this.softwareRuleService.add(software(null, null, "a"), null).rule().id();
+		long b = this.softwareRuleService.add(software(null, null, "b"), null).rule().id();
+		long c = this.softwareRuleService.add(software(null, null, "c"), null).rule().id();
+		// The new rules all have the same priority: move them to get a known order
+		this.softwareRuleService.moveBefore(a, null);
+		this.softwareRuleService.moveBefore(b, null);
+		this.softwareRuleService.moveBefore(c, null);
 		List<Long> initial = this.softwareOrder();
 		Assertions.assertEquals(List.of(a, b, c), initial.subList(initial.size() - 3, initial.size()));
 
-		this.softwareRuleService.sort(c, a);
+		this.softwareRuleService.moveBefore(c, a);
 		List<Long> order = this.softwareOrder();
 		Assertions.assertEquals(List.of(c, a, b), order.subList(order.size() - 3, order.size()));
 		Assertions.assertEquals(10.0 * order.size(), this.softwareRuleService.list(Page.ALL).get(order.size() - 1).rule().priority());
 
-		this.softwareRuleService.sort(c, null);
+		this.softwareRuleService.moveBefore(c, null);
 		order = this.softwareOrder();
 		Assertions.assertEquals(List.of(a, b, c), order.subList(order.size() - 3, order.size()));
 		long moved = b;
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.softwareRuleService.sort(moved, moved));
+		NetshotException itself = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.softwareRuleService.moveBefore(moved, moved));
+		Assertions.assertEquals("next", itself.getTarget());
 		Assertions.assertEquals(order, this.softwareOrder(), "a rule can't be moved before itself");
 	}
 
 	@Test
-	@DisplayName("Software rule sort() reports an unknown rule or next rule, and changes nothing")
-	void softwareSortErrors() {
-		long a = this.softwareRuleService.create(software(null, "", "sort-a")).rule().id();
+	@DisplayName("Software rule moveBefore() reports an unknown rule or next rule, and changes nothing")
+	void softwareMoveBeforeErrors() {
+		long a = this.softwareRuleService.add(software(null, null, "sort-a"), null).rule().id();
 		List<Long> before = this.softwareOrder();
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.softwareRuleService.sort(99999999L, null));
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.softwareRuleService.sort(99999999L, a));
-		assertError(ErrorCode.NETSHOT_INVALID_RULE, () -> this.softwareRuleService.sort(a, 99999999L));
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.softwareRuleService.moveBefore(99999999L, null));
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.softwareRuleService.moveBefore(99999999L, a));
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.softwareRuleService.moveBefore(a, 99999999L));
 		Assertions.assertEquals(before, this.softwareOrder());
 	}
 
