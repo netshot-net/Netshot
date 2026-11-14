@@ -20,7 +20,6 @@ package net.netshot.netshot.compliance;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.function.Function;
 
 import org.jooq.DSLContext;
@@ -247,67 +246,41 @@ public class SoftwareRuleService {
 		}
 	}
 
-	private SoftwareRule fromDefinition(long id, double priority, SoftwareRuleDefinition definition) {
-		return new SoftwareRule(id, 0, null, priority, definition.groupId(), knownDriver(definition.driver()),
-			definition.family(), definition.familyRegExp(), definition.softwareVersion(),
-			definition.softwareVersionRegExp(), definition.partNumber(), definition.partNumberRegExp(),
-			definition.level());
-	}
-
 	/**
-	 * Adds a software rule, with the lowest priority.
+	 * Moves a rule before another one, or to the last position, and renumbers the priorities of the rules.
 	 *
-	 * @param definition the rule
-	 * @return the new rule
-	 * @throws NetshotException if the group doesn't exist, or the rule can't be stored
+	 * @param id the ID of the rule to move
+	 * @param nextId the ID of the rule to move it before, or null to move it to the last position
+	 * @throws NetshotException if the rule or the next rule doesn't exist (the next rule can't be the rule itself), or
+	 *         the rules can't be stored
 	 */
-	public SoftwareRuleView create(SoftwareRuleDefinition definition) {
-		SoftwareRuleView rule;
+	public void moveBefore(long id, Long nextId) {
+		int position;
 		try {
-			rule = this.transactions.write(dsl -> {
-				DeviceGroup group = this.findGroup(dsl, definition.groupId());
-				SoftwareRule newRule = this.fromDefinition(0, Double.MAX_VALUE, definition);
-				return new SoftwareRuleView(this.repository.find(dsl, this.repository.add(dsl, newRule)), group);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Error while saving the new rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the policy to the database");
-		}
-		AAA_LOG.info("{} has been created", rule.rule());
-		return rule;
-	}
-
-	/**
-	 * Edits a software rule (its priority is not changed, see {@link #sort}).
-	 *
-	 * @param id the rule ID
-	 * @param definition the new properties
-	 * @return the rule
-	 * @throws NetshotException if the rule or the group doesn't exist, or the rule can't be stored
-	 */
-	public SoftwareRuleView update(long id, SoftwareRuleDefinition definition) {
-		SoftwareRuleView rule;
-		try {
-			rule = this.transactions.write(dsl -> {
-				this.repository.lock(dsl, id);
-				SoftwareRule existing = this.repository.find(dsl, id);
-				if (existing == null) {
-					log.error("Unable to find the rule {} to be edited.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
+			position = this.transactions.write(dsl -> {
+				if (this.repository.lock(dsl, id) == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the software rule");
 				}
-				DeviceGroup group = this.findGroup(dsl, definition.groupId());
-				SoftwareRule edited = this.fromDefinition(id, existing.priority(), definition);
-				this.repository.save(dsl, edited);
-				return new SoftwareRuleView(this.repository.find(dsl, id), group);
+				List<SoftwareRule> others = this.repository.findAllOrdered(dsl).stream().filter(r -> r.id() != id).toList();
+				int index = others.size();
+				if (nextId != null) {
+					index = 0;
+					while (index < others.size() && others.get(index).id() != nextId) {
+						index++;
+					}
+					if (index == others.size()) {
+						throw NetshotException.invalidParameter("next", "Unable to find the next software rule");
+					}
+				}
+				this.move(dsl, id, index + 1);
+				return index + 1;
 			});
 		}
 		catch (DataAccessException e) {
-			log.error("Error while saving the rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
+			log.error("Unable to move the software rule {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to move the software rule.");
 		}
-		AAA_LOG.info("{} has been edited", rule.rule());
-		return rule;
+		AAA_LOG.info("Software rule of ID {} has been moved to position {}", id, position);
 	}
 
 	/**
@@ -352,65 +325,6 @@ public class SoftwareRuleService {
 	}
 
 	/**
-	 * Moves a software rule before another one (or at the last position), and renumbers the priorities.
-	 *
-	 * @param id the ID of the rule to move
-	 * @param nextId the ID of the rule to move it before, or null to move it to the last position
-	 * @throws NetshotException if one of the rules doesn't exist, or the rules can't be stored
-	 */
-	public void sort(long id, Long nextId) {
-		SoftwareRule targetRule;
-		int nextIndex;
-		try {
-			record Sorted(SoftwareRule rule, int nextIndex) {
-			}
-			Sorted sorted = this.transactions.write(dsl -> {
-				List<SoftwareRule> rules = new ArrayList<>(this.repository.findAll(dsl, Page.ALL));
-				SoftwareRule target = null;
-				int index = -1;
-				ListIterator<SoftwareRule> ruleIt = rules.listIterator();
-				while (ruleIt.hasNext()) {
-					SoftwareRule rule = ruleIt.next();
-					if (rule.id() == id) {
-						target = rule;
-						ruleIt.remove();
-					}
-					else if (nextId != null && nextId.equals(rule.id())) {
-						index = ruleIt.previousIndex();
-					}
-				}
-				if (target == null) {
-					log.error("Unable to find the rule {} to be moved.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
-				}
-				if (index == -1 && nextId != null) {
-					log.error("Unable to find the previous rule of ID {}.", nextId);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
-				}
-				if (index == -1) {
-					rules.add(target);
-				}
-				else {
-					rules.add(index, target);
-				}
-				double priority = 0;
-				for (SoftwareRule rule : rules) {
-					priority += 10;
-					this.repository.save(dsl, rule.withPriority(priority));
-				}
-				return new Sorted(target, index);
-			});
-			targetRule = sorted.rule();
-			nextIndex = sorted.nextIndex();
-		}
-		catch (DataAccessException e) {
-			log.error("Error while saving the new rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the policy to the database");
-		}
-		AAA_LOG.info("{} has been sorted (moved before at index {})", targetRule, nextIndex);
-	}
-
-	/**
 	 * Finds a group.
 	 *
 	 * @param dsl the jOOQ context
@@ -428,12 +342,5 @@ public class SoftwareRuleService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
 		}
 		return group;
-	}
-
-	private String knownDriver(String driver) {
-		if (this.driverRegistry.getDriverByName(driver) == null) {
-			return null;
-		}
-		return driver;
 	}
 }
