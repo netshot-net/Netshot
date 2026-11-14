@@ -1,0 +1,70 @@
+[
+  {
+    "deviceType": "",
+    "driver": null,
+    "family": "",
+    "familyRegExp": false,
+    "id": 4,
+    "level": "GOLD",
+    "partNumber": "",
+    "partNumberRegExp": false,
+    "targetGroup": null,
+    "version": "18.*",
+    "versionRegExp": true
+  },
+  {
+    "deviceType": "Cisco IOS and IOS-XE",
+    "driver": "CiscoIOS12",
+    "family": "Cisco 1900",
+    "familyRegExp": false,
+    "id": 2,
+    "level": "SILVER",
+    "partNumber": "",
+    "partNumberRegExp": false,
+    "targetGroup": null,
+    "version": "15\\..*",
+    "versionRegExp": true
+  },
+  {
+    "deviceType": "Cisco IOS and IOS-XE",
+    "driver": "CiscoIOS12",
+    "family": "Cisco 2900",
+    "familyRegExp": false,
+    "id": 3,
+    "level": "SILVER",
+    "partNumber": "CISCO2911/K9",
+    "partNumberRegExp": false,
+    "targetGroup": {
+      "changeDate": "<now>",
+      "folder": "Production",
+      "hiddenFromReports": false,
+      "id": 2,
+      "name": "All Cisco devices",
+      "query": "[Family] contains \"Cisco\"",
+      "type": "DynamicDeviceGroup"
+    },
+    "version": "17.2",
+    "versionRegExp": false
+  },
+  {
+    "deviceType": "Cisco IOS and IOS-XE",
+    "driver": "CiscoIOS12",
+    "family": "",
+    "familyRegExp": false,
+    "id": 1,
+    "level": "GOLD",
+    "partNumber": "",
+    "partNumberRegExp": false,
+    "targetGroup": {
+      "changeDate": "<now>",
+      "folder": "Production",
+      "hiddenFromReports": false,
+      "id": 2,
+      "name": "All Cisco devices",
+      "query": "[Family] contains \"Cisco\"",
+      "type": "DynamicDeviceGroup"
+    },
+    "version": "16.1.6",
+    "versionRegExp": false
+  }
+]

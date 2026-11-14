@@ -1,0 +1,16 @@
+{
+  "anyBlock": false,
+  "context": null,
+  "deviceDriver": null,
+  "deviceDriverDescription": "Unknown driver",
+  "enabled": false,
+  "field": null,
+  "id": 9,
+  "invert": false,
+  "matchAll": false,
+  "name": "Enabled text rule",
+  "normalize": false,
+  "regExp": false,
+  "text": "x",
+  "type": "TextRule"
+}
