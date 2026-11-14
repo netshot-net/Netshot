@@ -55,18 +55,14 @@ import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
+import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.credentials.DeviceHttpAccount;
-import net.netshot.netshot.credentials.DeviceSnmpv1Community;
-import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
-import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.credentials.DeviceSshKeyAccount;
-import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticDefinition;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
@@ -135,6 +131,7 @@ import net.netshot.netshot.userscript.ScriptCreation;
 import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
+import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
@@ -254,35 +251,35 @@ public final class ContractSeed {
 
 	private void seedCredentialSets() {
 		CredentialSetService credentialSets = TestWiring.get().credentialSetService();
-		Domain paris = Domain.builder().id(this.id("domain.paris")).build();
-		Domain lyon = Domain.builder().id(this.id("domain.lyon")).build();
-		this.created("cred.snmp1", credentialSets.create(new DeviceSnmpv1Community(0, 0, null, "SNMP v1 community", null, false,
-			local("public-v1"))).id());
-		this.created("cred.snmp2", credentialSets.create(new DeviceSnmpv2cCommunity(0, 0, null, "SNMP v2 community", paris, false,
-			local("public-v2"))).id());
-		this.created("cred.snmp3", credentialSets.create(new DeviceSnmpv3Community(0, 0, null, "SNMP v3 account", null, false,
-			local(null), local("snmpuser"), AuthProtocol.SHA, local("authkey123"), PrivProtocol.AES128, local("privkey456"))).id());
-		this.created("cred.ssh", credentialSets.create(new DeviceSshAccount(0, 0, null, "SSH account", null, false,
-			local("admin"), local("ssh-pass"), local("ssh-enable"))).id());
-		this.created("cred.sshkey", credentialSets.create(new DeviceSshKeyAccount(0, 0, null, "SSH key account", lyon, false,
-			local("keyuser"), local("key-pass"), local("key-enable"), local("-----BEGIN KEY-----"))).id());
-		this.created("cred.telnet", credentialSets.create(new DeviceTelnetAccount(0, 0, null, "Telnet account", null, false,
-			local("telnetuser"), local("telnet-pass"), local("telnet-enable"))).id());
-		this.created("cred.http", credentialSets.create(new DeviceHttpAccount(0, 0, null, "HTTP account", null, false,
-			local("apiuser"), local("http-pass"))).id());
+		long paris = this.id("domain.paris");
+		long lyon = this.id("domain.lyon");
+		this.created("cred.snmp1", credentialSets.create(new CredentialSetDefinition(Kind.SNMP_V1, "SNMP v1 community", null,
+			null, null, null, null, local("public-v1"), null, null, null, null)).id());
+		this.created("cred.snmp2", credentialSets.create(new CredentialSetDefinition(Kind.SNMP_V2C, "SNMP v2 community", paris,
+			null, null, null, null, local("public-v2"), null, null, null, null)).id());
+		this.created("cred.snmp3", credentialSets.create(new CredentialSetDefinition(Kind.SNMP_V3, "SNMP v3 account", null,
+			local("snmpuser"), null, null, null, null, AuthProtocol.SHA, local("authkey123"), PrivProtocol.AES128, local("privkey456"))).id());
+		this.created("cred.ssh", credentialSets.create(new CredentialSetDefinition(Kind.SSH, "SSH account", null,
+			local("admin"), local("ssh-pass"), local("ssh-enable"), null, null, null, null, null, null)).id());
+		this.created("cred.sshkey", credentialSets.create(new CredentialSetDefinition(Kind.SSH_KEY, "SSH key account", lyon,
+			local("keyuser"), local("key-pass"), local("key-enable"), local("-----BEGIN KEY-----"), null, null, null, null, null)).id());
+		this.created("cred.telnet", credentialSets.create(new CredentialSetDefinition(Kind.TELNET, "Telnet account", null,
+			local("telnetuser"), local("telnet-pass"), local("telnet-enable"), null, null, null, null, null, null)).id());
+		this.created("cred.http", credentialSets.create(new CredentialSetDefinition(Kind.HTTP, "HTTP account", null,
+			local("apiuser"), local("http-pass"), null, null, null, null, null, null, null)).id());
 		long vault = this.id("vault.main");
-		this.created("cred.sshvault", credentialSets.create(new DeviceSshAccount(0, 0, null, "SSH account from vault", null, false,
-			Secret.of(Secret.local(null), vault, "netshot/ssh/username"), Secret.of(Secret.local(null), vault, "netshot/ssh/password"),
-			local(null))).id());
+		this.created("cred.sshvault", credentialSets.create(new CredentialSetDefinition(Kind.SSH, "SSH account from vault", null,
+			new SecretChange.Referenced(vault, "netshot/ssh/username"), new SecretChange.Referenced(vault, "netshot/ssh/password"),
+			null, null, null, null, null, null, null)).id());
 	}
 
 	/**
-	 * Builds a secret with a local value.
-	 * @param value the value (or null)
-	 * @return the secret
+	 * Builds the change of a secret to a local value.
+	 * @param value the value
+	 * @return the change
 	 */
-	private static Secret local(String value) {
-		return Secret.of(Secret.local(value), null, null);
+	private static SecretChange local(String value) {
+		return new SecretChange.Local(value);
 	}
 
 	// -------------------------------------------------------------------
