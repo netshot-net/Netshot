@@ -1,0 +1,20 @@
+{
+  "appRoleId": null,
+  "appRoleMountPath": "approle",
+  "appRoleSecretId": null,
+  "authMethod": "APPROLE",
+  "baseUrl": "https://vault5.example.net:8200",
+  "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+  "httpsCustomCaCertificate": null,
+  "id": 5,
+  "jwtClientId": null,
+  "jwtClientSecret": null,
+  "jwtIdpTokenEndpoint": null,
+  "jwtMountPath": "jwt",
+  "jwtScope": null,
+  "jwtVaultRole": null,
+  "kvMountPath": "secret",
+  "name": "  Vault without role  ",
+  "namespace": null,
+  "type": "Vault KV v2"
+}

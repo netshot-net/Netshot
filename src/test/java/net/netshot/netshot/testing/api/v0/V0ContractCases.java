@@ -436,6 +436,20 @@ public final class V0ContractCases {
 			 "superPassword": "changed-enable"}""", "new.cred"));
 		c.write("PUT", "/credentialsets/{id}", "unknown", () -> "/credentialsets/99999999", () -> """
 			{"type": "SSH", "id": 99999999, "name": "Nope", "username": "x"}""");
+		c.write("PUT", "/credentialsets/{id}", "blankname", c.path("/credentialsets/%d", "new.cred"), c.body("""
+			{"type": "SSH", "id": %d, "name": " ", "username": "newuser2", "password": "="}""", "new.cred"));
+		c.write("PUT", "/credentialsets/{id}", "invaliddomain", c.path("/credentialsets/%d", "new.cred"), c.body("""
+			{"type": "SSH", "id": %d, "name": "New SSH account renamed", "username": "newuser2", "password": "=",
+			 "mgmtDomain": {"id": 99999999}}""", "new.cred"));
+		c.write("PUT", "/credentialsets/{id}", "othertype", c.path("/credentialsets/%d", "new.cred"), c.body("""
+			{"type": "Telnet", "id": %d, "name": "New SSH account renamed", "username": "newuser2", "password": "="}""",
+			"new.cred"));
+		c.write("PUT", "/credentialsets/{id}", "sshkeyasssh", c.path("/credentialsets/%d", "cred.sshkey"), c.body("""
+			{"type": "SSH", "id": %d, "name": "SSH key account", "username": "x", "password": "="}""", "cred.sshkey"));
+		// v0 lets a device-specific credential set be changed directly (frozen behavior)
+		c.write("PUT", "/credentialsets/{id}", "devicespecific", c.path("/credentialsets/%d", "cred.specific"), c.body("""
+			{"type": "SSH", "id": %d, "name": "Edited specific set", "username": "specific-user", "password": "=",
+			 "superPassword": "="}""", "cred.specific"));
 		c.writeAs("POST", "/vaultinstances", "created", () -> "/vaultinstances", () -> """
 			{"type": "Vault KV v2", "name": "New vault", "baseUrl": "https://vault3.example.net:8200",
 			 "authMethod": "APPROLE", "appRoleId": "role-9", "appRoleSecretId": "secret-9"}""", "new.vault", null);
@@ -449,9 +463,26 @@ public final class V0ContractCases {
 			 "authMethod": "APPROLE", "appRoleId": "role-10", "appRoleSecretId": "="}""", "new.vault"));
 		c.write("PUT", "/vaultinstances/{id}", "unknown", () -> "/vaultinstances/99999999", () -> """
 			{"type": "Vault KV v2", "id": 99999999, "name": "Nope", "baseUrl": "https://x.example.net", "authMethod": "APPROLE"}""");
+		c.write("PUT", "/vaultinstances/{id}", "blankname", c.path("/vaultinstances/%d", "new.vault"), c.body("""
+			{"type": "Vault KV v2", "id": %d, "name": " ", "baseUrl": "https://vault4.example.net:8200", "authMethod": "APPROLE"}""",
+			"new.vault"));
+		c.write("PUT", "/vaultinstances/{id}", "duplicate", c.path("/vaultinstances/%d", "new.vault"), c.body("""
+			{"type": "Vault KV v2", "id": %d, "name": "Main vault", "baseUrl": "https://vault4.example.net:8200",
+			 "authMethod": "APPROLE", "appRoleId": "role-10", "appRoleSecretId": "="}""", "new.vault"));
+		// v0 neither trims the name nor checks the properties the authentication method requires (frozen behavior)
+		c.write("PUT", "/vaultinstances/{id}", "untrimmed", c.path("/vaultinstances/%d", "new.vault"), c.body("""
+			{"type": "Vault KV v2", "id": %d, "name": "  New vault spaced  ", "baseUrl": "https://vault4.example.net:8200",
+			 "authMethod": "APPROLE"}""", "new.vault"));
 		c.write("POST", "/vaultinstances/test", "unreachable", () -> "/vaultinstances/test", () -> """
 			{"type": "Vault KV v2", "name": "Unreachable", "baseUrl": "http://127.0.0.1:1",
 			 "authMethod": "APPROLE", "appRoleId": "role", "appRoleSecretId": "secret"}""");
+		c.writeAs("POST", "/vaultinstances", "norole", () -> "/vaultinstances", () -> """
+			{"type": "Vault KV v2", "name": "  Vault without role  ", "baseUrl": "https://vault5.example.net:8200",
+			 "authMethod": "APPROLE"}""", "new.vault.norole", null);
+		c.write("DELETE", "/vaultinstances/{id}", "norole", c.path("/vaultinstances/%d", "new.vault.norole"), null);
+		c.writeAs("POST", "/credentialsets", "untrimmed", () -> "/credentialsets", () -> """
+			{"type": "Telnet", "name": "  Spaced telnet  ", "username": "other", "password": "other"}""", "new.cred.spaced", null);
+		c.write("DELETE", "/credentialsets/{id}", "untrimmed", c.path("/credentialsets/%d", "new.cred.spaced"), null);
 		c.write("DELETE", "/vaultinstances/{id}", "deleted", c.path("/vaultinstances/%d", "new.vault"), null);
 		c.write("DELETE", "/vaultinstances/{id}", "unknown", () -> "/vaultinstances/99999999", null);
 		c.write("DELETE", "/credentialsets/{id}", "deleted", c.path("/credentialsets/%d", "new.cred.snmp3"), null);
@@ -585,6 +616,11 @@ public final class V0ContractCases {
 			{"type": "TextRule", "name": "Bad policy", "policy": 99999999}""");
 		c.write("POST", "/rules", "blankname", () -> "/rules", c.body("""
 			{"type": "TextRule", "name": "", "policy": %d}""", "new.policy"));
+		// The name is checked first, then the policy, then the type
+		c.write("POST", "/rules", "blanknamebadpolicy", () -> "/rules", () -> """
+			{"type": "NoSuchRule", "name": " ", "policy": 99999999}""");
+		c.write("POST", "/rules", "badtypebadpolicy", () -> "/rules", () -> """
+			{"type": "NoSuchRule", "name": "Bad type and policy", "policy": 99999999}""");
 		c.write("PUT", "/rules/{id}", "text", c.path("/rules/%d", "new.rule.text"), c.body("""
 			{"id": %d, "type": "TextRule", "name": "New text rule renamed", "policy": %d, "text": "ntp server .*",
 			 "regExp": true, "enabled": true, "invert": true, "matchAll": false, "anyBlock": true, "normalize": true,
@@ -595,6 +631,28 @@ public final class V0ContractCases {
 			 "script": "function check(device) { return { result: CONFORMING }; }"}""", "new.rule.js", "new.policy"));
 		c.write("PUT", "/rules/{id}", "unknown", () -> "/rules/99999999", () -> """
 			{"id": 99999999, "type": "TextRule", "name": "Nope", "policy": 1}""");
+		// A failed update changes nothing (the rule is read again after it)
+		c.write("PUT", "/rules/{id}", "unknownexempted", c.path("/rules/%d", "new.rule.text"), c.body("""
+			{"id": %d, "type": "TextRule", "name": "Not saved", "policy": %d, "text": "not saved", "enabled": false,
+			 "exemptions": {"%d": %d, "99999999": %d}}""", "new.rule.text", "new.policy", "device.router2",
+			ContractSeed.D2040, ContractSeed.D2040));
+		c.getJson("/policies/{pid}/rules/{id}", "afterfailedupdate", c.path("/policies/%d/rules/%d", "new.policy", "new.rule.text"));
+		c.write("PUT", "/rules/{id}", "blankname", c.path("/rules/%d", "new.rule.js"), c.body("""
+			{"id": %d, "type": "JavaScriptRule", "name": " ", "policy": %d}""", "new.rule.js", "new.policy"));
+		c.write("PUT", "/rules/{id}", "duplicate", c.path("/rules/%d", "new.rule.js"), c.body("""
+			{"id": %d, "type": "JavaScriptRule", "name": "New text rule renamed", "policy": %d}""", "new.rule.js", "new.policy"));
+		// Absent name and script: unchanged; absent exemptions: none
+		c.write("PUT", "/rules/{id}", "partial", c.path("/rules/%d", "new.rule.js"), c.body("""
+			{"id": %d, "type": "JavaScriptRule", "policy": %d, "enabled": true}""", "new.rule.js", "new.policy"));
+		// The kind of a rule doesn't change: the posted type is ignored
+		c.write("PUT", "/rules/{id}", "othertype", c.path("/rules/%d", "new.rule.python"), c.body("""
+			{"id": %d, "type": "TextRule", "name": "New Python rule", "policy": %d, "text": "ignored",
+			 "script": "def check(device):\\n  return {'result': result_option.NONCONFORMING}"}""", "new.rule.python", "new.policy"));
+		// A rule is created disabled
+		c.writeAs("POST", "/rules", "enabled", () -> "/rules", c.body("""
+			{"type": "TextRule", "name": "  Enabled text rule  ", "policy": %d, "text": "x", "enabled": true}""",
+			"new.policy"), "new.rule.enabled", null);
+		c.write("DELETE", "/rules/{id}", "enabled", c.path("/rules/%d", "new.rule.enabled"), null);
 		c.write("POST", "/rules/test", "text", () -> "/rules/test", c.body("""
 			{"type": "TextRule", "name": "Test", "policy": %d, "text": "hostname", "regExp": false, "invert": false,
 			 "matchAll": true, "anyBlock": false, "normalize": false, "context": "", "field": "runningConfig", "device": %d}""",
@@ -638,6 +696,18 @@ public final class V0ContractCases {
 			"rule.software.gold"), null);
 		c.write("POST", "/softwarerules/{id}/sort", "last", c.path("/softwarerules/%d/sort", "rule.software.gold"), null);
 		c.write("POST", "/softwarerules/{id}/sort", "unknown", () -> "/softwarerules/99999999/sort", null);
+		c.write("POST", "/softwarerules/{id}/sort", "unknownnext", c.path("/softwarerules/%d/sort?next=99999999",
+			"new.softwarerule"), null);
+		c.getJson("/softwarerules", "aftersort", () -> "/softwarerules");
+		c.write("PUT", "/softwarerules/{id}", "badgroup", c.path("/softwarerules/%d", "new.softwarerule"), c.body("""
+			{"id": %d, "group": 99999999, "driver": "", "version": "1", "level": "GOLD"}""", "new.softwarerule"));
+		// An unknown driver is stored as no driver (frozen behavior)
+		c.write("PUT", "/softwarerules/{id}", "unknowndriver", c.path("/softwarerules/%d", "new.softwarerule2"), c.body("""
+			{"id": %d, "group": -1, "driver": "NoSuchDriver", "version": "18.*", "versionRegExp": true, "level": "GOLD"}""",
+			"new.softwarerule2"));
+		c.writeAs("POST", "/softwarerules", "unknowndriver", () -> "/softwarerules", () -> """
+			{"group": -1, "driver": "NoSuchDriver", "version": "19", "level": "BRONZE"}""", "new.softwarerule3", null);
+		c.write("DELETE", "/softwarerules/{id}", "unknowndriver", c.path("/softwarerules/%d", "new.softwarerule3"), null);
 		c.write("DELETE", "/softwarerules/{id}", "deleted", c.path("/softwarerules/%d", "new.softwarerule"), null);
 		c.write("DELETE", "/softwarerules/{id}", "unknown", () -> "/softwarerules/99999999", null);
 
@@ -653,6 +723,15 @@ public final class V0ContractCases {
 			ContractSeed.D2040));
 		c.write("PUT", "/hardwarerules/{id}", "unknown", () -> "/hardwarerules/99999999", () -> """
 			{"id": 99999999, "group": -1, "driver": "", "partNumber": "x"}""");
+		c.write("PUT", "/hardwarerules/{id}", "badgroup", c.path("/hardwarerules/%d", "new.hardwarerule"), c.body("""
+			{"id": %d, "group": 99999999, "driver": "", "partNumber": "x"}""", "new.hardwarerule"));
+		// An unknown driver is stored as no driver (frozen behavior)
+		c.write("PUT", "/hardwarerules/{id}", "unknowndriver", c.path("/hardwarerules/%d", "new.hardwarerule"), c.body("""
+			{"id": %d, "group": -1, "driver": "NoSuchDriver", "partNumber": "x", "endOfLife": %d}""", "new.hardwarerule",
+			ContractSeed.D2040));
+		c.writeAs("POST", "/hardwarerules", "unknowndriver", () -> "/hardwarerules", () -> """
+			{"group": -1, "driver": "NoSuchDriver", "partNumber": "y", "endOfSale": 1}""", "new.hardwarerule2", null);
+		c.write("DELETE", "/hardwarerules/{id}", "unknowndriver", c.path("/hardwarerules/%d", "new.hardwarerule2"), null);
 		c.write("DELETE", "/hardwarerules/{id}", "deleted", c.path("/hardwarerules/%d", "new.hardwarerule"), null);
 		c.write("DELETE", "/hardwarerules/{id}", "unknown", () -> "/hardwarerules/99999999", null);
 
