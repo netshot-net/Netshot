@@ -1,0 +1,4 @@
+{
+  "errorCode": 201,
+  "errorMsg": "A user with this name already exists."
+}
