@@ -162,12 +162,13 @@ class TaskServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("find() returns the task, or null for an unknown one")
-	void find() {
-		Task task = this.service.find(this.snapshotId);
+	@DisplayName("get() returns the task, and reports an unknown one")
+	void get() {
+		Task task = this.service.get(this.snapshotId);
 		Assertions.assertInstanceOf(TakeSnapshotTask.class, task.spec());
 		Assertions.assertEquals("with debug log", task.comments());
-		Assertions.assertNull(this.service.find(99_999_999L));
+		NetshotException e = Assertions.assertThrows(NetshotException.class, () -> this.service.get(99_999_999L));
+		Assertions.assertEquals(ErrorCode.NETSHOT_TASK_NOT_FOUND, e.getErrorCode());
 	}
 
 	@Test
@@ -245,52 +246,50 @@ class TaskServiceTest {
 	}
 
 	// ------------------------------------------------------------------
-	// update
+	// cancel
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("update() reports an unknown task, and does nothing when not cancelling")
-	void updateUnknown() {
-		assertError(ErrorCode.NETSHOT_TASK_NOT_FOUND, () -> this.service.update(99_999_999L, true, AUTHOR));
-		Task task = this.service.update(this.failedId, false, AUTHOR);
-		Assertions.assertEquals(this.failedId, task.id());
+	@DisplayName("cancel() reports an unknown task")
+	void cancelUnknown() {
+		assertError(ErrorCode.NETSHOT_TASK_NOT_FOUND, () -> this.service.cancel(99_999_999L, AUTHOR));
 		Assertions.assertTrue(this.cancelledTasks.isEmpty());
 		Assertions.assertTrue(this.cancelRequests.isEmpty());
 	}
 
 	@Test
-	@DisplayName("update() cancels a scheduled task through the engine, and only a scheduled one")
-	void updateCancel() {
-		assertError(ErrorCode.NETSHOT_TASK_NOT_CANCELLABLE, () -> this.service.update(this.failedId, true, AUTHOR));
+	@DisplayName("cancel() cancels a scheduled task through the engine, and only a scheduled one")
+	void cancel() {
+		assertError(ErrorCode.NETSHOT_TASK_NOT_CANCELLABLE, () -> this.service.cancel(this.failedId, AUTHOR));
 		Task scheduled = this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled");
 		long id = this.persistTask(scheduled);
-		this.service.update(id, true, AUTHOR);
+		this.service.cancel(id, AUTHOR);
 		Assertions.assertEquals(1, this.cancelledTasks.size());
 		Assertions.assertEquals(id, this.cancelledTasks.get(0).id());
 		Assertions.assertTrue(this.cancelRequests.isEmpty());
 	}
 
 	@Test
-	@DisplayName("update() only requests the cancellation of a running task")
-	void updateCancelRunning() {
+	@DisplayName("cancel() only requests the cancellation of a running task")
+	void cancelRunning() {
 		long runningDevice = this.persistTask(this.deviceTask(Task.Status.RUNNING, new Date(), "running"));
-		this.service.update(runningDevice, true, AUTHOR);
+		this.service.cancel(runningDevice, AUTHOR);
 		Assertions.assertEquals(List.of(runningDevice), this.cancelRequests);
 		Assertions.assertTrue(this.cancelledTasks.isEmpty());
 
 		Task group = GroupBasedTask.of(new TakeGroupSnapshotTask(null, List.of(this.deviceId), -1, false, false), null,
 			"running group", AUTHOR);
 		long runningGroup = this.persistTask(group.withStatus(Task.Status.RUNNING));
-		this.service.update(runningGroup, true, AUTHOR);
+		this.service.cancel(runningGroup, AUTHOR);
 		Assertions.assertEquals(List.of(runningDevice, runningGroup), this.cancelRequests);
 	}
 
 	@Test
-	@DisplayName("update() reports a failing engine as a cancel error")
-	void updateCancelFailure() {
+	@DisplayName("cancel() reports a failing engine as a cancel error")
+	void cancelFailure() {
 		long id = this.persistTask(this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled"));
 		this.engineFailure = true;
-		assertError(ErrorCode.NETSHOT_TASK_CANCEL_ERROR, () -> this.service.update(id, true, AUTHOR));
+		assertError(ErrorCode.NETSHOT_TASK_CANCEL_ERROR, () -> this.service.cancel(id, AUTHOR));
 	}
 
 	// ------------------------------------------------------------------

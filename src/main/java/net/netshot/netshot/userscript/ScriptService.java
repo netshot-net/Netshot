@@ -114,17 +114,22 @@ public class ScriptService {
 	 * Gets a script.
 	 *
 	 * @param id the script ID
-	 * @return the script, or null if there is no such script
-	 * @throws NetshotException if the script can't be read
+	 * @return the script
+	 * @throws NetshotException if the script doesn't exist or can't be read
 	 */
 	public DeviceJsScript get(long id) {
+		DeviceJsScript script;
 		try {
-			return this.transactions.read(dsl -> this.repository.find(dsl, id));
+			script = this.transactions.read(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the script {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the script.");
 		}
+		if (script == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "The script doesn't exist.");
+		}
+		return script;
 	}
 
 	/**

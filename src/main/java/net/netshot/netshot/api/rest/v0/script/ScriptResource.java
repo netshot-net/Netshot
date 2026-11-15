@@ -47,9 +47,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
 
@@ -134,10 +134,8 @@ public class ScriptResource {
 	@Tag(name = "Scripts", description = "Script management (push changes to devices)")
 	public ScriptDto getScript(@PathParam("id") @Parameter(description = "Script ID") Long id) {
 		log.debug("REST request, get script {}", id);
-		DeviceJsScript script = this.scriptService.get(id);
-		if (script == null) {
-			throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "Script not found.");
-		}
+		DeviceJsScript script = V0Errors.translate(() -> this.scriptService.get(id),
+			V0Errors.code(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "Script not found."));
 		return ScriptMapper.toDto(this.driverRegistry, script);
 	}
 

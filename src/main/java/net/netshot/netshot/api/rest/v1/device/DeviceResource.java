@@ -85,6 +85,7 @@ import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -496,8 +497,14 @@ public class DeviceResource {
 			if (script != null || driver != null) {
 				throw NetshotException.invalidParameter("savedScript", "Give either 'savedScript', or 'script' and 'deviceDriver'.");
 			}
-			DeviceJsScript saved = this.scriptService.get(scriptRunRequest.savedScript().id());
-			if (saved == null) {
+			DeviceJsScript saved;
+			try {
+				saved = this.scriptService.get(scriptRunRequest.savedScript().id());
+			}
+			catch (NetshotException e) {
+				if (e.getErrorCode() != ErrorCode.NETSHOT_SCRIPT_NOT_FOUND) {
+					throw e;
+				}
 				throw NetshotException.invalidParameter("savedScript", "The saved script doesn't exist.");
 			}
 			script = saved.script();

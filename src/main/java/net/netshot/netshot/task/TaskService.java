@@ -210,7 +210,14 @@ public class TaskService {
 	 * @throws NetshotException if the task doesn't exist or can't be read
 	 */
 	public Task get(long id) {
-		Task task = this.find(id);
+		Task task;
+		try {
+			task = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the task {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task");
+		}
 		if (task == null) {
 			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
 		}
@@ -237,23 +244,6 @@ public class TaskService {
 		catch (Exception e) {
 			log.error("Unable to fetch the tasks.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks");
-		}
-	}
-
-	/**
-	 * Finds a task (see {@link TaskRepository#find} for what is loaded).
-	 *
-	 * @param id the task ID
-	 * @return the detached task, or null if there is no such task
-	 * @throws NetshotException if the task can't be read
-	 */
-	public Task find(long id) {
-		try {
-			return this.transactions.read(dsl -> this.repository.find(dsl, id));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the task {}.", id, e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task");
 		}
 	}
 
@@ -328,18 +318,17 @@ public class TaskService {
 	}
 
 	/**
-	 * Edits a task. The only change is the cancellation of the task.
+	 * Cancels a task.
 	 *
 	 * @param id the task ID
-	 * @param cancel true to cancel the task
 	 * @param author the user cancelling the task
-	 * @return the task, as it is after the change (detached)
+	 * @return the task, as it is once cancelled (detached)
 	 * @throws NetshotException if the task doesn't exist, can't be cancelled or can't be read
 	 */
-	public Task update(long id, boolean cancel, String author) {
+	public Task cancel(long id, String author) {
 		Task task;
 		try {
-			task = this.transactions.write(dsl -> this.repository.find(dsl, id));
+			task = this.transactions.read(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
@@ -349,17 +338,8 @@ public class TaskService {
 			log.error("Unable to find the task {}.", id);
 			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Unable to find the task.");
 		}
-		if (cancel) {
-			this.cancel(task, author);
-			try {
-				task = this.transactions.read(dsl -> this.repository.find(dsl, id));
-			}
-			catch (DataAccessException e) {
-				log.error("Unable to fetch the task {}.", id, e);
-				throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task.");
-			}
-		}
-		return task;
+		this.cancel(task, author);
+		return this.get(id);
 	}
 
 	private void cancel(Task task, String author) {
