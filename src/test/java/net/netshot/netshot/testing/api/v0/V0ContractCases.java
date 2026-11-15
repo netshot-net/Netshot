@@ -383,6 +383,7 @@ public final class V0ContractCases {
 		scriptWrites(c);
 		taskWrites(c);
 		cleanupWrites(c);
+		lastWrites(c);
 	}
 
 	private static void domainWrites(Catalogue c) {
@@ -573,8 +574,48 @@ public final class V0ContractCases {
 		c.add(V0ContractCase.builder("POST", "/devices/search").variant("xml").path("/devices/search")
 			.accept(V0ContractCase.XML).requestContentType(V0ContractCase.XML)
 			.body("<RsSearchCriteria><query>[Family] CONTAINS \"Cisco\"</query></RsSearchCriteria>"));
+		deviceSpecificWrites(c);
 		c.write("DELETE", "/devices/{id}", "deleted", c.path("/devices/%d", "new.device"), null);
 		c.write("DELETE", "/devices/{id}", "unknown", () -> "/devices/99999999", null);
+	}
+
+	// The edition of the device created above: specific credential sets, partial changes and invalid values
+	private static void deviceSpecificWrites(Catalogue c) {
+		Supplier<String> path = c.path("/devices/%d", "new.device");
+		c.write("PUT", "/devices/{id}", "specific", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "Telnet", "name": "ignored",
+			 "username": "user1", "password": "pass1", "superPassword": "enable1"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-keep", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "port": 2323, "specificCredentialSet": {"type": "Telnet",
+			 "username": "user2"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "noaccesses", path, c.body("""
+			{"id": %d, "comments": "Accesses unchanged"}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "enabled", path, c.body("""
+			{"id": %d, "enabled": true}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-retype", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "ssh", "specificCredentialSet": {"type": "SSH", "username": "sshuser",
+			 "password": "sshpass"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-incomplete", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "Telnet"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-incompatible", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "SSH", "username": "u",
+			 "password": "p"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-unknownaccess", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "carrier-pigeon", "specificCredentialSet": {"type": "Telnet", "username": "u",
+			 "password": "p"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-both", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "ssh", "globalCredentialSet": {"type": "SSH", "id": %d},
+			 "specificCredentialSet": {"type": "SSH", "username": "u", "password": "p"}}]}""", "new.device", "cred.ssh"));
+		c.write("PUT", "/devices/{id}", "badport", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "ssh", "port": 70000}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "badaddress", path, c.body("""
+			{"id": %d, "ipAddress": "not an address!"}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "baddomain", path, c.body("""
+			{"id": %d, "mgmtDomain": 99999999}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "badtag", path, c.body("""
+			{"id": %d, "tags": ["bad tag!"]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "duplicate", path, c.body("""
+			{"id": %d, "ipAddress": "10.1.1.1"}""", "new.device"));
 	}
 
 	private static void policyWrites(Catalogue c) {
@@ -936,5 +977,12 @@ public final class V0ContractCases {
 		c.write("DELETE", "/groups/{id}", "static", c.path("/groups/%d", "new.group.static"), null);
 		c.write("DELETE", "/groups/{id}", "dynamic", c.path("/groups/%d", "new.group.dynamic"), null);
 		c.write("DELETE", "/domains/{id}", "deleted", c.path("/domains/%d", "new.domain"), null);
+	}
+
+	// The writes which may create objects (and so shift the IDs of the objects created after them)
+	private static void lastWrites(Catalogue c) {
+		c.write("POST", "/devices", "specific-incomplete", () -> "/devices", c.body("""
+			{"autoDiscover": false, "ipAddress": "10.1.9.40", "domainId": %d, "name": "x", "deviceType": "CiscoIOS12",
+			 "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "Telnet"}}]}""", "domain.paris"));
 	}
 }

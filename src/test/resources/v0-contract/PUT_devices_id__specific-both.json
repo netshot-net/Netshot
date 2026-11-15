@@ -1,0 +1,4 @@
+{
+  "errorCode": 133,
+  "errorMsg": "Cannot set both a global and a specific credential set for access 'ssh'."
+}
