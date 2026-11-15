@@ -16,18 +16,28 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.inventory.config;
+package net.netshot.netshot.api.rest.v0.config;
 
 import java.util.Date;
-import java.util.Set;
+
+import net.netshot.netshot.inventory.device.Device;
 
 /**
- * The criteria to list configuration changes. A null date or an empty set means no restriction.
+ * The few attributes of a configuration needed to list configuration changes, projected by
+ * {@link ConfigRepository#findSummaries} without loading the configurations.
  *
- * @param after only the configurations gathered at or after this date
- * @param before only the configurations gathered before this date
- * @param domainIds only the configurations of the devices of these domains
- * @param groupIds only the configurations of the devices of these groups
+ * @param id the configuration ID
+ * @param deviceName the name of the device
+ * @param deviceId the ID of the device
+ * @param changeDate the date of the change
+ * @param author the author of the change
+ * @param deviceNetworkClass the network class of the device
  */
-public record ConfigFilter(Date after, Date before, Set<Long> domainIds, Set<Long> groupIds) {
+public record ConfigSummary(
+	long id,
+	String deviceName,
+	long deviceId,
+	Date changeDate,
+	String author,
+	Device.NetworkClass deviceNetworkClass) {
 }

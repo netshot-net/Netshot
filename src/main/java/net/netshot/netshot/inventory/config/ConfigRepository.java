@@ -27,7 +27,6 @@ import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONF
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -45,7 +44,6 @@ import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
@@ -193,24 +191,6 @@ public class ConfigRepository {
 	}
 
 	/**
-	 * Finds the configurations of a device, the most recent first (without their long texts).
-	 *
-	 * @param dsl the jOOQ context
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the configurations
-	 */
-	public List<Config> findByDevice(DSLContext dsl, long deviceId, Page page) {
-		List<Config> configs = findWhere(dsl, CONFIG.DEVICE.eq(deviceId), false, page, true);
-		if (page.isRestricted()) {
-			// Quirk kept: Hibernate paginated this query (with a collection fetch) in memory, answering
-			// a sub list, which XML publishes as <SubList> instead of <ArrayList>
-			return configs.subList(0, configs.size());
-		}
-		return configs;
-	}
-
-	/**
 	 * Finds the configuration gathered just before another one on the same device.
 	 *
 	 * @param dsl the jOOQ context
@@ -222,39 +202,6 @@ public class ConfigRepository {
 		List<Config> configs = findWhere(dsl, CONFIG.DEVICE.eq(config.deviceId()).and(CONFIG.CHANGE_DATE.lt(config.changeDate())),
 			withTexts, new Page(null, 1), true);
 		return configs.isEmpty() ? null : configs.get(0);
-	}
-
-	/**
-	 * Lists the configuration changes in their summary form. A configuration is listed once per
-	 * group (among the given ones) its device belongs to.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param filter the criteria
-	 * @param page the window on the result
-	 * @return the configuration summaries
-	 */
-	public List<ConfigSummary> findSummaries(DSLContext dsl, ConfigFilter filter, Page page) {
-		Condition condition = DSL.trueCondition();
-		if (!filter.domainIds().isEmpty()) {
-			condition = condition.and(DEVICE.MGMT_DOMAIN.in(filter.domainIds()));
-		}
-		if (!filter.groupIds().isEmpty()) {
-			condition = condition.and(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(filter.groupIds()));
-		}
-		if (filter.after() != null) {
-			condition = condition.and(CONFIG.CHANGE_DATE.ge(filter.after().toInstant()));
-		}
-		if (filter.before() != null) {
-			condition = condition.and(CONFIG.CHANGE_DATE.lt(filter.before().toInstant()));
-		}
-		var from = dsl.select(CONFIG.ID, DEVICE.NAME, DEVICE.ID, CONFIG.CHANGE_DATE, CONFIG.AUTHOR, DEVICE.NETWORK_CLASS)
-			.from(CONFIG)
-			.join(DEVICE).on(DEVICE.ID.eq(CONFIG.DEVICE));
-		var query = filter.groupIds().isEmpty() ? from.where(condition)
-			: from.join(DEVICE_GROUP_CACHED_DEVICES).on(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID)).where(condition);
-		return page.apply(query).fetch(r -> new ConfigSummary(r.get(CONFIG.ID), r.get(DEVICE.NAME), r.get(DEVICE.ID),
-			r.get(CONFIG.CHANGE_DATE) == null ? null : Date.from(r.get(CONFIG.CHANGE_DATE)), r.get(CONFIG.AUTHOR),
-			r.get(DEVICE.NETWORK_CLASS) == null ? null : Device.NetworkClass.valueOf(r.get(DEVICE.NETWORK_CLASS))));
 	}
 
 	/**

@@ -47,7 +47,6 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -82,25 +81,6 @@ public class ConfigService {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Lists the configurations of a device, with their attributes (see {@link ConfigRepository#findByDevice}
-	 * for what is loaded).
-	 *
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the configurations, the most recent first (none if there is no such device)
-	 * @throws NetshotException if the configurations can't be read
-	 */
-	public List<Config> listByDevice(long deviceId, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findByDevice(dsl, deviceId, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the configs.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
-		}
 	}
 
 	/**
@@ -168,24 +148,6 @@ public class ConfigService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the config.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the config");
-		}
-	}
-
-	/**
-	 * Lists the configuration changes matching some criteria.
-	 *
-	 * @param filter the criteria
-	 * @param page the window on the result
-	 * @return the configurations in their summary form
-	 * @throws NetshotException if the configurations can't be read
-	 */
-	public List<ConfigSummary> listChanges(ConfigFilter filter, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, filter, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the configs", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
 		}
 	}
 
