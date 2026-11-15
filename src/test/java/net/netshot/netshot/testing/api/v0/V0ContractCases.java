@@ -732,6 +732,10 @@ public final class V0ContractCases {
 		c.write("POST", "/softwarerules/{id}/sort", "before", c.path("/softwarerules/%d/sort?next=%d", "new.softwarerule2",
 			"rule.software.gold"), null);
 		c.write("POST", "/softwarerules/{id}/sort", "last", c.path("/softwarerules/%d/sort", "rule.software.gold"), null);
+		c.write("POST", "/softwarerules/{id}/sort", "forward", c.path("/softwarerules/%d/sort?next=%d", "new.softwarerule2",
+			"new.softwarerule"), null);
+		c.write("POST", "/softwarerules/{id}/sort", "self", c.path("/softwarerules/%d/sort?next=%d", "new.softwarerule",
+			"new.softwarerule"), null);
 		c.write("POST", "/softwarerules/{id}/sort", "unknown", () -> "/softwarerules/99999999/sort", null);
 		c.write("POST", "/softwarerules/{id}/sort", "unknownnext", c.path("/softwarerules/%d/sort?next=99999999",
 			"new.softwarerule"), null);
