@@ -54,6 +54,7 @@ import net.netshot.netshot.compliance.SoftwareRuleView;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 
 /**
  * The REST resource of the software compliance rules: list, add, edit, delete and sort.
@@ -216,10 +217,17 @@ public class SoftwareRuleResource {
 		@QueryParam("next") @Parameter(description = "ID of the other rule to move this rule before (omit parameter to place the rule at last position)") Long nextId)
 		throws WebApplicationException {
 		log.debug("REST request, sort software rule.");
-		V0Errors.translate(() -> {
-			this.softwareRuleService.moveBefore(id, nextId);
-			return null;
-		}, UNKNOWN_RULE, V0Errors.target("next", ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule."));
+		// The rule takes the position of the next rule (the one before it, if the rule is before it), or the last one
+		Integer nextRank = null;
+		if (nextId != null) {
+			if (nextId.equals(id)) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
+			}
+			nextRank = V0Errors.translate(() -> this.softwareRuleService.get(nextId).rank(), UNKNOWN_RULE);
+		}
+		Integer next = nextRank;
+		V0Errors.translate(() -> this.softwareRuleService.replace(id, rule -> new Replacement(rule.rule(),
+			next == null ? Integer.MAX_VALUE : next - (rule.rank() < next ? 1 : 0)), null), UNKNOWN_RULE);
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 	}
 
