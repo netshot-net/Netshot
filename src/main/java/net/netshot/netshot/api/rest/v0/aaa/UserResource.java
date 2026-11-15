@@ -47,6 +47,7 @@ import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.platform.error.ErrorCode;
 
@@ -96,7 +97,7 @@ public class UserResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public List<UserDto> getUsers(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, get user list.");
-		return UserMapper.toUserDtos(this.userService.list(paginationParams.toPage()));
+		return UserMapper.toUserDtos(this.userService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**

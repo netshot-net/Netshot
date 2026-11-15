@@ -19,8 +19,8 @@
 package net.netshot.netshot.domain;
 
 import net.netshot.netshot.platform.secret.Secret;
-import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -37,6 +37,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 
 /**
@@ -111,7 +112,7 @@ class DomainServiceTest {
 		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS,
 			() -> this.service.update(created.id(), _ -> definition(created.name(), "10.255.4.300"), null));
 		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.id(), _ -> definition(created.name(), null), null));
-		Assertions.assertEquals("10.255.4.1", this.service.list(Page.ALL).stream()
+		Assertions.assertEquals("10.255.4.1", this.service.list(ListQuery.ALL).items().stream()
 			.filter(d -> d.id() == created.id()).findFirst().orElseThrow().server4Address().getIp());
 	}
 
@@ -120,9 +121,9 @@ class DomainServiceTest {
 	void createDuplicate() throws Exception {
 		String name = this.nextName();
 		this.service.create(definition(name, "10.255.1.1"));
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, () -> this.service.create(definition(name, "10.255.1.2")));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -130,14 +131,14 @@ class DomainServiceTest {
 	void list() throws Exception {
 		Domain first = this.service.create(definition(this.nextName(), "10.255.2.1"));
 		Domain second = this.service.create(definition(this.nextName(), "10.255.2.2"));
-		List<Domain> all = this.service.list(Page.ALL);
+		List<Domain> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 2);
 		for (int i = 1; i < all.size(); i++) {
 			Assertions.assertTrue(all.get(i - 1).id() < all.get(i).id());
 		}
-		Assertions.assertEquals(all.get(0).id(), this.service.list(new Page(0, 1)).get(0).id());
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+		Assertions.assertEquals(all.get(0).id(), this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().get(0).id());
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
+		Assertions.assertEquals(all.size() - 1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(1, null), false)).items().size());
 		Assertions.assertTrue(all.stream().anyMatch(d -> d.id() == first.id()));
 		Assertions.assertTrue(all.stream().anyMatch(d -> d.id() == second.id()));
 	}

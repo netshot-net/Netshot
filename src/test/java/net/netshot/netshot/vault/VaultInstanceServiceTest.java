@@ -19,8 +19,8 @@
 package net.netshot.netshot.vault;
 
 import net.netshot.netshot.platform.secret.Secret;
-import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +37,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
@@ -129,7 +130,7 @@ class VaultInstanceServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, () -> this.service.create(definition(" ")));
 		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, () -> this.service.create(definition(null)));
 		HashicorpVaultKv2Instance first = this.createInstance();
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, () -> this.service.create(definition(first.name())));
 		assertParameter("baseUrl", () -> this.service.create(definition(this.nextName(), null, AuthMethod.APPROLE, "s", null)));
 		assertParameter("baseUrl", () -> this.service.create(definition(this.nextName(), "vault:8200", AuthMethod.APPROLE, "s", null)));
@@ -138,7 +139,7 @@ class VaultInstanceServiceTest {
 			() -> this.service.create(definition(this.nextName(), "https://v.example.net", AuthMethod.APPROLE, null, null)));
 		assertParameter("jwtIdpTokenEndpoint",
 			() -> this.service.create(definition(this.nextName(), "https://v.example.net", AuthMethod.JWT, null, "j")));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -146,10 +147,10 @@ class VaultInstanceServiceTest {
 	void list() {
 		this.createInstance();
 		this.createInstance();
-		List<VaultInstance> all = this.service.list(Page.ALL);
+		List<VaultInstance> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 2);
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
+		Assertions.assertEquals(all.size() - 1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(1, null), false)).items().size());
 	}
 
 	@Test
@@ -273,11 +274,11 @@ class VaultInstanceServiceTest {
 		this.tested.clear();
 		this.testFailure = null;
 		HashicorpVaultKv2Instance created = this.createInstance();
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		int notifications = this.notified.size();
 		this.service.test(null, definition("Not saved"));
 		this.service.test(created.id(), definition("Not saved either"));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 		Assertions.assertEquals(created.name(), this.stored(created.id()).name());
 		Assertions.assertEquals(notifications, this.notified.size());
 	}

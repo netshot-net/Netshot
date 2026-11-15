@@ -36,6 +36,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestWiring;
@@ -156,9 +157,9 @@ class HookServiceTest {
 	@DisplayName("create() refuses a name which is already used, and stores nothing")
 	void createDuplicate() {
 		WebHook first = (WebHook) this.service.create(this.valid());
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_HOOK, () -> this.service.create(webHook(first.name(), "https://example.net/other", Action.POST_XML, "A")));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -166,11 +167,11 @@ class HookServiceTest {
 	void list() {
 		this.service.create(this.valid("A", "B"));
 		this.service.create(this.valid("C"));
-		List<Hook> all = this.service.list(Page.ALL);
+		List<Hook> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 2);
 		all.forEach(hook -> Assertions.assertNotNull(hook.triggers()));
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
+		Assertions.assertEquals(all.size() - 1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(1, null), false)).items().size());
 	}
 
 	@Test

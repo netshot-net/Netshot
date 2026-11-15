@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.credentials;
 
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.DSLContext;
@@ -30,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -67,23 +65,6 @@ public class CredentialSetService {
 	public CredentialSetService(Transactions transactions, CredentialSetRepository repository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the global credential sets.
-	 *
-	 * @param page the window on the result
-	 * @return the credential sets, by ID
-	 * @throws NetshotException if the credential sets can't be read
-	 */
-	public List<DeviceCredentialSet> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findGlobal(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the credentials.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the credentials");
-		}
 	}
 
 	/**

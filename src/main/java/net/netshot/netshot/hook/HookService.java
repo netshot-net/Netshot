@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -61,22 +60,6 @@ public class HookService {
 	public HookService(Transactions transactions, HookRepository repository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the hooks, with their triggers.
-	 *
-	 * @param page the window on the result
-	 * @return the hooks
-	 */
-	public List<Hook> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the hooks.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hooks");
-		}
 	}
 
 	/**

@@ -31,9 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * Service that proactively refreshes the Vault client tokens shortly before they expire, so that the
@@ -129,7 +129,7 @@ public final class VaultTokenRefresher implements Service {
 
 	private void refreshAll() {
 		// The instances are read first: no transaction is held during the logins
-		List<VaultInstance> instances = this.transactions.read(dsl -> new VaultInstanceRepository().findAll(dsl, Page.ALL));
+		List<VaultInstance> instances = this.transactions.read(dsl -> new VaultInstanceRepository().findAll(dsl, ListQuery.ALL));
 		for (VaultInstance candidate : instances) {
 			if (!(candidate instanceof HashicorpVaultKv2Instance vaultInstance)) {
 				continue;

@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.userscript;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
@@ -32,6 +33,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
@@ -148,17 +150,16 @@ class ScriptServiceTest {
 	}
 
 	@Test
-	@DisplayName("list() returns the scripts without their content, applies the page, and does not blank the stored scripts")
+	@DisplayName("list() returns the scripts with their content, and applies the page")
 	void list() {
 		DeviceJsScript first = this.service.create(this.creation(this.name("Listed")));
 		this.service.create(this.creation(this.name("Listed")));
-		var listed = this.service.list(Page.ALL);
+		var listed = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(listed.size() >= 2);
 		DeviceJsScript item = listed.stream().filter(s -> s.id() == first.id()).findFirst().orElseThrow();
-		Assertions.assertNull(item.script());
+		Assertions.assertEquals(SCRIPT, item.script());
 		Assertions.assertEquals(first.name(), item.name());
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(SCRIPT, this.service.get(first.id()).script(), "the stored script is untouched");
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
 	}
 
 	@Test

@@ -42,13 +42,13 @@ import com.sun.net.httpserver.HttpServer;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.hook.WebHook;
-import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.contract.Golden;
 import net.netshot.netshot.testing.contract.Golden.Format;
+import net.netshot.netshot.testing.contract.Golden;
 
 /**
  * Golden file tests of the web hook payloads: the body posted for each task type that can trigger
@@ -115,7 +115,7 @@ class WebHookContractTest {
 		this.receiver.start();
 
 		// Only the hooks of this test: the hooks of the seed point to the outside
-		for (Hook hook : TestWiring.get().hookService().list(Page.ALL)) {
+		for (Hook hook : TestWiring.get().hookService().list(ListQuery.ALL).items()) {
 			TestWiring.get().hookService().delete(hook.id(), null);
 		}
 		for (WebHook.Action action : FORMATS.keySet()) {

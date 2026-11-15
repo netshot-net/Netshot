@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.userscript;
 
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
@@ -29,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -62,25 +60,6 @@ public class ScriptService {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Lists the scripts, without their content.
-	 *
-	 * @param page the window on the result
-	 * @return the scripts, detached, with a null script
-	 * @throws NetshotException if the scripts can't be read
-	 */
-	public List<DeviceJsScript> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findAll(dsl, page).stream()
-				.map(DeviceJsScript::withoutScript)
-				.toList());
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the scripts.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the scripts");
-		}
 	}
 
 	/**

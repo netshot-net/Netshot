@@ -29,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -62,22 +61,6 @@ public class UserService {
 	public UserService(Transactions transactions, UserRepository repository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the users.
-	 *
-	 * @param page the window on the result
-	 * @return the users
-	 */
-	public List<UiUser> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.list(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to retrieve the users.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the users.");
-		}
 	}
 
 	/**

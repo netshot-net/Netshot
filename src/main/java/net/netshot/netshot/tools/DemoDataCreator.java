@@ -46,8 +46,8 @@ import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Module;
@@ -65,11 +65,11 @@ import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.secret.Secret;
 
 @Slf4j
@@ -675,7 +675,7 @@ public class DemoDataCreator {
 
 	private void createData(DSLContext dsl) {
 		{
-			if (!new DomainRepository().findAll(dsl, Page.ALL).isEmpty()) {
+			if (!new DomainRepository().findAll(dsl, ListQuery.ALL).isEmpty()) {
 				log.error("Data already exist in the DB (domain found)");
 				return;
 			}
