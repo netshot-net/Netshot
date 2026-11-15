@@ -260,6 +260,8 @@ public final class V0ContractCases {
 		c.get("/tasks", "dates", () -> "/tasks?after=" + (ContractSeed.D2021 - 1) + "&before=" + (ContractSeed.D2021 + 25000));
 		c.get("/tasks", "paged", () -> "/tasks?offset=2&limit=3");
 		c.get("/tasks", "parent", c.path("/tasks?parentTaskId=%d", "task.group"));
+		c.get("/tasks", "unknowntype", () -> "/tasks?type=TakeSnapshotTask&type=NoSuchTask");
+		c.get("/tasks", "onlyunknowntype", () -> "/tasks?type=NoSuchTask");
 		c.get("/tasks/{id}", "snapshot", c.path("/tasks/%d", "task.snapshot"));
 		c.get("/tasks/{id}", "failed", c.path("/tasks/%d", "task.failed"));
 		c.get("/tasks/{id}", "script", c.path("/tasks/%d", "task.script"));
