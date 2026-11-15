@@ -44,8 +44,11 @@ import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.aaa.user.UserUpdate;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the users (administrators only): list, add, edit and delete.
@@ -142,7 +145,9 @@ public class UserResource {
 		UserRequest rsUser) throws WebApplicationException {
 		log.debug("REST request, edit user {}.", id);
 		User currentUser = (User) this.securityContext.getUserPrincipal();
-		return UserMapper.toDto(this.userService.update(id, currentUser.username(), UserMapper.toUpdate(rsUser)));
+		UserUpdate update = UserMapper.toUpdate(rsUser);
+		return UserMapper.toDto(V0Errors.translate(() -> this.userService.update(id, currentUser.username(), _ -> update, null),
+			V0Errors.code(ErrorCode.NETSHOT_USER_NOT_FOUND, ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user.")));
 	}
 
 	/**
