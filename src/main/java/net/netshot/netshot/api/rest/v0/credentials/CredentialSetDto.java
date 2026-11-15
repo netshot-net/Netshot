@@ -25,11 +25,11 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
+import net.netshot.netshot.api.rest.v0.HideSecretDeserializer;
+import net.netshot.netshot.api.rest.v0.HideSecretSerializer;
 import net.netshot.netshot.api.rest.v0.domain.DomainDto;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
-import net.netshot.netshot.credentials.HideSecretDeserializer;
-import net.netshot.netshot.credentials.HideSecretSerializer;
 
 /**
  * A credential set: the representation of the credential set endpoints, and of the credential sets
