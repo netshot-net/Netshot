@@ -40,7 +40,6 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
-import net.netshot.netshot.inventory.device.DeviceUpdate;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -239,7 +238,7 @@ class TakeSnapshotHandlerTest {
 		private DeviceAccess setAccess(Device device, SshHostKeyVerification mode, String trustedKeys) {
 			DeviceAccess ssh = reload(device).getDeviceAccess("ssh").toBuilder()
 				.sshHostKeyVerification(mode).sshTrustedHostKeys(trustedKeys).build();
-			TestWiring.get().deviceService().update(device.id(), new DeviceUpdate(null, null, null, null, List.of(ssh), null, null, null));
+			TestWiring.get().deviceService().update(device.id(), d -> TestDevices.change(d, b -> b.accesses(List.of(ssh))), null);
 			return reload(device).getDeviceAccess("ssh");
 		}
 

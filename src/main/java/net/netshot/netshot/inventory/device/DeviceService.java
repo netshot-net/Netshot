@@ -167,58 +167,6 @@ public class DeviceService {
 	}
 
 	/**
-	 * Edits a device. Only the attributes of the command which are not null are changed.
-	 *
-	 * @param id the device ID
-	 * @param update the changes to apply
-	 * @return the device as it is once edited, as {@link #get(long)} returns it
-	 * @throws NetshotException if the device doesn't exist, a change is invalid, the management
-	 *         address is already used by an active device, or the device can't be stored
-	 */
-	public Device update(long id, DeviceUpdate update) {
-		Device device;
-		try {
-			device = this.transactions.write(dsl -> {
-				if (this.repository.lock(dsl, id) == null) {
-					log.error("The device of ID {} doesn't exist.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
-				}
-				Device existing = this.repository.find(dsl, id);
-				Device edited = this.applyUpdate(dsl, existing, update);
-				if (!Device.Status.DISABLED.equals(edited.status())) {
-					log.debug("Looking for an active device with this IP address.");
-					DeviceSummary duplicate = this.repository.findActiveByMgmtAddress(dsl, edited.mgmtAddress(), edited.id());
-					if (duplicate != null) {
-						log.error("Device {} is already present with this IP address.", duplicate.id());
-						throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DEVICE, String.format(
-							"The device '%s' (%d) already exists with this IP address.",
-							duplicate.name(), duplicate.id()));
-					}
-				}
-				this.repository.save(dsl, existing, edited);
-				return edited;
-			});
-			AAA_LOG.info("{} has been edited.", device);
-		}
-		catch (DataAccessException e) {
-			log.error("Cannot edit the device.", e);
-			if (DatabaseErrors.isUniqueViolation(e)) {
-				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DEVICE, "A device with this IP address already exists.");
-			}
-			if (DatabaseErrors.isForeignKeyViolation(e) && e.getMessage() != null && e.getMessage().contains("domain")) {
-				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Unable to find the domain");
-			}
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the device.");
-		}
-		catch (NetshotException e) {
-			log.error("Cannot edit the device.", e);
-			throw e;
-		}
-		this.dynamicGroups.refreshAllGroupsOfOneDevice(device.id());
-		return this.get(id);
-	}
-
-	/**
 	 * Replaces the editable properties of a device, if it is at a given version.
 	 *
 	 * @param id the device ID
@@ -307,46 +255,6 @@ public class DeviceService {
 			.tags(Device.normalizeTags(change.tags()));
 		if (!change.mgmtAddress().equals(device.mgmtAddress())) {
 			edited.cachedIpAddress(Device.resolveIpAddress(change.mgmtAddress()));
-		}
-		return edited.build();
-	}
-
-	private Device applyUpdate(DSLContext dsl, Device device, DeviceUpdate update) {
-		Device.DeviceBuilder edited = device.toBuilder();
-		if (update.enabled() != null) {
-			edited.status(update.enabled() ? Status.INPRODUCTION : Status.DISABLED);
-		}
-		if (update.ipAddress() != null) {
-			DeviceValidation.validateMgmtAddress(update.ipAddress(), false);
-			edited.mgmtAddress(update.ipAddress());
-			edited.cachedIpAddress(Device.resolveIpAddress(update.ipAddress()));
-		}
-		if (update.accesses() != null) {
-			DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
-			List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, update.accesses(),
-				update.specificCredentials());
-			accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, device.accesses(), accesses,
-				update.specificCredentials());
-			edited.accesses(Device.mergeAccesses(device.accesses(), accesses));
-		}
-		if (update.options() != null) {
-			DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
-			edited.options(DeviceValidation.validateOptions(driver, update.options()));
-		}
-		if (update.comments() != null) {
-			DeviceValidation.validateComments(update.comments());
-			edited.comments(update.comments());
-		}
-		if (update.tags() != null) {
-			DeviceValidation.validateTags(update.tags());
-			edited.tags(Device.normalizeTags(update.tags()));
-		}
-		if (update.mgmtDomainId() != null) {
-			Domain domain = this.domainRepository.find(dsl, update.mgmtDomainId());
-			if (domain == null) {
-				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
-			}
-			edited.mgmtDomain(domain);
 		}
 		return edited.build();
 	}

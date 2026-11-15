@@ -236,8 +236,8 @@ public final class DeviceValidation {
 
 	/**
 	 * Stores the specific credential sets of the accesses: each one is created, or merged into the current specific
-	 * credential set of the access of the same name when they are of the same type (a definition then keeps the
-	 * secrets it leaves out, a legacy credential set follows the rules of the legacy API). To call once the accesses
+	 * credential set of the access of the same name when they are of the same type (the definition then keeps the
+	 * secrets it leaves out). To call once the accesses
 	 * are validated: an access which gets no specific credential set here has none.
 	 *
 	 * @param credentialSetRepository the credential set repository
@@ -285,17 +285,8 @@ public final class DeviceValidation {
 				.reduce((_, second) -> second)
 				.map(DeviceAccess::specificCredentialSet)
 				.orElse(null);
-			DeviceCredentialSet stored = switch (specific) {
-				case AccessSpecificCredential.Definition d -> CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, existing,
-					d.definition(), accessDef.getCredentialClass());
-				case AccessSpecificCredential.Legacy l -> {
-					if (!accessDef.getCredentialClass().isInstance(l.credentialSet())) {
-						throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
-							"The specific credential set is not compatible with access '" + access.accessName() + "'.");
-					}
-					yield CredentialSets.applySpecificCredentialSet(dsl, credentialSetRepository, existing, l.credentialSet());
-				}
-			};
+			DeviceCredentialSet stored = CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, access.accessName(), existing,
+				specific.definition(), accessDef.getCredentialClass());
 			result.set(index, access.toBuilder().specificCredentialSet(stored).build());
 		}
 		return result;

@@ -24,17 +24,19 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
+import net.netshot.netshot.api.rest.v0.credentials.CredentialSetMapper;
 import net.netshot.netshot.api.rest.v0.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
+import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.AccessSpecificCredential;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceSummary;
-import net.netshot.netshot.inventory.device.DeviceUpdate;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
@@ -160,7 +162,7 @@ public final class DeviceMapper {
 	 * @return the command
 	 */
 	public static DeviceCreation toCreation(NewDeviceRequest request, String author) {
-		Accesses accesses = toAccesses(request.accesses());
+		Accesses accesses = toAccesses(request.accesses(), List.of());
 		return new DeviceCreation(
 			request.autoDiscover(),
 			request.ipAddress(),
@@ -175,34 +177,41 @@ public final class DeviceMapper {
 	}
 
 	/**
-	 * Maps a request to edit a device to the command of the service.
+	 * Maps a request to edit a device to the new properties of the device: the properties the request leaves out (null)
+	 * are the current ones.
 	 *
+	 * @param device the device as it is
 	 * @param request the request
-	 * @return the command
+	 * @return the new properties
 	 */
-	public static DeviceUpdate toUpdate(UpdateDeviceRequest request) {
-		Accesses accesses = toAccesses(request.accesses());
-		return new DeviceUpdate(
-			request.enabled(),
-			request.comments(),
-			request.ipAddress(),
-			request.mgmtDomain(),
+	public static DeviceChange toChange(Device device, UpdateDeviceRequest request) {
+		Device.Status status = device.status();
+		if (request.enabled() != null) {
+			status = request.enabled() ? Device.Status.INPRODUCTION : Device.Status.DISABLED;
+		}
+		Accesses accesses = request.accesses() == null ? current(device.accesses()) : toAccesses(request.accesses(), device.accesses());
+		return new DeviceChange(
+			status,
+			request.comments() == null ? device.comments() : request.comments(),
+			request.ipAddress() == null ? device.mgmtAddress() : request.ipAddress(),
+			request.mgmtDomain() == null ? device.mgmtDomain().id() : request.mgmtDomain(),
 			accesses.accesses(),
 			accesses.specificCredentials(),
-			request.options(),
-			request.tags());
+			request.options() == null ? device.options() : request.options(),
+			request.tags() == null ? device.tags() : request.tags());
 	}
 
 	/**
-	 * The accesses of a request, and the specific credential sets they carried.
+	 * The accesses of a request, and the definitions of the specific credential sets they carried.
 	 *
 	 * @param accesses the transient accesses, without specific credential set (null if none was given)
-	 * @param specificCredentials the specific credential sets of the accesses
+	 * @param specificCredentials the definitions of the specific credential sets of the accesses
 	 */
 	private record Accesses(List<DeviceAccess> accesses, List<AccessSpecificCredential> specificCredentials) {
 	}
 
-	private static Accesses toAccesses(List<DeviceAccessDto> dtos) {
+	// The posted accesses: a specific credential set is merged into the current one of the access when it is of the same type
+	private static Accesses toAccesses(List<DeviceAccessDto> dtos, List<DeviceAccess> current) {
 		if (dtos == null) {
 			return new Accesses(null, null);
 		}
@@ -210,8 +219,29 @@ public final class DeviceMapper {
 		List<AccessSpecificCredential> specifics = new ArrayList<>();
 		for (DeviceAccessDto dto : dtos) {
 			DeviceAccess access = DeviceAccessMapper.toEntity(dto);
-			if (access.specificCredentialSet() != null) {
-				specifics.add(new AccessSpecificCredential.Legacy(access.accessName(), access.specificCredentialSet()));
+			DeviceCredentialSet posted = access.specificCredentialSet();
+			if (posted != null) {
+				DeviceCredentialSet existing = current.stream()
+					.filter(a -> a.accessName().equals(dto.accessName()))
+					.map(DeviceAccess::specificCredentialSet)
+					.filter(set -> set != null && set.getClass().equals(posted.getClass()))
+					.findFirst().orElse(null);
+				specifics.add(new AccessSpecificCredential(access.accessName(), CredentialSetMapper.toSpecificDefinition(posted, existing)));
+				access = access.toBuilder().specificCredentialSet(null).build();
+			}
+			accesses.add(access);
+		}
+		return new Accesses(accesses, specifics);
+	}
+
+	// The current accesses, as they are
+	private static Accesses current(List<DeviceAccess> current) {
+		List<DeviceAccess> accesses = new ArrayList<>(current.size());
+		List<AccessSpecificCredential> specifics = new ArrayList<>();
+		for (DeviceAccess access : current) {
+			DeviceCredentialSet specific = access.specificCredentialSet();
+			if (specific != null) {
+				specifics.add(new AccessSpecificCredential(access.accessName(), CredentialSetMapper.toDefinition(specific, specific)));
 				access = access.toBuilder().specificCredentialSet(null).build();
 			}
 			accesses.add(access);

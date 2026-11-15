@@ -21,6 +21,7 @@ package net.netshot.netshot.testing;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -30,6 +31,7 @@ import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
@@ -206,6 +208,21 @@ public final class TestDevices {
 			DEVICES.save(dsl, DEVICES.find(dsl, device.id()), device);
 			return DEVICES.find(dsl, device.id());
 		});
+	}
+
+	/**
+	 * Builds the change which gives a device the editable properties of an edited copy of it (for
+	 * {@code DeviceService.update}): the specific credential sets are not given, so the accesses lose theirs.
+	 *
+	 * @param device the device as it is
+	 * @param edit the edition of the device
+	 * @return the change
+	 */
+	public static DeviceChange change(Device device, UnaryOperator<Device.DeviceBuilder> edit) {
+		Device edited = edit.apply(device.toBuilder()).build();
+		return new DeviceChange(edited.status(), edited.comments(), edited.mgmtAddress(), edited.mgmtDomain().id(),
+			edited.accesses().stream().map(a -> a.toBuilder().specificCredentialSet(null).build()).toList(), List.of(),
+			edited.options(), edited.tags());
 	}
 
 	/**
