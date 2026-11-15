@@ -157,6 +157,8 @@ curl -H "X-Netshot-API-Token: <token>" \
   'https://<server:port>/api/v1/devices?query=%5BFamily%5D%20is%20%22Cisco%20ISR%22&location__isw=paris&fields=name,mgmtAddress'
 ```
 
+With a `query`, the list (`/devices`, `/groups/{id}/devices`) also gives the query as it is applied, in its canonical form, as `query` next to `results` (`"query": "[Family] is \"Cisco ISR\""`); an invalid query is a 400 (`NETSHOT_INVALID_SEARCH_STRING`, on the `query` parameter).
+
 `GET /api/v1/devices/stats` counts the devices (see [Statistics](#statistics)): `groupBy` `status`, `mgmtDomain`, `family`, `driver`, `networkClass`, `softwareVersion`, `softwareLevel`, `location`, `eolDate`, `eosDate`, `group`, `tag`, `compliant`; time buckets on `createdDate` (default), `changeDate`, `eolDate`, `eosDate`, `lastSnapshotSuccessDate` or `lastSnapshotFailureDate`. For instance the compliance of the devices of each group: `/api/v1/devices/stats?groupBy=group,compliant`.
 
 `lastSnapshotSuccessDate` and `lastSnapshotFailureDate` (full view; null if never) tell when the last snapshot of the device succeeded and failed. They are maintained by the snapshot tasks (a cancelled snapshot changes neither) and read-only; at upgrade, they are initialized from the task history. They can be filtered and sorted on, for instance the devices in production without successful snapshot for a week: `/api/v1/devices?status=INPRODUCTION&lastSnapshotSuccessDate__lt=2026-10-25T00:00:00Z&sort=lastSnapshotSuccessDate`.

@@ -34,8 +34,6 @@ import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.inventory.group.DynamicGroups;
-import net.netshot.netshot.inventory.search.SearchRepository;
-import net.netshot.netshot.inventory.search.SearchResult;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -73,7 +71,7 @@ class DeviceInventoryServiceTest {
 		DeviceRepository repository = new DeviceRepository();
 		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
 		this.catalogService = new DeviceCatalogService(this.transactions, new DeviceInventoryRepository());
-		this.searchService = new SearchService(this.transactions, new SearchRepository(), new DeviceRepository(), TestDrivers.registry());
+		this.searchService = new SearchService(this.transactions, new DeviceRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		Set<Network4Address> ip4 = new LinkedHashSet<>();
 		Set<Network6Address> ip6 = new LinkedHashSet<>();
@@ -193,25 +191,29 @@ class DeviceInventoryServiceTest {
 	}
 
 	@Test
-	@DisplayName("searchDevices() returns the matching devices and the normalized query")
+	@DisplayName("listDeviceSummaries() returns the devices matching a search query, which formatQuery() normalizes")
 	void search() {
-		SearchResult result = this.searchService.searchDevices("[Name]   contains \"router\"", Page.ALL);
-		Assertions.assertEquals("[Name] contains \"router\"", result.query());
-		Assertions.assertEquals(2, result.devices().size());
-		DeviceSummary summary = result.devices().stream().filter(d -> d.id() == this.router).findFirst().orElseThrow();
+		String query = "[Name]   contains \"router\"";
+		Assertions.assertEquals("[Name] contains \"router\"", this.searchService.formatQuery(query));
+		Assertions.assertNull(this.searchService.formatQuery(null));
+		List<DeviceSummary> devices = this.searchService.listDeviceSummaries(ListQuery.ALL, query).items();
+		Assertions.assertEquals(2, devices.size());
+		DeviceSummary summary = devices.stream().filter(d -> d.id() == this.router).findFirst().orElseThrow();
 		Assertions.assertEquals("router-a", summary.name());
 		Assertions.assertEquals("Cisco 2900", summary.family());
 		Assertions.assertEquals("CiscoIOS12", summary.driver());
 		Assertions.assertEquals("10.50.0.1", summary.mgmtAddress());
 		Assertions.assertEquals(Boolean.TRUE, summary.configCompliant(), "no non-conforming result");
-		Assertions.assertEquals(1, this.searchService.searchDevices("[Name] contains \"\"", new Page(1, 1)).devices().size());
+		Assertions.assertEquals(1, this.searchService.listDeviceSummaries(page(1, 1), "[Name] contains \"\"").items().size());
 	}
 
 	@Test
-	@DisplayName("searchDevices() reports an invalid query")
+	@DisplayName("formatQuery() and listDeviceSummaries() report an invalid query")
 	void searchInvalid() {
-		NetshotException exception = assertError(ErrorCode.NETSHOT_INVALID_SEARCH_STRING, () -> this.searchService.searchDevices("[Nope] ???", Page.ALL));
+		NetshotException exception = assertError(ErrorCode.NETSHOT_INVALID_SEARCH_STRING, () -> this.searchService.formatQuery("[Nope] ???"));
 		Assertions.assertTrue(exception.getMessage().startsWith("Invalid search string. "), exception.getMessage());
+		Assertions.assertEquals("query", exception.getTarget());
+		assertError(ErrorCode.NETSHOT_INVALID_SEARCH_STRING, () -> this.searchService.listDeviceSummaries(ListQuery.ALL, "[Nope] ???"));
 	}
 
 	// ------------------------------------------------------------------

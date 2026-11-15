@@ -166,7 +166,9 @@ public class DeviceInventoryResource {
 	public SearchResultsDto searchDevices(SearchRequest criteria, @BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, search devices, query '{}'.", criteria.query());
-		return DeviceCatalogMapper.toDto(this.searchService.searchDevices(criteria.query(), paginationParams.toPage()));
+		String query = this.searchService.formatQuery(criteria.query());
+		return DeviceCatalogMapper.toDto(new SearchResult(query,
+			this.searchService.listDeviceSummaries(V0Lists.query(paginationParams.toPage()), criteria.query()).items()));
 	}
 
 	/**

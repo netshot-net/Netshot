@@ -2821,6 +2821,8 @@ export interface components {
             previous: string | null;
             /** @description The items of the page */
             results: components["schemas"]["Device"][] | null;
+            /** @description The search query of a device list, as it is applied (canonical form); absent without query */
+            query?: string | null;
         };
         /** @description Editable properties of a device */
         DeviceRequest: {

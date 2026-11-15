@@ -78,7 +78,6 @@ import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
@@ -266,7 +265,7 @@ public final class Wiring {
 		});
 		this.domainService = new DomainService(this.transactions, new DomainRepository());
 		this.groupService = new GroupService(this.transactions, new GroupRepository(), this.dynamicGroups);
-		this.searchService = new SearchService(this.transactions, new SearchRepository(), new DeviceRepository(), this.driverRegistry);
+		this.searchService = new SearchService(this.transactions, new DeviceRepository(), this.driverRegistry);
 		this.configService = new ConfigService(this.transactions, new ConfigRepository(), this.driverRegistry);
 		// AAA and system
 		this.oidc = new Oidc(config);
