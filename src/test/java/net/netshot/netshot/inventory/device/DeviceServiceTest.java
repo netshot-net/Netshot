@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
 
 import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
@@ -41,6 +42,8 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
+import net.netshot.netshot.credentials.CredentialSetDefinition;
+import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.domain.Domain;
@@ -60,6 +63,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.vault.SecretChange;
 
 /**
  * Tests of the device use cases (the devices are added by the {@link DeviceCreationService}), against a
@@ -138,13 +142,29 @@ class DeviceServiceTest {
 	// update
 	// ------------------------------------------------------------------
 
+	/**
+	 * Edits a device through the service.
+	 *
+	 * @param id the device ID
+	 * @param edit the edition of the device as it is (its accesses lose their specific credential sets)
+	 * @return the edited device
+	 */
+	private Device update(long id, UnaryOperator<Device.DeviceBuilder> edit) {
+		return this.service.update(id, device -> TestDevices.change(device, edit), null);
+	}
+
+	private static AccessSpecificCredential sshSpecific(SecretChange username, SecretChange password, SecretChange superPassword) {
+		return new AccessSpecificCredential("ssh", new CredentialSetDefinition(Kind.SSH, null, null, username, password, superPassword,
+			null, null, null, null, null, null));
+	}
+
 	@Test
 	@DisplayName("A boolean option given as text (as XML gives it) is stored as a boolean, on creation and update")
 	void booleanOptionAsText() {
 		Device created = this.deviceOf(this.creationService.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
 			"SkyhighSWG", null, Map.of("fullBackup", "true"), null, null, AUTHOR)));
 		Assertions.assertEquals(Map.of("fullBackup", true), this.service.get(created.id()).options());
-		Device updated = this.service.update(created.id(), new DeviceUpdate(null, null, null, null, null, null, Map.of("fullBackup", "false"), null));
+		Device updated = this.update(created.id(), d -> d.options(Map.of("fullBackup", "false")));
 		Assertions.assertEquals(Map.of("fullBackup", false), updated.options());
 	}
 
@@ -183,7 +203,7 @@ class DeviceServiceTest {
 	 * @return the access as stored
 	 */
 	private DeviceAccess updateAccess(Device device, DeviceAccess access) {
-		this.service.update(device.id(), new DeviceUpdate(null, null, null, null, List.of(access), null, null, null));
+		this.update(device.id(), d -> d.accesses(List.of(access)));
 		return this.service.get(device.id()).getDeviceAccess(access.accessName());
 	}
 
@@ -191,38 +211,39 @@ class DeviceServiceTest {
 	@DisplayName("update() accepts comments of up to 4096 characters, and refuses longer ones")
 	void updateCommentsLength() {
 		Device created = this.createDevice(this.nextAddress());
-		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.update(created.id(),
-			new DeviceUpdate(null, "x".repeat(Device.MAX_COMMENTS_LENGTH + 1), null, null, null, null, null, null)));
-		Device updated = this.service.update(created.id(),
-			new DeviceUpdate(null, "y".repeat(Device.MAX_COMMENTS_LENGTH), null, null, null, null, null, null));
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+			() -> this.update(created.id(), d -> d.comments("x".repeat(Device.MAX_COMMENTS_LENGTH + 1))));
+		Device updated = this.update(created.id(), d -> d.comments("y".repeat(Device.MAX_COMMENTS_LENGTH)));
 		Assertions.assertEquals(Device.MAX_COMMENTS_LENGTH, updated.comments().length());
 	}
 
 	@Test
-	@DisplayName("update() leaves unchanged what the command leaves null")
-	void updateNullsAreUnchanged() {
+	@DisplayName("update() replaces every editable property, the ones the change leaves null taking their default")
+	void updateNullsAreDefaults() {
 		DeviceAccess ssh = access("ssh").toBuilder().port(2200).build();
 		Device created = this.deviceOf(this.creationService.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
 			"SkyhighSWG", List.of(ssh), Map.of("fullBackup", true), "Initial comments", List.of("a", "b"), AUTHOR)));
+		this.update(created.id(), d -> d.status(Device.Status.DISABLED));
 
-		Device updated = this.service.update(created.id(), new DeviceUpdate(null, null, null, null, null, null, null, null));
+		Device updated = this.service.update(created.id(),
+			new DeviceChange(null, null, created.mgmtAddress(), this.domainId, null, null, null, null), null);
 		Assertions.assertEquals(created.mgmtAddress(), updated.mgmtAddress());
 		Assertions.assertEquals(Device.Status.INPRODUCTION, updated.status());
-		Assertions.assertEquals("Initial comments", updated.comments());
-		Assertions.assertEquals(java.util.Set.of("a", "b"), updated.tags());
-		Assertions.assertEquals(Map.of("fullBackup", true), updated.options());
-		Assertions.assertEquals(this.domainId, updated.mgmtDomain().id());
-		Assertions.assertEquals(2200, updated.getDeviceAccess("ssh").port());
+		Assertions.assertEquals("", updated.comments());
+		Assertions.assertTrue(updated.tags().isEmpty());
+		Assertions.assertEquals(Map.of(), updated.options());
+		Assertions.assertTrue(updated.accesses().isEmpty());
 	}
 
 	@Test
-	@DisplayName("update() changes what the command provides")
+	@DisplayName("update() changes what the change gives")
 	void updateChanges() {
 		Device created = this.createDevice(this.nextAddress());
 		String newAddress = this.nextAddress();
 		DeviceAccess telnet = access("telnet").toBuilder().address("10.99.0.1").build();
-		Device updated = this.service.update(created.id(), new DeviceUpdate(false, "New comments", newAddress,
-			this.otherDomainId, List.of(telnet), null, Map.of(), List.of("x")));
+		Device updated = this.update(created.id(), d -> d.status(Device.Status.DISABLED).comments("New comments").mgmtAddress(newAddress)
+			.mgmtDomain(Domain.builder().id(this.otherDomainId).build()).accesses(List.of(telnet)).options(Map.of())
+			.tags(java.util.Set.of("x")));
 		Assertions.assertEquals(Device.Status.DISABLED, updated.status());
 		Assertions.assertEquals("New comments", updated.comments());
 		Assertions.assertEquals(newAddress, updated.mgmtAddress());
@@ -232,36 +253,34 @@ class DeviceServiceTest {
 		Assertions.assertEquals(1, updated.accesses().size(), "the accesses are replaced as a whole");
 		Assertions.assertEquals("10.99.0.1", updated.getDeviceAccess("telnet").address());
 
-		Device reenabled = this.service.update(created.id(), new DeviceUpdate(true, null, null, null, null, null, null, List.of()));
+		Device reenabled = this.update(created.id(), d -> d.status(Device.Status.INPRODUCTION).tags(java.util.Set.of()));
 		Assertions.assertEquals(Device.Status.INPRODUCTION, reenabled.status());
 		Assertions.assertTrue(reenabled.tags().isEmpty(), "an empty list of tags clears the tags");
 	}
 
 	@Test
-	@DisplayName("update() merges a legacy specific credential set into the current one, and refuses one carried by an access")
-	void updateLegacySpecificCredentialSet() {
-		AccessSpecificCredential initial = new AccessSpecificCredential.Legacy("ssh", DeviceSshAccount.builder()
-			.username(Secret.local("u")).password(Secret.local("p")).superPassword(Secret.local("e")).name("n").build());
+	@DisplayName("update() applies a specific credential set onto the current one, and refuses one carried by an access")
+	void updateSpecificCredentialSet() {
 		Device created = this.deviceOf(this.creationService.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
-			"CiscoIOS12", List.of(access("ssh")), null, null, null, AUTHOR, List.of(initial))));
+			"CiscoIOS12", List.of(access("ssh")), null, null, null, AUTHOR, List.of(sshSpecific(new SecretChange.Local("u"),
+				new SecretChange.Local("p"), new SecretChange.Local("e"))))));
 		long specificId = created.getDeviceAccess("ssh").specificCredentialSet().id();
 
-		// The legacy rules: a secret left out is unchanged (the v0 mapping turns "=" into one), the username is replaced
-		AccessSpecificCredential change = new AccessSpecificCredential.Legacy("ssh", DeviceSshAccount.builder()
-			.username(Secret.local("u2")).superPassword(Secret.local("e2")).name("ignored").build());
-		this.service.update(created.id(), new DeviceUpdate(null, null, null, null, List.of(access("ssh")), List.of(change), null, null));
+		AccessSpecificCredential change = sshSpecific(new SecretChange.Local("u2"), SecretChange.UNCHANGED, new SecretChange.Local("e2"));
+		this.service.update(created.id(), device -> new DeviceChange(device.status(), device.comments(), device.mgmtAddress(),
+			device.mgmtDomain().id(), List.of(access("ssh")), List.of(change), device.options(), device.tags()), null);
 		DeviceSshAccount stored = (DeviceSshAccount) this.service.get(created.id()).getDeviceAccess("ssh").specificCredentialSet();
-		Assertions.assertEquals(specificId, stored.id(), "merged into the current credential set");
+		Assertions.assertEquals(specificId, stored.id(), "applied onto the current credential set");
 		Assertions.assertEquals(Secret.local("u2"), stored.username());
 		Assertions.assertEquals(Secret.local("p"), stored.password());
 		Assertions.assertEquals(Secret.local("e2"), stored.superPassword());
 
 		DeviceAccess inline = access("ssh").toBuilder().specificCredentialSet(stored).build();
-		Assertions.assertThrows(IllegalArgumentException.class, () -> this.service.update(created.id(),
-			new DeviceUpdate(null, null, null, null, List.of(inline), null, null, null)));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> this.service.update(created.id(), device -> new DeviceChange(
+			device.status(), device.comments(), device.mgmtAddress(), device.mgmtDomain().id(), List.of(inline), null, null, null), null));
 
 		// An access given without specific credential set loses its current one
-		this.service.update(created.id(), new DeviceUpdate(null, null, null, null, List.of(access("ssh")), null, null, null));
+		this.updateAccess(created, access("ssh"));
 		Assertions.assertNull(this.service.get(created.id()).getDeviceAccess("ssh").specificCredentialSet());
 	}
 
@@ -270,13 +289,14 @@ class DeviceServiceTest {
 	void updateInvalid() {
 		Device created = this.createDevice(this.nextAddress());
 		long id = created.id();
-		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.update(99999999L, new DeviceUpdate(null, "x", null, null, null, null, null, null)));
-		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, () -> this.service.update(id, new DeviceUpdate(null, "changed", "bad address", null, null, null, null, null)));
-		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.update(id, new DeviceUpdate(null, "changed", null, null, null, null, Map.of("nope", 1), null)));
-		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.update(id, new DeviceUpdate(null, "changed", null, null, null, null, null, List.of(" "))));
-		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN, () -> this.service.update(id, new DeviceUpdate(null, "changed", null, 99999999L, null, null, null, null)));
+		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.update(99999999L, d -> d.comments("x")));
+		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, () -> this.update(id, d -> d.comments("changed").mgmtAddress("bad address")));
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.update(id, d -> d.comments("changed").options(Map.of("nope", 1))));
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.update(id, d -> d.comments("changed").tags(java.util.Set.of(" "))));
+		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN,
+			() -> this.update(id, d -> d.comments("changed").mgmtDomain(Domain.builder().id(99999999L).build())));
 		DeviceAccess badPort = access("ssh").toBuilder().port(0).build();
-		assertError(ErrorCode.NETSHOT_INVALID_PORT, () -> this.service.update(id, new DeviceUpdate(null, "changed", null, null, List.of(badPort), null, null, null)));
+		assertError(ErrorCode.NETSHOT_INVALID_PORT, () -> this.update(id, d -> d.comments("changed").accesses(List.of(badPort))));
 		Assertions.assertEquals("", this.service.get(id).comments(), "failed updates are rolled back");
 	}
 
@@ -285,13 +305,12 @@ class DeviceServiceTest {
 	void updateDuplicate() {
 		Device first = this.createDevice(this.nextAddress());
 		Device second = this.createDevice(this.nextAddress());
-		assertError(ErrorCode.NETSHOT_DUPLICATE_DEVICE, () -> this.service.update(second.id(),
-			new DeviceUpdate(null, null, first.mgmtAddress(), null, null, null, null, null)));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_DEVICE, () -> this.update(second.id(), d -> d.mgmtAddress(first.mgmtAddress())));
 		// Same address as itself is fine
-		this.service.update(second.id(), new DeviceUpdate(null, null, second.mgmtAddress(), null, null, null, null, null));
+		this.update(second.id(), d -> d.mgmtAddress(second.mgmtAddress()));
 		// A disabled device doesn't conflict, and is not checked
-		this.service.update(first.id(), new DeviceUpdate(false, null, null, null, null, null, null, null));
-		this.service.update(second.id(), new DeviceUpdate(null, null, first.mgmtAddress(), null, null, null, null, null));
+		this.update(first.id(), d -> d.status(Device.Status.DISABLED));
+		this.update(second.id(), d -> d.mgmtAddress(first.mgmtAddress()));
 	}
 
 	// ------------------------------------------------------------------
@@ -314,8 +333,7 @@ class DeviceServiceTest {
 	@DisplayName("get() reports an unknown device, and returns the complete device")
 	void get() throws Exception {
 		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.get(99999999L));
-		AccessSpecificCredential specific = new AccessSpecificCredential.Legacy("ssh", DeviceSshAccount.builder()
-			.username(Secret.local("u")).password(Secret.local("p")).superPassword(Secret.local("e")).name("n").build());
+		AccessSpecificCredential specific = sshSpecific(new SecretChange.Local("u"), new SecretChange.Local("p"), new SecretChange.Local("e"));
 		Device created = this.deviceOf(this.creationService.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
 			"CiscoIOS12", List.of(access("ssh")), null, null, List.of("t"), AUTHOR, List.of(specific))));
 		Device device = this.service.get(created.id());

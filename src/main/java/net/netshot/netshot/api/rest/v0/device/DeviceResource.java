@@ -211,6 +211,6 @@ public class DeviceResource {
 	public DeviceDto setDevice(@PathParam("id") @Parameter(description = "Device ID") Long id, UpdateDeviceRequest rsDevice)
 		throws WebApplicationException {
 		log.debug("REST request, edit device {}.", id);
-		return DeviceMapper.toDto(this.driverRegistry, this.deviceService.update(id, DeviceMapper.toUpdate(rsDevice)));
+		return DeviceMapper.toDto(this.driverRegistry, this.deviceService.update(id, device -> DeviceMapper.toChange(device, rsDevice), null));
 	}
 }

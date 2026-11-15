@@ -1,7 +1,7 @@
 {
   "accesses": [
     {
-      "accessName": "telnet",
+      "accessName": "ssh",
       "address": null,
       "globalCredentialSet": null,
       "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
@@ -9,17 +9,17 @@
       "port": null,
       "specificCredentialSet": {
         "deviceSpecific": true,
-        "id": 18,
+        "id": 17,
         "mgmtDomain": null,
         "name": "DEVICESPECIFIC-<uuid>",
-        "password": null,
+        "password": "=",
         "passwordVaultInstanceId": null,
         "passwordVaultPath": null,
         "superPassword": null,
         "superPasswordVaultInstanceId": null,
         "superPasswordVaultPath": null,
-        "type": "Telnet",
-        "username": null,
+        "type": "SSH",
+        "username": "sshuser",
         "usernameVaultInstanceId": null,
         "usernameVaultPath": null
       },

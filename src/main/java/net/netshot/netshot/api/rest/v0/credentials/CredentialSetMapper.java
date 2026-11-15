@@ -20,6 +20,7 @@ package net.netshot.netshot.api.rest.v0.credentials;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import net.netshot.netshot.api.rest.v0.domain.DomainDto;
 import net.netshot.netshot.api.rest.v0.domain.DomainMapper;
@@ -195,46 +196,63 @@ public final class CredentialSetMapper {
 	/**
 	 * Builds the definition of a credential set from a posted one, as the v0 API always read it: a secret given as a
 	 * Vault reference reads from that Vault instance, a secret given with a value takes that value, and a secret not given
-	 * (or given as "=") keeps its current local value (a current Vault reference is dropped); the username is not a
-	 * secret, it is cleared when it is not given. The SNMPv3 community is not read. The ID and the device-specific flag of
-	 * the posted credential set are ignored.
+	 * keeps its current local value (a current Vault reference is dropped); the username is not a secret, it is cleared
+	 * when it is not given. The SNMPv3 community is not read. The ID and the device-specific flag of the posted credential
+	 * set are ignored.
 	 *
 	 * @param posted the posted credential set
 	 * @param current the current credential set, of the same type, or null to create one
 	 * @return the definition
 	 */
 	public static CredentialSetDefinition toDefinition(DeviceCredentialSet posted, DeviceCredentialSet current) {
+		return toDefinition(posted, current, false);
+	}
+
+	/**
+	 * Builds the definition of the credential set specific to a device access from a posted one, as {@link #toDefinition}
+	 * does, except that a secret given as "=" (the mask the v0 API shows for a secret) also keeps its current value.
+	 *
+	 * @param posted the posted credential set
+	 * @param current the current specific credential set of the access, of the same type, or null to create one
+	 * @return the definition
+	 */
+	public static CredentialSetDefinition toSpecificDefinition(DeviceCredentialSet posted, DeviceCredentialSet current) {
+		return toDefinition(posted, current, true);
+	}
+
+	private static CredentialSetDefinition toDefinition(DeviceCredentialSet posted, DeviceCredentialSet current, boolean masked) {
+		Function<Secret, Secret> unmask = masked ? CredentialSetMapper::unmasked : Function.identity();
 		Kind kind = Kind.of(posted);
 		Long domainId = posted.mgmtDomain() == null ? null : posted.mgmtDomain().id();
 		return switch (posted) {
 			case DeviceSnmpv3Community p -> {
 				DeviceSnmpv3Community c = current instanceof DeviceSnmpv3Community v3 ? v3 : null;
 				yield new CredentialSetDefinition(kind, p.name(), domainId, username(p.username()), null, null, null, null,
-					p.authType(), change(p.authKey(), c == null ? null : c.authKey()),
-					p.privType(), change(p.privKey(), c == null ? null : c.privKey()));
+					p.authType(), change(unmask.apply(p.authKey()), c == null ? null : c.authKey()),
+					p.privType(), change(unmask.apply(p.privKey()), c == null ? null : c.privKey()));
 			}
 			case DeviceSnmpCommunity p -> new CredentialSetDefinition(kind, p.name(), domainId, null, null, null, null,
-				change(p.community(), current instanceof DeviceSnmpCommunity c ? c.community() : null), null, null, null, null);
+				change(unmask.apply(p.community()), current instanceof DeviceSnmpCommunity c ? c.community() : null), null, null, null, null);
 			case DeviceSshKeyAccount p -> {
 				DeviceSshKeyAccount c = current instanceof DeviceSshKeyAccount key ? key : null;
 				yield new CredentialSetDefinition(kind, p.name(), domainId, username(p.username()),
-					change(p.password(), c == null ? null : c.password()), change(p.superPassword(), c == null ? null : c.superPassword()),
-					change(p.privateKey(), c == null ? null : c.privateKey()), null, null, null, null, null);
+					change(unmask.apply(p.password()), c == null ? null : c.password()), change(unmask.apply(p.superPassword()), c == null ? null : c.superPassword()),
+					change(unmask.apply(p.privateKey()), c == null ? null : c.privateKey()), null, null, null, null, null);
 			}
 			case DeviceSshAccount p -> {
 				DeviceSshAccount c = current instanceof DeviceSshAccount ssh ? ssh : null;
 				yield new CredentialSetDefinition(kind, p.name(), domainId, username(p.username()),
-					change(p.password(), c == null ? null : c.password()), change(p.superPassword(), c == null ? null : c.superPassword()),
+					change(unmask.apply(p.password()), c == null ? null : c.password()), change(unmask.apply(p.superPassword()), c == null ? null : c.superPassword()),
 					null, null, null, null, null, null);
 			}
 			case DeviceTelnetAccount p -> {
 				DeviceTelnetAccount c = current instanceof DeviceTelnetAccount telnet ? telnet : null;
 				yield new CredentialSetDefinition(kind, p.name(), domainId, username(p.username()),
-					change(p.password(), c == null ? null : c.password()), change(p.superPassword(), c == null ? null : c.superPassword()),
+					change(unmask.apply(p.password()), c == null ? null : c.password()), change(unmask.apply(p.superPassword()), c == null ? null : c.superPassword()),
 					null, null, null, null, null, null);
 			}
 			case DeviceHttpAccount p -> new CredentialSetDefinition(kind, p.name(), domainId, username(p.username()),
-				change(p.password(), current instanceof DeviceHttpAccount c ? c.password() : null), null, null, null, null, null, null, null);
+				change(unmask.apply(p.password()), current instanceof DeviceHttpAccount c ? c.password() : null), null, null, null, null, null, null, null);
 		};
 	}
 
@@ -248,6 +266,12 @@ public final class CredentialSetMapper {
 			return new SecretChange.Local(value.reveal());
 		}
 		return Secret.localValue(current) != null ? SecretChange.UNCHANGED : SecretChange.CLEARED;
+	}
+
+	// A posted secret, the mask meaning that it is not given
+	private static Secret unmasked(Secret posted) {
+		LocalSecret value = Secret.localValue(posted);
+		return value != null && "=".equals(value.reveal()) ? null : posted;
 	}
 
 	// The posted username: a Vault reference, a value, or (absent) none

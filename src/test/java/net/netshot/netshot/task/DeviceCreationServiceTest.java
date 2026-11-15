@@ -36,11 +36,12 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
+import net.netshot.netshot.credentials.CredentialSetDefinition;
+import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.AccessSpecificCredential;
 import net.netshot.netshot.inventory.device.Device;
@@ -48,7 +49,6 @@ import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
-import net.netshot.netshot.inventory.device.DeviceUpdate;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
@@ -62,6 +62,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.vault.SecretChange;
 
 /**
  * Tests of the use case which adds a device, against a real database and a recording task submitter.
@@ -220,8 +221,8 @@ class DeviceCreationServiceTest {
 	void createWithCredentials() {
 		DeviceAccess ssh = access("ssh").toBuilder().globalCredentialSet(credentialRef(this.sshAccountId)).build();
 		DeviceAccess telnet = access("telnet");
-		AccessSpecificCredential telnetSpecific = new AccessSpecificCredential.Legacy("telnet", DeviceTelnetAccount.builder()
-			.username(Secret.local("user")).password(Secret.local("pass")).superPassword(Secret.local("enable")).name("ignored").build());
+		AccessSpecificCredential telnetSpecific = new AccessSpecificCredential("telnet", new CredentialSetDefinition(Kind.TELNET, null, null, local("user"), local("pass"), local("enable"),
+			null, null, null, null, null, null));
 		DeviceCreation creation = new DeviceCreation(false, this.nextAddress(), this.domainId, "CiscoIOS12",
 			List.of(ssh, telnet), null, null, null, AUTHOR, List.of(telnetSpecific));
 		Device created = this.deviceOf(this.creationService.create(creation));
@@ -313,18 +314,18 @@ class DeviceCreationServiceTest {
 		DeviceAccess badAddress = access("ssh").toBuilder().address("not an address").build();
 		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(badAddress), null, null, null, AUTHOR)));
-		AccessSpecificCredential pigeonSpecific = new AccessSpecificCredential.Legacy("carrier-pigeon", DeviceTelnetAccount.builder()
-			.username(Secret.local("u")).password(Secret.local("p")).superPassword(Secret.local("e")).name("n").build());
+		AccessSpecificCredential pigeonSpecific = new AccessSpecificCredential("carrier-pigeon", new CredentialSetDefinition(Kind.TELNET, null, null, local("u"), local("p"), local("e"),
+			null, null, null, null, null, null));
 		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(access("carrier-pigeon")), null, null, null, AUTHOR,
 				List.of(pigeonSpecific))));
-		AccessSpecificCredential wrongKind = new AccessSpecificCredential.Legacy("ssh",
-			DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("n").build());
+		AccessSpecificCredential wrongKind = new AccessSpecificCredential("ssh", new CredentialSetDefinition(Kind.SNMP_V2C, null, null, null, null, null,
+			null, local("public"), null, null, null, null));
 		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(access("ssh")), null, null, null, AUTHOR, List.of(wrongKind))));
 		DeviceAccess both = access("ssh").toBuilder().globalCredentialSet(credentialRef(this.sshAccountId)).build();
-		AccessSpecificCredential bothSpecific = new AccessSpecificCredential.Legacy("ssh", DeviceSshAccount.builder()
-			.username(Secret.local("u")).password(Secret.local("p")).superPassword(Secret.local("e")).name("n").build());
+		AccessSpecificCredential bothSpecific = new AccessSpecificCredential("ssh", new CredentialSetDefinition(Kind.SSH, null, null, local("u"), local("p"), local("e"),
+			null, null, null, null, null, null));
 		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(both), null, null, null, AUTHOR, List.of(bothSpecific))));
 		DeviceAccess unknownGlobal = access("ssh").toBuilder().globalCredentialSet(credentialRef(99999999L)).build();
@@ -348,7 +349,7 @@ class DeviceCreationServiceTest {
 		NetshotException error = assertError(ErrorCode.NETSHOT_DUPLICATE_DEVICE,
 			() -> this.creationService.create(this.creation(address.toUpperCase())));
 		Assertions.assertTrue(error.getMessage().contains("(" + first.id() + ")"), error.getMessage());
-		this.service.update(first.id(), new DeviceUpdate(false, null, null, null, null, null, null, null));
+		this.service.update(first.id(), device -> TestDevices.change(device, d -> d.status(Device.Status.DISABLED)), null);
 		Device second = this.createDevice(address);
 		Assertions.assertNotEquals(first.id(), second.id());
 	}
@@ -364,5 +365,9 @@ class DeviceCreationServiceTest {
 
 	private long countDevices(String address) {
 		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.DEVICE, Tables.DEVICE.MGMT_ADDRESS.eq(address)));
+	}
+
+	private static SecretChange local(String value) {
+		return new SecretChange.Local(value);
 	}
 }

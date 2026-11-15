@@ -120,7 +120,7 @@ When adding an error: add the `ErrorCode` (never change an existing numeric valu
 The device use cases (`inventory.device`) show how the layers fit together.
 
 - **`DeviceRepository`** only holds queries. Every method takes the `DSLContext` first, none opens a transaction or catches an exception. `find` loads the whole `Device` record; the other aggregates the use case needs (domain, credential sets, configurations, groups) are read by their own repositories.
-- **`DeviceService`** has one public method per use case, named after it (`list`, `get`, `create`, `update`, `delete`). It is constructed with its collaborators (`Transactions`, repository, ports): no static lookup, no `Wiring.get()`. Inputs are *command records* (`DeviceCreation`, `DeviceUpdate`): plain data, no `api` type. In a command, a `null` component means "not provided / unchanged".
+- **`DeviceService`** has one public method per use case, named after it (`list`, `get`, `create`, `update`, `delete`). It is constructed with its collaborators (`Transactions`, repository, ports): no static lookup, no `Wiring.get()`. Inputs are *command records* (`DeviceCreation`, `DeviceChange`): plain data, no `api` type. A change replaces every editable property (a `null` component takes its default); `update` computes it from the locked device, which is how a client applies a partial change (the v1 merge patch, the v0 `PUT`).
 - **What a service returns** is a domain record (complete: there is nothing left to load), a service-level record (`DeviceSummary`, a projection), or a primitive (`delete` returns whether there was a device). Never a DTO, never a `Response`.
 - **Side effects** which must not happen if the transaction fails (refresh of the dynamic groups, scheduling of tasks, removal of files) are explicit statements *after* the `Transactions` call. A service reaches the task engine only through a port, here `task.TaskSubmitter`, which `Wiring` implements with `TaskManager::addTask` and the tests with a recording lambda.
 - **Pagination**: a list use case takes a `platform.database.Page` (offset and limit, validated by its constructor); `PaginationParams.toPage()` builds it in the REST layer.
@@ -290,7 +290,7 @@ The files of the worked example:
 | `inventory/device/DeviceRepository` | queries and fetch plan |
 | `inventory/device/DeviceService` | use cases, transactions, side effects |
 | `task/DeviceCreationService` | the use case which adds a device (it creates the discovery or initial snapshot task) |
-| `inventory/device/DeviceCreation`, `DeviceUpdate` | commands (inputs of the use cases) |
+| `inventory/device/DeviceCreation`, `DeviceChange`, `AccessSpecificCredential` | commands (inputs of the use cases) |
 | `inventory/device/DeviceSummary` | projection of the list query |
 | `inventory/device/DeviceValidation` | validation helpers (they used to be in `RestService`) |
 | `credentials/CredentialSets`, `platform/tls/CaCertificates`, `platform/database/Page` | helpers shared by the service and other code |
