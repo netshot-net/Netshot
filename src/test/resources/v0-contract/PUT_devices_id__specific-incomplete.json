@@ -1,0 +1,80 @@
+{
+  "accesses": [
+    {
+      "accessName": "telnet",
+      "address": null,
+      "globalCredentialSet": null,
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": {
+        "deviceSpecific": true,
+        "id": 18,
+        "mgmtDomain": null,
+        "name": "DEVICESPECIFIC-<uuid>",
+        "password": null,
+        "passwordVaultInstanceId": null,
+        "passwordVaultPath": null,
+        "superPassword": null,
+        "superPasswordVaultInstanceId": null,
+        "superPasswordVaultPath": null,
+        "type": "Telnet",
+        "username": null,
+        "usernameVaultInstanceId": null,
+        "usernameVaultPath": null
+      },
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    }
+  ],
+  "attributes": [ ],
+  "cachedIpAddress": "10.1.9.19",
+  "changeDate": "<now>",
+  "comments": "Accesses unchanged",
+  "compliant": true,
+  "contact": "",
+  "createdDate": "<now>",
+  "creator": "API Token [5: Test Token - level 1000]",
+  "driver": "CiscoIOS12",
+  "endOfLife": false,
+  "endOfSale": false,
+  "eolDate": null,
+  "eolModule": null,
+  "eosDate": null,
+  "eosModule": null,
+  "family": "",
+  "id": 5,
+  "location": "",
+  "mgmtAddress": "10.1.9.19",
+  "mgmtDomain": {
+    "changeDate": "<now>",
+    "description": "Lyon data center",
+    "id": 2,
+    "name": "Lyon DC",
+    "server4Address": "10.255.1.1",
+    "server6Address": "0:0:0:0:0:0:0:0"
+  },
+  "name": "[NONAME]",
+  "networkClass": "UNKNOWN",
+  "options": { },
+  "ownerGroups": [
+    {
+      "changeDate": "<now>",
+      "folder": "",
+      "hiddenFromReports": true,
+      "id": 3,
+      "name": "Everything",
+      "query": "[Name] contains \"\"",
+      "type": "DynamicDeviceGroup"
+    }
+  ],
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "serialNumber": "",
+  "softwareLevel": "UNKNOWN",
+  "softwareVersion": "",
+  "status": "INPRODUCTION",
+  "tags": [
+    "edited"
+  ]
+}
