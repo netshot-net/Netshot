@@ -57,6 +57,7 @@ import net.netshot.netshot.api.rest.v1.device.DeviceDto;
 import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.device.DeviceResource;
 import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.group.GroupDefinition;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -190,7 +191,8 @@ public class GroupResource {
 		+ "With If-Match, the group must still be at the given version (ETag).")
 	public GroupDto replaceGroup(@PathParam("id") @Parameter(description = "Group ID") long id, GroupRequest groupRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.groupService.update(id, GroupMapper.toDefinition(groupRequest), V1Response.ifMatch(this.headers)));
+		GroupDefinition definition = GroupMapper.toDefinition(groupRequest);
+		return this.respond(this.groupService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
