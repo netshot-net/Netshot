@@ -189,47 +189,6 @@ public class HookService {
 	}
 
 	/**
-	 * Edits a hook: its properties and triggers are replaced by the given ones.
-	 *
-	 * @param id the ID of the hook
-	 * @param incoming the new values (null triggers meaning none, as on creation)
-	 * @return the hook as saved
-	 */
-	public Hook update(long id, Hook incoming) {
-		Hook hook = incoming.withId(id);
-		if (hook.triggers() == null) {
-			// No triggers (null) means none, as on creation
-			hook = hook.withTriggers(new HashSet<>());
-		}
-		if (hook.name() == null || "".equals(hook.name().trim())) {
-			log.error("Invalid hook name.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
-		}
-		Hook valid = validate(hook);
-		Hook saved;
-		try {
-			saved = this.transactions.write(dsl -> {
-				this.repository.lock(dsl, id);
-				Hook stored = this.repository.find(dsl, id);
-				// A hook of another type is not found, as with the former query by type
-				if (stored == null || !stored.getClass().equals(valid.getClass())) {
-					log.error("Unable to find the hook {}.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK, "Unable to find the hook.");
-				}
-				refuseNullTrigger(valid);
-				this.repository.save(dsl, valid);
-				return this.repository.find(dsl, id);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to save the hook {}.", id, e);
-			throw saveFailure(e);
-		}
-		AAA_LOG.info("{} has been edited", saved);
-		return saved;
-	}
-
-	/**
 	 * Edits a hook, if it is at a given version: its properties and triggers are replaced by the ones the change
 	 * gives from the hook as it is, which can't change meanwhile (to apply a patch).
 	 *
