@@ -34,7 +34,9 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaConstructorCall;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
+import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -123,6 +125,34 @@ final class ArchitectureTest {
 	static final ArchRule REST_API_VERSIONS_ARE_INDEPENDENT =
 		slices().matching(ROOT + "api.rest.(*)..").namingSlices("REST API $1")
 			.should().notDependOnEachOther()
+			.allowEmptyShould(true);
+
+	/**
+	 * The legacy API (api.rest.v0) adapts its requests and answers to the use cases of the services, the ones of the
+	 * v1 API: no service has a public method which only the legacy API uses, so that removing the legacy API (its
+	 * packages) leaves no dead code in the services.
+	 */
+	@ArchTest
+	static final ArchRule NO_SERVICE_METHOD_FOR_THE_LEGACY_API_ONLY =
+		classes().that().haveSimpleNameEndingWith("Service").and().resideOutsideOfPackage(ROOT + "api..")
+			.should(new ArchCondition<JavaClass>("have no public method used only by the legacy API (" + ROOT + "api.rest.v0)") {
+				@Override
+				public void check(JavaClass service, ConditionEvents events) {
+					for (JavaMethod method : service.getMethods()) {
+						if (!method.getModifiers().contains(JavaModifier.PUBLIC)) {
+							continue;
+						}
+						// The calls and the method references
+						Set<JavaClass> users = new HashSet<>();
+						method.getAccessesToSelf().forEach(access -> users.add(access.getOriginOwner()));
+						users.remove(service);
+						if (!users.isEmpty() && users.stream().allMatch(user -> user.getPackageName().startsWith(ROOT + "api.rest.v0"))) {
+							events.add(SimpleConditionEvent.violated(method, method.getFullName() + " is only used by the legacy API: "
+								+ users.stream().map(JavaClass::getSimpleName).sorted().toList()));
+						}
+					}
+				}
+			})
 			.allowEmptyShould(true);
 
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
