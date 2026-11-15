@@ -19,6 +19,7 @@
 package net.netshot.netshot.testing.contract;
 
 import static net.netshot.netshot.platform.database.schema.Tables.DEBUG_LOG;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
 import static net.netshot.netshot.platform.database.schema.Tables.TASK;
 
 import java.io.IOException;
@@ -654,6 +655,9 @@ public final class ContractSeed {
 			Task failedSnapshot = this.taskData(dsl, TakeSnapshotTask.of(router2, "Failing snapshot", "tester", false, true, true),
 				Task.Status.FAILURE, D2021 + 10000, "Unable to connect");
 			this.remember("task.failed", failedSnapshot.id());
+			// The snapshot dates of the devices, as the snapshot tasks maintain them
+			dsl.update(DEVICE).set(DEVICE.LAST_SNAPSHOT_SUCCESS_DATE, snapshot.executionDate()).where(DEVICE.ID.eq(router1.id())).execute();
+			dsl.update(DEVICE).set(DEVICE.LAST_SNAPSHOT_FAILURE_DATE, failedSnapshot.executionDate()).where(DEVICE.ID.eq(router2.id())).execute();
 
 			Task compliance = this.taskData(dsl, CheckComplianceTask.of(router1, "Check compliance", "tester"),
 				Task.Status.SUCCESS, D2021 + 20000, "Done");

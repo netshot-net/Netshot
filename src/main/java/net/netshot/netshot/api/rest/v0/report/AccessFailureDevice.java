@@ -16,15 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.report;
+package net.netshot.netshot.api.rest.v0.report;
 
 import java.util.Date;
 
+import net.netshot.netshot.inventory.device.DeviceSummary;
+
 /**
- * The number of devices reaching a hardware support milestone on a given day.
+ * A device without recent successful snapshot.
  *
- * @param eoxDate the date of the milestone (null: no date)
- * @param deviceCount the number of devices
+ * @param device the device
+ * @param lastSuccess the date of the last successful snapshot (null: never)
+ * @param lastFailure the date of the last failed snapshot (null: never)
  */
-public record HardwareSupportCount(Date eoxDate, long deviceCount) {
+public record AccessFailureDevice(DeviceSummary device, Date lastSuccess, Date lastFailure) {
 }
