@@ -25,8 +25,8 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 
 /**
- * What the v0 representation of the software and hardware rules needs beside the rule: its target group, and the
- * leniency of v0 about the driver.
+ * What the v0 representation of the policies and of the software and hardware rules needs: their target groups, and the
+ * leniency of v0 about the driver of a rule.
  */
 final class TargetGroups {
 

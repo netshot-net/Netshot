@@ -123,6 +123,10 @@ class DiagnosticServiceTest {
 		});
 	}
 
+	private DiagnosticView update(long id, DiagnosticDefinition definition) {
+		return this.service.update(id, _ -> definition, null);
+	}
+
 	@Test
 	@DisplayName("create() stores each kind of diagnostic with its properties, trims the name, and the result can be read once detached")
 	void createKinds() {
@@ -208,7 +212,7 @@ class DiagnosticServiceTest {
 		assertError(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, () -> this.service.create(python(name, -1, "x")).diagnostic());
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.service.create(js(this.name("Unknown group"), 99999999L, "x")).diagnostic());
 		Diagnostic created = this.service.create(js(this.name("Known group"), -1, "x")).diagnostic();
-		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.service.update(created.id(), js(created.name(), 99999999L, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.update(created.id(), js(created.name(), 99999999L, "x")).diagnostic());
 	}
 
 	@Test
@@ -221,7 +225,7 @@ class DiagnosticServiceTest {
 	@DisplayName("update() replaces the properties of the kind of the diagnostic, trims the name")
 	void updateKinds() {
 		Diagnostic javaScript = this.service.create(js(this.name("JS to update"), this.groupId, "old")).diagnostic();
-		Diagnostic updated = this.service.update(javaScript.id(),
+		Diagnostic updated = this.update(javaScript.id(),
 			new DiagnosticDefinition("JavaScriptDiagnostic", " Renamed " + javaScript.id() + " ", -1, false, "BINARY", "new", "ignored",
 				"ignored", "ignored", "ignored", "ignored")).diagnostic();
 		JavaScriptDiagnostic jsDiagnostic = Assertions.assertInstanceOf(JavaScriptDiagnostic.class, updated);
@@ -232,13 +236,13 @@ class DiagnosticServiceTest {
 		Assertions.assertNull(jsDiagnostic.targetGroupId());
 
 		Diagnostic python = this.service.create(python(this.name("Python to update"), -1, "old")).diagnostic();
-		PythonDiagnostic pythonDiagnostic = Assertions.assertInstanceOf(PythonDiagnostic.class, this.service.update(python.id(),
+		PythonDiagnostic pythonDiagnostic = Assertions.assertInstanceOf(PythonDiagnostic.class, this.update(python.id(),
 			python(python.name(), this.groupId, "new python")).diagnostic());
 		Assertions.assertEquals("new python", pythonDiagnostic.script());
 		Assertions.assertEquals(this.groupId, pythonDiagnostic.targetGroupId());
 
 		Diagnostic simple = this.service.create(simple(this.name("Simple to update"), -1, "enable", "show clock")).diagnostic();
-		SimpleDiagnostic simpleDiagnostic = Assertions.assertInstanceOf(SimpleDiagnostic.class, this.service.update(simple.id(),
+		SimpleDiagnostic simpleDiagnostic = Assertions.assertInstanceOf(SimpleDiagnostic.class, this.update(simple.id(),
 			new DiagnosticDefinition("SimpleDiagnostic", simple.name(), this.otherGroupId, true, "TEXT", "ignored", "Other", "exec",
 				"show version", null, null)).diagnostic());
 		Assertions.assertEquals("Other", simpleDiagnostic.deviceDriver());
@@ -252,29 +256,29 @@ class DiagnosticServiceTest {
 	@DisplayName("update() reports an unknown diagnostic before checking the properties, then the name, the result type, "
 		+ "the kind, and the specific properties")
 	void updateErrors() {
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(99999999L, js(" ", -1, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, () -> this.update(99999999L, js(" ", -1, "x")).diagnostic());
 		Diagnostic javaScript = this.service.create(js(this.name("JS errors"), this.groupId, "script")).diagnostic();
 		long id = javaScript.id();
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC_NAME, () -> this.service.update(id, js(" ", -1, "x")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC_NAME, () -> this.service.update(id, js("a\"b", -1, "x")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(id,
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC_NAME, () -> this.update(id, js(" ", -1, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC_NAME, () -> this.update(id, js("a\"b", -1, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.update(id,
 			new DiagnosticDefinition("JavaScriptDiagnostic", "x", -1, true, "NOPE", "x", null, null, null, null, null)).diagnostic());
 		// The kind of the diagnostic can't change
-		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.service.update(id, python("x", -1, "x")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.service.update(id, simple("x", -1, "enable", "show")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.service.update(id,
+		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.update(id, python("x", -1, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.update(id, simple("x", -1, "enable", "show")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.update(id,
 			new DiagnosticDefinition("NoSuchDiagnostic", "x", -1, true, "TEXT", "x", null, null, null, null, null)).diagnostic());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(id, js("x", -1, "  ")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(id, js("x", -1, null)).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.update(id, js("x", -1, "  ")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.update(id, js("x", -1, null)).diagnostic());
 
 		Diagnostic python = this.service.create(python(this.name("Python errors"), -1, "script")).diagnostic();
-		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.service.update(python.id(), js("x", -1, "x")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(python.id(), python("x", -1, "")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.update(python.id(), js("x", -1, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.update(python.id(), python("x", -1, "")).diagnostic());
 
 		Diagnostic simple = this.service.create(simple(this.name("Simple errors"), -1, "enable", "show clock")).diagnostic();
-		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.service.update(simple.id(), js("x", -1, "x")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(simple.id(), simple("x", -1, "", "show")).diagnostic());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(simple.id(), simple("x", -1, "enable", null)).diagnostic());
+		assertError(ErrorCode.NETSHOT_INCOMPATIBLE_DIAGNOSTIC, () -> this.update(simple.id(), js("x", -1, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.update(simple.id(), simple("x", -1, "", "show")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.update(simple.id(), simple("x", -1, "enable", null)).diagnostic());
 
 		// None of the failed updates changed anything
 		JavaScriptDiagnostic reread = Assertions.assertInstanceOf(JavaScriptDiagnostic.class, this.service.get(id).diagnostic());
@@ -290,7 +294,7 @@ class DiagnosticServiceTest {
 	void updateDuplicate() {
 		Diagnostic first = this.service.create(js(this.name("First"), -1, "x")).diagnostic();
 		Diagnostic second = this.service.create(js(this.name("Second"), -1, "x")).diagnostic();
-		assertError(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, () -> this.service.update(second.id(), js(first.name(), -1, "x")).diagnostic());
+		assertError(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, () -> this.update(second.id(), js(first.name(), -1, "x")).diagnostic());
 		Assertions.assertEquals(second.name(), this.service.get(second.id()).diagnostic().name());
 	}
 
@@ -300,19 +304,19 @@ class DiagnosticServiceTest {
 		Diagnostic diagnostic = this.service.create(js(this.name("Results"), this.groupId, "x")).diagnostic();
 		this.addResult(diagnostic.id());
 		// Same group: the results stay
-		this.service.update(diagnostic.id(), js(diagnostic.name(), this.groupId, "y")).diagnostic();
+		this.update(diagnostic.id(), js(diagnostic.name(), this.groupId, "y")).diagnostic();
 		Assertions.assertEquals(1, this.countResults(diagnostic.id()));
 		// Other group: the results go
-		this.service.update(diagnostic.id(), js(diagnostic.name(), this.otherGroupId, "y")).diagnostic();
+		this.update(diagnostic.id(), js(diagnostic.name(), this.otherGroupId, "y")).diagnostic();
 		Assertions.assertEquals(0, this.countResults(diagnostic.id()));
 
 		// Without group, the results stay when a group is set
 		Diagnostic noGroup = this.service.create(js(this.name("No group"), -1, "x")).diagnostic();
 		this.addResult(noGroup.id());
-		this.service.update(noGroup.id(), js(noGroup.name(), this.groupId, "x")).diagnostic();
+		this.update(noGroup.id(), js(noGroup.name(), this.groupId, "x")).diagnostic();
 		Assertions.assertEquals(1, this.countResults(noGroup.id()));
 		// Removing the group deletes them
-		this.service.update(noGroup.id(), js(noGroup.name(), -1, "x")).diagnostic();
+		this.update(noGroup.id(), js(noGroup.name(), -1, "x")).diagnostic();
 		Assertions.assertEquals(0, this.countResults(noGroup.id()));
 	}
 
@@ -321,7 +325,7 @@ class DiagnosticServiceTest {
 	void updateFailureKeepsResults() {
 		Diagnostic diagnostic = this.service.create(js(this.name("Failed"), this.groupId, "x")).diagnostic();
 		this.addResult(diagnostic.id());
-		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.service.update(diagnostic.id(), js(diagnostic.name(), this.otherGroupId, " ")).diagnostic());
+		assertError(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, () -> this.update(diagnostic.id(), js(diagnostic.name(), this.otherGroupId, " ")).diagnostic());
 		Assertions.assertEquals(1, this.countResults(diagnostic.id()), "the deletion was rolled back");
 		Assertions.assertEquals(this.groupId, this.service.get(diagnostic.id()).diagnostic().targetGroupId());
 	}
@@ -346,7 +350,7 @@ class DiagnosticServiceTest {
 		Diagnostic diagnostic = this.service.create(simple(this.name("Long text"), this.groupId, "enable", "show run")).diagnostic();
 		this.addLongTextResult(diagnostic.id());
 		Assertions.assertEquals(longTexts + 1, this.countLongTexts());
-		this.service.update(diagnostic.id(), simple(diagnostic.name(), this.otherGroupId, "enable", "show run"));
+		this.update(diagnostic.id(), simple(diagnostic.name(), this.otherGroupId, "enable", "show run"));
 		Assertions.assertEquals(longTexts, this.countLongTexts(), "the long text of the result is deleted on a group change");
 
 		this.addLongTextResult(diagnostic.id());

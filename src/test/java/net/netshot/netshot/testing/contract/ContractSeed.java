@@ -484,11 +484,11 @@ public final class ContractSeed {
 
 	private void seedPolicies() {
 		PolicyService policies = TestWiring.get().policyService();
-		this.created("policy.security", policies.create(new PolicyDefinition("Security baseline",
-			Set.of(this.id("group.dynamic")))).policy().id());
-		this.created("policy.routing", policies.create(new PolicyDefinition("Routing policy",
-			new LinkedHashSet<>(List.of(this.id("group.static"), this.id("group.dynamic"))))).policy().id());
-		this.created("policy.empty", policies.create(new PolicyDefinition("Empty policy", Set.of())).policy().id());
+		this.created("policy.security", policies.add(new PolicyDefinition("Security baseline",
+			Set.of(this.id("group.dynamic")))).id());
+		this.created("policy.routing", policies.add(new PolicyDefinition("Routing policy",
+			new LinkedHashSet<>(List.of(this.id("group.static"), this.id("group.dynamic"))))).id());
+		this.created("policy.empty", policies.add(new PolicyDefinition("Empty policy", Set.of())).id());
 
 		RuleService rules = TestWiring.get().ruleService();
 		this.created("rule.text", rules.add(TextRule.builder("No telnet", this.id("policy.security"))

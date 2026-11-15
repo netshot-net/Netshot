@@ -214,23 +214,9 @@ public class DiagnosticService {
 	}
 
 	/**
-	 * Edits a diagnostic. The kind of the diagnostic cannot change. The results of the diagnostic
-	 * are deleted when its target group changes (unless it had none).
-	 *
-	 * @param id the diagnostic ID
-	 * @param definition the new properties
-	 * @return the diagnostic, with its target group
-	 * @throws NetshotException if the diagnostic doesn't exist, the properties are invalid or of
-	 *         another kind of diagnostic, the name is already used, or the diagnostic can't be stored
-	 */
-	public DiagnosticView update(long id, DiagnosticDefinition definition) {
-		return this.update(id, _ -> definition, null,
-			new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, "Unable to find this diagnostic."));
-	}
-
-	/**
 	 * Edits a diagnostic, if it is at a given version: the new properties are computed from the diagnostic as it is,
-	 * which can't change meanwhile (to apply a patch). See {@link #update(long, DiagnosticDefinition)}.
+	 * which can't change meanwhile (to apply a patch). The kind of the diagnostic cannot change. The results of the
+	 * diagnostic are deleted when its target group changes (unless it had none).
 	 *
 	 * @param id the diagnostic ID
 	 * @param change gives the new properties from the current diagnostic
@@ -240,19 +226,13 @@ public class DiagnosticService {
 	 *         invalid or of another kind of diagnostic, the name is already used, or the diagnostic can't be stored
 	 */
 	public DiagnosticView update(long id, Function<Diagnostic, DiagnosticDefinition> change, Long expectedVersion) {
-		return this.update(id, change, expectedVersion,
-			new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "Unable to find the diagnostic"));
-	}
-
-	private DiagnosticView update(long id, Function<Diagnostic, DiagnosticDefinition> change, Long expectedVersion,
-		NetshotException notFound) {
 		DiagnosticView diagnostic;
 		try {
 			diagnostic = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
 					log.error("Unable to find the diagnostic {} to be edited.", id);
-					throw notFound;
+					throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "Unable to find the diagnostic");
 				}
 				Versions.check("diagnostic", version, expectedVersion);
 				Diagnostic existing = this.repository.find(dsl, id);

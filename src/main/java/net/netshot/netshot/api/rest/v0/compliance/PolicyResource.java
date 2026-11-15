@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v0.compliance;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -44,7 +45,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.compliance.PolicyView;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the compliance policies: list, add, edit and delete.
@@ -58,6 +66,7 @@ import net.netshot.netshot.compliance.PolicyService;
 public class PolicyResource {
 
 	private final PolicyService policyService;
+	private final GroupService groupService;
 
 	@Context
 	private HttpServletRequest request;
@@ -66,10 +75,12 @@ public class PolicyResource {
 	 * Instantiates the resource.
 	 *
 	 * @param policyService the policy use cases
+	 * @param groupService the group use cases (to write the target groups of a policy)
 	 */
 	@Inject
-	public PolicyResource(PolicyService policyService) {
+	public PolicyResource(PolicyService policyService, GroupService groupService) {
 		this.policyService = policyService;
+		this.groupService = groupService;
 	}
 
 	/**
@@ -112,7 +123,7 @@ public class PolicyResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public PolicyDto addPolicy(PolicyRequest rsPolicy) throws WebApplicationException {
 		log.debug("REST request, add policy.");
-		PolicyDto policy = PolicyMapper.toDto(this.policyService.create(PolicyMapper.toDefinition(rsPolicy)));
+		PolicyDto policy = this.toDto(this.policyService.add(PolicyMapper.toDefinition(rsPolicy)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return policy;
 	}
@@ -164,6 +175,20 @@ public class PolicyResource {
 	public PolicyDto setPolicy(@PathParam("id") @Parameter(description = "Policy ID") Long id, PolicyRequest rsPolicy)
 		throws WebApplicationException {
 		log.debug("REST request, edit policy {}.", id);
-		return PolicyMapper.toDto(this.policyService.update(id, PolicyMapper.toDefinition(rsPolicy)));
+		PolicyDefinition definition = PolicyMapper.toDefinition(rsPolicy);
+		return this.toDto(V0Errors.translate(() -> this.policyService.replace(id, _ -> definition, null),
+			V0Errors.code(ErrorCode.NETSHOT_POLICY_NOT_FOUND, ErrorCode.NETSHOT_INVALID_POLICY, "Unable to find this policy.")));
+	}
+
+	// The v0 representation of a policy, with its target groups (by ID)
+	private PolicyDto toDto(Policy policy) {
+		List<DeviceGroup> groups = new ArrayList<>();
+		for (Long groupId : policy.targetGroupIds().stream().sorted().toList()) {
+			DeviceGroup group = TargetGroups.find(this.groupService, groupId);
+			if (group != null) {
+				groups.add(group);
+			}
+		}
+		return PolicyMapper.toDto(new PolicyView(policy, groups));
 	}
 }

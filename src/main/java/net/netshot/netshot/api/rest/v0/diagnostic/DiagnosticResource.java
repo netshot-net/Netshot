@@ -44,8 +44,11 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.diagnostic.DiagnosticDefinition;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the diagnostics and of the diagnostic results of the devices.
@@ -164,7 +167,9 @@ public class DiagnosticResource {
 	public DiagnosticDto setDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") Long id, DiagnosticRequest rsDiagnostic)
 		throws WebApplicationException {
 		log.debug("REST request, edit diagnostic {}.", id);
-		return DiagnosticMapper.toDto(this.driverRegistry, this.diagnosticService.update(id, DiagnosticMapper.toDefinition(rsDiagnostic)));
+		DiagnosticDefinition definition = DiagnosticMapper.toDefinition(rsDiagnostic);
+		return DiagnosticMapper.toDto(this.driverRegistry, V0Errors.translate(() -> this.diagnosticService.update(id, _ -> definition, null),
+			V0Errors.code(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, "Unable to find this diagnostic.")));
 	}
 
 	/**
