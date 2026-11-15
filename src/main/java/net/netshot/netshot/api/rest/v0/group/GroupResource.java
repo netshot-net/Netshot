@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.inventory.group.GroupDefinition;
 import net.netshot.netshot.inventory.group.GroupService;
 
 /**
@@ -185,6 +186,7 @@ public class GroupResource {
 	public DeviceGroupDto setGroup(@PathParam("id") @Parameter(description = "Group ID") Long id, GroupRequest rsGroup)
 		throws WebApplicationException {
 		log.debug("REST request, edit group {}.", id);
-		return GroupMapper.toDto(this.groupService.update(id, GroupMapper.toDefinition(rsGroup)));
+		GroupDefinition definition = GroupMapper.toUpdateDefinition(rsGroup);
+		return GroupMapper.toDto(this.groupService.update(id, _ -> definition, null));
 	}
 }

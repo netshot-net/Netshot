@@ -195,47 +195,13 @@ public class GroupService {
 	}
 
 	/**
-	 * Edits a group. The kind of the group can't change: the definition gives the new devices of
-	 * a static group, or the new query of a dynamic group (which members are then refreshed).
-	 *
-	 * @param id the group ID
-	 * @param definition the new definition of the group
-	 * @return the edited group
-	 * @throws NetshotException if the group doesn't exist, a device of a static group doesn't
-	 *         exist, the query of a dynamic group is invalid, the name is invalid or already used,
-	 *         or the group can't be stored
-	 */
-	public DeviceGroup update(long id, GroupDefinition definition) {
-		GroupDefinition replacing = definition.staticDevices() == null
-			? new GroupDefinition(definition.type(), definition.name(), List.of(), definition.query(), definition.folder(),
-				definition.hiddenFromReports())
-			: definition;
-		return this.update(id, _ -> replacing, null, false);
-	}
-
-	/**
-	 * Replaces the definition of a group, if it is at a given version. The type of a group can't change: the
+	 * Replaces the definition of a group, if it is at a given version: the new definition is computed from the
+	 * group as it is, which can't change meanwhile (to apply a patch). The type of a group can't change: the
 	 * definition gives the new devices of a static group (null to keep them), or the new query of a dynamic group
 	 * (which members are then refreshed; the default query if null).
 	 *
 	 * @param id the group ID
-	 * @param definition the new definition of the group (its type, if given, must be the one of the group)
-	 * @param expectedVersion the version the group must be at, or null for any
-	 * @return the edited group
-	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, is of another type, a
-	 *         device of a static group doesn't exist, the query of a dynamic group is invalid, the name is invalid
-	 *         or already used, or the group can't be stored
-	 */
-	public DeviceGroup update(long id, GroupDefinition definition, Long expectedVersion) {
-		return this.update(id, _ -> definition, expectedVersion, true);
-	}
-
-	/**
-	 * Replaces the definition of a group, if it is at a given version: the new definition is computed from the
-	 * group as it is, which can't change meanwhile (to apply a patch). See {@link #update(long, GroupDefinition, Long)}.
-	 *
-	 * @param id the group ID
-	 * @param change gives the new definition from the current group
+	 * @param change gives the new definition from the current group (its type, if given, must be the one of the group)
 	 * @param expectedVersion the version the group must be at, or null for any
 	 * @return the edited group
 	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, is of another type, a
@@ -243,10 +209,6 @@ public class GroupService {
 	 *         or already used, or the group can't be stored
 	 */
 	public DeviceGroup update(long id, Function<DeviceGroup, GroupDefinition> change, Long expectedVersion) {
-		return this.update(id, change, expectedVersion, true);
-	}
-
-	private DeviceGroup update(long id, Function<DeviceGroup, GroupDefinition> change, Long expectedVersion, boolean checkType) {
 		DeviceGroup group;
 		try {
 			group = this.transactions.write(dsl -> {
@@ -258,7 +220,7 @@ public class GroupService {
 				Versions.check("group", version, expectedVersion);
 				DeviceGroup existing = this.repository.find(dsl, id);
 				GroupDefinition definition = change.apply(existing);
-				if (checkType && definition.type() != null && !definition.type().equals(typeName(existing))) {
+				if (definition.type() != null && !definition.type().equals(typeName(existing))) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "The type of a group can't change.");
 				}
 				List<Long> deviceIds = null;
@@ -267,7 +229,7 @@ public class GroupService {
 					deviceIds = this.checkDevices(dsl, definition.staticDevices());
 				}
 				else if (existing instanceof DynamicDeviceGroup) {
-					query = formatQuery(definition.query() == null && checkType ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
+					query = formatQuery(definition.query() == null ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
 				}
 				String name = definition.name() == null ? "" : definition.name().trim();
 				if (name.isEmpty()) {
