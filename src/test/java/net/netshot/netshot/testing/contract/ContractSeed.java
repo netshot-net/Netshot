@@ -518,15 +518,15 @@ public final class ContractSeed {
 		DiagnosticService diagnostics = TestWiring.get().diagnosticService();
 		this.created("diag.simple.text", diagnostics.create(new DiagnosticDefinition("SimpleDiagnostic", "Reload reason",
 			this.id("group.dynamic"), true, "TEXT", null, "CiscoIOS12", "enable", "show version | include reason",
-			"(?s).*reason: (.+?)\\n.*", "$1")).diagnostic().id());
+			"(?s).*reason: (.+?)\\n.*", "$1")).id());
 		this.created("diag.js.longtext", diagnostics.create(new DiagnosticDefinition("JavaScriptDiagnostic", "Full inventory",
 			-1, true, "LONGTEXT", "function diagnose(cli, device, diagnostic) {\n  diagnostic.set('x');\n}",
-			null, null, null, null, null)).diagnostic().id());
+			null, null, null, null, null)).id());
 		this.created("diag.python.numeric", diagnostics.create(new DiagnosticDefinition("PythonDiagnostic", "CPU load",
 			this.id("group.static"), false, "NUMERIC", "def diagnose(cli, device, diagnostic):\n  diagnostic.set(1)",
-			null, null, null, null, null)).diagnostic().id());
+			null, null, null, null, null)).id());
 		this.created("diag.simple.binary", diagnostics.create(new DiagnosticDefinition("SimpleDiagnostic", "Config saved",
-			-1, true, "BINARY", null, "CiscoIOS12", "enable", "show startup-config", "", "")).diagnostic().id());
+			-1, true, "BINARY", null, "CiscoIOS12", "enable", "show startup-config", "", "")).id());
 	}
 
 	private void seedHooks() {
