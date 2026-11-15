@@ -18,11 +18,13 @@
  */
 package net.netshot.netshot.compliance;
 
-import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 import java.time.Instant;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,13 +40,13 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
+import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
-import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.domain.Domain;
-import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -110,6 +112,18 @@ class ComplianceServiceTest {
 		return this.policyService.update(id, _ -> definition, null);
 	}
 
+	private static ListQuery page(int offset, int limit) {
+		return new ListQuery(List.of(), null, List.of(), new Page(offset, limit), false);
+	}
+
+	private static ListQuery ofPolicy(long policyId, Page page) {
+		return new ListQuery(List.of(new Criterion("policy", Lookup.EXACT, List.of(policyId))), null, List.of(), page, false);
+	}
+
+	private List<Exemption> exemptions(long ruleId) {
+		return this.ruleService.listExemptions(ruleId, ListQuery.ALL).items();
+	}
+
 	private static TextRule textRule(String name, long policyId) {
 		return TextRule.builder(name, policyId).text("ntp server").field("runningConfig").build();
 	}
@@ -124,7 +138,7 @@ class ComplianceServiceTest {
 		Policy policy = this.createPolicy("  " + this.name("Policy") + " ", this.groupId, this.otherGroupId);
 		Assertions.assertFalse(policy.name().startsWith(" "));
 		Assertions.assertEquals(2, policy.targetGroupIds().size());
-		Policy listed = this.policyService.list(Page.ALL).stream().map(PolicyView::policy).filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
+		Policy listed = this.policyService.list(ListQuery.ALL).items().stream().filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(policy.name(), listed.name());
 		Assertions.assertEquals(Set.of(this.groupId, this.otherGroupId),
 			Set.of(listed.targetGroupIds().stream().toArray(Long[]::new)), "groups loaded by the list");
@@ -144,8 +158,8 @@ class ComplianceServiceTest {
 	void policyList() {
 		this.createPolicy(this.name("Paged"));
 		this.createPolicy(this.name("Paged"));
-		Assertions.assertEquals(1, this.policyService.list(new Page(0, 1)).size());
-		Assertions.assertTrue(this.policyService.list(Page.ALL).size() >= 2);
+		Assertions.assertEquals(1, this.policyService.list(page(0, 1)).items().size());
+		Assertions.assertTrue(this.policyService.list(ListQuery.ALL).items().size() >= 2);
 	}
 
 	@Test
@@ -188,7 +202,7 @@ class ComplianceServiceTest {
 		Policy other = this.createPolicy(this.name("Other"));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_POLICY,
 			() -> this.updatePolicy(other.id(), new PolicyDefinition(policy.name(), Set.of())));
-		Policy reread = this.policyService.list(Page.ALL).stream().map(PolicyView::policy).filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
+		Policy reread = this.policyService.list(ListQuery.ALL).items().stream().filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(1, reread.targetGroupIds().size(), "the failed update left the groups alone");
 	}
 
@@ -200,7 +214,7 @@ class ComplianceServiceTest {
 		this.policyService.delete(policy.id(), null);
 		assertError(ErrorCode.NETSHOT_POLICY_NOT_FOUND, () -> this.policyService.delete(policy.id(), null));
 		Assertions.assertEquals(0, this.countResults(rule.id()));
-		assertError(ErrorCode.NETSHOT_INVALID_POLICY, () -> this.ruleService.listOfPolicy(policy.id(), Page.ALL));
+		Assertions.assertTrue(this.ruleService.list(ofPolicy(policy.id(), Page.ALL)).items().isEmpty());
 	}
 
 	@Test
@@ -208,11 +222,11 @@ class ComplianceServiceTest {
 	void policyUnknownGroup() {
 		String name = this.name("Unknown group");
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.createPolicy(name, 99999999L));
-		Assertions.assertTrue(this.policyService.list(Page.ALL).stream().map(PolicyView::policy).noneMatch(p -> p.name().equals(name)));
+		Assertions.assertTrue(this.policyService.list(ListQuery.ALL).items().stream().noneMatch(p -> p.name().equals(name)));
 		Policy policy = this.createPolicy(name, this.groupId);
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP,
 			() -> this.updatePolicy(policy.id(), new PolicyDefinition(name, Set.of(this.groupId, 99999999L))));
-		Policy listed = this.policyService.list(Page.ALL).stream().map(PolicyView::policy).filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
+		Policy listed = this.policyService.list(ListQuery.ALL).items().stream().filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(Set.of(this.groupId), listed.targetGroupIds().stream().collect(Collectors.toSet()));
 	}
 
@@ -243,11 +257,10 @@ class ComplianceServiceTest {
 		Assertions.assertEquals("function check(d) { return CONFORMING; }", Assertions.assertInstanceOf(JavaScriptRule.class, js).script());
 		Rule py = this.ruleService.create(PythonRule.of(this.name("Py"), policy.id()));
 		Assertions.assertTrue(Assertions.assertInstanceOf(PythonRule.class, py).script().length() > 0, "the template script is kept");
-		Assertions.assertEquals(3, this.ruleService.listOfPolicy(policy.id(), Page.ALL).size());
-		Assertions.assertEquals(1, this.ruleService.listOfPolicy(policy.id(), new Page(1, 1)).size());
-		List<RuleSummary> summaries = this.ruleService.list(Page.ALL);
-		Assertions.assertTrue(summaries.stream().anyMatch(s -> s.id() == js.id() && "JavaScriptRule".equals(s.type())
-			&& s.policyId() == policy.id() && !s.enabled()));
+		Assertions.assertEquals(3, this.ruleService.list(ofPolicy(policy.id(), Page.ALL)).items().size());
+		Assertions.assertEquals(1, this.ruleService.list(ofPolicy(policy.id(), new Page(1, 1))).items().size());
+		Assertions.assertTrue(this.ruleService.list(ListQuery.ALL).items().stream().anyMatch(r -> r.id() == js.id()
+			&& r instanceof JavaScriptRule && r.policyId() == policy.id() && !r.enabled()));
 	}
 
 	@Test
@@ -267,17 +280,15 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Rule getOfPolicy() and listOfPolicy() report the unknown policy and the unknown rule")
+	@DisplayName("Rule get() reports an unknown rule, and list() filters the rules of a policy")
 	void ruleReadErrors() {
 		Policy policy = this.createPolicy(this.name("Read"));
 		Policy other = this.createPolicy(this.name("Read other"));
 		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
-		Assertions.assertEquals(rule.id(), this.ruleService.getOfPolicy(policy.id(), rule.id()).id());
-		assertError(ErrorCode.NETSHOT_POLICY_NOT_FOUND, () -> this.ruleService.getOfPolicy(99999999L, rule.id()));
-		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.ruleService.getOfPolicy(other.id(), rule.id()));
-		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.ruleService.getOfPolicy(policy.id(), 99999999L));
-		assertError(ErrorCode.NETSHOT_INVALID_POLICY, () -> this.ruleService.listOfPolicy(99999999L, Page.ALL));
-		Assertions.assertTrue(this.ruleService.listOfPolicy(other.id(), Page.ALL).isEmpty());
+		Assertions.assertEquals(rule.id(), this.ruleService.get(rule.id()).id());
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.ruleService.get(99999999L));
+		Assertions.assertEquals(List.of(rule.id()), this.ruleService.list(ofPolicy(policy.id(), Page.ALL)).items().stream().map(Rule::id).toList());
+		Assertions.assertTrue(this.ruleService.list(ofPolicy(other.id(), Page.ALL)).items().isEmpty());
 	}
 
 	@Test
@@ -295,21 +306,20 @@ class ComplianceServiceTest {
 		Assertions.assertEquals("new text", replaced.text());
 		Assertions.assertTrue(replaced.regExp());
 		Assertions.assertEquals(rule.version() + 1, replaced.version(), "one change of the rule");
-		List<ExemptedDevice> exempted = this.ruleService.listExemptedDevices(rule.id(), Page.ALL);
+		List<Exemption> exempted = this.exemptions(rule.id());
 		Assertions.assertEquals(1, exempted.size());
-		Assertions.assertEquals(this.deviceId, exempted.get(0).device().id());
-		Assertions.assertEquals("router-a", exempted.get(0).device().name());
-		Assertions.assertEquals(Date.from(expiration), exempted.get(0).expirationDate());
+		Assertions.assertEquals(this.deviceId, exempted.get(0).deviceId());
+		Assertions.assertEquals(expiration, exempted.get(0).expirationDate());
 
 		// Without exemptions, they are kept
 		Rule renamed = this.ruleService.update(rule.id(),
 			current -> Replacement.of(((TextRule) current).toBuilder().name(this.name("Renamed")).build()), null);
-		Assertions.assertEquals(1, this.ruleService.listExemptedDevices(rule.id(), Page.ALL).size());
+		Assertions.assertEquals(1, this.exemptions(rule.id()).size());
 
 		// All the exemptions are replaced
 		this.ruleService.update(rule.id(), current -> new Replacement(current, Map.of()), (long) renamed.version());
-		Assertions.assertTrue(this.ruleService.listExemptedDevices(rule.id(), Page.ALL).isEmpty());
-		Assertions.assertTrue(this.ruleService.listExemptedDevices(99999999L, Page.ALL).isEmpty());
+		Assertions.assertTrue(this.exemptions(rule.id()).isEmpty());
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.exemptions(99999999L));
 	}
 
 	@Test
@@ -349,10 +359,10 @@ class ComplianceServiceTest {
 		Assertions.assertEquals("exemptions", exempted.getTarget());
 		assertError(ErrorCode.NETSHOT_DUPLICATE_RULE,
 			() -> this.ruleService.update(other.id(), _ -> new Replacement(textRule(name, 0), Map.of()), null));
-		Rule reread = this.ruleService.getOfPolicy(policy.id(), rule.id());
+		Rule reread = this.ruleService.get(rule.id());
 		Assertions.assertEquals(name, reread.name());
 		Assertions.assertEquals(rule.version() + 1, reread.version(), "only the exemptions were changed");
-		Assertions.assertEquals(1, this.ruleService.listExemptedDevices(rule.id(), Page.ALL).size());
+		Assertions.assertEquals(1, this.exemptions(rule.id()).size());
 	}
 
 	@Test
@@ -362,7 +372,7 @@ class ComplianceServiceTest {
 		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
 		this.ruleService.delete(rule.id(), null);
 		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.ruleService.delete(rule.id(), null));
-		Assertions.assertTrue(this.ruleService.listOfPolicy(policy.id(), Page.ALL).isEmpty());
+		Assertions.assertTrue(this.ruleService.list(ofPolicy(policy.id(), Page.ALL)).items().isEmpty());
 	}
 
 	@Test
@@ -377,20 +387,20 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Device results lists nothing for a device which doesn't exist or is not a member of a policy group")
+	@DisplayName("Device results report an unknown device, and list nothing for a device which is not a member of a policy group")
 	void deviceResults() {
-		Assertions.assertTrue(this.ruleService.listDeviceResults(99999999L, Page.ALL).isEmpty());
+		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.ruleService.listDeviceResults(99999999L, ListQuery.ALL));
 		Policy policy = this.createPolicy(this.name("Results"));
 		this.ruleService.create(textRule(this.name("Rule"), policy.id()));
-		Assertions.assertTrue(this.ruleService.listDeviceResults(this.deviceId, Page.ALL).stream()
+		Assertions.assertTrue(this.ruleService.listDeviceResults(this.deviceId, ListQuery.ALL).items().stream()
 			.noneMatch(r -> r.policyId() == policy.id()));
 		Policy policyWithGroup = this.createPolicy(this.name("Results group"), this.groupId);
 		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policyWithGroup.id()));
-		List<DeviceRuleResult> results = this.ruleService.listDeviceResults(this.deviceId, Page.ALL);
-		DeviceRuleResult result = results.stream().filter(r -> r.ruleId() == rule.id()).findFirst().orElseThrow();
-		Assertions.assertEquals(policyWithGroup.name(), result.policyName());
+		List<DeviceCheckResult> results = this.ruleService.listDeviceResults(this.deviceId, ListQuery.ALL).items();
+		DeviceCheckResult result = results.stream().filter(r -> r.ruleId() == rule.id()).findFirst().orElseThrow();
+		Assertions.assertEquals(policyWithGroup.id(), result.policyId());
 		Assertions.assertNull(result.result(), "never checked");
-		Assertions.assertNull(result.expirationDate());
+		Assertions.assertNull(result.exemptionExpirationDate());
 	}
 
 	// ------------------------------------------------------------------
@@ -419,10 +429,10 @@ class ComplianceServiceTest {
 		RankedSoftwareRule first = this.softwareRuleService.create(software(null, null, "4.0"), 1);
 		Assertions.assertEquals(1, first.rank());
 		Assertions.assertEquals(first.rule().id(), this.softwareOrder().get(0));
-		List<SoftwareRuleView> rules = this.softwareRuleService.list(Page.ALL);
-		SoftwareRuleView listedView = rules.stream().filter(r -> r.rule().id() == rule.id()).findFirst().orElseThrow();
-		Assertions.assertEquals("Group", listedView.targetGroup().name(), "the group is loaded by the list");
-		Assertions.assertEquals(1, this.softwareRuleService.list(new Page(0, 1)).size());
+		RankedSoftwareRule listed = this.softwareRuleService.list(ListQuery.ALL).items().stream()
+			.filter(r -> r.rule().id() == rule.id()).findFirst().orElseThrow();
+		Assertions.assertEquals(this.groupId, listed.rule().targetGroupId());
+		Assertions.assertEquals(1, this.softwareRuleService.list(page(0, 1)).items().size());
 	}
 
 	@Test
@@ -448,7 +458,7 @@ class ComplianceServiceTest {
 	}
 
 	private List<Long> softwareOrder() {
-		return this.softwareRuleService.list(Page.ALL).stream().map(v -> v.rule().id()).toList();
+		return this.softwareRuleService.list(ListQuery.ALL).items().stream().map(v -> v.rule().id()).toList();
 	}
 
 	// Moves a software rule to a position, without changing it
@@ -472,7 +482,7 @@ class ComplianceServiceTest {
 		this.moveSoftware(c, initial.size() - 2);
 		List<Long> order = this.softwareOrder();
 		Assertions.assertEquals(List.of(c, a, b), order.subList(order.size() - 3, order.size()));
-		Assertions.assertEquals(10.0 * order.size(), this.softwareRuleService.list(Page.ALL).get(order.size() - 1).rule().priority());
+		Assertions.assertEquals(10.0 * order.size(), this.softwareRuleService.list(ListQuery.ALL).items().get(order.size() - 1).rule().priority());
 
 		this.moveSoftware(c, Integer.MAX_VALUE);
 		order = this.softwareOrder();
@@ -494,8 +504,8 @@ class ComplianceServiceTest {
 		Assertions.assertEquals("CiscoIOS12", rule.driver());
 		Assertions.assertEquals(sale, rule.endOfSale());
 		Assertions.assertEquals(life, rule.endOfLife());
-		HardwareRuleView listedView = this.hardwareRuleService.list().stream().filter(r -> r.rule().id() == rule.id()).findFirst().orElseThrow();
-		Assertions.assertEquals("Group", listedView.targetGroup().name(), "the group is loaded by the list");
+		HardwareRule listed = this.hardwareRuleService.list(ListQuery.ALL).items().stream().filter(r -> r.id() == rule.id()).findFirst().orElseThrow();
+		Assertions.assertEquals(this.groupId, listed.targetGroupId());
 
 		// A group or a driver which doesn't exist is refused, and nothing is changed
 		NetshotException group = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.hardwareRuleService.create(

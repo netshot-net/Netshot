@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.DSLContext;
@@ -29,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Transactions;
@@ -67,28 +64,6 @@ public class HardwareRuleService {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Lists the hardware rules, by ID.
-	 *
-	 * @return the rules
-	 * @throws NetshotException if the rules can't be read
-	 */
-	public List<HardwareRuleView> list() {
-		try {
-			return this.transactions.read(dsl -> {
-				List<HardwareRuleView> views = new ArrayList<>();
-				for (HardwareRule rule : this.repository.findAll(dsl)) {
-					views.add(new HardwareRuleView(rule, this.findGroup(dsl, rule.targetGroupId())));
-				}
-				return views;
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the hardware rules.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hardware rules.");
-		}
 	}
 
 	/**
@@ -232,23 +207,4 @@ public class HardwareRuleService {
 		}
 	}
 
-	/**
-	 * Finds a group.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param groupId the ID of the group, or null
-	 * @return the group, or null for no group
-	 * @throws NetshotException if there is no such group
-	 */
-	private DeviceGroup findGroup(DSLContext dsl, Long groupId) {
-		if (groupId == null) {
-			return null;
-		}
-		DeviceGroup group = new GroupRepository().find(dsl, groupId);
-		if (group == null) {
-			log.error("Unable to find the group {}.", groupId);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
-		}
-		return group;
-	}
 }

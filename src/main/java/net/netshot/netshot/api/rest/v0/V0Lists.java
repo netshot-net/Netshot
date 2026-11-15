@@ -24,13 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * Builds the reads of the v0 API on the list use cases of the services (the ones of the v1 API): a v0 page is the
@@ -49,7 +53,40 @@ public final class V0Lists {
 	 * @return the query
 	 */
 	public static ListQuery query(Page page, Criterion... criteria) {
-		return new ListQuery(List.of(criteria), null, List.of(), page, false);
+		return sorted(page, List.of(), criteria);
+	}
+
+	/**
+	 * Gets the list query of a v0 page, in a given order.
+	 *
+	 * @param page the window
+	 * @param sort the order (the ID of the list always ends it)
+	 * @param criteria the filters
+	 * @return the query
+	 */
+	public static ListQuery sorted(Page page, List<SortOrder> sort, Criterion... criteria) {
+		return new ListQuery(List.of(criteria), null, sort, page, false);
+	}
+
+	/**
+	 * Runs a list use case which reports a missing parent object with an error, for a v0 resource which answers an
+	 * empty list instead.
+	 *
+	 * @param <T> the type of the items
+	 * @param list the list use case
+	 * @param notFound the code of the error of the missing parent object
+	 * @return the items, or an empty list if the parent object doesn't exist
+	 */
+	public static <T> List<T> orEmpty(Supplier<List<T>> list, ErrorCode notFound) {
+		try {
+			return list.get();
+		}
+		catch (NetshotException e) {
+			if (e.getErrorCode() == notFound) {
+				return List.of();
+			}
+			throw e;
+		}
 	}
 
 	/**

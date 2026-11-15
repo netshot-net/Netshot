@@ -37,7 +37,6 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -84,76 +83,6 @@ public class RuleService {
 		this.evaluators = evaluators;
 		this.repository = repository;
 		this.policyRepository = policyRepository;
-	}
-
-	/**
-	 * Lists all the rules, across all the policies, with minimal details.
-	 *
-	 * @param page the window on the result
-	 * @return the rule summaries
-	 * @throws NetshotException if the rules can't be read
-	 */
-	public List<RuleSummary> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the rules.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
-		}
-	}
-
-	/**
-	 * Lists the rules of a policy.
-	 *
-	 * @param policyId the policy ID
-	 * @param page the window on the result
-	 * @return the rules
-	 * @throws NetshotException if the policy doesn't exist, or the rules can't be read
-	 */
-	public List<Rule> listOfPolicy(long policyId, Page page) {
-		try {
-			return this.transactions.read(dsl -> {
-				if (this.policyRepository.find(dsl, policyId) == null) {
-					log.error("Invalid policy.");
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy");
-				}
-				return this.repository.findByPolicy(dsl, policyId, page);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the rules.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
-		}
-	}
-
-	/**
-	 * Gets a rule of a policy.
-	 *
-	 * @param policyId the policy ID
-	 * @param id the rule ID
-	 * @return the rule
-	 * @throws NetshotException if the policy or the rule of the policy doesn't exist, or the rule can't be read
-	 */
-	public Rule getOfPolicy(long policyId, long id) {
-		try {
-			return this.transactions.read(dsl -> {
-				if (this.policyRepository.find(dsl, policyId) == null) {
-					log.error("Invalid policy.");
-					throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unknown policy");
-				}
-				Rule rule = this.repository.findOfPolicy(dsl, policyId, id);
-				if (rule == null) {
-					log.warn("Unable to find the rule object.");
-					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unknown rule");
-				}
-				return rule;
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rule");
-		}
 	}
 
 	/**
@@ -538,39 +467,4 @@ public class RuleService {
 		}
 	}
 
-	/**
-	 * Lists the devices exempted from a rule.
-	 *
-	 * @param ruleId the rule ID
-	 * @param page the window on the result
-	 * @return the exempted devices (empty if the rule doesn't exist)
-	 * @throws NetshotException if the exemptions can't be read
-	 */
-	public List<ExemptedDevice> listExemptedDevices(long ruleId, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findExemptedDevices(dsl, ruleId, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the exemptions.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the exemptions");
-		}
-	}
-
-	/**
-	 * Lists the compliance state of a device: the rules of the policies applying to it, with their last result.
-	 *
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the rule results (empty if the device doesn't exist)
-	 * @throws NetshotException if the results can't be read
-	 */
-	public List<DeviceRuleResult> listDeviceResults(long deviceId, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findDeviceResults(dsl, deviceId, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the rules.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
-		}
-	}
 }

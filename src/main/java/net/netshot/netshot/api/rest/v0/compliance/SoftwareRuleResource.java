@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
+import java.util.Map;
 
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,12 +47,13 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.compliance.RankedSoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
-import net.netshot.netshot.compliance.SoftwareRuleView;
+import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -112,7 +114,11 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public List<SoftwareRuleDto> getSoftwareRules(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, software rules.");
-		return SoftwareRuleMapper.toDtos(this.driverRegistry, this.softwareRuleService.list(paginationParams.toPage()));
+		List<SoftwareRule> rules = this.softwareRuleService.list(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(RankedSoftwareRule::rule).toList();
+		Map<Long, DeviceGroup> groups = V0Lists.groups(this.groupService, rules.stream().map(SoftwareRule::targetGroupId).toList());
+		return SoftwareRuleMapper.toDtos(this.driverRegistry, rules.stream()
+			.map(rule -> new SoftwareRuleView(rule, rule.targetGroupId() == null ? null : groups.get(rule.targetGroupId()))).toList());
 	}
 
 	/**
@@ -233,6 +239,6 @@ public class SoftwareRuleResource {
 
 	private SoftwareRuleDto toDto(SoftwareRule rule) {
 		return SoftwareRuleMapper.toDto(this.driverRegistry,
-			new SoftwareRuleView(rule, TargetGroups.find(this.groupService, rule.targetGroupId())));
+			new SoftwareRuleView(rule, V0Lists.group(this.groupService, rule.targetGroupId())));
 	}
 }

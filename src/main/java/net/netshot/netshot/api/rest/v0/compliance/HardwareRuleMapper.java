@@ -24,7 +24,6 @@ import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.compliance.HardwareRule;
-import net.netshot.netshot.compliance.HardwareRuleView;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 

@@ -19,10 +19,6 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 
 /**
  * What the v0 representation of the policies and of the software and hardware rules needs: their target groups, and the
@@ -31,28 +27,6 @@ import net.netshot.netshot.platform.error.NetshotException;
 final class TargetGroups {
 
 	private TargetGroups() {
-	}
-
-	/**
-	 * Gets the target group of a rule, as written in its v0 representation.
-	 *
-	 * @param groupService the group use cases
-	 * @param groupId the ID of the group, or null
-	 * @return the group, or null for no group (or a group deleted meanwhile)
-	 */
-	static DeviceGroup find(GroupService groupService, Long groupId) {
-		if (groupId == null) {
-			return null;
-		}
-		try {
-			return groupService.get(groupId);
-		}
-		catch (NetshotException e) {
-			if (e.getErrorCode() == ErrorCode.NETSHOT_GROUP_NOT_FOUND) {
-				return null;
-			}
-			throw e;
-		}
 	}
 
 	/**

@@ -16,7 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.compliance;
+package net.netshot.netshot.api.rest.v0.compliance;
+
+import net.netshot.netshot.compliance.Rule;
 
 /**
  * A compliance rule with minimal details (projection of the list of rules).
