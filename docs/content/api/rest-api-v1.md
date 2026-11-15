@@ -225,7 +225,7 @@ Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDa
 - `GET /api/v1/tasks/stats` counts the tasks (see [Statistics](#statistics)): `groupBy` `type`, `status`, `author`, `scheduleType`, `device`, `group`, `runnerId`; time buckets on `executionDate` (default; the tasks which haven't run aren't counted), `creationDate`, `changeDate` or `scheduleReference`. For instance the finished tasks of the last day, by hour and status: `/api/v1/tasks/stats?interval=hour&groupBy=status&status=SUCCESS&status=FAILURE&status=CANCELLED`.
 - `GET /api/v1/tasks/status-counts?parentTask=`: `{"countByStatus" (every status), "threadCount"}`; with `parentTask`, only the children of that task.
 
-Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `scheduleType`, `scheduleReference`, `creationDate`, `changeDate`, `executionDate`, `device`, `group`, `parentTask`, `childOrder`, `runnerId`, `debugEnabled`; `q` searches the author, target and comments.
+Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `scheduleType`, `scheduleReference`, `creationDate`, `changeDate`, `executionDate`, `date`, `activity`, `device`, `group`, `parentTask`, `childOrder`, `runnerId`, `debugEnabled`; `q` searches the author, target and comments. `date` is the execution date of a task, or its change date if it hasn't run; `activity` ranks the status, the active tasks first (0 running, 1 waiting, 2 scheduled, 3 new, 4 done): `sort=activity,-date` lists the active tasks first, then the latest ones.
 
 ### Diagnostics
 

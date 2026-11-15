@@ -34079,7 +34079,7 @@
         }, {
           "name" : "sort",
           "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, childOrder",
+          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, date, activity, childOrder",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -35274,6 +35274,190 @@
             "type" : "boolean"
           }
         }, {
+          "name" : "date",
+          "in" : "query",
+          "description" : "Filter: date equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__n",
+          "in" : "query",
+          "description" : "Filter: date not equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__lt",
+          "in" : "query",
+          "description" : "Filter: date lower than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__lte",
+          "in" : "query",
+          "description" : "Filter: date lower than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__gt",
+          "in" : "query",
+          "description" : "Filter: date greater than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__gte",
+          "in" : "query",
+          "description" : "Filter: date greater than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__empty",
+          "in" : "query",
+          "description" : "Filter: date is empty (null, or an empty string) for true, isn't for false",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "activity",
+          "in" : "query",
+          "description" : "Filter: activity equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__n",
+          "in" : "query",
+          "description" : "Filter: activity not equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__lt",
+          "in" : "query",
+          "description" : "Filter: activity lower than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__lte",
+          "in" : "query",
+          "description" : "Filter: activity lower than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__gt",
+          "in" : "query",
+          "description" : "Filter: activity greater than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__gte",
+          "in" : "query",
+          "description" : "Filter: activity greater than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__empty",
+          "in" : "query",
+          "description" : "Filter: activity is empty (null, or an empty string) for true, isn't for false",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
           "name" : "device",
           "in" : "query",
           "description" : "Filter: device equal to",
@@ -35943,7 +36127,7 @@
         }, {
           "name" : "sort",
           "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, childOrder",
+          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, date, activity, childOrder",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -37150,6 +37334,190 @@
             "type" : "boolean"
           }
         }, {
+          "name" : "date",
+          "in" : "query",
+          "description" : "Filter: date equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__n",
+          "in" : "query",
+          "description" : "Filter: date not equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__lt",
+          "in" : "query",
+          "description" : "Filter: date lower than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__lte",
+          "in" : "query",
+          "description" : "Filter: date lower than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__gt",
+          "in" : "query",
+          "description" : "Filter: date greater than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__gte",
+          "in" : "query",
+          "description" : "Filter: date greater than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__empty",
+          "in" : "query",
+          "description" : "Filter: date is empty (null, or an empty string) for true, isn't for false",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "activity",
+          "in" : "query",
+          "description" : "Filter: activity equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__n",
+          "in" : "query",
+          "description" : "Filter: activity not equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__lt",
+          "in" : "query",
+          "description" : "Filter: activity lower than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__lte",
+          "in" : "query",
+          "description" : "Filter: activity lower than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__gt",
+          "in" : "query",
+          "description" : "Filter: activity greater than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__gte",
+          "in" : "query",
+          "description" : "Filter: activity greater than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__empty",
+          "in" : "query",
+          "description" : "Filter: activity is empty (null, or an empty string) for true, isn't for false",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
           "name" : "device",
           "in" : "query",
           "description" : "Filter: device equal to",
@@ -37936,7 +38304,7 @@
         }, {
           "name" : "on",
           "in" : "query",
-          "description" : "Date field of the time buckets; fields: scheduleReference, creationDate, changeDate, executionDate",
+          "description" : "Date field of the time buckets; fields: scheduleReference, creationDate, changeDate, executionDate, date",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -39115,6 +39483,190 @@
           "name" : "executionDate__empty",
           "in" : "query",
           "description" : "Filter: executionDate is empty (null, or an empty string) for true, isn't for false",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "description" : "Filter: date equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__n",
+          "in" : "query",
+          "description" : "Filter: date not equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__lt",
+          "in" : "query",
+          "description" : "Filter: date lower than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__lte",
+          "in" : "query",
+          "description" : "Filter: date lower than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__gt",
+          "in" : "query",
+          "description" : "Filter: date greater than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__gte",
+          "in" : "query",
+          "description" : "Filter: date greater than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "description" : "ISO-8601 date or date and time with offset"
+            }
+          }
+        }, {
+          "name" : "date__empty",
+          "in" : "query",
+          "description" : "Filter: date is empty (null, or an empty string) for true, isn't for false",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "activity",
+          "in" : "query",
+          "description" : "Filter: activity equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__n",
+          "in" : "query",
+          "description" : "Filter: activity not equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__lt",
+          "in" : "query",
+          "description" : "Filter: activity lower than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__lte",
+          "in" : "query",
+          "description" : "Filter: activity lower than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__gt",
+          "in" : "query",
+          "description" : "Filter: activity greater than",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__gte",
+          "in" : "query",
+          "description" : "Filter: activity greater than or equal to",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }, {
+          "name" : "activity__empty",
+          "in" : "query",
+          "description" : "Filter: activity is empty (null, or an empty string) for true, isn't for false",
           "required" : false,
           "schema" : {
             "type" : "boolean"

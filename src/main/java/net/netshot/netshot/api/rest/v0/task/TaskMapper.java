@@ -28,7 +28,6 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskCreation;
 import net.netshot.netshot.task.TaskOverview;
-import net.netshot.netshot.task.TaskStats;
 import net.netshot.netshot.task.TaskSummary;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
