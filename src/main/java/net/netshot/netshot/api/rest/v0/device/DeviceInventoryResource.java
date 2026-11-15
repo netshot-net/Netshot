@@ -43,10 +43,16 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.NetshotNotAuthorizedException;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
-import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.inventory.device.PartNumberCount;
+import net.netshot.netshot.inventory.device.SoftwareVersionCount;
 import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.Lookup;
 
 /**
  * The REST resource of the other device endpoints: the interfaces and the modules of a device,
@@ -61,7 +67,6 @@ import net.netshot.netshot.inventory.search.SearchService;
 @Slf4j
 public class DeviceInventoryResource {
 
-	private final DeviceService deviceService;
 	private final SearchService searchService;
 	private final DeviceCatalogService catalogService;
 	private final DeviceDriverService driverService;
@@ -72,15 +77,13 @@ public class DeviceInventoryResource {
 	/**
 	 * Instantiates the resource.
 	 *
-	 * @param deviceService the device use cases
 	 * @param searchService the device search use case
 	 * @param catalogService the reference lists built from the devices
 	 * @param driverService the device driver use case
 	 */
 	@Inject
-	public DeviceInventoryResource(DeviceService deviceService, SearchService searchService,
+	public DeviceInventoryResource(SearchService searchService,
 		DeviceCatalogService catalogService, DeviceDriverService driverService) {
-		this.deviceService = deviceService;
 		this.searchService = searchService;
 		this.catalogService = catalogService;
 		this.driverService = driverService;
@@ -107,7 +110,10 @@ public class DeviceInventoryResource {
 		@BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, get device {} interfaces.", id);
-		return DeviceCatalogMapper.toInterfaceDtos(this.deviceService.getInterfaces(id, paginationParams.toPage()));
+		// An unknown device has no interface
+		Page page = paginationParams.toPage();
+		return DeviceCatalogMapper.toInterfaceDtos(V0Lists.orEmpty(() -> this.catalogService.listInterfaces(id, V0Lists.query(page)).items(),
+			ErrorCode.NETSHOT_DEVICE_NOT_FOUND), page.isRestricted());
 	}
 
 	/**
@@ -133,7 +139,10 @@ public class DeviceInventoryResource {
 		@BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, get device {} modules.", id);
-		return DeviceCatalogMapper.toModuleDtos(this.deviceService.getModules(id, includeHistory, paginationParams.toPage()));
+		// An unknown device has no module
+		Criterion[] criteria = includeHistory ? new Criterion[0] : new Criterion[] {new Criterion("removed", Lookup.EXACT, List.of(false))};
+		return DeviceCatalogMapper.toModuleDtos(V0Lists.orEmpty(
+			() -> this.catalogService.listModules(id, V0Lists.query(paginationParams.toPage(), criteria)).items(), ErrorCode.NETSHOT_DEVICE_NOT_FOUND));
 	}
 
 	/**
@@ -204,7 +213,8 @@ public class DeviceInventoryResource {
 	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
 	public List<DeviceFamilyDto> getDeviceFamilies(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, device families.");
-		return DeviceCatalogMapper.toFamilyDtos(this.catalogService.getFamilies(paginationParams.toPage()));
+		return DeviceCatalogMapper.toFamilyDtos(this.catalogService.listFamilies(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(family -> new DeviceFamily(family.driver(), family.family())).toList());
 	}
 
 	/**
@@ -225,7 +235,8 @@ public class DeviceInventoryResource {
 	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
 	public List<PartNumberDto> getPartNumbers(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, part numbers.");
-		return DeviceCatalogMapper.toPartNumberDtos(this.catalogService.getPartNumbers(paginationParams.toPage()));
+		return DeviceCatalogMapper.toPartNumberDtos(this.catalogService.listPartNumbers(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(PartNumberCount::partNumber).toList());
 	}
 
 	/**
@@ -246,7 +257,7 @@ public class DeviceInventoryResource {
 	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
 	public List<DeviceTagDto> getDeviceTags(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, device tags.");
-		return DeviceCatalogMapper.toTagDtos(this.catalogService.getTags(paginationParams.toPage()));
+		return DeviceCatalogMapper.toTagDtos(this.catalogService.listTags(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**
@@ -267,6 +278,7 @@ public class DeviceInventoryResource {
 	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
 	public List<SoftwareVersionDto> getSoftwareVersions(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, software versions.");
-		return DeviceCatalogMapper.toSoftwareVersionDtos(this.catalogService.getSoftwareVersions(paginationParams.toPage()));
+		return DeviceCatalogMapper.toSoftwareVersionDtos(this.catalogService.listSoftwareVersions(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(SoftwareVersionCount::version).toList());
 	}
 }

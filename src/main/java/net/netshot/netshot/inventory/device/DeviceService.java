@@ -38,7 +38,6 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device.Status;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -89,24 +88,6 @@ public class DeviceService {
 	}
 
 	/**
-	 * Lists the devices in their summary form.
-	 *
-	 * @param groupId the ID of a group whose members are listed (in the order of the group), or null for all the devices
-	 * @param page the window on the result
-	 * @return the device summaries
-	 * @throws NetshotException if the devices can't be read
-	 */
-	public List<DeviceSummary> list(Long groupId, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, groupId, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the devices", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the devices");
-		}
-	}
-
-	/**
 	 * Gets a device with all its details (see {@link DeviceRepository} for what is loaded).
 	 *
 	 * @param id the device ID
@@ -126,43 +107,6 @@ public class DeviceService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the device", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the device");
-		}
-	}
-
-	/**
-	 * Lists the network interfaces of a device, with their IP addresses.
-	 *
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the interfaces (none if there is no such device)
-	 * @throws NetshotException if the interfaces can't be read
-	 */
-	public List<NetworkInterface> getInterfaces(long deviceId, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findInterfaces(dsl, deviceId, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the interfaces.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the interfaces");
-		}
-	}
-
-	/**
-	 * Lists the hardware modules of a device.
-	 *
-	 * @param deviceId the device ID
-	 * @param includeHistory whether to include the modules which have been removed
-	 * @param page the window on the result
-	 * @return the modules (none if there is no such device)
-	 * @throws NetshotException if the modules can't be read
-	 */
-	public List<Module> getModules(long deviceId, boolean includeHistory, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findModules(dsl, deviceId, includeHistory, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the modules.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the modules");
 		}
 	}
 

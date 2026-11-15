@@ -72,6 +72,7 @@ import net.netshot.netshot.hook.HookService;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
+import net.netshot.netshot.inventory.device.DeviceInventoryRepository;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.group.DynamicGroups;
@@ -257,7 +258,7 @@ public final class Wiring {
 		// Reports
 		this.reportService = new ReportService(this.transactions, new ReportRepository(), this.driverRegistry);
 		// Inventory
-		this.deviceCatalogService = new DeviceCatalogService(this.transactions, deviceRepository);
+		this.deviceCatalogService = new DeviceCatalogService(this.transactions, new DeviceInventoryRepository());
 		this.deviceDriverService = new DeviceDriverService(this.driverRegistry, () -> {
 			if (this.clusterManager != null) {
 				this.clusterManager.requestDriverReload();
