@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <firstSeenDate/>
+    <id>2</id>
+    <lastSeenDate/>
+    <partNumber>HWIC-4ESW</partNumber>
+    <removed>false</removed>
+    <serialNumber>FOC5678WXYZ</serialNumber>
+    <slot>slot 1</slot>
+  </item>
+</ArrayList>

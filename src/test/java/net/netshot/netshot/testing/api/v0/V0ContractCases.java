@@ -230,6 +230,11 @@ public final class V0ContractCases {
 		c.get("/devices/{id}/complianceresults", "router1", c.path("/devices/%d/complianceresults", "device.router1"));
 		c.get("/devices/{id}/diagnosticresults", "router1", c.path("/devices/%d/diagnosticresults", "device.router1"));
 		c.get("/devices/{id}/diagnosticresults", "router2", c.path("/devices/%d/diagnosticresults", "device.router2"));
+		c.get("/devices/{id}/interfaces", "paged", c.path("/devices/%d/interfaces?offset=1&limit=1", "device.router1"));
+		c.get("/devices/{id}/modules", "paged", c.path("/devices/%d/modules?history=true&offset=1&limit=1", "device.router1"));
+		for (String list : List.of("interfaces", "modules", "tasks", "configs", "complianceresults", "diagnosticresults")) {
+			c.get("/devices/{id}/" + list, "unknown", () -> "/devices/99999999/" + list);
+		}
 		c.get("/devicefamilies");
 		c.get("/partnumbers");
 		c.get("/devicetags");
@@ -543,6 +548,13 @@ public final class V0ContractCases {
 			{"id": %d, "type": "StaticDeviceGroup", "name": "New static group renamed", "staticDevices": [99999999]}""",
 			"new.group.static"));
 		c.write("DELETE", "/groups/{id}", "unknown", () -> "/groups/99999999", null);
+		// The devices of a static group, in the order of the group (not by ID)
+		c.writeAs("POST", "/groups", "reversed", () -> "/groups", c.body("""
+			{"type": "StaticDeviceGroup", "name": "Reversed static group", "staticDevices": [%d, %d, %d]}""",
+			"device.proxy", "device.router2", "device.router1"), "new.group.reversed", null);
+		c.write("GET", "/devices", "reversedgroup", c.path("/devices?group=%d", "new.group.reversed"), null);
+		c.write("GET", "/devices", "reversedgroup-paged", c.path("/devices?group=%d&offset=1&limit=1", "new.group.reversed"), null);
+		c.write("DELETE", "/groups/{id}", "reversed", c.path("/groups/%d", "new.group.reversed"), null);
 	}
 
 	private static void deviceWrites(Catalogue c) {
