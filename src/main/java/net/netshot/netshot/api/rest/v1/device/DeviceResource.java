@@ -292,8 +292,10 @@ public class DeviceResource {
 		Selection selection = Selection.of(params, DeviceDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, DeviceDto.class);
 		ListQuery scoped = scope == null ? listQuery : listQuery.and(scope);
+		String formattedQuery = searchService.formatQuery(query);
 		if (selection.onlyIncludes(DeviceDto.SUMMARY_PROPERTIES)) {
-			return ListResponse.of(uriInfo, listQuery, searchService.listDeviceSummaries(scoped, query), deviceRefs::toDto);
+			return ListResponse.of(uriInfo, listQuery, searchService.listDeviceSummaries(scoped, query), deviceRefs::toDto)
+				.withQuery(formattedQuery);
 		}
 		Set<Device.Part> parts = EnumSet.noneOf(Device.Part.class);
 		PART_PROPERTIES.forEach((part, property) -> {
@@ -302,7 +304,7 @@ public class DeviceResource {
 			}
 		});
 		ListResult<Device> devices = searchService.listDevices(scoped, query, parts);
-		return ListResponse.of(uriInfo, listQuery, devices, deviceRefs.mapper(devices.items()));
+		return ListResponse.of(uriInfo, listQuery, devices, deviceRefs.mapper(devices.items())).withQuery(formattedQuery);
 	}
 
 	/**

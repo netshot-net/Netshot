@@ -45685,6 +45685,11 @@
             "items" : {
               "$ref" : "#/components/schemas/Device"
             }
+          },
+          "query" : {
+            "type" : "string",
+            "description" : "The search query of a device list, as it is applied (canonical form); absent without query",
+            "nullable" : true
           }
         }
       },

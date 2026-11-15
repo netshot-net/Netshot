@@ -38,6 +38,7 @@ import net.netshot.netshot.platform.query.ListResult;
  * @param next the path of the next page (null on the last page)
  * @param previous the path of the previous page (null on the first page)
  * @param results the items of the page
+ * @param query the search query of a device list, as it is applied (null for the other lists, or without query)
  */
 public record ListResponse<T>(
 	@Schema(description = "Total number of matching items (null unless count=true)", nullable = true) Long count,
@@ -45,7 +46,33 @@ public record ListResponse<T>(
 	@Schema(description = "Maximum number of items of the page (0: all the items)") int limit,
 	@Schema(description = "Path of the next page", nullable = true) String next,
 	@Schema(description = "Path of the previous page", nullable = true) String previous,
-	@Schema(description = "The items of the page") List<T> results) {
+	@Schema(description = "The items of the page") List<T> results,
+	@Schema(description = "The search query of a device list, as it is applied (canonical form); absent without query",
+		nullable = true) String query) {
+
+	/**
+	 * Builds a list response without search query.
+	 *
+	 * @param count the total number of matching items, or null
+	 * @param offset the offset of the first item
+	 * @param limit the maximum number of items (0: all the items)
+	 * @param next the path of the next page, or null
+	 * @param previous the path of the previous page, or null
+	 * @param results the items of the page
+	 */
+	public ListResponse(Long count, int offset, int limit, String next, String previous, List<T> results) {
+		this(count, offset, limit, next, previous, results, null);
+	}
+
+	/**
+	 * Gets a copy of this response with the search query it applied.
+	 *
+	 * @param searchQuery the formatted search query, or null
+	 * @return the response
+	 */
+	public ListResponse<T> withQuery(String searchQuery) {
+		return new ListResponse<>(this.count, this.offset, this.limit, this.next, this.previous, this.results, searchQuery);
+	}
 
 	/**
 	 * Builds the page of a list result.
