@@ -170,7 +170,7 @@ public class GroupService {
 					return added;
 				}
 				else if ("DynamicDeviceGroup".equals(definition.type())) {
-					String query = formatQuery(definition.query() == null ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
+					String query = formatQuery(requireQuery(definition.query()));
 					DynamicDeviceGroup added = (DynamicDeviceGroup) this.repository.add(dsl, DynamicDeviceGroup.builder()
 						.name(name)
 						.folder(definition.folder())
@@ -229,7 +229,7 @@ public class GroupService {
 					deviceIds = this.checkDevices(dsl, definition.staticDevices());
 				}
 				else if (existing instanceof DynamicDeviceGroup) {
-					query = formatQuery(definition.query() == null ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
+					query = formatQuery(requireQuery(definition.query()));
 				}
 				String name = definition.name() == null ? "" : definition.name().trim();
 				if (name.isEmpty()) {
@@ -311,6 +311,14 @@ public class GroupService {
 			}
 		}
 		return ids;
+	}
+
+	// The query of a dynamic group must be given (an empty query selects all the devices)
+	private static String requireQuery(String query) {
+		if (query == null) {
+			throw NetshotException.invalidParameter("query", "The query of a dynamic group is required.");
+		}
+		return query;
 	}
 
 	private String formatQuery(String query) {

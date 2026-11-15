@@ -15,7 +15,7 @@ import { useLocation, useNavigate } from "react-router"
 import DynamicGroupForm from "./DynamicGroupForm"
 import GroupInfoPanel from "./GroupInfoPanel"
 import StaticGroupForm from "./StaticGroupForm"
-import { FormStep, GroupForm } from "../types"
+import { DEFAULT_DYNAMIC_GROUP_QUERY, FormStep, GroupForm } from "../types"
 
 export default function AddGroupDialog() {
   const { t } = useTranslation()
@@ -44,7 +44,7 @@ export default function AddGroupDialog() {
       folder: "",
       visibleInReports: true,
       staticDevices: [],
-      query: "",
+      query: DEFAULT_DYNAMIC_GROUP_QUERY,
     },
   })
 

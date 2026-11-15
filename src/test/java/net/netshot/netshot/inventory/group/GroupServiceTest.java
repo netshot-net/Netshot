@@ -126,12 +126,15 @@ class GroupServiceTest {
 	}
 
 	@Test
-	@DisplayName("create() gives a dynamic group without query the default one")
+	@DisplayName("create() refuses a dynamic group without query, and stores nothing; an empty query selects all the devices")
 	void createDynamicWithoutQuery() {
-		DeviceGroup created = this.service.create(dynamicGroup(this.nextName(), null));
-		DynamicDeviceGroup group = Assertions.assertInstanceOf(DynamicDeviceGroup.class, created);
-		Assertions.assertEquals("[Name] is \"example\"", group.query());
-		Assertions.assertEquals(List.of(), this.members(group.id()));
+		String name = this.nextName();
+		NetshotException e = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.create(dynamicGroup(name, null)));
+		Assertions.assertEquals("query", e.getTarget());
+		Assertions.assertTrue(this.service.list(Page.ALL).stream().noneMatch(g -> g.name().equals(name)));
+		DeviceGroup all = this.service.create(dynamicGroup(this.nextName(), ""));
+		Assertions.assertEquals("", ((DynamicDeviceGroup) all).query());
+		Assertions.assertTrue(this.members(all.id()).containsAll(List.of(this.routerA, this.routerB, this.switchC)));
 	}
 
 	@Test
@@ -157,7 +160,7 @@ class GroupServiceTest {
 	void createDuplicate() {
 		String name = this.nextName();
 		this.service.create(staticGroup(name));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_GROUP, () -> this.service.create(dynamicGroup(name, null)));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_GROUP, () -> this.service.create(dynamicGroup(name, "")));
 	}
 
 	// ------------------------------------------------------------------
@@ -178,7 +181,7 @@ class GroupServiceTest {
 	@DisplayName("list() returns the groups, and honours the page")
 	void list() {
 		this.service.create(staticGroup(this.nextName()));
-		this.service.create(dynamicGroup(this.nextName(), null));
+		this.service.create(dynamicGroup(this.nextName(), ""));
 		List<DeviceGroup> all = this.service.list(Page.ALL);
 		Assertions.assertTrue(all.size() >= 2);
 		Assertions.assertTrue(all.stream().anyMatch(g -> g instanceof StaticDeviceGroup));
@@ -225,11 +228,13 @@ class GroupServiceTest {
 	}
 
 	@Test
-	@DisplayName("update() gives a dynamic group without query the default one")
-	void updateDefaultQuery() {
+	@DisplayName("update() refuses a dynamic group without query, and leaves the group unchanged")
+	void updateWithoutQuery() {
 		DeviceGroup created = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"switch\""));
-		DeviceGroup updated = this.service.update(created.id(), _ -> dynamicGroup(created.name(), null), null);
-		Assertions.assertEquals(DynamicDeviceGroup.DEFAULT_QUERY, ((DynamicDeviceGroup) updated).query());
+		NetshotException e = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+			() -> this.service.update(created.id(), _ -> dynamicGroup(created.name(), null), null));
+		Assertions.assertEquals("query", e.getTarget());
+		Assertions.assertEquals("[Name] contains \"switch\"", ((DynamicDeviceGroup) this.service.get(created.id())).query());
 	}
 
 	@Test
