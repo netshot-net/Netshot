@@ -44,6 +44,7 @@ import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.platform.error.ErrorCode;
 
@@ -115,7 +116,7 @@ public class ApiTokenResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public List<ApiTokenDto> getApiTokens(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, get API token list.");
-		return UserMapper.toApiTokenDtos(this.apiTokenService.list(paginationParams.toPage()));
+		return UserMapper.toApiTokenDtos(this.apiTokenService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**

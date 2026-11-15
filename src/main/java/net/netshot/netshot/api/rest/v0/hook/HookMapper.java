@@ -66,14 +66,15 @@ public final class HookMapper {
 	 * Maps hooks to their representation.
 	 *
 	 * @param hooks the hooks, with their triggers loaded
+	 * @param paged whether the list is a page (an offset or a limit was given)
 	 * @return the DTOs, in the same order
 	 */
-	public static List<HookDto> toDtos(List<Hook> hooks) {
+	public static List<HookDto> toDtos(List<Hook> hooks, boolean paged) {
 		List<HookDto> dtos = new ArrayList<>(hooks.size());
 		hooks.forEach(hook -> dtos.add(toDto(hook)));
-		if (hooks.getClass() != ArrayList.class) {
-			// Quirk kept: a paginated query with a collection fetch is paginated in memory and answers a
-			// sub list, which XML publishes as <SubList> instead of <ArrayList>
+		if (paged) {
+			// Quirk kept: the former (Hibernate) query paginated in memory and answered a sub list,
+			// which XML publishes as <SubList> instead of <ArrayList>
 			return dtos.subList(0, dtos.size());
 		}
 		return dtos;

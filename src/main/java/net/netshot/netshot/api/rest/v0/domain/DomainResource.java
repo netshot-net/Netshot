@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.domain.DomainDefinition;
 import net.netshot.netshot.domain.DomainService;
 
@@ -90,7 +91,7 @@ public class DomainResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public List<DomainSummaryDto> getDomains(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, domains.");
-		return DomainMapper.toSummaryDtos(this.domainService.list(paginationParams.toPage()));
+		return DomainMapper.toSummaryDtos(this.domainService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**

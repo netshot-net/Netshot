@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.vault;
 
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
@@ -27,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -76,23 +74,6 @@ public class VaultInstanceService {
 		this.repository = repository;
 		this.changeNotifier = changeNotifier;
 		this.connectionTester = connectionTester;
-	}
-
-	/**
-	 * Lists the Vault instances.
-	 *
-	 * @param page the window on the result
-	 * @return the Vault instances
-	 * @throws NetshotException if the Vault instances can't be read
-	 */
-	public List<VaultInstance> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the Vault instances.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the Vault instances");
-		}
 	}
 
 	/**

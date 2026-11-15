@@ -47,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -155,6 +156,8 @@ public class ScriptResource {
 	@Tag(name = "Scripts", description = "Script management (push changes to devices)")
 	public List<ScriptDto> getScripts(@BeanParam PaginationParams paginationParams) {
 		log.debug("REST request, get scripts.");
-		return ScriptMapper.toDtos(this.driverRegistry, this.scriptService.list(paginationParams.toPage()));
+		// The lists don't give the content of the scripts
+		return ScriptMapper.toDtos(this.driverRegistry, this.scriptService.list(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(DeviceJsScript::withoutScript).toList());
 	}
 }

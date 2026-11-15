@@ -27,7 +27,6 @@ import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.database.Versions;
@@ -102,17 +101,6 @@ public class DomainRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query) {
 		return dsl.fetchCount(DOMAIN, LIST.condition(query));
-	}
-
-	/**
-	 * Lists the domains, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the domains
-	 */
-	public List<Domain> findAll(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(DOMAIN.fields()).from(DOMAIN).orderBy(DOMAIN.ID.asc())).fetch(DomainRepository::toDomain);
 	}
 
 	/**

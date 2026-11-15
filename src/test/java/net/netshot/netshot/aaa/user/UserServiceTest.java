@@ -36,6 +36,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestWiring;
@@ -135,7 +136,7 @@ class UserServiceTest {
 	@Test
 	@DisplayName("Create: blank name, then missing password of a local user, then duplicate name")
 	void createErrors() {
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.create(null, true, PASSWORD, 10));
 		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.create("   ", true, PASSWORD, 10));
 		// The name is checked before the password
@@ -146,7 +147,7 @@ class UserServiceTest {
 		this.create(name, false, null, 10);
 		NetshotException duplicate = assertError(ErrorCode.NETSHOT_DUPLICATE_USER, () -> this.create(" " + name, true, PASSWORD, 10));
 		Assertions.assertEquals("A user with this name already exists.", duplicate.getMessage());
-		Assertions.assertEquals(before + 1, this.service.list(Page.ALL).size(), "Failed creations leave nothing behind");
+		Assertions.assertEquals(before + 1, this.service.list(ListQuery.ALL).items().size(), "Failed creations leave nothing behind");
 	}
 
 	// ------------------------------------------------------------------
@@ -159,11 +160,11 @@ class UserServiceTest {
 		for (int i = 0; i < 3; i++) {
 			this.create(this.nextName(), false, null, 10);
 		}
-		List<UiUser> all = this.service.list(Page.ALL);
+		List<UiUser> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 3);
 		Assertions.assertNotNull(all.get(0).username());
-		Assertions.assertEquals(2, this.service.list(new Page(0, 2)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+		Assertions.assertEquals(2, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 2), false)).items().size());
+		Assertions.assertEquals(all.size() - 1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(1, null), false)).items().size());
 	}
 
 	// ------------------------------------------------------------------

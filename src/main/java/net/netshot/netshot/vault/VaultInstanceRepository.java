@@ -28,7 +28,6 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
 
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.database.Versions;
@@ -67,18 +66,6 @@ public class VaultInstanceRepository {
 	 */
 	static Instant now() {
 		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
-	}
-
-	/**
-	 * Lists the Vault instances, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the instances
-	 */
-	public List<VaultInstance> findAll(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE).orderBy(VAULT_INSTANCE.ID))
-			.fetch(VaultInstanceRepository::toVaultInstance);
 	}
 
 	/** The v1 name of the type of the HashiCorp Vault KV v2 instances. */

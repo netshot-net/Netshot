@@ -39,6 +39,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -131,7 +132,7 @@ class GroupServiceTest {
 		String name = this.nextName();
 		NetshotException e = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.create(dynamicGroup(name, null)));
 		Assertions.assertEquals("query", e.getTarget());
-		Assertions.assertTrue(this.service.list(Page.ALL).stream().noneMatch(g -> g.name().equals(name)));
+		Assertions.assertTrue(this.service.list(ListQuery.ALL).items().stream().noneMatch(g -> g.name().equals(name)));
 		DeviceGroup all = this.service.create(dynamicGroup(this.nextName(), ""));
 		Assertions.assertEquals("", ((DynamicDeviceGroup) all).query());
 		Assertions.assertTrue(this.members(all.id()).containsAll(List.of(this.routerA, this.routerB, this.switchC)));
@@ -149,10 +150,10 @@ class GroupServiceTest {
 	@Test
 	@DisplayName("create() refuses an unknown device and an invalid query, and stores nothing")
 	void createInvalidContent() {
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_INVALID_DEVICE, () -> this.service.create(staticGroup(this.nextName(), this.routerA, 99999999L)));
 		assertError(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, () -> this.service.create(dynamicGroup(this.nextName(), "[Nope] ???")));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -182,11 +183,11 @@ class GroupServiceTest {
 	void list() {
 		this.service.create(staticGroup(this.nextName()));
 		this.service.create(dynamicGroup(this.nextName(), ""));
-		List<DeviceGroup> all = this.service.list(Page.ALL);
+		List<DeviceGroup> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 2);
 		Assertions.assertTrue(all.stream().anyMatch(g -> g instanceof StaticDeviceGroup));
 		Assertions.assertTrue(all.stream().anyMatch(g -> g instanceof DynamicDeviceGroup));
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
 	}
 
 	// ------------------------------------------------------------------

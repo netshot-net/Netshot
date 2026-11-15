@@ -303,17 +303,6 @@ public class CredentialSetRepository {
 	}
 
 	/**
-	 * Lists the global credential sets (not the ones specific to a device access), by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the credential sets
-	 */
-	public List<DeviceCredentialSet> findGlobal(DSLContext dsl, Page page) {
-		return this.findWhere(dsl, CS.DEVICE_SPECIFIC.isFalse(), page);
-	}
-
-	/**
 	 * Finds a credential set of any kind, global or specific to a device access.
 	 *
 	 * @param dsl the jOOQ context

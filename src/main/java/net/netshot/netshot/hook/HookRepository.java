@@ -33,9 +33,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.SelectLimitStep;
-import org.jooq.impl.DSL;
 
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.database.Versions;
@@ -104,23 +102,6 @@ public class HookRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query) {
 		return dsl.fetchCount(HOOK, LIST.condition(query));
-	}
-
-	/**
-	 * Lists the hooks with their triggers, ordered by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the hooks
-	 */
-	public List<Hook> findAll(DSLContext dsl, Page page) {
-		List<Hook> hooks = page.apply(query(dsl, DSL.noCondition())).fetch(HookRepository::toHook);
-		if (page.isRestricted()) {
-			// Quirk kept: the former (Hibernate) query paginated in memory and answered a sub list,
-			// which XML publishes as <SubList> instead of <ArrayList>
-			return hooks.subList(0, hooks.size());
-		}
-		return hooks;
 	}
 
 	/**

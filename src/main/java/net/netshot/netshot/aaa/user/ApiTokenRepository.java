@@ -25,7 +25,6 @@ import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.database.Versions;
@@ -71,17 +70,6 @@ public class ApiTokenRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query) {
 		return dsl.fetchCount(API_TOKEN, LIST.condition(query));
-	}
-
-	/**
-	 * Lists the API tokens.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the API tokens
-	 */
-	public List<ApiToken> list(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(API_TOKEN.fields()).from(API_TOKEN).orderBy(API_TOKEN.ID)).fetch(ApiTokenRepository::toApiToken);
 	}
 
 	/**

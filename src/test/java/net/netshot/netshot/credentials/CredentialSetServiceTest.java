@@ -47,6 +47,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.secret.VaultSecret;
@@ -206,9 +207,9 @@ class CredentialSetServiceTest {
 	void createInvalidVault() {
 		CredentialSetDefinition definition = new CredentialSetDefinition(Kind.SSH, this.nextName(), null, local("u"),
 			new SecretChange.Referenced(99999999L, "a/b"), null, null, null, null, null, null, null);
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertParameter("passwordVault", () -> this.service.create(definition));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -227,11 +228,11 @@ class CredentialSetServiceTest {
 	@DisplayName("create() refuses a name which is already used, whatever the kind, and stores nothing")
 	void createDuplicate() {
 		DeviceSshAccount first = this.createSsh("u", "p", null);
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS, () -> this.service.create(ssh(first.name(), "o", "o", null)));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS,
 			() -> this.service.create(definition(Kind.TELNET, first.name(), null, "o", "o", null)));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -239,12 +240,12 @@ class CredentialSetServiceTest {
 	void list() {
 		DeviceSshAccount global = this.createSsh("u", "p", null);
 		DeviceCredentialSet specific = this.addSpecific();
-		List<DeviceCredentialSet> all = this.service.list(Page.ALL);
+		List<DeviceCredentialSet> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.stream().anyMatch(cs -> cs.id() == global.id()));
 		Assertions.assertTrue(all.stream().noneMatch(cs -> cs.id() == specific.id()));
 		Assertions.assertTrue(all.stream().noneMatch(DeviceCredentialSet::deviceSpecific));
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
+		Assertions.assertEquals(all.size() - 1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(1, null), false)).items().size());
 	}
 
 	private DeviceCredentialSet addSpecific() {
@@ -259,7 +260,7 @@ class CredentialSetServiceTest {
 		DeviceSshAccount ssh = this.createSsh("u", "p", "s");
 		// A stored value which can't be decrypted: reading and listing still work
 		this.transactions.write(dsl -> dsl.execute("update device_credential_set set password = 'not-encrypted' where id = ?", ssh.id()));
-		DeviceSshAccount listed = (DeviceSshAccount) this.service.list(Page.ALL).stream()
+		DeviceSshAccount listed = (DeviceSshAccount) this.service.list(ListQuery.ALL).items().stream()
 			.filter(cs -> cs.id() == ssh.id()).findFirst().orElseThrow();
 		LocalSecret password = Assertions.assertInstanceOf(LocalSecret.class, listed.password());
 		Assertions.assertThrows(IllegalArgumentException.class, password::reveal, "the value is only decrypted when revealed");
@@ -275,7 +276,7 @@ class CredentialSetServiceTest {
 	void listIsReadable() {
 		DeviceCredentialSet created = this.service.create(new CredentialSetDefinition(Kind.SSH, this.nextName(), this.domainId, local("u"),
 			new SecretChange.Referenced(this.vaultId, "p"), null, null, null, null, null, null, null));
-		DeviceSshAccount listed = (DeviceSshAccount) this.service.list(Page.ALL).stream()
+		DeviceSshAccount listed = (DeviceSshAccount) this.service.list(ListQuery.ALL).items().stream()
 			.filter(cs -> cs.id() == created.id()).findFirst().orElseThrow();
 		Assertions.assertEquals("Credentials domain", listed.mgmtDomain().name());
 		Assertions.assertEquals(this.vaultId, Secret.vaultInstanceId(listed.password()));

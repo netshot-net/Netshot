@@ -45,8 +45,10 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookService;
+import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
@@ -93,7 +95,8 @@ public class HookResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public List<HookDto> getHooks(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, hooks.");
-		return HookMapper.toDtos(this.hookService.list(paginationParams.toPage()));
+		Page page = paginationParams.toPage();
+		return HookMapper.toDtos(this.hookService.list(V0Lists.query(page)).items(), page.isRestricted());
 	}
 
 	/**

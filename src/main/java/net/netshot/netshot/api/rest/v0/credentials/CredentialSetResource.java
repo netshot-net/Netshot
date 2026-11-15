@@ -45,6 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -104,7 +105,7 @@ public class CredentialSetResource {
 	public List<CredentialSetDto> getCredentialSets(@BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, get credentials.");
-		return CredentialSetMapper.toDtos(this.credentialSetService.list(paginationParams.toPage()));
+		return CredentialSetMapper.toDtos(this.credentialSetService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**
