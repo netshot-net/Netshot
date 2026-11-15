@@ -247,43 +247,6 @@ public class SoftwareRuleService {
 	}
 
 	/**
-	 * Moves a rule before another one, or to the last position, and renumbers the priorities of the rules.
-	 *
-	 * @param id the ID of the rule to move
-	 * @param nextId the ID of the rule to move it before, or null to move it to the last position
-	 * @throws NetshotException if the rule or the next rule doesn't exist (the next rule can't be the rule itself), or
-	 *         the rules can't be stored
-	 */
-	public void moveBefore(long id, Long nextId) {
-		int position;
-		try {
-			position = this.transactions.write(dsl -> {
-				if (this.repository.lock(dsl, id) == null) {
-					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the software rule");
-				}
-				List<SoftwareRule> others = this.repository.findAllOrdered(dsl).stream().filter(r -> r.id() != id).toList();
-				int index = others.size();
-				if (nextId != null) {
-					index = 0;
-					while (index < others.size() && others.get(index).id() != nextId) {
-						index++;
-					}
-					if (index == others.size()) {
-						throw NetshotException.invalidParameter("next", "Unable to find the next software rule");
-					}
-				}
-				this.move(dsl, id, index + 1);
-				return index + 1;
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to move the software rule {}.", id, e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to move the software rule.");
-		}
-		AAA_LOG.info("Software rule of ID {} has been moved to position {}", id, position);
-	}
-
-	/**
 	 * Deletes a software rule.
 	 *
 	 * @param id the rule ID

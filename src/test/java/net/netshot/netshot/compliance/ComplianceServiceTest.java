@@ -459,42 +459,32 @@ class ComplianceServiceTest {
 		return this.softwareRuleService.list(Page.ALL).stream().map(v -> v.rule().id()).toList();
 	}
 
+	// Moves a software rule to a position, without changing it
+	private void moveSoftware(long id, int position) {
+		this.softwareRuleService.replace(id, r -> new SoftwareRuleService.Replacement(r.rule(), position), null);
+	}
+
 	@Test
-	@DisplayName("Software rule moveBefore() moves a rule before another one or to the last position, and renumbers the priorities")
-	void softwareMoveBefore() {
+	@DisplayName("Software rule replace() moves a rule to the given position (clamped), and renumbers the priorities")
+	void softwareMove() {
 		long a = this.softwareRuleService.add(software(null, null, "a"), null).rule().id();
 		long b = this.softwareRuleService.add(software(null, null, "b"), null).rule().id();
 		long c = this.softwareRuleService.add(software(null, null, "c"), null).rule().id();
 		// The new rules all have the same priority: move them to get a known order
-		this.softwareRuleService.moveBefore(a, null);
-		this.softwareRuleService.moveBefore(b, null);
-		this.softwareRuleService.moveBefore(c, null);
+		this.moveSoftware(a, Integer.MAX_VALUE);
+		this.moveSoftware(b, Integer.MAX_VALUE);
+		this.moveSoftware(c, Integer.MAX_VALUE);
 		List<Long> initial = this.softwareOrder();
 		Assertions.assertEquals(List.of(a, b, c), initial.subList(initial.size() - 3, initial.size()));
 
-		this.softwareRuleService.moveBefore(c, a);
+		this.moveSoftware(c, initial.size() - 2);
 		List<Long> order = this.softwareOrder();
 		Assertions.assertEquals(List.of(c, a, b), order.subList(order.size() - 3, order.size()));
 		Assertions.assertEquals(10.0 * order.size(), this.softwareRuleService.list(Page.ALL).get(order.size() - 1).rule().priority());
 
-		this.softwareRuleService.moveBefore(c, null);
+		this.moveSoftware(c, Integer.MAX_VALUE);
 		order = this.softwareOrder();
 		Assertions.assertEquals(List.of(a, b, c), order.subList(order.size() - 3, order.size()));
-		long moved = b;
-		NetshotException itself = assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.softwareRuleService.moveBefore(moved, moved));
-		Assertions.assertEquals("next", itself.getTarget());
-		Assertions.assertEquals(order, this.softwareOrder(), "a rule can't be moved before itself");
-	}
-
-	@Test
-	@DisplayName("Software rule moveBefore() reports an unknown rule or next rule, and changes nothing")
-	void softwareMoveBeforeErrors() {
-		long a = this.softwareRuleService.add(software(null, null, "sort-a"), null).rule().id();
-		List<Long> before = this.softwareOrder();
-		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.softwareRuleService.moveBefore(99999999L, null));
-		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.softwareRuleService.moveBefore(99999999L, a));
-		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.softwareRuleService.moveBefore(a, 99999999L));
-		Assertions.assertEquals(before, this.softwareOrder());
 	}
 
 	// ------------------------------------------------------------------
