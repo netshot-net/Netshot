@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.domain.DomainDefinition;
 import net.netshot.netshot.domain.DomainService;
 
 /**
@@ -137,7 +138,8 @@ public class DomainResource {
 	public DomainSummaryDto setDomain(@PathParam("id") @Parameter(description = "Domain ID") Long id, DomainRequest rsDomain)
 		throws WebApplicationException {
 		log.debug("REST request, edit domain {}.", id);
-		return DomainMapper.toSummaryDto(this.domainService.update(id, DomainMapper.toDefinition(rsDomain)));
+		DomainDefinition definition = DomainMapper.toDefinition(rsDomain);
+		return DomainMapper.toSummaryDto(this.domainService.update(id, _ -> definition, null));
 	}
 
 	/**

@@ -53,6 +53,7 @@ import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.vault.VaultInstance;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
@@ -158,8 +159,8 @@ public class VaultInstanceResource {
 	public VaultInstanceDto replaceVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") long id,
 		VaultInstanceRequest vaultInstanceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		VaultInstance vaultInstance = this.vaultInstanceService.update(id, VaultInstanceMapper.toDefinition(vaultInstanceRequest),
-			V1Response.ifMatch(this.headers));
+		VaultInstanceDefinition definition = VaultInstanceMapper.toDefinition(vaultInstanceRequest);
+		VaultInstance vaultInstance = this.vaultInstanceService.update(id, _ -> definition, V1Response.ifMatch(this.headers));
 		return this.respond(vaultInstance, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.FULL));
 	}
 

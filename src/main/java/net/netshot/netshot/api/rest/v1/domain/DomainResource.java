@@ -52,6 +52,7 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.domain.DomainDefinition;
 import net.netshot.netshot.domain.DomainService;
 import net.netshot.netshot.platform.query.ListQuery;
 
@@ -152,7 +153,8 @@ public class DomainResource {
 		+ "With If-Match, the domain must still be at the given version (ETag).")
 	public DomainDto replaceDomain(@PathParam("id") @Parameter(description = "Domain ID") long id, DomainRequest domainRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Domain domain = this.domainService.update(id, DomainMapper.toDefinition(domainRequest), V1Response.ifMatch(this.headers));
+		DomainDefinition definition = DomainMapper.toDefinition(domainRequest);
+		Domain domain = this.domainService.update(id, _ -> definition, V1Response.ifMatch(this.headers));
 		return this.respond(domain, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.FULL));
 	}
 

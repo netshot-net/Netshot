@@ -81,6 +81,7 @@ import net.netshot.netshot.api.rest.v1.task.TaskRequest;
 import net.netshot.netshot.api.rest.v1.task.TaskResponses;
 import net.netshot.netshot.api.rest.v1.task.TaskScheduling;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
@@ -360,7 +361,8 @@ public class DeviceResource {
 		+ "With If-Match, the device must still be at the given version (ETag).")
 	public DeviceDto replaceDevice(@PathParam("id") @Parameter(description = "Device ID") long id, DeviceRequest deviceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Device device = this.deviceService.update(id, DeviceMapper.toChange(deviceRequest), V1Response.ifMatch(this.headers));
+		DeviceChange change = DeviceMapper.toChange(deviceRequest);
+		Device device = this.deviceService.update(id, _ -> change, V1Response.ifMatch(this.headers));
 		return this.respond(device, Selection.of(this.uriInfo.getQueryParameters(), DeviceDto.class, Selection.View.FULL));
 	}
 

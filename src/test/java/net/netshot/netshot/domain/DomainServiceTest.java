@@ -67,7 +67,7 @@ class DomainServiceTest {
 		return "Domain " + (this.counter++);
 	}
 
-	private static DomainDefinition definition(String name, String address) throws Exception {
+	private static DomainDefinition definition(String name, String address) {
 		return new DomainDefinition(name, "Some description", address);
 	}
 
@@ -92,7 +92,7 @@ class DomainServiceTest {
 		Domain noDescription = this.service.create(new DomainDefinition(this.nextName(), null, "10.255.5.1"));
 		Assertions.assertEquals("", noDescription.description(), "a null description is stored as empty");
 		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME,
-			() -> this.service.update(noDescription.id(), new DomainDefinition(null, null, "10.255.5.1")));
+			() -> this.service.update(noDescription.id(), _ -> new DomainDefinition(null, null, "10.255.5.1"), null));
 	}
 
 	@Test
@@ -109,8 +109,8 @@ class DomainServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.create(definition(this.nextName(), null)));
 		Domain created = this.service.create(definition(this.nextName(), "10.255.4.1"));
 		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS,
-			() -> this.service.update(created.id(), definition(created.name(), "10.255.4.300")));
-		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.id(), definition(created.name(), null)));
+			() -> this.service.update(created.id(), _ -> definition(created.name(), "10.255.4.300"), null));
+		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.id(), _ -> definition(created.name(), null), null));
 		Assertions.assertEquals("10.255.4.1", this.service.list(Page.ALL).stream()
 			.filter(d -> d.id() == created.id()).findFirst().orElseThrow().server4Address().getIp());
 	}
@@ -147,7 +147,7 @@ class DomainServiceTest {
 	void update() throws Exception {
 		Domain created = this.service.create(definition(this.nextName(), "10.255.3.1"));
 		String name = this.nextName();
-		Domain updated = this.service.update(created.id(), new DomainDefinition(" " + name + " ", " new ", "10.255.3.9"));
+		Domain updated = this.service.update(created.id(), _ -> new DomainDefinition(" " + name + " ", " new ", "10.255.3.9"), null);
 		Assertions.assertEquals(created.id(), updated.id());
 		Domain stored = this.transactions.read(dsl -> new DomainRepository().find(dsl, created.id()));
 		Assertions.assertEquals(name, stored.name());
@@ -156,11 +156,12 @@ class DomainServiceTest {
 	}
 
 	@Test
-	@DisplayName("update() checks the name, then the address, before looking for the domain")
+	@DisplayName("update() refuses an unknown domain, then checks the name, then the address")
 	void updateValidation() throws Exception {
-		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, () -> this.service.update(99999999L, definition("", "10.255.4.1")));
-		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(99999999L, definition("name", "0.0.0.0")));
-		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.update(99999999L, definition("name", "10.255.4.1")));
+		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.update(99999999L, _ -> definition("", "0.0.0.0"), null));
+		Domain created = this.service.create(definition(this.nextName(), "10.255.4.1"));
+		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, () -> this.service.update(created.id(), _ -> definition("", "0.0.0.0"), null));
+		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.id(), _ -> definition("name", "0.0.0.0"), null));
 	}
 
 	@Test
@@ -169,7 +170,7 @@ class DomainServiceTest {
 		String name = this.nextName();
 		this.service.create(definition(name, "10.255.5.1"));
 		Domain other = this.service.create(definition(this.nextName(), "10.255.5.2"));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, () -> this.service.update(other.id(), definition(name, "10.255.5.3")));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, () -> this.service.update(other.id(), _ -> definition(name, "10.255.5.3"), null));
 		Domain stored = this.transactions.read(dsl -> new DomainRepository().find(dsl, other.id()));
 		Assertions.assertNotEquals(name, stored.name());
 		Assertions.assertEquals("10.255.5.2", stored.server4Address().getIp());

@@ -49,6 +49,7 @@ import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.vault.VaultConnectionTestResult;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
@@ -175,8 +176,8 @@ public class VaultInstanceResource {
 	public VaultInstanceDto setVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") Long id,
 			VaultInstanceRequest rsVaultInstance) throws WebApplicationException {
 		log.debug("REST request, edit Vault instance {}", id);
-		return VaultInstanceMapper.toDto(V0Errors.translate(
-			() -> this.vaultInstanceService.update(id, VaultInstanceMapper.toDefinition(rsVaultInstance), null), NOT_FOUND));
+		VaultInstanceDefinition definition = VaultInstanceMapper.toDefinition(rsVaultInstance);
+		return VaultInstanceMapper.toDto(V0Errors.translate(() -> this.vaultInstanceService.update(id, _ -> definition, null), NOT_FOUND));
 	}
 
 	/**
