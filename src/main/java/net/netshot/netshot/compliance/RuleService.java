@@ -64,10 +64,6 @@ public class RuleService {
 	/** Authentication, Authorization, Accounting logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
-	private static final String TEXT_RULE = "TextRule";
-	private static final String JAVASCRIPT_RULE = "JavaScriptRule";
-	private static final String PYTHON_RULE = "PythonRule";
-
 	private final Transactions transactions;
 	private final RuleRepository repository;
 	private final PolicyRepository policyRepository;
@@ -198,71 +194,6 @@ public class RuleService {
 		catch (DataAccessException e) {
 			log.error("Unable to delete the rule {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the rule.");
-		}
-	}
-
-	/**
-	 * Tests a rule against a device, in dry run mode: the rule is built from the definition (it is not
-	 * stored), enabled and checked against the device. The check is the {@link Rule#check} of the
-	 * entity. If the device doesn't exist (or has no configuration) the result is "not applicable".
-	 *
-	 * @param deviceId the ID of the device to check
-	 * @param definition the rule to test (only its kind-specific properties are used)
-	 * @return the result of the check, with what it logged
-	 * @throws NetshotException if the kind of rule is invalid, or the device can't be read or checked
-	 */
-	public RuleTestResult test(long deviceId, RuleDefinition definition) {
-		try {
-			Device found = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
-			Device device = found == null || found.lastConfigId() == null ? null : found;
-			if (device == null) {
-				log.warn("Unable to find the device {}.", deviceId);
-				return new RuleTestResult(CheckResult.ResultOption.NOTAPPLICABLE, null, "Unable to find the device");
-			}
-
-			Rule rule;
-			if (TEXT_RULE.equals(definition.type())) {
-				// As on creation, an option which is not given keeps the default value of the rule
-				TextRule.TextRuleBuilder txRule = TextRule.builder("TEST", 0)
-					.deviceDriver(definition.driver())
-					.field(definition.field())
-					.context(definition.context())
-					.text(definition.text());
-				if (definition.invert() != null) {
-					txRule.invert(definition.invert());
-				}
-				if (definition.regExp() != null) {
-					txRule.regExp(definition.regExp());
-				}
-				if (definition.anyBlock() != null) {
-					txRule.anyBlock(definition.anyBlock());
-				}
-				if (definition.matchAll() != null) {
-					txRule.matchAll(definition.matchAll());
-				}
-				if (definition.normalize() != null) {
-					txRule.normalize(definition.normalize());
-				}
-				rule = txRule.enabled(true).build();
-			}
-			else if (JAVASCRIPT_RULE.equals(definition.type())) {
-				rule = new JavaScriptRule(0, 0, null, "TEST", true, 0, definition.script());
-			}
-			else if (PYTHON_RULE.equals(definition.type())) {
-				rule = new PythonRule(0, 0, null, "TEST", true, 0, definition.script());
-			}
-			else {
-				log.warn("Invalid rule type {}.", definition.type());
-				throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type");
-			}
-			return this.evaluate(device, rule);
-		}
-		catch (NetshotException e) {
-			throw e;
-		}
-		catch (Exception e) {
-			log.error("Unable to test the rule on the device {}.", deviceId, e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to test the rule on the device.");
 		}
 	}
 

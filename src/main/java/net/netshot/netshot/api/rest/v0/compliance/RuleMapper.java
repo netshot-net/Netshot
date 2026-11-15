@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
 import net.netshot.netshot.compliance.DeviceRuleResult;
@@ -38,6 +39,7 @@ import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 
@@ -240,6 +242,48 @@ public final class RuleMapper {
 			textRule.normalize(definition.normalize());
 		}
 		return textRule;
+	}
+
+	/**
+	 * Builds the rule to test from a request to test a rule, as the v0 API always did: an enabled rule, the
+	 * properties of a text rule which are not given keeping their default values.
+	 *
+	 * @param definition the request
+	 * @return the rule
+	 * @throws NetshotException if the type of rule is unknown
+	 */
+	public static Rule toTestRule(RuleDefinition definition) {
+		return switch (definition.type()) {
+			case "TextRule" -> applyTextRule(TextRule.builder("TEST", 0), definition).enabled(true).build();
+			case "JavaScriptRule" -> new JavaScriptRule(0, 0, null, "TEST", true, 0, definition.script());
+			case "PythonRule" -> new PythonRule(0, 0, null, "TEST", true, 0, definition.script());
+			case null, default -> throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type");
+		};
+	}
+
+	/**
+	 * Gives the result of a rule test as the v0 API always did: a device which doesn't exist or has no
+	 * configuration makes the rule "not applicable".
+	 *
+	 * @param test runs the test
+	 * @return the result
+	 */
+	public static RuleTestResult toTestResult(Supplier<RuleTestResult> test) {
+		RuleTestResult result;
+		try {
+			result = test.get();
+		}
+		catch (NetshotException e) {
+			if (e.getErrorCode() != ErrorCode.NETSHOT_DEVICE_NOT_FOUND) {
+				throw e;
+			}
+			result = null;
+		}
+		// Without a configuration, the rule is not evaluated (no log)
+		if (result == null || result.result() == CheckResult.ResultOption.NOTAPPLICABLE && result.log() == null) {
+			return new RuleTestResult(CheckResult.ResultOption.NOTAPPLICABLE, null, "Unable to find the device");
+		}
+		return result;
 	}
 
 	/**

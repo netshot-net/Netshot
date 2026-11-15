@@ -265,7 +265,8 @@ public class RuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public RuleTestResultDto testRule(RuleTestRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, rule test.");
-		return RuleMapper.toDto(this.ruleService.test(rsRule.device(), RuleMapper.toDefinition(rsRule)));
+		Rule rule = RuleMapper.toTestRule(RuleMapper.toDefinition(rsRule));
+		return RuleMapper.toDto(RuleMapper.toTestResult(() -> this.ruleService.test(rsRule.device(), rule)));
 	}
 
 	/**
