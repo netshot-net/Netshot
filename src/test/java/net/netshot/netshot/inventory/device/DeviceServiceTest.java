@@ -225,8 +225,7 @@ class DeviceServiceTest {
 			"SkyhighSWG", List.of(ssh), Map.of("fullBackup", true), "Initial comments", List.of("a", "b"), AUTHOR)));
 		this.update(created.id(), d -> d.status(Device.Status.DISABLED));
 
-		Device updated = this.service.update(created.id(),
-			new DeviceChange(null, null, created.mgmtAddress(), this.domainId, null, null, null, null), null);
+		Device updated = this.service.update(created.id(), _ -> new DeviceChange(null, null, created.mgmtAddress(), this.domainId, null, null, null, null), null);
 		Assertions.assertEquals(created.mgmtAddress(), updated.mgmtAddress());
 		Assertions.assertEquals(Device.Status.INPRODUCTION, updated.status());
 		Assertions.assertEquals("", updated.comments());

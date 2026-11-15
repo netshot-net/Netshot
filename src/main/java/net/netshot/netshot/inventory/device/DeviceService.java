@@ -167,20 +167,6 @@ public class DeviceService {
 	}
 
 	/**
-	 * Replaces the editable properties of a device, if it is at a given version.
-	 *
-	 * @param id the device ID
-	 * @param change the new properties
-	 * @param expectedVersion the version the device must be at, or null for any
-	 * @return the device as it is once edited, as {@link #get(long)} returns it
-	 * @throws NetshotException if the device doesn't exist or isn't at the expected version, a property is invalid,
-	 *         the management address is already used by an active device, or the device can't be stored
-	 */
-	public Device update(long id, DeviceChange change, Long expectedVersion) {
-		return this.update(id, _ -> change, expectedVersion);
-	}
-
-	/**
 	 * Replaces the editable properties of a device, if it is at a given version: the new properties are computed
 	 * from the device as it is, which can't change meanwhile (to apply a patch).
 	 *

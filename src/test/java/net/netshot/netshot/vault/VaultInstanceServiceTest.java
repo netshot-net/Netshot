@@ -160,7 +160,7 @@ class VaultInstanceServiceTest {
 			HttpsCaTrustMode.TRUST_ANY, null, "kv", AuthMethod.JWT, "changed-approle", "role2", SecretChange.UNCHANGED, "changed-jwt",
 			"https://idp.example.net", "client", SecretChange.UNCHANGED, "vrole", "scope");
 		int notifications = this.notified.size();
-		HashicorpVaultKv2Instance updated = (HashicorpVaultKv2Instance) this.service.update(created.id(), incoming, null);
+		HashicorpVaultKv2Instance updated = (HashicorpVaultKv2Instance) this.service.update(created.id(), _ -> incoming, null);
 		Assertions.assertEquals(created.id(), updated.id());
 		HashicorpVaultKv2Instance reloaded = this.stored(created.id());
 		Assertions.assertEquals(incoming.name(), reloaded.name());
@@ -177,7 +177,7 @@ class VaultInstanceServiceTest {
 		Assertions.assertEquals("changed-jwt", reloaded.jwtMountPath());
 		Assertions.assertEquals(List.of(created.id()), this.notified.subList(notifications, this.notified.size()));
 
-		this.service.update(created.id(), definition(incoming.name(), "https://vault.example.net:8200", AuthMethod.APPROLE,
+		this.service.update(created.id(), _ -> definition(incoming.name(), "https://vault.example.net:8200", AuthMethod.APPROLE,
 			"new-secret", "new-jwt-secret"), null);
 		reloaded = this.stored(created.id());
 		Assertions.assertEquals(Secret.local("new-secret"), reloaded.appRoleSecretId());
@@ -190,11 +190,10 @@ class VaultInstanceServiceTest {
 		HashicorpVaultKv2Instance first = this.createInstance();
 		HashicorpVaultKv2Instance second = this.createInstance();
 		int notifications = this.notified.size();
-		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, () -> this.service.update(99999999L, definition("x"), null));
-		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, () -> this.service.update(second.id(), definition(" "), null));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, () -> this.service.update(second.id(), definition(first.name()), null));
-		assertParameter("baseUrl", () -> this.service.update(second.id(),
-			definition(second.name(), null, AuthMethod.APPROLE, null, null), null));
+		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, () -> this.service.update(99999999L, _ -> definition("x"), null));
+		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, () -> this.service.update(second.id(), _ -> definition(" "), null));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, () -> this.service.update(second.id(), _ -> definition(first.name()), null));
+		assertParameter("baseUrl", () -> this.service.update(second.id(), _ -> definition(second.name(), null, AuthMethod.APPROLE, null, null), null));
 		Assertions.assertEquals(second.name(), this.stored(second.id()).name());
 		Assertions.assertEquals("https://vault.example.net:8200", this.stored(second.id()).baseUrl());
 		Assertions.assertEquals(notifications, this.notified.size());

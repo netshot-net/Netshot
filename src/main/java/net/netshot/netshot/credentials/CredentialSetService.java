@@ -171,21 +171,6 @@ public class CredentialSetService {
 	}
 
 	/**
-	 * Replaces the definition of a global credential set, if it is still at a given version. The secrets the
-	 * definition leaves unchanged are kept.
-	 *
-	 * @param id the credential set ID
-	 * @param definition the new definition
-	 * @param expectedVersion the version the credential set must be at, or null for any
-	 * @return the edited credential set
-	 * @throws NetshotException if the credential set doesn't exist, is specific to a device access, is of another
-	 *         type, isn't at the expected version, the definition is invalid or incomplete, or it can't be stored
-	 */
-	public DeviceCredentialSet update(long id, CredentialSetDefinition definition, Long expectedVersion) {
-		return this.update(id, _ -> definition, expectedVersion);
-	}
-
-	/**
 	 * Replaces the definition of a global credential set, if it is still at a given version: the new definition is
 	 * computed from the credential set as it is, which can't change meanwhile (to apply a patch). The secrets the
 	 * definition leaves unchanged are kept.

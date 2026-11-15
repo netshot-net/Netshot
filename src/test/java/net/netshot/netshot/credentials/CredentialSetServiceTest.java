@@ -135,7 +135,7 @@ class CredentialSetServiceTest {
 	}
 
 	private DeviceCredentialSet update(long id, CredentialSetDefinition definition) {
-		return this.service.update(id, definition, null);
+		return this.service.update(id, _ -> definition, null);
 	}
 
 	private static void assertParameter(String target, Executable executable) {

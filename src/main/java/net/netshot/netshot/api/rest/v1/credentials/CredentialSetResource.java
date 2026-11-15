@@ -59,6 +59,7 @@ import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceDto;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceMapper;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -178,8 +179,8 @@ public class CredentialSetResource {
 	public CredentialSetDto replaceCredentialSet(@PathParam("id") @Parameter(description = "Credential set ID") long id,
 		CredentialSetRequest credentialSetRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DeviceCredentialSet credentialSet = this.credentialSetService.update(id, CredentialSetMapper.toDefinition(credentialSetRequest),
-			V1Response.ifMatch(this.headers));
+		CredentialSetDefinition definition = CredentialSetMapper.toDefinition(credentialSetRequest);
+		DeviceCredentialSet credentialSet = this.credentialSetService.update(id, _ -> definition, V1Response.ifMatch(this.headers));
 		return this.respond(credentialSet, Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.FULL));
 	}
 

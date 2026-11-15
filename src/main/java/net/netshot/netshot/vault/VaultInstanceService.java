@@ -232,21 +232,6 @@ public class VaultInstanceService {
 	}
 
 	/**
-	 * Replaces the definition of a Vault instance, if it is still at a given version. The secrets the definition
-	 * leaves unchanged are kept.
-	 *
-	 * @param id the Vault instance ID
-	 * @param definition the new definition
-	 * @param expectedVersion the version the instance must be at, or null for any
-	 * @return the edited Vault instance
-	 * @throws NetshotException if the instance doesn't exist or isn't at the expected version, the definition is
-	 *         invalid, the name is already used, or the instance can't be stored
-	 */
-	public VaultInstance update(long id, VaultInstanceDefinition definition, Long expectedVersion) {
-		return this.update(id, _ -> definition, expectedVersion);
-	}
-
-	/**
 	 * Replaces the definition of a Vault instance, if it is still at a given version: the new definition is
 	 * computed from the instance as it is, which can't change meanwhile (to apply a patch). The secrets the
 	 * definition leaves unchanged are kept.

@@ -171,34 +171,6 @@ public class DomainService {
 	}
 
 	/**
-	 * Edits a domain.
-	 *
-	 * @param id the domain ID
-	 * @param definition the new definition of the domain
-	 * @return the edited domain
-	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist,
-	 *         the name is already used, or the domain can't be stored
-	 */
-	public Domain update(long id, DomainDefinition definition) {
-		return this.update(id, definition, null);
-	}
-
-	/**
-	 * Edits a domain, if it is still at a given version.
-	 *
-	 * @param id the domain ID
-	 * @param definition the new definition of the domain
-	 * @param expectedVersion the version the domain must be at, or null for any
-	 * @return the edited domain
-	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist, isn't at the
-	 *         expected version, the name is already used, or the domain can't be stored
-	 */
-	public Domain update(long id, DomainDefinition definition, Long expectedVersion) {
-		Domain valid = validate(definition);
-		return this.update(id, _ -> definition, expectedVersion, valid);
-	}
-
-	/**
 	 * Edits a domain, if it is still at a given version: the new definition is computed from the domain as it is,
 	 * which can't change meanwhile (to apply a patch).
 	 *
@@ -210,11 +182,6 @@ public class DomainService {
 	 *         expected version, the name is already used, or the domain can't be stored
 	 */
 	public Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion) {
-		return this.update(id, change, expectedVersion, null);
-	}
-
-	// With the definition already validated (as a domain), if it is known
-	private Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion, Domain validated) {
 		Domain domain;
 		try {
 			domain = this.transactions.write(dsl -> {
@@ -224,7 +191,7 @@ public class DomainService {
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
 				Domain existing = this.repository.find(dsl, id);
-				Domain valid = validated == null ? validate(change.apply(existing)) : validated;
+				Domain valid = validate(change.apply(existing));
 				Versions.check("domain", version, expectedVersion);
 				return this.repository.save(dsl, existing.toBuilder()
 					.name(valid.name())
