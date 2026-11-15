@@ -53,6 +53,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The REST resource of the other device endpoints: the interfaces and the modules of a device,
@@ -194,7 +195,11 @@ public class DeviceInventoryResource {
 		if (refresh && !this.securityContext.isUserInRole(User.ROLE_ADMIN)) {
 			throw new NetshotNotAuthorizedException("Insufficient permissions to reload the device drivers.", 0);
 		}
-		return DeviceCatalogMapper.toDeviceTypeDtos(this.driverService.list(refresh));
+		if (refresh) {
+			this.driverService.reload();
+		}
+		return DeviceCatalogMapper.toDeviceTypeDtos(this.driverService.list(V0Lists.sorted(Page.ALL,
+			List.of(SortOrder.desc("priority"), SortOrder.asc("name")))).items());
 	}
 
 	/**

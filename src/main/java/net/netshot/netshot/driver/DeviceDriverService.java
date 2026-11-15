@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.driver;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
@@ -59,21 +58,6 @@ public class DeviceDriverService {
 	public DeviceDriverService(DriverRegistry driverRegistry, Runnable clusterReload) {
 		this.driverRegistry = driverRegistry;
 		this.clusterReload = clusterReload;
-	}
-
-	/**
-	 * Lists the device types.
-	 *
-	 * <p>The caller is the one to check that the user may reload the drivers.</p>
-	 *
-	 * @param refresh whether to reload all the drivers from their sources (on the other cluster nodes too) first
-	 * @return the drivers (a reload which fails is logged, and the previous drivers are returned)
-	 */
-	public List<DeviceDriver> list(boolean refresh) {
-		if (refresh) {
-			this.reload();
-		}
-		return new ArrayList<>(this.driverRegistry.getAllDrivers());
 	}
 
 	/**
