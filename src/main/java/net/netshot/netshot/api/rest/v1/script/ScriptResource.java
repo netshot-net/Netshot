@@ -55,7 +55,7 @@ import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.userscript.DeviceJsScript;
-import net.netshot.netshot.userscript.ScriptCreation;
+import net.netshot.netshot.userscript.ScriptDefinition;
 import net.netshot.netshot.userscript.ScriptService;
 
 /**
@@ -144,7 +144,7 @@ public class ScriptResource {
 	@Operation(summary = "Create a script", description = "Validates and creates a command script, the author being the user.")
 	public ScriptDto createScript(ScriptRequest scriptRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DeviceJsScript script = this.scriptService.create(ScriptMapper.toCreation(scriptRequest, this.author()));
+		DeviceJsScript script = this.scriptService.create(ScriptMapper.toDefinition(scriptRequest, this.author()));
 		V1Response.created(this.request, V1Links.of(ScriptMapper.PATH, script.id()));
 		return this.respond(script);
 	}
@@ -164,7 +164,7 @@ public class ScriptResource {
 		+ "(by evaluating it) without saving it: 200 with the script and its user inputs, 400 with the problem otherwise.")
 	public ScriptDto validateScript(ScriptRequest scriptRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.scriptService.validate(ScriptMapper.toCreation(scriptRequest, this.author())));
+		return this.respond(this.scriptService.validate(ScriptMapper.toDefinition(scriptRequest, this.author())));
 	}
 
 	/**
@@ -183,7 +183,7 @@ public class ScriptResource {
 		+ "author is kept). With If-Match, the script must still be at the given version (ETag).")
 	public ScriptDto replaceScript(@PathParam("id") @Parameter(description = "Script ID") long id, ScriptRequest scriptRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		ScriptCreation definition = ScriptMapper.toCreation(scriptRequest, null);
+		ScriptDefinition definition = ScriptMapper.toDefinition(scriptRequest, null);
 		return this.respond(this.scriptService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
@@ -206,7 +206,7 @@ public class ScriptResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.scriptService.update(id, MergePatch.of(patch, this.headers.getMediaType(), ScriptRequest.class,
-			ScriptMapper::toRequest, r -> ScriptMapper.toCreation(r, null)), V1Response.ifMatch(this.headers)));
+			ScriptMapper::toRequest, r -> ScriptMapper.toDefinition(r, null)), V1Response.ifMatch(this.headers)));
 	}
 
 	/**

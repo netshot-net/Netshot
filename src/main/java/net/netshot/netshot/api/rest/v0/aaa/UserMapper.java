@@ -25,8 +25,7 @@ import net.netshot.netshot.aaa.auth.LoginAttempt;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.aaa.user.UserCreation;
-import net.netshot.netshot.aaa.user.UserUpdate;
+import net.netshot.netshot.aaa.user.UserDefinition;
 
 /**
  * Maps the users and the API tokens between the AAA entities and their REST representation,
@@ -96,23 +95,13 @@ public final class UserMapper {
 	}
 
 	/**
-	 * Maps the request to create a user.
+	 * Maps a request to create or edit a user to the settings given to the service.
 	 *
 	 * @param request the request
 	 * @return the command
 	 */
-	public static UserCreation toCreation(UserRequest request) {
-		return new UserCreation(request.username(), request.local(), request.password(), request.level());
-	}
-
-	/**
-	 * Maps the request to edit a user.
-	 *
-	 * @param request the request
-	 * @return the command
-	 */
-	public static UserUpdate toUpdate(UserRequest request) {
-		return new UserUpdate(request.username(), request.local(), request.password(), request.level());
+	public static UserDefinition toDefinition(UserRequest request) {
+		return new UserDefinition(request.username(), request.local(), request.password(), request.level());
 	}
 
 	/**

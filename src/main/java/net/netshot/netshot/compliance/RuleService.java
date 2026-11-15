@@ -285,14 +285,14 @@ public class RuleService {
 	}
 
 	/**
-	 * Adds a rule (enabled or not as given).
+	 * Creates a rule (enabled or not as given).
 	 *
 	 * @param newRule the rule (its ID is ignored)
 	 * @return the new rule
 	 * @throws NetshotException if the name is blank or already used in the policy, the policy doesn't
 	 *         exist, or the rule can't be stored
 	 */
-	public Rule add(Rule newRule) {
+	public Rule create(Rule newRule) {
 		if (newRule.name() == null || newRule.name().isBlank()) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
 		}
@@ -347,7 +347,7 @@ public class RuleService {
 	 * @throws NetshotException if the rule doesn't exist, isn't at the expected version, is of another kind or policy, the
 	 *         name is blank or already used in the policy, an exempted device doesn't exist, or the rule can't be stored
 	 */
-	public Rule replace(long id, Function<Rule, Replacement> change, Long expectedVersion) {
+	public Rule update(long id, Function<Rule, Replacement> change, Long expectedVersion) {
 		Rule rule;
 		try {
 			rule = this.transactions.write(dsl -> {

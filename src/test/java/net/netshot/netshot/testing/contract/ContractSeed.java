@@ -41,7 +41,7 @@ import org.jooq.DSLContext;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.aaa.user.UserCreation;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleService;
@@ -127,7 +127,7 @@ import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.userscript.ScriptCreation;
+import net.netshot.netshot.userscript.ScriptDefinition;
 import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.vault.SecretChange;
@@ -484,33 +484,33 @@ public final class ContractSeed {
 
 	private void seedPolicies() {
 		PolicyService policies = TestWiring.get().policyService();
-		this.created("policy.security", policies.add(new PolicyDefinition("Security baseline",
+		this.created("policy.security", policies.create(new PolicyDefinition("Security baseline",
 			Set.of(this.id("group.dynamic")))).id());
-		this.created("policy.routing", policies.add(new PolicyDefinition("Routing policy",
+		this.created("policy.routing", policies.create(new PolicyDefinition("Routing policy",
 			new LinkedHashSet<>(List.of(this.id("group.static"), this.id("group.dynamic"))))).id());
-		this.created("policy.empty", policies.add(new PolicyDefinition("Empty policy", Set.of())).id());
+		this.created("policy.empty", policies.create(new PolicyDefinition("Empty policy", Set.of())).id());
 
 		RuleService rules = TestWiring.get().ruleService();
-		this.created("rule.text", rules.add(TextRule.builder("No telnet", this.id("policy.security"))
+		this.created("rule.text", rules.create(TextRule.builder("No telnet", this.id("policy.security"))
 			.text("transport input telnet").regExp(false).context("line vty").deviceDriver("CiscoIOS12").field("runningConfig")
 			.anyBlock(false).matchAll(false).invert(true).normalize(true).build()).id());
-		this.created("rule.regex", rules.add(TextRule.builder("Hostname set", this.id("policy.security"))
+		this.created("rule.regex", rules.create(TextRule.builder("Hostname set", this.id("policy.security"))
 			.text("^hostname .+$").regExp(true).field("runningConfig").anyBlock(true).matchAll(true).invert(false).normalize(false)
 			.build()).id());
-		this.created("rule.js", rules.add(new JavaScriptRule(0, 0, null, "JS check", false, this.id("policy.routing"),
+		this.created("rule.js", rules.create(new JavaScriptRule(0, 0, null, "JS check", false, this.id("policy.routing"),
 			"function check(device) {\n  return { result: CONFORMING, comment: 'ok' };\n}")).id());
-		this.created("rule.python", rules.add(new PythonRule(0, 0, null, "Python check", false, this.id("policy.routing"),
+		this.created("rule.python", rules.create(new PythonRule(0, 0, null, "Python check", false, this.id("policy.routing"),
 			"def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}")).id());
 
 		SoftwareRuleService softwareRules = TestWiring.get().softwareRuleService();
-		this.created("rule.software.gold", softwareRules.add(new SoftwareRule(0, 0, null, 0, this.id("group.dynamic"),
+		this.created("rule.software.gold", softwareRules.create(new SoftwareRule(0, 0, null, 0, this.id("group.dynamic"),
 			"CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.GOLD), null).rule().id());
-		this.created("rule.software.silver", softwareRules.add(new SoftwareRule(0, 0, null, 0, null,
+		this.created("rule.software.silver", softwareRules.create(new SoftwareRule(0, 0, null, 0, null,
 			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER), null).rule().id());
 		HardwareRuleService hardwareRules = TestWiring.get().hardwareRuleService();
-		this.created("rule.hardware.1", hardwareRules.add(new HardwareRule(0, 0, null, "CiscoIOS12", this.id("group.dynamic"),
+		this.created("rule.hardware.1", hardwareRules.create(new HardwareRule(0, 0, null, "CiscoIOS12", this.id("group.dynamic"),
 			"", false, "CISCO2911/K9", false, Instant.ofEpochMilli(D2040), Instant.ofEpochMilli(D2040 + 365L * 24 * 3600 * 1000))).id());
-		this.created("rule.hardware.2", hardwareRules.add(new HardwareRule(0, 0, null, null, null,
+		this.created("rule.hardware.2", hardwareRules.create(new HardwareRule(0, 0, null, null, null,
 			"Cisco 1900.*", true, "", false, Instant.ofEpochMilli(D2022), null)).id());
 	}
 
@@ -541,19 +541,19 @@ public final class ContractSeed {
 
 	private void seedScripts() {
 		ScriptService scripts = TestWiring.get().scriptService();
-		this.created("script.1", scripts.create(new ScriptCreation("Show version", "CiscoIOS12",
+		this.created("script.1", scripts.create(new ScriptDefinition("Show version", "CiscoIOS12",
 			"function run(cli, device) {\n  cli.macro(\"enable\");\n  cli.command(\"show version\");\n}", SCRIPT_AUTHOR,
 			"Maintenance")).id());
-		this.created("script.2", scripts.create(new ScriptCreation("Other script", "CiscoIOS12",
+		this.created("script.2", scripts.create(new ScriptDefinition("Other script", "CiscoIOS12",
 			"function run(cli, device) {\n  cli.command(\"show clock\");\n}", SCRIPT_AUTHOR, "")).id());
 	}
 
 	private void seedUsers() {
 		UserService users = TestWiring.get().userService();
-		this.created("user.readonly", users.create(new UserCreation("reader", true, USER_PASSWORD, UiUser.LEVEL_READONLY)).id());
-		this.created("user.rw", users.create(new UserCreation("writer", true, USER_PASSWORD, UiUser.LEVEL_READWRITE)).id());
-		this.created("user.admin", users.create(new UserCreation("boss", true, USER_PASSWORD, UiUser.LEVEL_ADMIN)).id());
-		this.created("user.remote", users.create(new UserCreation("radius-user", false, null, UiUser.LEVEL_OPERATOR)).id());
+		this.created("user.readonly", users.create(new UserDefinition("reader", true, USER_PASSWORD, UiUser.LEVEL_READONLY)).id());
+		this.created("user.rw", users.create(new UserDefinition("writer", true, USER_PASSWORD, UiUser.LEVEL_READWRITE)).id());
+		this.created("user.admin", users.create(new UserDefinition("boss", true, USER_PASSWORD, UiUser.LEVEL_ADMIN)).id());
+		this.created("user.remote", users.create(new UserDefinition("radius-user", false, null, UiUser.LEVEL_OPERATOR)).id());
 	}
 
 	// -------------------------------------------------------------------
@@ -562,7 +562,7 @@ public final class ContractSeed {
 
 	private void seedComplianceAndDiagnosticResults() {
 		// Exemption, through the service
-		TestWiring.get().ruleService().replace(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
+		TestWiring.get().ruleService().update(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
 			Map.of(this.id("device.router2"), Instant.ofEpochMilli(D2040))), null);
 		TestWiring.get().transactions().run(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();

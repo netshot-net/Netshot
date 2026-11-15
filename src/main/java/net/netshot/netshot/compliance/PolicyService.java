@@ -140,13 +140,13 @@ public class PolicyService {
 	}
 
 	/**
-	 * Adds a policy.
+	 * Creates a policy.
 	 *
 	 * @param definition the policy
 	 * @return the new policy
 	 * @throws NetshotException if the name is blank or already used, a group doesn't exist, or if the policy can't be stored
 	 */
-	public Policy add(PolicyDefinition definition) {
+	public Policy create(PolicyDefinition definition) {
 		String name = definition.name().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an empty policy name.");
@@ -183,7 +183,7 @@ public class PolicyService {
 	 * @throws NetshotException if the policy or a group doesn't exist, the policy isn't at the expected version, the
 	 *         name is blank or already used, or if the policy can't be stored
 	 */
-	public Policy replace(long id, Function<Policy, PolicyDefinition> change, Long expectedVersion) {
+	public Policy update(long id, Function<Policy, PolicyDefinition> change, Long expectedVersion) {
 		Policy policy;
 		try {
 			policy = this.transactions.write(dsl -> {

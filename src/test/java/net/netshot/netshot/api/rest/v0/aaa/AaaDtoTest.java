@@ -32,8 +32,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.aaa.user.UserCreation;
-import net.netshot.netshot.aaa.user.UserUpdate;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.DtoContract;
 
@@ -192,8 +191,8 @@ class AaaDtoTest {
 	@DisplayName("The user request is mapped to the commands without trimming nor defaulting")
 	void userCommands() {
 		UserRequest request = new UserRequest(4, " bob ", "pw", 100, true);
-		Assertions.assertEquals(new UserCreation(" bob ", true, "pw", 100), UserMapper.toCreation(request));
-		Assertions.assertEquals(new UserUpdate(" bob ", true, "pw", 100), UserMapper.toUpdate(request));
+		Assertions.assertEquals(new UserDefinition(" bob ", true, "pw", 100), UserMapper.toDefinition(request));
+		Assertions.assertEquals(new UserDefinition(" bob ", true, "pw", 100), UserMapper.toDefinition(request));
 	}
 
 	@Test

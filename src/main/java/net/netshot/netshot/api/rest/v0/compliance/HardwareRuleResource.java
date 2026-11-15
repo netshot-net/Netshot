@@ -124,7 +124,7 @@ public class HardwareRuleResource {
 	public HardwareRuleDto addHardwareRule(HardwareRuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add hardware rule.");
 		HardwareRule newRule = HardwareRuleMapper.toRule(this.driverRegistry, HardwareRuleMapper.toDefinition(rsRule));
-		HardwareRule rule = V0Errors.translate(() -> this.hardwareRuleService.add(newRule), INVALID_GROUP);
+		HardwareRule rule = V0Errors.translate(() -> this.hardwareRuleService.create(newRule), INVALID_GROUP);
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return this.toDto(rule);
 	}
@@ -179,7 +179,7 @@ public class HardwareRuleResource {
 		throws WebApplicationException {
 		log.debug("REST request, edit hardware rule {}.", id);
 		HardwareRule newRule = HardwareRuleMapper.toRule(this.driverRegistry, HardwareRuleMapper.toDefinition(rsRule));
-		HardwareRule rule = V0Errors.translate(() -> this.hardwareRuleService.replace(id, _ -> newRule, null),
+		HardwareRule rule = V0Errors.translate(() -> this.hardwareRuleService.update(id, _ -> newRule, null),
 			V0Errors.code(ErrorCode.NETSHOT_RULE_NOT_FOUND, ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule."), INVALID_GROUP);
 		return this.toDto(rule);
 	}

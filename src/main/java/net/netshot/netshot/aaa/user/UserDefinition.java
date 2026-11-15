@@ -16,21 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.userscript;
+package net.netshot.netshot.aaa.user;
 
 /**
- * The properties of a command script to create (or only to validate).
+ * The settings of a user, to create or edit it.
  *
- * @param name the name
- * @param deviceDriver the name of the device driver the script is written for
- * @param script the JavaScript code
- * @param author the name of the author (the user who creates the script)
- * @param folder the folder the script is stored in (may be null, as it was posted)
+ * @param username the user name (not trimmed yet)
+ * @param local true for a user with a local password, false for a remote user
+ * @param password the clear password (only used for a local user; on an edition, null keeps the current one)
+ * @param level the authorization level
  */
-public record ScriptCreation(
-	String name,
-	String deviceDriver,
-	String script,
-	String author,
-	String folder) {
+public record UserDefinition(String username, boolean local, String password, int level) {
 }

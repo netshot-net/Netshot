@@ -274,7 +274,7 @@ class DiagnosticDtoTest {
 			"{\"id\": \"x\"}")) {
 			Assertions.assertThrows(JsonMappingException.class, () -> scriptRequest(body), body);
 		}
-		Assertions.assertEquals("x", ScriptMapper.toCreation(scriptRequest("{\"author\": \"x\"}"), null).author(), "posted author kept");
-		Assertions.assertEquals("u", ScriptMapper.toCreation(scriptRequest("{\"author\": \"x\"}"), "u").author(), "user wins");
+		Assertions.assertEquals("x", ScriptMapper.toDefinition(scriptRequest("{\"author\": \"x\"}"), null).author(), "posted author kept");
+		Assertions.assertEquals("u", ScriptMapper.toDefinition(scriptRequest("{\"author\": \"x\"}"), "u").author(), "user wins");
 	}
 }

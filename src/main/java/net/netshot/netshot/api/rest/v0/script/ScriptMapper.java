@@ -27,7 +27,7 @@ import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.userscript.DeviceJsScript;
-import net.netshot.netshot.userscript.ScriptCreation;
+import net.netshot.netshot.userscript.ScriptDefinition;
 
 /**
  * Maps the command scripts between the entities and their REST representation. All the methods
@@ -89,8 +89,8 @@ public final class ScriptMapper {
 	 * @param author the author, when the user could be determined, else null (the posted author is used)
 	 * @return the command
 	 */
-	public static ScriptCreation toCreation(ScriptRequest request, String author) {
-		return new ScriptCreation(request.name(), request.deviceDriver(), request.script(),
+	public static ScriptDefinition toDefinition(ScriptRequest request, String author) {
+		return new ScriptDefinition(request.name(), request.deviceDriver(), request.script(),
 			author != null ? author : request.author(), request.folder());
 	}
 }

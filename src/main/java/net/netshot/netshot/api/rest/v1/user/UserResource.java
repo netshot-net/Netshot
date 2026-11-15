@@ -44,7 +44,7 @@ import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.aaa.user.UserUpdate;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
@@ -136,7 +136,7 @@ public class UserResource {
 		+ "the user only gives it its permission level).")
 	public UserDto createUser(UserRequest userRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		UiUser user = this.userService.create(UserMapper.toCreation(userRequest));
+		UiUser user = this.userService.create(UserMapper.toDefinition(userRequest));
 		V1Response.created(this.request, V1Links.of(AuthMapper.USERS_PATH, user.id()));
 		return this.respond(user);
 	}
@@ -158,7 +158,7 @@ public class UserResource {
 		+ "the user must still be at the given version (ETag).")
 	public UserDto replaceUser(@PathParam("id") @Parameter(description = "User ID") long id, UserRequest userRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		UserUpdate update = UserMapper.toUpdate(userRequest);
+		UserDefinition update = UserMapper.toDefinition(userRequest);
 		return this.respond(this.userService.update(id, this.currentUsername(), _ -> update, V1Response.ifMatch(this.headers)));
 	}
 
@@ -181,7 +181,7 @@ public class UserResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.userService.update(id, this.currentUsername(), MergePatch.of(patch, this.headers.getMediaType(),
-			UserRequest.class, UserMapper::toRequest, UserMapper::toUpdate), V1Response.ifMatch(this.headers)));
+			UserRequest.class, UserMapper::toRequest, UserMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**

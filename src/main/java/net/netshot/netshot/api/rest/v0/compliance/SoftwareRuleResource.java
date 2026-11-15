@@ -135,7 +135,7 @@ public class SoftwareRuleResource {
 	public SoftwareRuleDto addSoftwareRule(SoftwareRuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add software rule.");
 		SoftwareRule newRule = SoftwareRuleMapper.toRule(this.driverRegistry, SoftwareRuleMapper.toDefinition(rsRule));
-		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.add(newRule, null), INVALID_GROUP);
+		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.create(newRule, null), INVALID_GROUP);
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return this.toDto(rule.rule());
 	}
@@ -190,7 +190,7 @@ public class SoftwareRuleResource {
 		throws WebApplicationException {
 		log.debug("REST request, edit software rule {}.", id);
 		SoftwareRule newRule = SoftwareRuleMapper.toRule(this.driverRegistry, SoftwareRuleMapper.toDefinition(rsRule));
-		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.replace(id, _ -> new Replacement(newRule, null), null),
+		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.update(id, _ -> new Replacement(newRule, null), null),
 			UNKNOWN_RULE, INVALID_GROUP);
 		return this.toDto(rule.rule());
 	}
@@ -226,7 +226,7 @@ public class SoftwareRuleResource {
 			nextRank = V0Errors.translate(() -> this.softwareRuleService.get(nextId).rank(), UNKNOWN_RULE);
 		}
 		Integer next = nextRank;
-		V0Errors.translate(() -> this.softwareRuleService.replace(id, rule -> new Replacement(rule.rule(),
+		V0Errors.translate(() -> this.softwareRuleService.update(id, rule -> new Replacement(rule.rule(),
 			next == null ? Integer.MAX_VALUE : next - (rule.rank() < next ? 1 : 0)), null), UNKNOWN_RULE);
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 	}

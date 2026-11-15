@@ -51,7 +51,7 @@ import net.netshot.netshot.testing.api.v1.V1Client.Answer;
 import net.netshot.netshot.testing.api.v1.V1Endpoints;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.userscript.DeviceJsScript;
-import net.netshot.netshot.userscript.ScriptCreation;
+import net.netshot.netshot.userscript.ScriptDefinition;
 import net.netshot.netshot.userscript.ScriptRepository;
 import net.netshot.netshot.userscript.ScriptService;
 
@@ -196,7 +196,7 @@ class V1DeviceActionResourceTest {
 		Assertions.assertEquals("CiscoIOS12", text.json().get("parameters").get("deviceDriver").asText());
 
 		ScriptService scripts = new ScriptService(TestWiring.get().transactions(), new ScriptRepository(), TestDrivers.registry());
-		DeviceJsScript saved = scripts.create(new ScriptCreation("Clock-" + System.nanoTime(), "CiscoIOS12", SCRIPT, "tester", "Folder"));
+		DeviceJsScript saved = scripts.create(new ScriptDefinition("Clock-" + System.nanoTime(), "CiscoIOS12", SCRIPT, "tester", "Folder"));
 		Task fromSaved = this.accepted(this.admin.post(this.path("script-runs"), "{\"savedScript\": " + saved.id() + "}"), "RunDeviceScriptTask");
 		Assertions.assertEquals(SCRIPT, ((RunDeviceScriptTask) fromSaved.spec()).script());
 		Assertions.assertEquals("CiscoIOS12", ((RunDeviceScriptTask) fromSaved.spec()).deviceDriver());

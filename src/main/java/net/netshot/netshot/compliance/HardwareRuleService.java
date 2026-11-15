@@ -153,13 +153,13 @@ public class HardwareRuleService {
 	}
 
 	/**
-	 * Adds a hardware rule.
+	 * Creates a hardware rule.
 	 *
 	 * @param newRule the rule (its ID is ignored)
 	 * @return the new rule
 	 * @throws NetshotException if the group or the driver doesn't exist, or the rule can't be stored
 	 */
-	public HardwareRule add(HardwareRule newRule) {
+	public HardwareRule create(HardwareRule newRule) {
 		HardwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
@@ -186,7 +186,7 @@ public class HardwareRuleService {
 	 * @throws NetshotException if the rule, the group or the driver doesn't exist, the rule isn't at the expected
 	 *         version, or the rule can't be stored
 	 */
-	public HardwareRule replace(long id, Function<HardwareRule, HardwareRule> change, Long expectedVersion) {
+	public HardwareRule update(long id, Function<HardwareRule, HardwareRule> change, Long expectedVersion) {
 		HardwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {

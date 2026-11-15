@@ -186,7 +186,7 @@ public class RuleResource {
 			V0Errors.translate(() -> this.policyService.get(definition.policyId()), invalidPolicy);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type.");
 		}
-		Rule added = V0Errors.translate(() -> this.ruleService.add(newRule),
+		Rule added = V0Errors.translate(() -> this.ruleService.create(newRule),
 			V0Errors.target("policy", ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy."));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return RuleMapper.toDto(this.driverRegistry, added);
@@ -214,7 +214,7 @@ public class RuleResource {
 		throws WebApplicationException {
 		log.debug("REST request, edit rule {}.", id);
 		RuleDefinition definition = RuleMapper.toDefinition(rsRule);
-		Rule rule = V0Errors.translate(() -> this.ruleService.replace(id, existing -> RuleMapper.toReplacement(existing, definition), null),
+		Rule rule = V0Errors.translate(() -> this.ruleService.update(id, existing -> RuleMapper.toReplacement(existing, definition), null),
 			V0Errors.code(ErrorCode.NETSHOT_RULE_NOT_FOUND, ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule."),
 			V0Errors.target("exemptions", ErrorCode.NETSHOT_INVALID_DEVICE, null));
 		return RuleMapper.toDto(this.driverRegistry, rule);

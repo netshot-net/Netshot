@@ -100,9 +100,9 @@ public class ScriptResource {
 		Principal principal = this.securityContext.getUserPrincipal();
 		String author = principal instanceof User user ? user.username() : null;
 		if (validateOnly) {
-			return ScriptMapper.toDto(this.driverRegistry, this.scriptService.validate(ScriptMapper.toCreation(rsScript, author)));
+			return ScriptMapper.toDto(this.driverRegistry, this.scriptService.validate(ScriptMapper.toDefinition(rsScript, author)));
 		}
-		DeviceJsScript script = this.scriptService.create(ScriptMapper.toCreation(rsScript, author));
+		DeviceJsScript script = this.scriptService.create(ScriptMapper.toDefinition(rsScript, author));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return ScriptMapper.toDto(this.driverRegistry, script);
 	}

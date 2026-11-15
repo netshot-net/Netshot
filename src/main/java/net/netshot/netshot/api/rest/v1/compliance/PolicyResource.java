@@ -164,7 +164,7 @@ public class PolicyResource {
 	@Operation(summary = "Create a compliance policy", description = "Creates a compliance policy, without rules.")
 	public PolicyDto createPolicy(PolicyRequest policyRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Policy policy = this.policyService.add(PolicyMapper.toDefinition(policyRequest));
+		Policy policy = this.policyService.create(PolicyMapper.toDefinition(policyRequest));
 		V1Response.created(this.request, V1Links.of(PolicyMapper.PATH, policy.id()));
 		return this.respond(policy);
 	}
@@ -187,7 +187,7 @@ public class PolicyResource {
 	public PolicyDto replacePolicy(@PathParam("id") @Parameter(description = "Policy ID") long id, PolicyRequest policyRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		PolicyDefinition definition = PolicyMapper.toDefinition(policyRequest);
-		return this.respond(this.policyService.replace(id, _ -> definition, V1Response.ifMatch(this.headers)));
+		return this.respond(this.policyService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -207,7 +207,7 @@ public class PolicyResource {
 	public PolicyDto updatePolicy(@PathParam("id") @Parameter(description = "Policy ID") long id,
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.policyService.replace(id, MergePatch.of(patch, this.headers.getMediaType(), PolicyRequest.class,
+		return this.respond(this.policyService.update(id, MergePatch.of(patch, this.headers.getMediaType(), PolicyRequest.class,
 			PolicyMapper::toRequest, PolicyMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 

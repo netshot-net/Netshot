@@ -44,7 +44,7 @@ import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.aaa.user.UserUpdate;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.V0Errors;
@@ -117,7 +117,7 @@ public class UserResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public UserDto addUser(UserRequest rsUser) {
 		log.debug("REST request, add user");
-		UserDto user = UserMapper.toDto(this.userService.create(UserMapper.toCreation(rsUser)));
+		UserDto user = UserMapper.toDto(this.userService.create(UserMapper.toDefinition(rsUser)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return user;
 	}
@@ -145,7 +145,7 @@ public class UserResource {
 		UserRequest rsUser) throws WebApplicationException {
 		log.debug("REST request, edit user {}.", id);
 		User currentUser = (User) this.securityContext.getUserPrincipal();
-		UserUpdate update = UserMapper.toUpdate(rsUser);
+		UserDefinition update = UserMapper.toDefinition(rsUser);
 		return UserMapper.toDto(V0Errors.translate(() -> this.userService.update(id, currentUser.username(), _ -> update, null),
 			V0Errors.code(ErrorCode.NETSHOT_USER_NOT_FOUND, ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user.")));
 	}
