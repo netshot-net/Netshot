@@ -30,14 +30,14 @@ import java.util.Set;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigDelta;
 import net.netshot.netshot.inventory.config.ConfigDiff;
-import net.netshot.netshot.inventory.config.ConfigFilter;
-import net.netshot.netshot.inventory.config.ConfigSummary;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.Lookup;
 
 /**
  * Maps the configurations between the records (or the projections) of the inventory and their
@@ -73,14 +73,15 @@ public final class ConfigMapper {
 	 * Maps the configurations to their representation.
 	 *
 	 * @param configs the configurations
+	 * @param paged whether the list is a page (an offset or a limit was given)
 	 * @return the DTOs, in the same order
 	 */
-	public static List<ConfigDto> toDtos(List<Config> configs) {
+	public static List<ConfigDto> toDtos(List<Config> configs, boolean paged) {
 		List<ConfigDto> dtos = new ArrayList<>(configs.size());
 		configs.forEach(config -> dtos.add(toDto(config)));
-		if (configs.getClass() != ArrayList.class) {
-			// Quirk kept: the configurations of a device are answered as a sub list when they are
-			// paginated (see ConfigRepository#findByDevice), which XML publishes as <SubList>
+		if (paged) {
+			// Quirk kept: the former (Hibernate) query paginated the configurations of a device in memory and
+			// answered a sub list, which XML publishes as <SubList> instead of <ArrayList>
 			return dtos.subList(0, dtos.size());
 		}
 		return dtos;
@@ -149,16 +150,28 @@ public final class ConfigMapper {
 	}
 
 	/**
-	 * Builds the criteria of the configuration changes from the query parameters.
+	 * Gives the filters of the list of configuration changes.
 	 *
-	 * @param after the date (milliseconds since 1970) from which the configurations were gathered, or null
-	 * @param before the date (milliseconds since 1970) before which the configurations were gathered, or null
-	 * @param domainIds the IDs of the domains
-	 * @param groupIds the IDs of the groups
-	 * @return the criteria
+	 * @param after the date (epoch milliseconds) the changes are at or after, or null
+	 * @param before the date (epoch milliseconds) the changes are before, or null
+	 * @param domainIds the domains of the devices (any if empty)
+	 * @param groupIds the groups of the devices (any if empty)
+	 * @return the filters
 	 */
-	public static ConfigFilter toFilter(Long after, Long before, Set<Long> domainIds, Set<Long> groupIds) {
-		return new ConfigFilter(after == null ? null : new Date(after), before == null ? null : new Date(before),
-			domainIds, groupIds);
+	public static Criterion[] toCriteria(Long after, Long before, Set<Long> domainIds, Set<Long> groupIds) {
+		List<Criterion> criteria = new ArrayList<>();
+		if (after != null) {
+			criteria.add(new Criterion("changeDate", Lookup.GTE, List.of(Instant.ofEpochMilli(after))));
+		}
+		if (before != null) {
+			criteria.add(new Criterion("changeDate", Lookup.LT, List.of(Instant.ofEpochMilli(before))));
+		}
+		if (!domainIds.isEmpty()) {
+			criteria.add(new Criterion("domain", Lookup.EXACT, List.copyOf(domainIds)));
+		}
+		if (!groupIds.isEmpty()) {
+			criteria.add(new Criterion("group", Lookup.EXACT, List.copyOf(groupIds)));
+		}
+		return criteria.toArray(Criterion[]::new);
 	}
 }

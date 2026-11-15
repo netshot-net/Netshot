@@ -18,8 +18,12 @@
  */
 package net.netshot.netshot.api.rest.v0.config;
 
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,9 +45,18 @@ import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigItem;
 import net.netshot.netshot.inventory.config.ConfigItemException;
 import net.netshot.netshot.inventory.config.ConfigService;
+import net.netshot.netshot.inventory.device.DeviceSummary;
+import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The REST resource of the configurations: list the configurations of a device or the
@@ -58,15 +71,18 @@ import net.netshot.netshot.inventory.config.ConfigService;
 public class ConfigResource {
 
 	private final ConfigService configService;
+	private final SearchService searchService;
 
 	/**
 	 * Instantiates the resource.
 	 *
 	 * @param configService the configuration use cases
+	 * @param searchService the device search use cases
 	 */
 	@Inject
-	public ConfigResource(ConfigService configService) {
+	public ConfigResource(ConfigService configService, SearchService searchService) {
 		this.configService = configService;
+		this.searchService = searchService;
 	}
 
 	/**
@@ -89,7 +105,9 @@ public class ConfigResource {
 	public List<ConfigDto> getDeviceConfigs(@PathParam("id") @Parameter(description = "Device ID") Long id, @BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, get device {} configs.", id);
-		return ConfigMapper.toDtos(this.configService.listByDevice(id, paginationParams.toPage()));
+		Page page = paginationParams.toPage();
+		return ConfigMapper.toDtos(this.configService.list(V0Lists.sorted(page, List.of(SortOrder.desc("changeDate"), SortOrder.desc("id")),
+			new Criterion("device", Lookup.EXACT, List.of(id))), true).items(), page.isRestricted());
 	}
 
 	/**
@@ -187,7 +205,17 @@ public class ConfigResource {
 		@BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, config changes.");
-		return ConfigMapper.toSummaryDtos(this.configService.listChanges(
-			ConfigMapper.toFilter(startDate, endDate, domains, deviceGroups), paginationParams.toPage()));
+		List<Config> configs = this.configService.list(V0Lists.sorted(paginationParams.toPage(), List.of(SortOrder.asc("id")),
+			ConfigMapper.toCriteria(startDate, endDate, domains, deviceGroups)), false).items();
+		Map<Long, DeviceSummary> devices = new HashMap<>();
+		if (!configs.isEmpty()) {
+			this.searchService.listDeviceSummaries(ListQuery.byIds(configs.stream().map(Config::deviceId).collect(Collectors.toSet())), null)
+				.items().forEach(device -> devices.put(device.id(), device));
+		}
+		return ConfigMapper.toSummaryDtos(configs.stream().map(config -> {
+			DeviceSummary device = devices.get(config.deviceId());
+			return new ConfigSummary(config.id(), device.name(), config.deviceId(),
+				config.changeDate() == null ? null : Date.from(config.changeDate()), config.author(), device.networkClass());
+		}).toList());
 	}
 }

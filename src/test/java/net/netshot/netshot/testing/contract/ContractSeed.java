@@ -50,13 +50,13 @@ import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.RuleRepository;
-import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.RuleService.Replacement;
+import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.TextRule;
-import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -111,6 +111,9 @@ import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.Task;
@@ -455,7 +458,8 @@ public final class ContractSeed {
 	 */
 	private void writeBinaryFiles(long deviceId) {
 		Path folder = ConfigBinaryFileAttribute.settings().storageFolderPath();
-		List<Config> configs = TestWiring.get().transactions().read(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
+		List<Config> configs = TestWiring.get().transactions().read(dsl -> new ConfigRepository().findAll(dsl,
+			new ListQuery(List.of(new Criterion("device", Lookup.EXACT, List.of(deviceId))), null, List.of(), Page.ALL, false), true));
 		for (Config config : configs) {
 			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.attributes()) {
 				if (attribute instanceof ConfigBinaryFileAttribute file) {

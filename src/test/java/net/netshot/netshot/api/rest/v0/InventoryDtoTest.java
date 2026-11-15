@@ -139,19 +139,19 @@ class InventoryDtoTest {
 		Assertions.assertTrue(json.contains("\"type\":\"BINARYFILE\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"LONGTEXT\""), json);
 		Assertions.assertFalse(json.contains("some very long text"), "long texts are not part of the representation");
-		this.assertRepresentation(new ArrayList<>(ConfigMapper.toDtos(new ArrayList<>(List.of(config)))));
+		this.assertRepresentation(new ArrayList<>(ConfigMapper.toDtos(new ArrayList<>(List.of(config)), false)));
 
 		Config bare = Config.empty(config.deviceId());
 		this.assertRepresentation(ConfigMapper.toDto(bare));
 	}
 
 	@Test
-	@DisplayName("A list of configurations which is a sub list is published as one, like the query result was")
+	@DisplayName("A page of configurations is published as a sub list, like the query result was")
 	void configSubList() throws Exception {
-		List<Config> whole = new ArrayList<>(List.of(fullConfig(), fullConfig()));
-		List<Config> sub = whole.subList(0, 1);
-		this.assertRepresentation(ConfigMapper.toDtos(sub));
-		Assertions.assertTrue(new String(xml(ConfigMapper.toDtos(sub))).contains("SubList"));
+		List<Config> sub = new ArrayList<>(List.of(fullConfig(), fullConfig())).subList(0, 1);
+		this.assertRepresentation(ConfigMapper.toDtos(List.of(fullConfig()), true));
+		Assertions.assertTrue(new String(xml(ConfigMapper.toDtos(List.of(fullConfig()), true))).contains("SubList"));
+		Assertions.assertEquals(sub.getClass(), ConfigMapper.toDtos(List.of(fullConfig()), true).getClass());
 	}
 
 	@Test
