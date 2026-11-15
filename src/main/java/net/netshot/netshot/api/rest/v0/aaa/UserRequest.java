@@ -21,8 +21,8 @@ package net.netshot.netshot.api.rest.v0.aaa;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import net.netshot.netshot.credentials.HideSecretDeserializer;
-import net.netshot.netshot.credentials.HideSecretSerializer;
+import net.netshot.netshot.api.rest.v0.HideSecretDeserializer;
+import net.netshot.netshot.api.rest.v0.HideSecretSerializer;
 
 /**
  * The request to add or edit a user.

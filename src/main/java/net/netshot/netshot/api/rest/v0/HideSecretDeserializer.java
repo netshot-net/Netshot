@@ -16,27 +16,24 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.credentials;
+package net.netshot.netshot.api.rest.v0;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 
-/**
- * Custom JSON serializer to hide secret with simple "=" character.
- */
-public class HideSecretSerializer extends JsonSerializer<String> {
-
-	private static final String MASK_TEXT = "=";
-
-	public static boolean isMasked(String text) {
-		return HideSecretSerializer.MASK_TEXT.equals(text);
-	}
+public final class HideSecretDeserializer extends JsonDeserializer<String> {
 
 	@Override
-	public void serialize(String value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-		gen.writeString(HideSecretSerializer.MASK_TEXT);
+	public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
+		String s = p.getValueAsString();
+		if (HideSecretSerializer.isMasked(s)) {
+			return null;
+		}
+		return s;
 	}
+
 }

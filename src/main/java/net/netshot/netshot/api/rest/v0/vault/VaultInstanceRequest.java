@@ -28,7 +28,7 @@ import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.credentials.HideSecretDeserializer;
+import net.netshot.netshot.api.rest.v0.HideSecretDeserializer;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 

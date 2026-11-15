@@ -47,7 +47,6 @@ import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.compliance.RuleDefinition;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.error.ErrorCode;
