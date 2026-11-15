@@ -507,6 +507,8 @@ public final class V0ContractCases {
 			{"type": "StaticDeviceGroup", "name": null, "staticDevices": []}""");
 		c.write("POST", "/groups", "badtype", () -> "/groups", () -> """
 			{"type": "UnknownGroup", "name": "Bad type", "staticDevices": []}""");
+		c.writeAs("POST", "/groups", "noquery", () -> "/groups", () -> """
+			{"type": "DynamicDeviceGroup", "name": "No query", "folder": "Tests"}""", "new.group.noquery", null);
 		c.write("POST", "/groups", "badquery", () -> "/groups", () -> """
 			{"type": "DynamicDeviceGroup", "name": "Bad query", "query": "[Nope] ???"}""");
 		c.write("POST", "/groups", "unknowndevice", () -> "/groups", () -> """
@@ -1024,6 +1026,7 @@ public final class V0ContractCases {
 	private static void cleanupWrites(Catalogue c) {
 		c.write("DELETE", "/groups/{id}", "static", c.path("/groups/%d", "new.group.static"), null);
 		c.write("DELETE", "/groups/{id}", "dynamic", c.path("/groups/%d", "new.group.dynamic"), null);
+		c.write("DELETE", "/groups/{id}", "noquery", c.path("/groups/%d", "new.group.noquery"), null);
 		c.write("DELETE", "/domains/{id}", "deleted", c.path("/domains/%d", "new.domain"), null);
 	}
 
