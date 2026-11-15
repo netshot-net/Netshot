@@ -187,20 +187,6 @@ public class UserService {
 	}
 
 	/**
-	 * Edits a user. The user making the request cannot edit itself.
-	 *
-	 * @param id the ID of the user to edit
-	 * @param currentUsername the name of the user making the request
-	 * @param update the new settings
-	 * @return the user
-	 * @throws NetshotException if the user doesn't exist, is the current one, or the new settings are invalid
-	 */
-	public UiUser update(long id, String currentUsername, UserUpdate update) {
-		return this.update(id, currentUsername, _ -> update, null,
-			new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user."));
-	}
-
-	/**
 	 * Edits a user, if it is at a given version: the new settings are computed from the user as it is, which can't
 	 * change meanwhile (to apply a patch). The user making the request cannot edit itself.
 	 *
@@ -213,19 +199,13 @@ public class UserService {
 	 *         new settings are invalid
 	 */
 	public UiUser update(long id, String currentUsername, Function<UiUser, UserUpdate> change, Long expectedVersion) {
-		return this.update(id, currentUsername, change, expectedVersion,
-			new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist."));
-	}
-
-	private UiUser update(long id, String currentUsername, Function<UiUser, UserUpdate> change, Long expectedVersion,
-		NetshotException notFound) {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
 					log.error("Unable to find the user {} to be edited.", id);
-					throw notFound;
+					throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
 				}
 				UiUser existing = this.repository.find(dsl, id);
 				if (existing.username().equals(currentUsername)) {
