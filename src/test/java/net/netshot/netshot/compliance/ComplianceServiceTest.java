@@ -103,7 +103,11 @@ class ComplianceServiceTest {
 	}
 
 	private Policy createPolicy(String name, Long... groups) {
-		return this.policyService.create(new PolicyDefinition(name, Set.of(groups))).policy();
+		return this.policyService.add(new PolicyDefinition(name, Set.of(groups)));
+	}
+
+	private Policy updatePolicy(long id, PolicyDefinition definition) {
+		return this.policyService.replace(id, _ -> definition, null);
 	}
 
 	private static TextRule textRule(String name, long policyId) {
@@ -150,27 +154,27 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Policy update() renames the policy and replaces its groups, and drops the results of the groups removed")
+	@DisplayName("Policy replace() renames the policy and replaces its groups, and drops the results of the groups removed")
 	void policyUpdate() {
 		Policy policy = this.createPolicy(this.name("To update"), this.groupId);
 		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		this.transactions.run(dsl -> new RuleRepository().saveCheckResults(dsl,
 			List.of(CheckResult.of(rule.id(), this.deviceId, ResultOption.NONCONFORMING, "bad"))));
 		Assertions.assertEquals(1, this.countResults(rule.id()));
-		Policy updated = this.policyService.update(policy.id(), new PolicyDefinition("  Renamed " + policy.id() + " ", Set.of(this.otherGroupId))).policy();
+		Policy updated = this.updatePolicy(policy.id(), new PolicyDefinition("  Renamed " + policy.id() + " ", Set.of(this.otherGroupId)));
 		Assertions.assertEquals("Renamed " + policy.id(), updated.name());
 		Assertions.assertEquals(List.of(this.otherGroupId), updated.targetGroupIds().stream().toList());
 		Assertions.assertEquals(0, this.countResults(rule.id()), "the device belongs to the group removed from the policy");
 	}
 
 	@Test
-	@DisplayName("Policy update() keeps the results of the groups which stay")
+	@DisplayName("Policy replace() keeps the results of the groups which stay")
 	void policyUpdateKeepsResults() {
 		Policy policy = this.createPolicy(this.name("To keep"), this.groupId);
 		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
 		this.transactions.run(dsl -> new RuleRepository().saveCheckResults(dsl,
 			List.of(CheckResult.of(rule.id(), this.deviceId, ResultOption.CONFORMING, "ok"))));
-		this.policyService.update(policy.id(), new PolicyDefinition(policy.name(), Set.of(this.groupId, this.otherGroupId)));
+		this.updatePolicy(policy.id(), new PolicyDefinition(policy.name(), Set.of(this.groupId, this.otherGroupId)));
 		Assertions.assertEquals(1, this.countResults(rule.id()));
 	}
 
@@ -179,16 +183,16 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Policy update() reports an unknown policy, a blank name (nothing changed) and a duplicate name")
+	@DisplayName("Policy replace() reports an unknown policy, a blank name (nothing changed) and a duplicate name")
 	void policyUpdateErrors() {
-		assertError(ErrorCode.NETSHOT_INVALID_POLICY,
-			() -> this.policyService.update(99999999L, new PolicyDefinition("x", Set.of())));
+		assertError(ErrorCode.NETSHOT_POLICY_NOT_FOUND,
+			() -> this.updatePolicy(99999999L, new PolicyDefinition("x", Set.of())));
 		Policy policy = this.createPolicy(this.name("Update errors"), this.groupId);
 		assertError(ErrorCode.NETSHOT_INVALID_POLICY_NAME,
-			() -> this.policyService.update(policy.id(), new PolicyDefinition(" ", Set.of())));
+			() -> this.updatePolicy(policy.id(), new PolicyDefinition(" ", Set.of())));
 		Policy other = this.createPolicy(this.name("Other"));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_POLICY,
-			() -> this.policyService.update(other.id(), new PolicyDefinition(policy.name(), Set.of())));
+			() -> this.updatePolicy(other.id(), new PolicyDefinition(policy.name(), Set.of())));
 		Policy reread = this.policyService.list(Page.ALL).stream().map(PolicyView::policy).filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(1, reread.targetGroupIds().size(), "the failed update left the groups alone");
 	}
@@ -205,14 +209,14 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Policy create() and update() refuse a group which doesn't exist, and change nothing")
+	@DisplayName("Policy add() and replace() refuse a group which doesn't exist, and change nothing")
 	void policyUnknownGroup() {
 		String name = this.name("Unknown group");
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.createPolicy(name, 99999999L));
 		Assertions.assertTrue(this.policyService.list(Page.ALL).stream().map(PolicyView::policy).noneMatch(p -> p.name().equals(name)));
 		Policy policy = this.createPolicy(name, this.groupId);
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP,
-			() -> this.policyService.update(policy.id(), new PolicyDefinition(name, Set.of(this.groupId, 99999999L))));
+			() -> this.updatePolicy(policy.id(), new PolicyDefinition(name, Set.of(this.groupId, 99999999L))));
 		Policy listed = this.policyService.list(Page.ALL).stream().map(PolicyView::policy).filter(p -> p.id() == policy.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(Set.of(this.groupId), listed.targetGroupIds().stream().collect(Collectors.toSet()));
 	}

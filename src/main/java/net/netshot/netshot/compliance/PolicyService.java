@@ -147,7 +147,28 @@ public class PolicyService {
 	 * @throws NetshotException if the name is blank or already used, a group doesn't exist, or if the policy can't be stored
 	 */
 	public Policy add(PolicyDefinition definition) {
-		return this.create(definition).policy();
+		String name = definition.name().trim();
+		if (name.isEmpty()) {
+			log.warn("User posted an empty policy name.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY_NAME, "Invalid policy name.");
+		}
+		Policy policy;
+		try {
+			policy = this.transactions.write(dsl -> {
+				Policy newPolicy = new Policy(0, 0, null, name, definition.targetGroupIds());
+				this.checkGroups(dsl, newPolicy);
+				return this.repository.find(dsl, this.repository.add(dsl, newPolicy));
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Error while saving the new policy.", e);
+			if (DatabaseErrors.isUniqueViolation(e)) {
+				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_POLICY, "A policy with this name already exists.");
+			}
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the policy to the database");
+		}
+		AAA_LOG.info("{} has been created.", policy);
+		return policy;
 	}
 
 	/**
@@ -163,79 +184,13 @@ public class PolicyService {
 	 *         name is blank or already used, or if the policy can't be stored
 	 */
 	public Policy replace(long id, Function<Policy, PolicyDefinition> change, Long expectedVersion) {
-		return this.update(id, change, expectedVersion,
-			new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unable to find the policy")).policy();
-	}
-
-	/**
-	 * Gets the view of a policy: the policy with its target groups, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param policy the policy
-	 * @return the view
-	 */
-	private PolicyView view(DSLContext dsl, Policy policy) {
-		List<DeviceGroup> groups = new ArrayList<>();
-		for (Long groupId : policy.targetGroupIds().stream().sorted().toList()) {
-			groups.add(this.requireGroup(dsl, groupId));
-		}
-		return new PolicyView(policy, groups);
-	}
-
-	/**
-	 * Adds a policy.
-	 *
-	 * @param definition the policy
-	 * @return the new policy
-	 * @throws NetshotException if the name is blank or already used, a group doesn't exist, or if the policy can't be stored
-	 */
-	public PolicyView create(PolicyDefinition definition) {
-		String name = definition.name().trim();
-		if (name.isEmpty()) {
-			log.warn("User posted an empty policy name.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY_NAME, "Invalid policy name.");
-		}
-		PolicyView policy;
-		try {
-			policy = this.transactions.write(dsl -> {
-				Policy newPolicy = new Policy(0, 0, null, name, definition.targetGroupIds());
-				PolicyView view = this.view(dsl, newPolicy);
-				return new PolicyView(this.repository.find(dsl, this.repository.add(dsl, newPolicy)), view.targetGroups());
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Error while saving the new policy.", e);
-			if (DatabaseErrors.isUniqueViolation(e)) {
-				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_POLICY, "A policy with this name already exists.");
-			}
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the policy to the database");
-		}
-		AAA_LOG.info("{} has been created.", policy.policy());
-		return policy;
-	}
-
-	/**
-	 * Edits a policy: its name and the full set of its target groups. The compliance results of
-	 * the devices of a group removed from the policy are deleted.
-	 *
-	 * @param id the policy ID
-	 * @param definition the new properties
-	 * @return the policy
-	 * @throws NetshotException if the policy or a group doesn't exist, the name is blank or already used,
-	 *         or if the policy can't be stored
-	 */
-	public PolicyView update(long id, PolicyDefinition definition) {
-		return this.update(id, _ -> definition, null, new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Unable to find this policy."));
-	}
-
-	private PolicyView update(long id, Function<Policy, PolicyDefinition> change, Long expectedVersion, NetshotException notFound) {
-		PolicyView policy;
+		Policy policy;
 		try {
 			policy = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
 					log.error("Unable to find the policy {} to be edited.", id);
-					throw notFound;
+					throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unable to find the policy");
 				}
 				Versions.check("policy", version, expectedVersion);
 				Policy existing = this.repository.find(dsl, id);
@@ -252,9 +207,9 @@ public class PolicyService {
 					}
 				}
 				Policy edited = new Policy(id, 0, null, name, definition.targetGroupIds());
-				PolicyView view = this.view(dsl, edited);
+				this.checkGroups(dsl, edited);
 				this.repository.save(dsl, edited);
-				return new PolicyView(this.repository.find(dsl, id), view.targetGroups());
+				return this.repository.find(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -264,8 +219,23 @@ public class PolicyService {
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the policy.");
 		}
-		AAA_LOG.info("{} has been edited.", policy.policy());
+		AAA_LOG.info("{} has been edited.", policy);
 		return policy;
+	}
+
+	/**
+	 * Gets the view of a policy: the policy with its target groups, by ID.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param policy the policy
+	 * @return the view
+	 */
+	private PolicyView view(DSLContext dsl, Policy policy) {
+		List<DeviceGroup> groups = new ArrayList<>();
+		for (Long groupId : policy.targetGroupIds().stream().sorted().toList()) {
+			groups.add(this.requireGroup(dsl, groupId));
+		}
+		return new PolicyView(policy, groups);
 	}
 
 	/**
@@ -306,6 +276,13 @@ public class PolicyService {
 		catch (DataAccessException e) {
 			log.error("Unable to delete the policy {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the policy");
+		}
+	}
+
+	// Checks that the target groups of a policy exist, in the order of their IDs
+	private void checkGroups(DSLContext dsl, Policy policy) {
+		for (Long groupId : policy.targetGroupIds().stream().sorted().toList()) {
+			this.requireGroup(dsl, groupId);
 		}
 	}
 
