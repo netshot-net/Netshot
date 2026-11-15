@@ -144,7 +144,7 @@ public class HardwareRuleResource {
 	@Operation(summary = "Create a hardware rule")
 	public HardwareRuleDto createHardwareRule(HardwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		HardwareRule rule = this.hardwareRuleService.add(HardwareRuleMapper.toRule(ruleRequest));
+		HardwareRule rule = this.hardwareRuleService.create(HardwareRuleMapper.toRule(ruleRequest));
 		V1Response.created(this.request, V1Links.of(HardwareRuleMapper.PATH, rule.id()));
 		return this.respond(rule);
 	}
@@ -167,7 +167,7 @@ public class HardwareRuleResource {
 		HardwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		HardwareRule rule = HardwareRuleMapper.toRule(ruleRequest);
-		return this.respond(this.hardwareRuleService.replace(id, _ -> rule, V1Response.ifMatch(this.headers)));
+		return this.respond(this.hardwareRuleService.update(id, _ -> rule, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -187,7 +187,7 @@ public class HardwareRuleResource {
 	public HardwareRuleDto updateHardwareRule(@PathParam("id") @Parameter(description = "Hardware rule ID") long id,
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.hardwareRuleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(),
+		return this.respond(this.hardwareRuleService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
 			HardwareRuleRequest.class, HardwareRuleMapper::toRequest, HardwareRuleMapper::toRule), V1Response.ifMatch(this.headers)));
 	}
 

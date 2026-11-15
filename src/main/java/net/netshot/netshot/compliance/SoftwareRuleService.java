@@ -155,7 +155,7 @@ public class SoftwareRuleService {
 	}
 
 	/**
-	 * Adds a software rule, at a given position or (by default) as the last one.
+	 * Creates a software rule, at a given position or (by default) as the last one.
 	 *
 	 * @param newRule the rule (its ID and priority are ignored)
 	 * @param position the position of the new rule among the rules, from 1 (clamped to the number of rules), or null
@@ -163,7 +163,7 @@ public class SoftwareRuleService {
 	 * @return the new rule, with its position
 	 * @throws NetshotException if the group or the driver doesn't exist, or the rule can't be stored
 	 */
-	public RankedSoftwareRule add(SoftwareRule newRule, Integer position) {
+	public RankedSoftwareRule create(SoftwareRule newRule, Integer position) {
 		RankedSoftwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
@@ -205,7 +205,7 @@ public class SoftwareRuleService {
 	 * @throws NetshotException if the rule, the group or the driver doesn't exist, the rule isn't at the expected
 	 *         version, or the rule can't be stored
 	 */
-	public RankedSoftwareRule replace(long id, Function<RankedSoftwareRule, Replacement> change, Long expectedVersion) {
+	public RankedSoftwareRule update(long id, Function<RankedSoftwareRule, Replacement> change, Long expectedVersion) {
 		RankedSoftwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {

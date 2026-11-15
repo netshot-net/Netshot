@@ -148,7 +148,7 @@ public class SoftwareRuleResource {
 		+ "or as the last one.")
 	public SoftwareRuleDto createSoftwareRule(SoftwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		RankedSoftwareRule rule = this.softwareRuleService.add(SoftwareRuleMapper.toRule(ruleRequest), position(ruleRequest));
+		RankedSoftwareRule rule = this.softwareRuleService.create(SoftwareRuleMapper.toRule(ruleRequest), position(ruleRequest));
 		V1Response.created(this.request, V1Links.of(SoftwareRuleMapper.PATH, rule.rule().id()));
 		return this.respond(rule);
 	}
@@ -172,7 +172,7 @@ public class SoftwareRuleResource {
 		SoftwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		Replacement replacement = replacement(ruleRequest);
-		return this.respond(this.softwareRuleService.replace(id, _ -> replacement, V1Response.ifMatch(this.headers)));
+		return this.respond(this.softwareRuleService.update(id, _ -> replacement, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -192,7 +192,7 @@ public class SoftwareRuleResource {
 	public SoftwareRuleDto updateSoftwareRule(@PathParam("id") @Parameter(description = "Software rule ID") long id,
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.softwareRuleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(),
+		return this.respond(this.softwareRuleService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
 			SoftwareRuleRequest.class, SoftwareRuleMapper::toRequest, SoftwareRuleResource::replacement), V1Response.ifMatch(this.headers)));
 	}
 

@@ -26,7 +26,7 @@ import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.userscript.DeviceJsScript;
-import net.netshot.netshot.userscript.ScriptCreation;
+import net.netshot.netshot.userscript.ScriptDefinition;
 
 /**
  * Maps the command scripts to their v1 representation, and the requests to the commands the service takes.
@@ -84,8 +84,8 @@ public final class ScriptMapper {
 	 * @param author the user creating the script (ignored on a change: the author is kept)
 	 * @return the command
 	 */
-	public static ScriptCreation toCreation(ScriptRequest request, String author) {
-		return new ScriptCreation(request.name(), request.deviceDriver(), request.script(), author,
+	public static ScriptDefinition toDefinition(ScriptRequest request, String author) {
+		return new ScriptDefinition(request.name(), request.deviceDriver(), request.script(), author,
 			request.folder() == null ? "" : request.folder());
 	}
 }

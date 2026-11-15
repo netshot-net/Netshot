@@ -265,22 +265,22 @@ class V1VersioningSweepTest {
 		changes.put("/diagnostics/{id}", (w, id, wrap) -> w.diagnosticService().update(id,
 			unchanged(wrap, DiagnosticRequest.class, DiagnosticMapper::toRequest, DiagnosticMapper::toDefinition), null));
 		changes.put("/scripts/{id}", (w, id, wrap) -> w.scriptService().update(id,
-			unchanged(wrap, ScriptRequest.class, ScriptMapper::toRequest, r -> ScriptMapper.toCreation(r, null)), null));
+			unchanged(wrap, ScriptRequest.class, ScriptMapper::toRequest, r -> ScriptMapper.toDefinition(r, null)), null));
 		changes.put("/hooks/{id}", (w, id, wrap) -> w.hookService().update(id,
 			unchanged(wrap, HookRequest.class, HookMapper::toRequest, HookMapper::toHook), null));
 		changes.put("/users/{id}", (w, id, wrap) -> w.userService().update(id, "nobody",
-			unchanged(wrap, UserRequest.class, UserMapper::toRequest, UserMapper::toUpdate), null));
-		changes.put("/compliance/policies/{id}", (w, id, wrap) -> w.policyService().replace(id,
+			unchanged(wrap, UserRequest.class, UserMapper::toRequest, UserMapper::toDefinition), null));
+		changes.put("/compliance/policies/{id}", (w, id, wrap) -> w.policyService().update(id,
 			unchanged(wrap, PolicyRequest.class, PolicyMapper::toRequest, PolicyMapper::toDefinition), null));
 		changes.put("/compliance/rules/{id}", (w, id, wrap) -> {
 			Function<Rule, Rule> same = unchanged(wrap, RuleRequest.class, RuleMapper::toRequest, RuleMapper::toRule);
-			w.ruleService().replace(id, same.andThen(RuleService.Replacement::of), null);
+			w.ruleService().update(id, same.andThen(RuleService.Replacement::of), null);
 		});
 		changes.put("/compliance/software-rules/{id}", (w, id, wrap) -> {
 			Function<RankedSoftwareRule, RankedSoftwareRule> same = same(wrap);
-			w.softwareRuleService().replace(id, same.andThen(r -> new Replacement(r.rule(), null)), null);
+			w.softwareRuleService().update(id, same.andThen(r -> new Replacement(r.rule(), null)), null);
 		});
-		changes.put("/compliance/hardware-rules/{id}", (w, id, wrap) -> w.hardwareRuleService().replace(id,
+		changes.put("/compliance/hardware-rules/{id}", (w, id, wrap) -> w.hardwareRuleService().update(id,
 			unchanged(wrap, HardwareRuleRequest.class, HardwareRuleMapper::toRequest, HardwareRuleMapper::toRule), null));
 		return changes;
 	}

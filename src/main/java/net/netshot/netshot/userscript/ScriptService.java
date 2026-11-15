@@ -141,7 +141,7 @@ public class ScriptService {
 	 * @throws NetshotException if the driver, the name or the content is invalid, or if the script
 	 *         can't be evaluated
 	 */
-	public DeviceJsScript validate(ScriptCreation creation) {
+	public DeviceJsScript validate(ScriptDefinition creation) {
 		DeviceDriver driver = this.driverRegistry.getDriverByName(creation.deviceDriver());
 		if (driver == null) {
 			log.warn("Invalid driver name.");
@@ -175,7 +175,7 @@ public class ScriptService {
 	 * @throws NetshotException if the script is invalid (see {@link #validate}), if its name is
 	 *         already used, or if it can't be stored
 	 */
-	public DeviceJsScript create(ScriptCreation creation) {
+	public DeviceJsScript create(ScriptDefinition creation) {
 		DeviceJsScript valid = this.validate(creation);
 		DeviceJsScript script;
 		try {
@@ -207,7 +207,7 @@ public class ScriptService {
 	 * @throws NetshotException if the script doesn't exist or isn't at the expected version, the new definition is
 	 *         invalid, the name is already used, or the script can't be stored
 	 */
-	public DeviceJsScript update(long id, Function<DeviceJsScript, ScriptCreation> change, Long expectedVersion) {
+	public DeviceJsScript update(long id, Function<DeviceJsScript, ScriptDefinition> change, Long expectedVersion) {
 		DeviceJsScript script;
 		try {
 			script = this.transactions.write(dsl -> {
@@ -217,8 +217,8 @@ public class ScriptService {
 				}
 				Versions.check("script", version, expectedVersion);
 				DeviceJsScript existing = this.repository.find(dsl, id);
-				ScriptCreation creation = change.apply(existing);
-				DeviceJsScript valid = this.validate(new ScriptCreation(creation.name(), creation.deviceDriver(), creation.script(),
+				ScriptDefinition creation = change.apply(existing);
+				DeviceJsScript valid = this.validate(new ScriptDefinition(creation.name(), creation.deviceDriver(), creation.script(),
 					existing.author(), creation.folder())).withId(id);
 				this.repository.save(dsl, valid);
 				DeviceJsScript stored = this.repository.find(dsl, id);

@@ -123,7 +123,7 @@ public class PolicyResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public PolicyDto addPolicy(PolicyRequest rsPolicy) throws WebApplicationException {
 		log.debug("REST request, add policy.");
-		PolicyDto policy = this.toDto(this.policyService.add(PolicyMapper.toDefinition(rsPolicy)));
+		PolicyDto policy = this.toDto(this.policyService.create(PolicyMapper.toDefinition(rsPolicy)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return policy;
 	}
@@ -176,7 +176,7 @@ public class PolicyResource {
 		throws WebApplicationException {
 		log.debug("REST request, edit policy {}.", id);
 		PolicyDefinition definition = PolicyMapper.toDefinition(rsPolicy);
-		return this.toDto(V0Errors.translate(() -> this.policyService.replace(id, _ -> definition, null),
+		return this.toDto(V0Errors.translate(() -> this.policyService.update(id, _ -> definition, null),
 			V0Errors.code(ErrorCode.NETSHOT_POLICY_NOT_FOUND, ErrorCode.NETSHOT_INVALID_POLICY, "Unable to find this policy.")));
 	}
 

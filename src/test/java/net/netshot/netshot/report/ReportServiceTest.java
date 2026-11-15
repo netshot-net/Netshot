@@ -153,9 +153,9 @@ class ReportServiceTest {
 		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
 			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), TestWiring.get().transactions()));
-		this.policy = policyService.add(new PolicyDefinition("Report policy", Set.of(this.group1))).id();
-		this.rule1 = ruleService.add(textRule("Report rule 1", this.policy)).id();
-		this.rule2 = ruleService.add(textRule("Report rule 2", this.policy)).id();
+		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).id();
+		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
+		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();
 		this.transactions.run(dsl -> {
 			new RuleRepository().saveCheckResults(dsl, List.of(
 				CheckResult.of(this.rule1, this.dev1, ResultOption.NONCONFORMING, "bad"),

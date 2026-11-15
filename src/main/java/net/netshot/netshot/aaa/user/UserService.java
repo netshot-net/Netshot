@@ -137,7 +137,7 @@ public class UserService {
 	 * @throws NetshotException if the name is empty, a local user has no password or one which doesn't
 	 *         comply with the password policy, the name is taken
 	 */
-	public UiUser create(UserCreation creation) {
+	public UiUser create(UserDefinition creation) {
 		String username = creation.username();
 		if (username == null || username.trim().isEmpty()) {
 			log.warn("User posted an empty user name.");
@@ -198,7 +198,7 @@ public class UserService {
 	 * @throws NetshotException if the user doesn't exist, isn't at the expected version, is the current one, or the
 	 *         new settings are invalid
 	 */
-	public UiUser update(long id, String currentUsername, Function<UiUser, UserUpdate> change, Long expectedVersion) {
+	public UiUser update(long id, String currentUsername, Function<UiUser, UserDefinition> change, Long expectedVersion) {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
@@ -212,7 +212,7 @@ public class UserService {
 					throw new NetshotException(ErrorCode.NETSHOT_LOCKED_USER, "Cannot edit the user who is making the request.");
 				}
 				Versions.check("user", version, expectedVersion);
-				UserUpdate update = change.apply(existing);
+				UserDefinition update = change.apply(existing);
 
 				String username = update.username();
 				if (username == null || username.trim().isEmpty()) {

@@ -170,7 +170,7 @@ public class RuleResource {
 		if (ruleRequest.policy() == null) {
 			throw NetshotException.invalidParameter("policy", "The policy is required.");
 		}
-		Rule rule = this.ruleService.add(RuleMapper.toRule(ruleRequest));
+		Rule rule = this.ruleService.create(RuleMapper.toRule(ruleRequest));
 		V1Response.created(this.request, V1Links.of(RuleMapper.PATH, rule.id()));
 		return this.respond(rule);
 	}
@@ -192,7 +192,7 @@ public class RuleResource {
 	public RuleDto replaceRule(@PathParam("id") @Parameter(description = "Rule ID") long id, RuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		Rule rule = RuleMapper.toRule(ruleRequest);
-		return this.respond(this.ruleService.replace(id, _ -> Replacement.of(rule), V1Response.ifMatch(this.headers)));
+		return this.respond(this.ruleService.update(id, _ -> Replacement.of(rule), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -212,7 +212,7 @@ public class RuleResource {
 	public RuleDto updateRule(@PathParam("id") @Parameter(description = "Rule ID") long id,
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.ruleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(), RuleRequest.class,
+		return this.respond(this.ruleService.update(id, MergePatch.of(patch, this.headers.getMediaType(), RuleRequest.class,
 			RuleMapper::toRequest, RuleMapper::toRule).andThen(Replacement::of), V1Response.ifMatch(this.headers)));
 	}
 

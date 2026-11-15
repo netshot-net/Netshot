@@ -19,8 +19,7 @@
 package net.netshot.netshot.api.rest.v1.user;
 
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.aaa.user.UserCreation;
-import net.netshot.netshot.aaa.user.UserUpdate;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.api.rest.v1.Secret;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
@@ -62,23 +61,13 @@ public final class UserMapper {
 	}
 
 	/**
-	 * Maps a request to the creation of a user.
+	 * Maps a request to the settings of a user (to create or replace it).
 	 *
 	 * @param request the request
 	 * @return the command
 	 */
-	public static UserCreation toCreation(UserRequest request) {
-		return new UserCreation(request.username(), request.local(), password(request), request.level());
-	}
-
-	/**
-	 * Maps a request to the new settings of a user.
-	 *
-	 * @param request the request
-	 * @return the command
-	 */
-	public static UserUpdate toUpdate(UserRequest request) {
-		return new UserUpdate(request.username(), request.local(), password(request), request.level());
+	public static UserDefinition toDefinition(UserRequest request) {
+		return new UserDefinition(request.username(), request.local(), password(request), request.level());
 	}
 
 	private static String password(UserRequest request) {
