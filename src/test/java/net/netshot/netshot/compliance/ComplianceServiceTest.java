@@ -114,11 +114,6 @@ class ComplianceServiceTest {
 		return TextRule.builder(name, policyId).text("ntp server").field("runningConfig").build();
 	}
 
-	private static RuleDefinition testDefinition() {
-		return new RuleDefinition("TextRule", "Test", 0, false, Map.of(), null, "ntp server", null, null, null,
-			"runningConfig", null, null, null, null);
-	}
-
 	// ------------------------------------------------------------------
 	// policies
 	// ------------------------------------------------------------------
@@ -371,17 +366,14 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Rule test() reports an unknown device as not applicable, without logs")
+	@DisplayName("Rule test() refuses an unknown device, and reports a device without configuration as not applicable")
 	void ruleTestUnknownDevice() {
-		RuleTestResult result = this.ruleService.test(99999999L, testDefinition());
+		Rule rule = TextRule.builder("Test", 0).text("ntp server").field("runningConfig").enabled(true).build();
+		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.ruleService.test(99999999L, rule));
+		RuleTestResult result = this.ruleService.test(this.deviceId, rule);
 		Assertions.assertEquals(ResultOption.NOTAPPLICABLE, result.result());
-		Assertions.assertEquals("Unable to find the device", result.comment());
+		Assertions.assertEquals("The device has no configuration", result.comment());
 		Assertions.assertNull(result.log());
-		// The kind of rule is not checked before the device is found
-		Assertions.assertEquals(ResultOption.NOTAPPLICABLE, this.ruleService.test(99999999L,
-			new RuleDefinition("NoSuchRule", null, 0, false, Map.of(), null, null, null, null, null, null, null, null, null, null)).result());
-		// A device without configuration is not found either
-		Assertions.assertEquals(ResultOption.NOTAPPLICABLE, this.ruleService.test(this.deviceId, testDefinition()).result());
 	}
 
 	@Test
