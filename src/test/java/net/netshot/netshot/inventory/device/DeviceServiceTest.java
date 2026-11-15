@@ -42,18 +42,22 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
-import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
@@ -348,10 +352,11 @@ class DeviceServiceTest {
 	}
 
 	@Test
-	@DisplayName("list() returns the summaries, in pages")
+	@DisplayName("The device summaries are listed in pages, and filtered on a group")
 	void list() {
 		Device created = this.createDevice(this.nextAddress());
-		List<DeviceSummary> all = this.service.list(null, Page.ALL);
+		SearchService search = TestWiring.get().searchService();
+		List<DeviceSummary> all = search.listDeviceSummaries(ListQuery.ALL, null).items();
 		DeviceSummary summary = all.stream().filter(s -> s.id() == created.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(created.mgmtAddress(), summary.mgmtAddress());
 		Assertions.assertEquals("CiscoIOS12", summary.driver());
@@ -360,9 +365,11 @@ class DeviceServiceTest {
 		Assertions.assertEquals(Boolean.FALSE, summary.eol());
 		Assertions.assertEquals(Boolean.FALSE, summary.eos());
 
-		Assertions.assertEquals(1, this.service.list(null, new Page(null, 1)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(null, new Page(1, null)).size());
-		Assertions.assertTrue(this.service.list(999999999L, Page.ALL).isEmpty(), "no member in an unknown group");
+		Assertions.assertEquals(1, search.listDeviceSummaries(new ListQuery(List.of(), null, List.of(), new Page(null, 1), false), null).items().size());
+		Assertions.assertEquals(all.size() - 1,
+			search.listDeviceSummaries(new ListQuery(List.of(), null, List.of(), new Page(1, null), false), null).items().size());
+		Assertions.assertTrue(search.listDeviceSummaries(new ListQuery(List.of(new Criterion("group", Lookup.EXACT, List.of(999999999L))),
+			null, List.of(), Page.ALL, false), null).items().isEmpty(), "no member in an unknown group");
 	}
 
 	@Test

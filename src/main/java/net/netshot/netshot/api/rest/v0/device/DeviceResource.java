@@ -47,11 +47,15 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
 
@@ -69,6 +73,7 @@ import net.netshot.netshot.task.Task;
 public class DeviceResource {
 
 	private final DeviceService deviceService;
+	private final SearchService searchService;
 	private final DeviceCreationService deviceCreationService;
 	private final DriverRegistry driverRegistry;
 
@@ -83,11 +88,14 @@ public class DeviceResource {
 	 *
 	 * @param deviceService the device use cases
 	 * @param deviceCreationService the use case which adds a device
+	 * @param searchService the device search use cases
 	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, DriverRegistry driverRegistry) {
+	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, SearchService searchService,
+		DriverRegistry driverRegistry) {
 		this.deviceService = deviceService;
+		this.searchService = searchService;
 		this.deviceCreationService = deviceCreationService;
 		this.driverRegistry = driverRegistry;
 	}
@@ -115,7 +123,8 @@ public class DeviceResource {
 		@QueryParam("group") @Parameter(description = "Filter on devices of the given group ID") Long groupId,
 		@QueryParam("details") Boolean withDetails) throws WebApplicationException {
 		log.debug("REST request, devices.");
-		return DeviceMapper.toSummaryDtos(this.deviceService.list(groupId, paginationParams.toPage()));
+		Criterion[] criteria = groupId == null ? new Criterion[0] : new Criterion[] {new Criterion("group", Lookup.EXACT, List.of(groupId))};
+		return DeviceMapper.toSummaryDtos(this.searchService.listDeviceSummaries(V0Lists.query(paginationParams.toPage(), criteria), null).items());
 	}
 
 	/**

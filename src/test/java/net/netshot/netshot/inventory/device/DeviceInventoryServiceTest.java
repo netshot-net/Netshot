@@ -43,7 +43,9 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -70,7 +72,7 @@ class DeviceInventoryServiceTest {
 		this.transactions = TestWiring.get().transactions();
 		DeviceRepository repository = new DeviceRepository();
 		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
-		this.catalogService = new DeviceCatalogService(this.transactions, repository);
+		this.catalogService = new DeviceCatalogService(this.transactions, new DeviceInventoryRepository());
 		this.searchService = new SearchService(this.transactions, new SearchRepository(), new DeviceRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		Set<Network4Address> ip4 = new LinkedHashSet<>();
@@ -114,6 +116,10 @@ class DeviceInventoryServiceTest {
 			.softwareVersion(version);
 	}
 
+	private static ListQuery page(Integer offset, Integer limit) {
+		return new ListQuery(List.of(), null, List.of(), new Page(offset, limit), false);
+	}
+
 	private static NetshotException assertError(ErrorCode code, Executable executable) {
 		NetshotException exception = Assertions.assertThrows(NetshotException.class, executable);
 		Assertions.assertEquals(code, exception.getErrorCode(), exception.getMessage());
@@ -125,28 +131,28 @@ class DeviceInventoryServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("getInterfaces() returns the interfaces of the device with their addresses, readable without a session")
+	@DisplayName("listInterfaces() returns the interfaces of the device with their addresses, and reports an unknown device")
 	void interfaces() {
-		List<NetworkInterface> interfaces = this.deviceService.getInterfaces(this.router, Page.ALL);
+		List<NetworkInterface> interfaces = this.catalogService.listInterfaces(this.router, ListQuery.ALL).items();
 		Assertions.assertEquals(2, interfaces.size());
 		NetworkInterface uplink = interfaces.stream().filter(i -> "Gi0/0".equals(i.interfaceName())).findFirst().orElseThrow();
 		Assertions.assertEquals(1, uplink.ip4Addresses().size());
 		Assertions.assertEquals(1, uplink.ip6Addresses().size());
 		Assertions.assertEquals("10.0.0.1", uplink.ip4Addresses().iterator().next().getIp());
-		Assertions.assertEquals(List.of(), this.deviceService.getInterfaces(this.other, Page.ALL));
-		Assertions.assertEquals(List.of(), this.deviceService.getInterfaces(99999999L, Page.ALL));
-		Assertions.assertEquals(1, this.deviceService.getInterfaces(this.router, new Page(0, 1)).size());
+		Assertions.assertEquals(List.of(), this.catalogService.listInterfaces(this.other, ListQuery.ALL).items());
+		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.catalogService.listInterfaces(99999999L, ListQuery.ALL));
+		Assertions.assertEquals(1, this.catalogService.listInterfaces(this.router, page(0, 1)).items().size());
 	}
 
 	@Test
-	@DisplayName("getModules() returns the current modules, and the removed ones on demand")
+	@DisplayName("listModules() returns the modules, the removed ones unless filtered out, and reports an unknown device")
 	void modules() {
-		List<Module> current = this.deviceService.getModules(this.router, false, Page.ALL);
+		List<Module> current = this.catalogService.listModules(this.router,
+			new ListQuery(List.of(new Criterion("removed", Lookup.EXACT, List.of(false))), null, List.of(), Page.ALL, false)).items();
 		Assertions.assertEquals(List.of("PN-1", "PN-2"), current.stream().map(Module::partNumber).sorted().toList());
-		List<Module> history = this.deviceService.getModules(this.router, true, Page.ALL);
-		Assertions.assertEquals(3, history.size());
-		Assertions.assertEquals(1, this.deviceService.getModules(this.router, true, new Page(2, null)).size());
-		Assertions.assertEquals(List.of(), this.deviceService.getModules(99999999L, true, Page.ALL));
+		Assertions.assertEquals(3, this.catalogService.listModules(this.router, ListQuery.ALL).items().size());
+		Assertions.assertEquals(1, this.catalogService.listModules(this.router, page(2, null)).items().size());
+		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.catalogService.listModules(99999999L, ListQuery.ALL));
 	}
 
 	// ------------------------------------------------------------------
@@ -213,27 +219,22 @@ class DeviceInventoryServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("The reference lists have an item per device or module (they are not distinct)")
+	@DisplayName("The reference lists have one item per value, with its count, in alphabetical order")
 	void catalog() {
-		List<DeviceFamily> families = this.catalogService.getFamilies(Page.ALL);
-		Assertions.assertEquals(3, families.size());
-		Assertions.assertEquals(2, families.stream().filter(f -> "Cisco 2900".equals(f.family())).count());
-		Assertions.assertTrue(families.stream().allMatch(f -> "CiscoIOS12".equals(f.driver())));
-
-		List<String> partNumbers = this.catalogService.getPartNumbers(Page.ALL);
-		Assertions.assertEquals(4, partNumbers.size());
-		Assertions.assertEquals(2, partNumbers.stream().filter("PN-1"::equals).count());
-
-		List<String> versions = this.catalogService.getSoftwareVersions(Page.ALL);
-		Assertions.assertEquals(List.of("16.1", "16.1"), versions, "the empty version is left out");
-		Assertions.assertEquals(1, this.catalogService.getSoftwareVersions(new Page(0, 1)).size());
+		Assertions.assertEquals(List.of(new DeviceFamilyCount("CiscoIOS12", "Cisco 1900", 1), new DeviceFamilyCount("CiscoIOS12", "Cisco 2900", 2)),
+			this.catalogService.listFamilies(ListQuery.ALL).items());
+		Assertions.assertEquals(2, this.catalogService.listPartNumbers(ListQuery.ALL).items().stream()
+			.filter(p -> "PN-1".equals(p.partNumber())).findFirst().orElseThrow().moduleCount());
+		Assertions.assertEquals(List.of(new SoftwareVersionCount("16.1", 2)), this.catalogService.listSoftwareVersions(ListQuery.ALL).items(),
+			"the empty version is left out");
+		Assertions.assertEquals(1, this.catalogService.listFamilies(page(0, 1)).items().size());
 	}
 
 	@Test
-	@DisplayName("getTags() counts the devices of each tag, sorted by tag")
+	@DisplayName("listTags() counts the devices of each tag, sorted by tag")
 	void tags() {
 		Assertions.assertEquals(List.of(new DeviceTagCount("core", 1), new DeviceTagCount("lab", 2)),
-			this.catalogService.getTags(Page.ALL));
+			this.catalogService.listTags(ListQuery.ALL).items());
 	}
 
 	// ------------------------------------------------------------------

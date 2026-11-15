@@ -171,7 +171,7 @@ class InventoryDtoTest {
 			.enabled(true).level3(true).description("Uplink").ip4Addresses(ip4).ip6Addresses(ip6).build();
 		NetworkInterface bare = NetworkInterface.builder().id(4).build();
 		List<NetworkInterface> entities = new ArrayList<>(List.of(networkInterface, bare));
-		List<NetworkInterfaceDto> dtos = DeviceCatalogMapper.toInterfaceDtos(entities);
+		List<NetworkInterfaceDto> dtos = DeviceCatalogMapper.toInterfaceDtos(entities, false);
 		this.assertRepresentation(dtos);
 		Assertions.assertEquals(2, dtos.get(0).ip4Addresses().size());
 	}

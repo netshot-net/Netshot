@@ -26,7 +26,6 @@ import java.util.Map;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.OptionDefinition;
-import net.netshot.netshot.inventory.device.DeviceFamily;
 import net.netshot.netshot.inventory.device.DeviceTagCount;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.NetworkInterface;
@@ -62,14 +61,15 @@ public final class DeviceCatalogMapper {
 	 * Maps the network interfaces to their representation.
 	 *
 	 * @param interfaces the interfaces
+	 * @param paged whether the list is a page (an offset or a limit was given)
 	 * @return the DTOs, in the same order
 	 */
-	public static List<NetworkInterfaceDto> toInterfaceDtos(List<NetworkInterface> interfaces) {
+	public static List<NetworkInterfaceDto> toInterfaceDtos(List<NetworkInterface> interfaces, boolean paged) {
 		List<NetworkInterfaceDto> dtos = new ArrayList<>(interfaces.size());
 		interfaces.forEach(networkInterface -> dtos.add(toDto(networkInterface)));
-		if (interfaces.getClass() != ArrayList.class) {
-			// Quirk kept: the interfaces are answered as a sub list when they are paginated
-			// (see DeviceRepository#findInterfaces), which XML publishes as <SubList>
+		if (paged) {
+			// Quirk kept: the former (Hibernate) query paginated the interfaces in memory and answered a sub list,
+			// which XML publishes as <SubList> instead of <ArrayList>
 			return dtos.subList(0, dtos.size());
 		}
 		return dtos;
