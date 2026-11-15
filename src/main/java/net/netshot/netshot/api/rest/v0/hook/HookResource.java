@@ -137,7 +137,7 @@ public class HookResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public void deleteHook(@PathParam("id") @Parameter(description = "Hook ID") Long id) throws WebApplicationException {
 		log.debug("REST request, delete hook {}", id);
-		if (this.hookService.delete(id)) {
+		if (V0Errors.found(() -> this.hookService.delete(id, null), ErrorCode.NETSHOT_HOOK_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

@@ -99,4 +99,26 @@ public final class V0Errors {
 			throw e;
 		}
 	}
+
+	/**
+	 * Runs a service call which reports a missing object with an error, for a v0 resource which reports it with
+	 * an empty NOT_FOUND response instead (as the deletions do).
+	 *
+	 * @param call the service call
+	 * @param notFound the code of the service error reporting the missing object
+	 * @return false if the call failed with the error of a missing object
+	 * @throws NetshotException the other errors of the call
+	 */
+	public static boolean found(Runnable call, ErrorCode notFound) {
+		try {
+			call.run();
+			return true;
+		}
+		catch (NetshotException e) {
+			if (e.getErrorCode() == notFound) {
+				return false;
+			}
+			throw e;
+		}
+	}
 }

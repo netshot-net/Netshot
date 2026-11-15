@@ -348,40 +348,4 @@ public class VaultInstanceService {
 		return new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the Vault instance");
 	}
 
-	/**
-	 * Deletes a Vault instance.
-	 *
-	 * @param id the Vault instance ID
-	 * @return true if the Vault instance has been deleted, false if there was no such Vault instance
-	 * @throws NetshotException if the Vault instance is referenced by credential fields, or can't be deleted
-	 */
-	public boolean delete(long id) {
-		boolean deleted;
-		try {
-			deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
-					log.info("No such Vault instance of ID {}", id);
-					return false;
-				}
-				return true;
-			});
-		}
-		catch (RuntimeException e) {
-			log.error("Unable to delete the Vault instance {}", id, e);
-			if (e instanceof NetshotException) {
-				throw e;
-			}
-			if (e instanceof DataAccessException dae && DatabaseErrors.isForeignKeyViolation(dae)) {
-				throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_IN_USE,
-					"Unable to delete the Vault instance, it is referenced by one or more credential fields.");
-			}
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the Vault instance");
-		}
-		if (deleted) {
-			AAA_LOG.info("Vault instance of ID {} has been deleted.", id);
-			this.changeNotifier.changed(id);
-		}
-		return deleted;
-	}
-
 }

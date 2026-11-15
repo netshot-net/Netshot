@@ -44,8 +44,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.inventory.group.GroupDefinition;
 import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the device groups: list, read, add, edit and delete.
@@ -157,7 +159,7 @@ public class GroupResource {
 	public void deleteGroup(@PathParam("id") @Parameter(description = "Group ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete group {}.", id);
-		if (this.groupService.delete(id)) {
+		if (V0Errors.found(() -> this.groupService.delete(id, null), ErrorCode.NETSHOT_GROUP_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

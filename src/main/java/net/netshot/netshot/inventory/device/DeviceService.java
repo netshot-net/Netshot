@@ -246,32 +246,19 @@ public class DeviceService {
 	}
 
 	/**
-	 * Deletes a device, with everything attached to it.
-	 *
-	 * @param id the device ID
-	 * @return true if the device has been deleted, false if there is no such device
-	 * @throws NetshotException if other objects use the device, or it can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a device if it is at a given version, with everything attached to it.
 	 *
 	 * @param id the device ID
 	 * @param expectedVersion the version the device must be at, or null for any
-	 * @return true if the device has been deleted, false if there is no such device
-	 * @throws NetshotException if the device isn't at the expected version, other objects use it, or it can't be deleted
+	 * @throws NetshotException if the device doesn't exist, isn't at the expected version, other objects use it, or it can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		List<Path> filesToDelete;
 		try {
 			filesToDelete = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such device of ID {}", id);
-					return null;
+					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
 				}
 				Versions.check("device", version, expectedVersion);
 				List<Path> paths = this.repository.findConfigBinaryFilePaths(dsl, id);
@@ -287,9 +274,6 @@ public class DeviceService {
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the device");
 		}
-		if (filesToDelete == null) {
-			return false;
-		}
 		AAA_LOG.info("Device of ID {} has been deleted.", id);
 		for (Path path : filesToDelete) {
 			try {
@@ -299,6 +283,5 @@ public class DeviceService {
 				log.error("Error while removing binary file {}", path, e);
 			}
 		}
-		return true;
 	}
 }

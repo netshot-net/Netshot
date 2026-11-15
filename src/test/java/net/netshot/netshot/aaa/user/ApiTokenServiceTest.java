@@ -141,12 +141,12 @@ class ApiTokenServiceTest {
 	}
 
 	@Test
-	@DisplayName("Delete: true when deleted, false when there is no such token")
+	@DisplayName("Delete removes the token, and reports an unknown one")
 	void delete() {
 		ApiToken created = this.service.create("to delete", this.newToken(), 10);
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id());
 		Assertions.assertNull(this.reload(created.id()));
-		Assertions.assertFalse(this.service.delete(created.id()));
-		Assertions.assertFalse(this.service.delete(99_999_999L));
+		assertError(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, () -> this.service.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, () -> this.service.delete(99_999_999L));
 	}
 }

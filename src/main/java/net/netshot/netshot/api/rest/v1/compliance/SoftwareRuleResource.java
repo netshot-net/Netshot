@@ -59,7 +59,6 @@ import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
@@ -209,9 +208,7 @@ public class SoftwareRuleResource {
 		+ "If-Match, the rule must still be at the given version (ETag).")
 	public void deleteSoftwareRule(@PathParam("id") @Parameter(description = "Software rule ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.softwareRuleService.delete(id, V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The software rule doesn't exist.");
-		}
+		this.softwareRuleService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 

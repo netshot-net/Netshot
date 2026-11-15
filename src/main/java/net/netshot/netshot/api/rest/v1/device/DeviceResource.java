@@ -85,7 +85,6 @@ import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -401,9 +400,7 @@ public class DeviceResource {
 		+ "With If-Match, the device must still be at the given version (ETag).")
 	public void deleteDevice(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.deviceService.delete(id, V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
-		}
+		this.deviceService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 

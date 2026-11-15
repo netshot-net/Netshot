@@ -276,39 +276,23 @@ public class GroupService {
 	}
 
 	/**
-	 * Deletes a group. This doesn't delete the devices of the group.
-	 *
-	 * @param id the group ID
-	 * @return true if the group has been deleted, false if there is no such group
-	 * @throws NetshotException if the group can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a group if it is at a given version. This doesn't delete the devices of the group.
 	 *
 	 * @param id the group ID
 	 * @param expectedVersion the version the group must be at, or null for any
-	 * @return true if the group has been deleted, false if there is no such group
-	 * @throws NetshotException if the group isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		try {
-			boolean deleted = this.transactions.write(dsl -> {
+			this.transactions.run(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such device group of ID {}", id);
-					return false;
+					throw new NetshotException(ErrorCode.NETSHOT_GROUP_NOT_FOUND, "The group doesn't exist.");
 				}
 				Versions.check("group", version, expectedVersion);
-				return this.repository.remove(dsl, id);
+				this.repository.remove(dsl, id);
 			});
-			if (deleted) {
-				AAA_LOG.info("Device group of ID {} has been deleted.", id);
-			}
-			return deleted;
+			AAA_LOG.info("Device group of ID {} has been deleted.", id);
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to delete the group {}.", id, e);

@@ -194,16 +194,15 @@ public class ApiTokenService {
 	 * Deletes an API token.
 	 *
 	 * @param id the ID of the API token
-	 * @return true if the API token has been deleted, false if there is no such token
+	 * @throws NetshotException if the API token doesn't exist, or can't be deleted
 	 */
-	public boolean delete(long id) {
+	public void delete(long id) {
 		ApiToken apiToken;
 		try {
 			apiToken = this.transactions.write(dsl -> {
 				ApiToken existing = this.repository.find(dsl, id);
 				if (existing == null) {
-					log.info("No such API token of ID {}", id);
-					return null;
+					throw new NetshotException(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, "The API token doesn't exist.");
 				}
 				this.repository.remove(dsl, existing.id());
 				return existing;
@@ -212,10 +211,6 @@ public class ApiTokenService {
 		catch (DataAccessException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the API token.");
 		}
-		if (apiToken == null) {
-			return false;
-		}
 		AAA_LOG.info("API token of ID {} has been deleted", apiToken);
-		return true;
 	}
 }

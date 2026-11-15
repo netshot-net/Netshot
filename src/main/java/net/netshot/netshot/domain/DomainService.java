@@ -216,17 +216,6 @@ public class DomainService {
 	}
 
 	/**
-	 * Deletes a domain.
-	 *
-	 * @param id the domain ID
-	 * @throws NetshotException if the domain doesn't exist, is used by devices or credential sets,
-	 *         or can't be deleted
-	 */
-	public void delete(long id) {
-		this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a domain, if it is at a given version.
 	 *
 	 * @param id the domain ID

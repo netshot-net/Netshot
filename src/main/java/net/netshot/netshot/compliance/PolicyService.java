@@ -239,39 +239,23 @@ public class PolicyService {
 	}
 
 	/**
-	 * Deletes a policy, with its rules.
-	 *
-	 * @param id the policy ID
-	 * @return true if the policy has been deleted, false if there was no such policy
-	 * @throws NetshotException if the policy can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a policy, with its rules, if it is at a given version.
 	 *
 	 * @param id the policy ID
 	 * @param expectedVersion the version the policy must be at, or null for any
-	 * @return true if the policy has been deleted, false if there was no such policy
-	 * @throws NetshotException if the policy isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the policy doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		try {
-			boolean deleted = this.transactions.write(dsl -> {
+			this.transactions.run(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such policy of ID {}", id);
-					return false;
+					throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "The policy doesn't exist.");
 				}
 				Versions.check("policy", version, expectedVersion);
-				return this.repository.remove(dsl, id);
+				this.repository.remove(dsl, id);
 			});
-			if (deleted) {
-				AAA_LOG.info("Policy of ID {} has been deleted.", id);
-			}
-			return deleted;
+			AAA_LOG.info("Policy of ID {} has been deleted.", id);
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to delete the policy {}.", id, e);

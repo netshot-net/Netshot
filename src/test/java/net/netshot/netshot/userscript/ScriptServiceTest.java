@@ -165,9 +165,9 @@ class ScriptServiceTest {
 	@DisplayName("delete() removes the script, and reports an unknown script")
 	void delete() {
 		DeviceJsScript script = this.service.create(this.creation(this.name("To delete")));
-		this.service.delete(script.id());
+		this.service.delete(script.id(), null);
 		Assertions.assertNull(this.service.get(script.id()));
-		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(script.id()));
-		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(99999999L));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(script.id(), null));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(99999999L, null));
 	}
 }

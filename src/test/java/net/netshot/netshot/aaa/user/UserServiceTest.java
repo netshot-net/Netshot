@@ -261,15 +261,15 @@ class UserServiceTest {
 	@Test
 	@DisplayName("Delete: false for an unknown user, an error for the user making the request, true otherwise")
 	void delete() {
-		Assertions.assertFalse(this.service.delete(99_999_999L, ADMIN));
+		assertError(ErrorCode.NETSHOT_USER_NOT_FOUND, () -> this.service.delete(99_999_999L, ADMIN, null));
 		UiUser self = this.create(this.nextName(), false, null, 1000);
-		NetshotException locked = assertError(ErrorCode.NETSHOT_LOCKED_USER, () -> this.service.delete(self.id(), self.username()));
+		NetshotException locked = assertError(ErrorCode.NETSHOT_LOCKED_USER, () -> this.service.delete(self.id(), self.username(), null));
 		Assertions.assertEquals("Cannot delete the user who is making the request.", locked.getMessage());
 		Assertions.assertNotNull(this.reload(self.id()));
 		UiUser other = this.create(this.nextName(), false, null, 10);
-		Assertions.assertTrue(this.service.delete(other.id(), self.username()));
+		this.service.delete(other.id(), self.username(), null);
 		Assertions.assertNull(this.reload(other.id()));
-		Assertions.assertFalse(this.service.delete(other.id(), self.username()), "Already deleted");
+		assertError(ErrorCode.NETSHOT_USER_NOT_FOUND, () -> this.service.delete(other.id(), self.username(), null));
 	}
 
 	// ------------------------------------------------------------------

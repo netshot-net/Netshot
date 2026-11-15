@@ -180,9 +180,9 @@ class DomainServiceTest {
 	@DisplayName("delete() removes the domain, and reports an unknown one")
 	void delete() throws Exception {
 		Domain created = this.service.create(definition(this.nextName(), "10.255.6.1"));
-		this.service.delete(created.id());
+		this.service.delete(created.id(), null);
 		Assertions.assertNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, created.id())));
-		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.delete(created.id(), null));
 	}
 
 	@Test
@@ -190,13 +190,13 @@ class DomainServiceTest {
 	void deleteInUse() throws Exception {
 		Domain withDevice = this.service.create(definition(this.nextName(), "10.255.7.1"));
 		TestDevices.add(Device.create("CiscoIOS12", "10.99.7.1", withDevice, "tester"));
-		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withDevice.id()));
+		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withDevice.id(), null));
 		Assertions.assertNotNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, withDevice.id())));
 
 		Domain withCredentials = this.service.create(definition(this.nextName(), "10.255.7.2"));
 		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("Community of a domain")
 			.mgmtDomain(withCredentials).build());
-		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withCredentials.id()));
+		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withCredentials.id(), null));
 		Assertions.assertNotNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, withCredentials.id())));
 	}
 }

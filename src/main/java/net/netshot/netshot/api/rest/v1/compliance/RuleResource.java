@@ -62,7 +62,6 @@ import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.RuleTestResult;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -229,9 +228,7 @@ public class RuleResource {
 		+ "the rule must still be at the given version (ETag).")
 	public void deleteRule(@PathParam("id") @Parameter(description = "Rule ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.ruleService.delete(id, V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The rule doesn't exist.");
-		}
+		this.ruleService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 

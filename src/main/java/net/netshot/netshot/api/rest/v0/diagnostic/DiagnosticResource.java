@@ -193,7 +193,7 @@ public class DiagnosticResource {
 	public void deleteDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete diagnostic {}.", id);
-		if (this.diagnosticService.delete(id)) {
+		if (V0Errors.found(() -> this.diagnosticService.delete(id, null), ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

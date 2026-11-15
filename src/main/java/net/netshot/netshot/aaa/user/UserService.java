@@ -258,34 +258,20 @@ public class UserService {
 	}
 
 	/**
-	 * Deletes a user. The user making the request cannot delete itself.
-	 *
-	 * @param id the ID of the user to delete
-	 * @param currentUsername the name of the user making the request
-	 * @return true if the user has been deleted, false if there is no such user
-	 * @throws NetshotException if the user is the current one
-	 */
-	public boolean delete(long id, String currentUsername) {
-		return this.delete(id, currentUsername, null);
-	}
-
-	/**
 	 * Deletes a user, if it is at a given version. The user making the request cannot delete itself.
 	 *
 	 * @param id the ID of the user to delete
 	 * @param currentUsername the name of the user making the request
 	 * @param expectedVersion the version the user must be at, or null for any
-	 * @return true if the user has been deleted, false if there is no such user
-	 * @throws NetshotException if the user is the current one, or isn't at the expected version
+	 * @throws NetshotException if the user doesn't exist, is the current one, or isn't at the expected version
 	 */
-	public boolean delete(long id, String currentUsername, Long expectedVersion) {
+	public void delete(long id, String currentUsername, Long expectedVersion) {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such user of ID {}", id);
-					return null;
+					throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
 				}
 				UiUser existing = this.repository.find(dsl, id);
 				if (existing.username().equals(currentUsername)) {
@@ -299,11 +285,7 @@ public class UserService {
 		catch (DataAccessException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the user.");
 		}
-		if (user == null) {
-			return false;
-		}
 		AAA_LOG.info("User {} of ID {} has been deleted", user.username(), user.id());
-		return true;
 	}
 
 	/**

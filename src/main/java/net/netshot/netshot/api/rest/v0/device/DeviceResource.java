@@ -46,10 +46,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
 
@@ -182,7 +184,7 @@ public class DeviceResource {
 	public void deleteDevice(@PathParam("id") @Parameter(description = "Device ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete device {}.", id);
-		if (this.deviceService.delete(id)) {
+		if (V0Errors.found(() -> this.deviceService.delete(id, null), ErrorCode.NETSHOT_DEVICE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

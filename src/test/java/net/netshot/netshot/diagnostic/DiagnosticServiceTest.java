@@ -331,16 +331,16 @@ class DiagnosticServiceTest {
 	}
 
 	@Test
-	@DisplayName("delete() tells whether the diagnostic existed, and removes its results")
+	@DisplayName("delete() removes the diagnostic with its results, and reports an unknown one")
 	void delete() {
 		Diagnostic diagnostic = this.service.create(simple(this.name("To delete"), this.groupId, "enable", "show clock")).diagnostic();
 		this.addResult(diagnostic.id());
 		Assertions.assertEquals(1, this.countResults(diagnostic.id()));
-		Assertions.assertTrue(this.service.delete(diagnostic.id()));
-		Assertions.assertFalse(this.service.delete(diagnostic.id()));
+		this.service.delete(diagnostic.id(), null);
+		assertError(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, () -> this.service.delete(diagnostic.id(), null));
 		Assertions.assertEquals(0, this.countResults(diagnostic.id()));
 		assertError(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, () -> this.service.get(diagnostic.id()).diagnostic());
-		Assertions.assertFalse(this.service.delete(99999999L));
+		assertError(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, () -> this.service.delete(99999999L, null));
 	}
 
 	@Test
@@ -355,7 +355,7 @@ class DiagnosticServiceTest {
 
 		this.addLongTextResult(diagnostic.id());
 		Assertions.assertEquals(longTexts + 1, this.countLongTexts());
-		Assertions.assertTrue(this.service.delete(diagnostic.id()));
+		this.service.delete(diagnostic.id(), null);
 		Assertions.assertEquals(longTexts, this.countLongTexts(), "the long text of the result is deleted with the diagnostic");
 	}
 

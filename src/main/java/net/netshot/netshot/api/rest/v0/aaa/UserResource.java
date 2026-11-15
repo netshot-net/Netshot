@@ -170,7 +170,7 @@ public class UserResource {
 		throws WebApplicationException {
 		log.debug("REST request, delete user {}.", id);
 		User currentUser = (User) this.securityContext.getUserPrincipal();
-		if (this.userService.delete(id, currentUser.username())) {
+		if (V0Errors.found(() -> this.userService.delete(id, currentUser.username(), null), ErrorCode.NETSHOT_USER_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

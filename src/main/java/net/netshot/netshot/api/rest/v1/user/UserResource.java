@@ -55,8 +55,6 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 
 /**
@@ -198,9 +196,7 @@ public class UserResource {
 		+ "user must still be at the given version (ETag).")
 	public void deleteUser(@PathParam("id") @Parameter(description = "User ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.userService.delete(id, this.currentUsername(), V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
-		}
+		this.userService.delete(id, this.currentUsername(), V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 

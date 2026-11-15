@@ -241,33 +241,21 @@ public class HookService {
 	}
 
 	/**
-	 * Deletes a hook.
-	 *
-	 * @param id the ID of the hook
-	 * @return false if there is no such hook
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a hook, if it is at a given version.
 	 *
 	 * @param id the ID of the hook
 	 * @param expectedVersion the version the hook must be at, or null for any
-	 * @return false if there is no such hook
-	 * @throws NetshotException if the hook isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the hook doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
-		boolean deleted;
+	public void delete(long id, Long expectedVersion) {
 		try {
-			deleted = this.transactions.write(dsl -> {
+			this.transactions.run(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					return false;
+					throw new NetshotException(ErrorCode.NETSHOT_HOOK_NOT_FOUND, "The hook doesn't exist.");
 				}
 				Versions.check("hook", version, expectedVersion);
-				return this.repository.remove(dsl, id);
+				this.repository.remove(dsl, id);
 			});
 		}
 		catch (NetshotException e) {
@@ -277,12 +265,6 @@ public class HookService {
 			log.error("Unable to delete the hook {}", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the hook");
 		}
-		if (deleted) {
-			AAA_LOG.info("Hook of ID {} has been deleted.", id);
-		}
-		else {
-			log.info("No such hook of ID {}", id);
-		}
-		return deleted;
+		AAA_LOG.info("Hook of ID {} has been deleted.", id);
 	}
 }

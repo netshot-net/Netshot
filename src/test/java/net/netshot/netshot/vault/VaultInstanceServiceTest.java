@@ -200,14 +200,14 @@ class VaultInstanceServiceTest {
 	}
 
 	@Test
-	@DisplayName("delete() removes the Vault instance, notifies, and says when there was none")
+	@DisplayName("delete() removes the Vault instance, notifies, and reports an unknown one")
 	void delete() {
 		HashicorpVaultKv2Instance created = this.createInstance();
 		int notifications = this.notified.size();
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id(), null);
 		Assertions.assertNull(this.stored(created.id()));
 		Assertions.assertEquals(List.of(created.id()), this.notified.subList(notifications, this.notified.size()));
-		Assertions.assertFalse(this.service.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, () -> this.service.delete(created.id(), null));
 		Assertions.assertEquals(notifications + 1, this.notified.size(), "nothing to notify for an unknown Vault instance");
 	}
 
@@ -218,7 +218,7 @@ class VaultInstanceServiceTest {
 		TestDevices.addCredentialSet(DeviceSshAccount.builder().name("Credentials of " + created.name())
 			.password(Secret.vault(created.id(), "a/b")).build());
 		int notifications = this.notified.size();
-		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_IN_USE, () -> this.service.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_IN_USE, () -> this.service.delete(created.id(), null));
 		Assertions.assertNotNull(this.stored(created.id()));
 		Assertions.assertEquals(notifications, this.notified.size());
 	}

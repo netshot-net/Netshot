@@ -160,7 +160,7 @@ public class DomainResource {
 	public void deleteDomain(@PathParam("id") @Parameter(description = "Domain ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete domain {}.", id);
-		this.domainService.delete(id);
+		this.domainService.delete(id, null);
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 	}
 }
