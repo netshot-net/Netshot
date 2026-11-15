@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.task;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +45,6 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -88,9 +85,6 @@ public class TaskService {
 	/** The number of items returned by the lists when the caller gives no limit. */
 	public static final int DEFAULT_LIMIT = 100;
 
-	// The final (completed) task statuses, i.e. the ones shown on the tasks time-based statistics.
-	private static final Set<Task.Status> FINAL_STATUSES =
-		Set.of(Task.Status.SUCCESS, Task.Status.FAILURE, Task.Status.CANCELLED);
 
 	private static final String SUBNET_SEPARATORS = "(\r\n|\n|;| |,)";
 	private static final Pattern SUBNET_PATTERN = Pattern.compile("^(?<ip>[0-9\\.]+)(/(?<mask>[0-9]+))?$");
@@ -117,25 +111,6 @@ public class TaskService {
 		this.taskSubmitter = taskSubmitter;
 		this.taskEngine = taskEngine;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Lists the tasks in their summary form.
-	 *
-	 * @param filter the criteria
-	 * @param page the window on the result; the limit defaults to {@link #DEFAULT_LIMIT}
-	 * @return the task summaries
-	 * @throws NetshotException if the tasks can't be read
-	 */
-	public List<TaskSummary> list(TaskFilter filter, Page page) {
-		Page effective = page.limit() == null ? new Page(page.offset(), DEFAULT_LIMIT) : page;
-		try {
-			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, filter, effective));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the tasks.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks");
-		}
 	}
 
 	/**
@@ -222,29 +197,6 @@ public class TaskService {
 			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
 		}
 		return task;
-	}
-
-	/**
-	 * Lists the tasks of a device in their summary form.
-	 *
-	 * <p>As the former endpoint did, any failure, including an invalid window, is reported as
-	 * a database access error.</p>
-	 *
-	 * @param deviceId the device ID
-	 * @param offset the number of tasks to skip, or null
-	 * @param limit the maximum number of tasks to return, or null for {@link #DEFAULT_LIMIT}
-	 * @return the task summaries
-	 * @throws NetshotException if the tasks can't be read
-	 */
-	public List<TaskSummary> listByDevice(long deviceId, Integer offset, Integer limit) {
-		try {
-			Page page = new Page(offset, limit == null ? DEFAULT_LIMIT : limit);
-			return this.transactions.read(dsl -> this.repository.findSummariesByDevice(dsl, deviceId, page));
-		}
-		catch (Exception e) {
-			log.error("Unable to fetch the tasks.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks");
-		}
 	}
 
 	/**
@@ -401,56 +353,6 @@ public class TaskService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the task counts", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task counts");
-		}
-	}
-
-	/**
-	 * Gets time-based statistics (histogram) about the completed tasks over a date range.
-	 *
-	 * @param after the start of the range in milliseconds since 1970, or null for the epoch
-	 * @param before the end of the range in milliseconds since 1970, or null for now
-	 * @param buckets the number of time buckets to split the range into (at most 366), or null for 48
-	 * @return the statistics
-	 * @throws NetshotException if the tasks can't be read
-	 */
-	public TaskStats getStats(Long after, Long before, Integer buckets) {
-		long from = after == null ? 0L : after;
-		long to = before == null ? System.currentTimeMillis() : before;
-		int binCount = buckets == null ? 48 : Math.max(1, Math.min(366, buckets));
-		long span = Math.max(1L, to - from);
-		double step = ((double) span) / binCount;
-		try {
-			return this.transactions.read(dsl -> {
-				Map<Task.Status, Long> statusCounts = new HashMap<>();
-				for (Task.Status status : FINAL_STATUSES) {
-					statusCounts.put(status, 0L);
-				}
-				List<TaskStats.Bin> bins = new ArrayList<>();
-				for (int i = 0; i < binCount; i++) {
-					Instant bucketStart = Instant.ofEpochMilli(from + Math.round(i * step));
-					Instant bucketEnd = Instant.ofEpochMilli(i == binCount - 1 ? to : from + Math.round((i + 1) * step));
-					Map<Task.Status, Long> countByStatus = new HashMap<>();
-					for (Task.Status status : FINAL_STATUSES) {
-						countByStatus.put(status, 0L);
-					}
-					for (TaskStatusCount count : this.repository.countByStatus(dsl, FINAL_STATUSES, bucketStart, bucketEnd)) {
-						countByStatus.put(count.status(), count.count());
-						statusCounts.merge(count.status(), count.count(), Long::sum);
-					}
-					bins.add(new TaskStats.Bin(Date.from(bucketStart), Date.from(bucketEnd), countByStatus));
-				}
-				Instant rangeStart = Instant.ofEpochMilli(from);
-				Instant rangeEnd = Instant.ofEpochMilli(to);
-				Map<String, Long> typeCounts = new HashMap<>();
-				for (String typeName : TaskRepository.TYPE_NAMES) {
-					typeCounts.put(typeName, this.repository.countByType(dsl, typeName, FINAL_STATUSES, rangeStart, rangeEnd));
-				}
-				return new TaskStats(bins, statusCounts, typeCounts);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the task stats", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task stats");
 		}
 	}
 

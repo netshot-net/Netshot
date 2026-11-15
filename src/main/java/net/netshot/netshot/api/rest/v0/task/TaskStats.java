@@ -16,11 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.task;
+package net.netshot.netshot.api.rest.v0.task;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import net.netshot.netshot.task.Task;
 
 /**
  * Time-based statistics (histogram) about the completed tasks over a date range.

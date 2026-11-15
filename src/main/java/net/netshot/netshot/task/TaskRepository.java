@@ -49,7 +49,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -767,20 +766,15 @@ public class TaskRepository {
 			r.get(TASK.CHILD_ORDER), Task.ScheduleMode.valueOf(r.get(TASK.SCHEDULE_MODE)), r.get(TASK.STOP_ON_FAILURE));
 	}
 
-	// The condition "the date of the task (execution date, or change date if it never ran) is in the range".
-	private static Condition dateRange(Instant from, Instant to, boolean executionToIncluded) {
-		Condition executed = TASK.EXECUTION_DATE.isNotNull();
-		Condition notExecuted = TASK.EXECUTION_DATE.isNull();
-		if (from != null) {
-			executed = executed.and(TASK.EXECUTION_DATE.ge(from));
-			notExecuted = notExecuted.and(TASK.CHANGE_DATE.ge(from));
-		}
-		if (to != null) {
-			executed = executed.and(executionToIncluded ? TASK.EXECUTION_DATE.le(to) : TASK.EXECUTION_DATE.lt(to));
-			notExecuted = notExecuted.and(TASK.CHANGE_DATE.lt(to));
-		}
-		return executed.or(notExecuted);
-	}
+	/** The date of a task: when it was executed, or when it last changed if it hasn't run. */
+	private static final Field<Instant> DATE = DSL.coalesce(TASK.EXECUTION_DATE, TASK.CHANGE_DATE);
+
+	/** The activity rank of the status of a task: 0 running, 1 waiting, 2 scheduled, 3 new, 4 any other (done). */
+	private static final Field<Integer> ACTIVITY = DSL.when(TASK.STATUS.eq(Task.Status.RUNNING.name()), 0)
+		.when(TASK.STATUS.eq(Task.Status.WAITING.name()), 1)
+		.when(TASK.STATUS.eq(Task.Status.SCHEDULED.name()), 2)
+		.when(TASK.STATUS.eq(Task.Status.NEW.name()), 3)
+		.otherwise(4);
 
 	/** The fields the task lists can be filtered and sorted on. */
 	public static final QueryMapping LIST = QueryMapping.builder(TASK.ID)
@@ -795,6 +789,8 @@ public class TaskRepository {
 		.date("creationDate", TASK.CREATION_DATE, Option.SORTABLE)
 		.date("changeDate", TASK.CHANGE_DATE, Option.SORTABLE)
 		.date("executionDate", TASK.EXECUTION_DATE, Option.SORTABLE)
+		.date("date", DATE, Option.SORTABLE)
+		.integer("activity", ACTIVITY, Option.SORTABLE)
 		.integer("device", TASK.DEVICE, Option.GROUPABLE)
 		.integer("group", TASK.DEVICE_GROUP, Option.GROUPABLE)
 		.integer("parentTask", TASK.PARENT_TASK_ID)
@@ -852,56 +848,6 @@ public class TaskRepository {
 	}
 
 	/**
-	 * Lists the summaries of the tasks: by descending ID, or by order for the children of a task.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param filter the filter
-	 * @param page the window on the result
-	 * @return the summaries
-	 */
-	public List<TaskSummary> findSummaries(DSLContext dsl, TaskFilter filter, Page page) {
-		Condition condition = DSL.noCondition();
-		if (filter.statuses() != null && !filter.statuses().isEmpty()) {
-			condition = condition.and(statusIn(filter.statuses().toArray(new Task.Status[0])));
-		}
-		if (filter.types() != null && !filter.types().isEmpty()) {
-			// The unknown type names are ignored
-			condition = condition.and(TASK.DTYPE.in(filter.types().stream().filter(TYPE_NAMES::contains).toList()));
-		}
-		if (filter.after() != null) {
-			condition = condition.and(dateRange(Instant.ofEpochMilli(filter.after()), null, true));
-		}
-		if (filter.before() != null) {
-			condition = condition.and(dateRange(null, Instant.ofEpochMilli(filter.before()), true));
-		}
-		if (filter.parentTaskId() != null) {
-			condition = condition.and(TASK.PARENT_TASK_ID.eq(filter.parentTaskId()));
-		}
-		return page.apply(dsl.select(SUMMARY_FIELDS).from(TASK).where(condition)
-				.orderBy(filter.parentTaskId() != null ? TASK.CHILD_ORDER.asc() : TASK.ID.desc()))
-			.fetch(TaskRepository::toSummary);
-	}
-
-	/**
-	 * Lists the summaries of the tasks of a device: the active ones first, then the latest ones.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the summaries
-	 */
-	public List<TaskSummary> findSummariesByDevice(DSLContext dsl, long deviceId, Page page) {
-		Field<Integer> statusOrder = DSL.when(TASK.STATUS.eq(Task.Status.RUNNING.name()), 1)
-			.when(TASK.STATUS.eq(Task.Status.WAITING.name()), 2)
-			.when(TASK.STATUS.eq(Task.Status.SCHEDULED.name()), 3)
-			.when(TASK.STATUS.eq(Task.Status.NEW.name()), 4)
-			.otherwise(10);
-		return page.apply(dsl.select(SUMMARY_FIELDS).from(TASK).where(TASK.DEVICE.eq(deviceId))
-				.orderBy(statusOrder.asc(), DSL.coalesce(TASK.EXECUTION_DATE, TASK.CHANGE_DATE).desc().nullsFirst(), TASK.ID.desc()))
-			.fetch(TaskRepository::toSummary);
-	}
-
-	/**
 	 * Counts the tasks by status.
 	 *
 	 * @param dsl the jOOQ context
@@ -915,36 +861,4 @@ public class TaskRepository {
 			.fetch(r -> new TaskStatusCount(Task.Status.valueOf(r.value1()), r.value2()));
 	}
 
-	/**
-	 * Counts the tasks in some statuses by status, over a date range.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param statuses the statuses
-	 * @param from the start of the range (included)
-	 * @param to the end of the range (excluded)
-	 * @return the counts
-	 */
-	public List<TaskStatusCount> countByStatus(DSLContext dsl, Collection<Task.Status> statuses, Instant from, Instant to) {
-		return dsl.select(TASK.STATUS, DSL.count(TASK.ID)).from(TASK)
-			.where(statusIn(statuses.toArray(new Task.Status[0])).and(dateRange(from, to, false)))
-			.groupBy(TASK.STATUS)
-			.fetch(r -> new TaskStatusCount(Task.Status.valueOf(r.value1()), r.value2()));
-	}
-
-	/**
-	 * Counts the tasks of a type in some statuses, over a date range.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param typeName the type name
-	 * @param statuses the statuses
-	 * @param from the start of the range (included)
-	 * @param to the end of the range (excluded)
-	 * @return the count
-	 */
-	public long countByType(DSLContext dsl, String typeName, Collection<Task.Status> statuses, Instant from, Instant to) {
-		Integer count = dsl.selectCount().from(TASK)
-			.where(TASK.DTYPE.eq(typeName).and(statusIn(statuses.toArray(new Task.Status[0]))).and(dateRange(from, to, false)))
-			.fetchOne(0, Integer.class);
-		return count == null ? 0L : count;
-	}
 }
