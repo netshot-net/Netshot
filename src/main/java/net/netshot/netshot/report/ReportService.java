@@ -18,30 +18,20 @@
  */
 package net.netshot.netshot.report;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TimeZone;
-import java.util.function.Function;
 
 import org.jooq.DSLContext;
-import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
+import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.compliance.CheckResult;
-import net.netshot.netshot.inventory.compliance.ConformanceLevel;
-import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.report.ReportExportSink.ExportedAttribute;
 import net.netshot.netshot.report.ReportExportSink.ExportedDevice;
 import net.netshot.netshot.report.ReportExportSink.ExportedInterface;
@@ -78,188 +68,6 @@ public class ReportService {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Reads in a read-only transaction, reporting a query failure as a database access error.
-	 *
-	 * @param <T> the type of the result
-	 * @param logMessage the message logged on failure
-	 * @param work the reads
-	 * @return the result
-	 */
-	private <T> T read(String logMessage, Function<DSLContext, T> work) {
-		try {
-			return this.transactions.read(work);
-		}
-		catch (DataAccessException e) {
-			log.error(logMessage, e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to get the stats");
-		}
-	}
-
-	/**
-	 * Counts the configuration changes of each of the last 7 days.
-	 *
-	 * @param jsTimeZone the name of the time zone to base the days on (the server one if it can't be read)
-	 * @return the counts, oldest day first
-	 */
-	public List<DailyChangeCount> getLast7DaysChanges(String jsTimeZone) {
-		TimeZone timeZone = TimeZone.getDefault();
-		try {
-			timeZone = TimeZone.getTimeZone(jsTimeZone);
-		}
-		catch (Exception e) {
-			log.warn("Unable to parse timezone '{}'", jsTimeZone);
-		}
-		Calendar today = Calendar.getInstance(timeZone);
-		today.set(Calendar.HOUR_OF_DAY, 0);
-		today.set(Calendar.MINUTE, 0);
-		today.set(Calendar.SECOND, 0);
-		today.set(Calendar.MILLISECOND, 0);
-		return this.read("Unable to get the stats.", dsl -> {
-			List<DailyChangeCount> stats = new ArrayList<>();
-			for (int d = 7; d > 0; d--) {
-				Calendar dayStart = (Calendar) today.clone();
-				Calendar dayEnd = (Calendar) today.clone();
-				dayStart.add(Calendar.DATE, -d + 1);
-				dayEnd.add(Calendar.DATE, -d + 2);
-				Long changeCount = this.repository.countConfigChanges(dsl, dayStart.getTime(), dayEnd.getTime());
-				stats.add(new DailyChangeCount(changeCount == null ? 0 : changeCount, dayStart.getTime()));
-			}
-			return stats;
-		});
-	}
-
-	/**
-	 * Gets the configuration compliance of the device groups.
-	 *
-	 * @param domains the domains to filter the devices on (empty: any)
-	 * @param deviceGroups the groups to report (empty: any)
-	 * @param policies the policies to take into account (empty: any)
-	 * @return the statistics
-	 */
-	public List<GroupConfigComplianceStat> getGroupConfigComplianceStats(Set<Long> domains, Set<Long> deviceGroups,
-		Set<Long> policies) {
-		return this.read("Unable to get the stats.",
-			dsl -> this.repository.findGroupConfigComplianceStats(dsl, domains, deviceGroups, policies));
-	}
-
-	/**
-	 * Gets the hardware support status of the devices.
-	 *
-	 * @param domains the domains to filter the devices on (empty: any)
-	 * @param deviceGroups the groups to filter the devices on (empty: any)
-	 * @return the device counts by end-of-sale and end-of-life dates
-	 */
-	public HardwareSupportStats getHardwareSupportStats(Set<Long> domains, Set<Long> deviceGroups) {
-		return this.read("Unable to get the stats.", dsl -> new HardwareSupportStats(
-			this.repository.findHardwareSupportCounts(dsl, EndOfSupport.SALE, domains, deviceGroups),
-			this.repository.findHardwareSupportCounts(dsl, EndOfSupport.LIFE, domains, deviceGroups)));
-	}
-
-	/**
-	 * Gets the software compliance of the device groups.
-	 *
-	 * @param domains the domains to filter the devices on (empty: any)
-	 * @return the statistics
-	 */
-	public List<GroupSoftwareComplianceStat> getGroupSoftwareComplianceStats(Set<Long> domains) {
-		return this.read("Unable to get the stats.",
-			dsl -> this.repository.findGroupSoftwareComplianceStats(dsl, domains));
-	}
-
-	/**
-	 * Gets the configuration compliance results of the devices.
-	 *
-	 * @param domains the domains to filter on (empty: any)
-	 * @param groups the groups to filter on (empty: any)
-	 * @param policies the policies to filter on (empty: any)
-	 * @param results the results to filter on (empty: any)
-	 * @return the results
-	 */
-	public List<PolicyRuleDevice> getConfigComplianceDeviceStatuses(Set<Long> domains, Set<Long> groups,
-		Set<Long> policies, Set<CheckResult.ResultOption> results) {
-		return this.read("Unable to get the devices.",
-			dsl -> this.repository.findPolicyRuleDevices(dsl, domains, groups, policies, results));
-	}
-
-	/**
-	 * Gets the non conforming rules of the devices of a group.
-	 *
-	 * @param groupId the group ID
-	 * @param domains the domains to filter on (empty: any)
-	 * @param policies the policies to filter on (empty: any)
-	 * @return the non conforming results
-	 */
-	public List<PolicyRuleDevice> getGroupConfigNonCompliantDevices(Long groupId, Set<Long> domains,
-		Set<Long> policies) {
-		return this.read("Unable to get the devices.",
-			dsl -> this.repository.findNonCompliantDevices(dsl, groupId, domains, policies));
-	}
-
-	/**
-	 * Gets the devices reaching a hardware support milestone on a given day.
-	 *
-	 * @param type "eos" (end of sale) or "eol" (end of life)
-	 * @param date the day (milliseconds since 1970), or 0 for the devices without date
-	 * @param domains the domains to filter on (empty: any)
-	 * @param deviceGroups the groups to filter on (empty: any)
-	 * @return the devices
-	 * @throws NetshotException if the type is not valid
-	 */
-	public List<DeviceSummary> getHardwareSupportDevices(String type, long date, Set<Long> domains,
-		Set<Long> deviceGroups) {
-		EndOfSupport milestone = EndOfSupport.fromCode(type);
-		if (milestone == null) {
-			log.warn("Invalid requested EoX type.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, "Invalid type, expected eos or eol.");
-		}
-		Date eoxDate = new Date(date);
-		return this.read("Unable to get the devices.", dsl -> this.repository.findDevicesByEndOfSupport(dsl,
-			milestone, date == 0 ? null : eoxDate, domains, deviceGroups));
-	}
-
-	/**
-	 * Gets the devices of a group at a software compliance level.
-	 *
-	 * @param groupId the group ID
-	 * @param level the level, case insensitive (unknown if it is not a valid level)
-	 * @param domains the domains to filter on (empty: any)
-	 * @return the devices
-	 */
-	public List<SoftwareLevelDevice> getGroupDevicesBySoftwareLevel(Long groupId, String level, Set<Long> domains) {
-		log.debug("Group {} devices by software level {}.", groupId, level);
-		ConformanceLevel filterLevel = ConformanceLevel.UNKNOWN;
-		for (ConformanceLevel l : ConformanceLevel.values()) {
-			if (l.toString().equalsIgnoreCase(level)) {
-				filterLevel = l;
-				break;
-			}
-		}
-		ConformanceLevel conformanceLevel = filterLevel;
-		return this.read("Unable to get the devices.",
-			dsl -> this.repository.findDevicesBySoftwareLevel(dsl, groupId, conformanceLevel, domains));
-	}
-
-	/**
-	 * Gets the devices without successful snapshot over a number of days.
-	 *
-	 * @param days the number of days (3 if it is missing or lower than 1)
-	 * @param domains the domains to filter on (empty: any)
-	 * @param page the window on the result
-	 * @return the devices, the most recent success first
-	 */
-	public List<AccessFailureDevice> getAccessFailureDevices(Integer days, Set<Long> domains, Page page) {
-		Integer period = days;
-		if (period == null || period < 1) {
-			log.warn("Invalid number of days {} to find the unreachable devices, using 3.", period);
-			period = 3;
-		}
-		Calendar when = Calendar.getInstance();
-		when.add(Calendar.DATE, -period);
-		return this.read("Unable to get the devices.",
-			dsl -> this.repository.findAccessFailureDevices(dsl, when.getTime(), domains, page));
 	}
 
 	/**

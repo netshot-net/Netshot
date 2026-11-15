@@ -16,18 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.report;
-
-import java.util.Date;
+package net.netshot.netshot.api.rest.v0.report;
 
 import net.netshot.netshot.inventory.device.DeviceSummary;
 
 /**
- * A device without recent successful snapshot.
+ * A device with its software version, listed by software compliance level.
  *
  * @param device the device
- * @param lastSuccess the date of the last successful snapshot (null: never)
- * @param lastFailure the date of the last failed snapshot (null: never)
+ * @param softwareVersion the software version
  */
-public record AccessFailureDevice(DeviceSummary device, Date lastSuccess, Date lastFailure) {
+public record SoftwareLevelDevice(DeviceSummary device, String softwareVersion) {
 }

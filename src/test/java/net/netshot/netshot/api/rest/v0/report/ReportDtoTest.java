@@ -34,14 +34,8 @@ import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceSummary;
-import net.netshot.netshot.report.AccessFailureDevice;
-import net.netshot.netshot.report.DailyChangeCount;
 import net.netshot.netshot.report.GroupConfigComplianceStat;
-import net.netshot.netshot.report.GroupSoftwareComplianceStat;
-import net.netshot.netshot.report.HardwareSupportCount;
-import net.netshot.netshot.report.HardwareSupportStats;
 import net.netshot.netshot.report.PolicyRuleDevice;
-import net.netshot.netshot.report.SoftwareLevelDevice;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.DtoContract;
 

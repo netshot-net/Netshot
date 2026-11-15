@@ -16,15 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.report;
+package net.netshot.netshot.api.rest.v0.report;
 
-import java.util.List;
+import java.util.Date;
 
 /**
- * The hardware support status of the devices.
+ * The number of devices reaching a hardware support milestone on a given day.
  *
- * @param endOfSale the device counts by end-of-sale date
- * @param endOfLife the device counts by end-of-life date
+ * @param eoxDate the date of the milestone (null: no date)
+ * @param deviceCount the number of devices
  */
-public record HardwareSupportStats(List<HardwareSupportCount> endOfSale, List<HardwareSupportCount> endOfLife) {
+public record HardwareSupportCount(Date eoxDate, long deviceCount) {
 }

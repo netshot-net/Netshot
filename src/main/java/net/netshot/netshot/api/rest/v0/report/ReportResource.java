@@ -52,7 +52,12 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
 import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
+import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.config.ConfigService;
+import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.report.ReportExportSelection;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.report.XlsxReportWriter;
@@ -69,6 +74,7 @@ import net.netshot.netshot.report.XlsxReportWriter;
 public class ReportResource {
 
 	private final ReportService reportService;
+	private final V0Reports reports;
 
 	@Context
 	private SecurityContext securityContext;
@@ -76,11 +82,18 @@ public class ReportResource {
 	/**
 	 * Instantiates the resource.
 	 *
-	 * @param reportService the report use cases
+	 * @param reportService the report use cases (data export)
+	 * @param configService the configuration use cases
+	 * @param searchService the device search use cases
+	 * @param ruleService the rule use cases
+	 * @param policyService the policy use cases
+	 * @param groupService the group use cases
 	 */
 	@Inject
-	public ReportResource(ReportService reportService) {
+	public ReportResource(ReportService reportService, ConfigService configService, SearchService searchService, RuleService ruleService,
+		PolicyService policyService, GroupService groupService) {
 		this.reportService = reportService;
+		this.reports = new V0Reports(configService, searchService, ruleService, policyService, groupService);
 	}
 
 	/**
@@ -102,7 +115,7 @@ public class ReportResource {
 	@Deprecated
 	public List<ConfigChangeCountDto> getLast7DaysChangesByDayStats(@QueryParam("tz") String jsTimeZone) throws WebApplicationException {
 		log.debug("REST request, get last 7 day changes by day stats.");
-		return ReportMapper.toChangeCountDtos(this.reportService.getLast7DaysChanges(jsTimeZone));
+		return ReportMapper.toChangeCountDtos(this.reports.last7DaysChanges(jsTimeZone));
 	}
 
 	/**
@@ -131,7 +144,7 @@ public class ReportResource {
 		throws WebApplicationException {
 		log.debug("REST request, group config compliance stats.");
 		return ReportMapper.toConfigComplianceDtos(
-			this.reportService.getGroupConfigComplianceStats(domains, deviceGroups, policies));
+			this.reports.groupConfigComplianceStats(domains, deviceGroups, policies));
 	}
 
 	/**
@@ -158,7 +171,7 @@ public class ReportResource {
 		@QueryParam("group") @Parameter(description = "Filter on given group ID(s)") Set<Long> deviceGroups)
 		throws WebApplicationException {
 		log.debug("REST request, hardware support stats.");
-		return ReportMapper.toHardwareSupportDtos(this.reportService.getHardwareSupportStats(domains, deviceGroups));
+		return ReportMapper.toHardwareSupportDtos(this.reports.hardwareSupportStats(domains, deviceGroups));
 	}
 
 	/**
@@ -182,7 +195,7 @@ public class ReportResource {
 			@QueryParam("domain") @Parameter(description = "Filter on given domain ID(s)") Set<Long> domains)
 		throws WebApplicationException {
 		log.debug("REST request, group software compliance stats.");
-		return ReportMapper.toSoftwareComplianceDtos(this.reportService.getGroupSoftwareComplianceStats(domains));
+		return ReportMapper.toSoftwareComplianceDtos(this.reports.groupSoftwareComplianceStats(domains));
 	}
 
 	/**
@@ -213,7 +226,7 @@ public class ReportResource {
 		throws WebApplicationException {
 		log.debug("REST request, config compliant device statuses.");
 		return ReportMapper.toPolicyRuleDeviceDtos(
-			this.reportService.getConfigComplianceDeviceStatuses(domains, groups, policies, results));
+			this.reports.complianceDeviceStatuses(domains, groups, policies, results));
 	}
 
 	/**
@@ -242,7 +255,7 @@ public class ReportResource {
 		throws WebApplicationException {
 		log.debug("REST request, group config non compliant devices.");
 		return ReportMapper.toPolicyRuleDeviceDtos(
-			this.reportService.getGroupConfigNonCompliantDevices(id, domains, policies));
+			this.reports.groupNonCompliantDevices(id, domains, policies));
 	}
 
 	/**
@@ -272,7 +285,7 @@ public class ReportResource {
 		@QueryParam("domain") @Parameter(description = "Filter on given domain ID(s)") Set<Long> domains,
 		@QueryParam("group") @Parameter(description = "Filter on given group ID(s)") Set<Long> deviceGroups) throws WebApplicationException {
 		log.debug("REST request, EoX devices by type and date.");
-		return DeviceMapper.toSummaryDtos(this.reportService.getHardwareSupportDevices(type, date, domains, deviceGroups));
+		return DeviceMapper.toSummaryDtos(this.reports.hardwareSupportDevices(type, date, domains, deviceGroups));
 	}
 
 	/**
@@ -300,7 +313,7 @@ public class ReportResource {
 		@QueryParam("domain") @Parameter(description = "Filter on given domain ID(s)") Set<Long> domains)
 		throws WebApplicationException {
 		log.debug("REST request, group {} devices by software level {}.", id, level);
-		return ReportMapper.toSoftwareLevelDeviceDtos(this.reportService.getGroupDevicesBySoftwareLevel(id, level, domains));
+		return ReportMapper.toSoftwareLevelDeviceDtos(this.reports.groupDevicesBySoftwareLevel(id, level, domains));
 	}
 
 	/**
@@ -327,7 +340,7 @@ public class ReportResource {
 		throws WebApplicationException {
 		log.debug("REST request, devices without successful snapshot over the last {} days.", days);
 		return ReportMapper.toAccessFailureDeviceDtos(
-			this.reportService.getAccessFailureDevices(days, domains, paginationParams.toPage()));
+			this.reports.accessFailureDevices(days, domains, paginationParams.toPage()));
 	}
 
 	/**

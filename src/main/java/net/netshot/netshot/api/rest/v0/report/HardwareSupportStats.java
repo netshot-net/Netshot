@@ -16,15 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.report;
+package net.netshot.netshot.api.rest.v0.report;
 
-import net.netshot.netshot.inventory.device.DeviceSummary;
+import java.util.List;
 
 /**
- * A device with its software version, listed by software compliance level.
+ * The hardware support status of the devices.
  *
- * @param device the device
- * @param softwareVersion the software version
+ * @param endOfSale the device counts by end-of-sale date
+ * @param endOfLife the device counts by end-of-life date
  */
-public record SoftwareLevelDevice(DeviceSummary device, String softwareVersion) {
+public record HardwareSupportStats(List<HardwareSupportCount> endOfSale, List<HardwareSupportCount> endOfLife) {
 }
