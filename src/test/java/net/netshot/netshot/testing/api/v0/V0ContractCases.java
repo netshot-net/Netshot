@@ -412,6 +412,12 @@ public final class V0ContractCases {
 			{"id": %d, "name": "Marseille DC 2", "description": "Renamed", "ipAddress": "10.255.2.9"}""", "new.domain"));
 		c.write("PUT", "/domains/{id}", "unknown", () -> "/domains/99999999", () -> """
 			{"id": 99999999, "name": "Nope", "description": "", "ipAddress": "10.255.2.9"}""");
+		c.write("PUT", "/domains/{id}", "blankname", c.path("/domains/%d", "new.domain"), () -> """
+			{"name": " ", "description": "Blank", "ipAddress": "10.0.0.1"}""");
+		c.write("PUT", "/domains/{id}", "duplicate", c.path("/domains/%d", "new.domain"), () -> """
+			{"name": "Paris DC", "description": "Duplicate", "ipAddress": "10.0.0.1"}""");
+		c.write("PUT", "/domains/{id}", "badaddress", c.path("/domains/%d", "new.domain"), () -> """
+			{"name": "Bad address", "description": "Bad", "ipAddress": "not an address"}""");
 		c.write("DELETE", "/domains/{id}", "unknown", () -> "/domains/99999999", null);
 		c.write("DELETE", "/domains/{id}", "inuse", c.path("/domains/%d", "domain.paris"), null);
 	}
@@ -513,6 +519,27 @@ public final class V0ContractCases {
 			 "query": "[Family] CONTAINS \\"Cisco\\"", "hiddenFromReports": false}""", "new.group.dynamic"));
 		c.write("PUT", "/groups/{id}", "unknown", () -> "/groups/99999999", () -> """
 			{"id": 99999999, "type": "StaticDeviceGroup", "name": "Nope", "staticDevices": []}""");
+		c.write("PUT", "/groups/{id}", "nodevices", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": "New static group renamed", "folder": "Tests/Sub",
+			 "hiddenFromReports": true}""", "new.group.static"));
+		c.write("PUT", "/groups/{id}", "noquery", c.path("/groups/%d", "new.group.dynamic"), c.body("""
+			{"id": %d, "type": "DynamicDeviceGroup", "name": "New dynamic group", "folder": "",
+			 "hiddenFromReports": false}""", "new.group.dynamic"));
+		c.write("PUT", "/groups/{id}", "othertype", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "DynamicDeviceGroup", "name": "New static group renamed", "folder": "Tests/Sub",
+			 "query": "[Name] CONTAINS \\"router\\"", "staticDevices": [%d], "hiddenFromReports": true}""",
+			"new.group.static", "device.router1"));
+		c.write("PUT", "/groups/{id}", "notype", c.path("/groups/%d", "new.group.dynamic"), c.body("""
+			{"id": %d, "name": "New dynamic group", "query": "[Name] CONTAINS \\"router\\""}""", "new.group.dynamic"));
+		c.write("PUT", "/groups/{id}", "blankname", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": " ", "staticDevices": []}""", "new.group.static"));
+		c.write("PUT", "/groups/{id}", "duplicate", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": "New dynamic group", "staticDevices": []}""", "new.group.static"));
+		c.write("PUT", "/groups/{id}", "badquery", c.path("/groups/%d", "new.group.dynamic"), c.body("""
+			{"id": %d, "type": "DynamicDeviceGroup", "name": "New dynamic group", "query": "[Nope] ???"}""", "new.group.dynamic"));
+		c.write("PUT", "/groups/{id}", "unknowndevice", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": "New static group renamed", "staticDevices": [99999999]}""",
+			"new.group.static"));
 		c.write("DELETE", "/groups/{id}", "unknown", () -> "/groups/99999999", null);
 	}
 
@@ -846,6 +873,15 @@ public final class V0ContractCases {
 			 "url": "https://example.net/renamed", "triggers": null}""", "new.hook"));
 		c.write("PUT", "/hooks/{id}", "unknown", () -> "/hooks/99999999", () -> """
 			{"type": "Web", "id": 99999999, "name": "Nope", "enabled": true, "action": "POST_JSON", "url": "https://example.net/x"}""");
+		c.write("PUT", "/hooks/{id}", "blankname", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": " ", "enabled": true, "action": "POST_JSON", "url": "https://example.net/x"}""", "new.hook"));
+		c.write("PUT", "/hooks/{id}", "duplicate", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": "Notify on tasks", "enabled": true, "action": "POST_JSON",
+			 "url": "https://example.net/x"}""", "new.hook"));
+		c.write("PUT", "/hooks/{id}", "badurl", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": "Bad URL", "enabled": true, "action": "POST_JSON", "url": "not a url"}""", "new.hook"));
+		c.write("PUT", "/hooks/{id}", "noaction", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": "No action", "enabled": true, "url": "https://example.net/x"}""", "new.hook"));
 		c.write("DELETE", "/hooks/{id}", "deleted", c.path("/hooks/%d", "new.hook"), null);
 		c.write("DELETE", "/hooks/{id}", "unknown", () -> "/hooks/99999999", null);
 	}
@@ -866,6 +902,12 @@ public final class V0ContractCases {
 			{"id": %d, "username": "newuser", "password": "An0ther!Passw0rd#2", "level": 500, "local": true}""", "new.user"));
 		c.write("PUT", "/users/{id}", "unknown", () -> "/users/99999999", () -> """
 			{"id": 99999999, "username": "nope", "level": 10, "local": true}""");
+		c.write("PUT", "/users/{id}", "blankname", c.path("/users/%d", "new.user"), c.body("""
+			{"id": %d, "username": " ", "level": 500, "local": true}""", "new.user"));
+		c.write("PUT", "/users/{id}", "duplicate", c.path("/users/%d", "new.user"), c.body("""
+			{"id": %d, "username": "writer", "level": 500, "local": true}""", "new.user"));
+		c.write("PUT", "/users/{id}", "weakpassword", c.path("/users/%d", "new.user"), c.body("""
+			{"id": %d, "username": "newuser", "password": "a", "level": 500, "local": true}""", "new.user"));
 		c.add(V0ContractCase.builder("POST", "/user").variant("login").path("/user").token("").body(() -> """
 			{"username": "writer", "password": "%s"}""".formatted(ContractSeed.USER_PASSWORD)));
 		c.add(V0ContractCase.builder("POST", "/user").variant("badlogin").path("/user").token("").body(() -> """
@@ -969,6 +1011,8 @@ public final class V0ContractCases {
 		c.writeAs("POST", "/tasks", "script-forbidden", () -> "/tasks", c.body("""
 			{"type": "RunDeviceScriptTask", "device": %d, "driver": "CiscoIOS12", "script": "x"}""", "device.router1"), null,
 			ContractSeed.READONLY_TOKEN);
+		c.write("PUT", "/tasks/{id}", "notcancelled", c.path("/tasks/%d", "new.task"), () -> """
+			{"cancelled": false}""");
 		c.write("PUT", "/tasks/{id}", "cancelled", c.path("/tasks/%d", "new.task"), () -> """
 			{"cancelled": true}""");
 		c.write("PUT", "/tasks/{id}", "notcancellable", c.path("/tasks/%d", "task.snapshot"), () -> """
