@@ -89,6 +89,10 @@ class HookServiceTest {
 		return webHook(this.nextName(), "https://example.net/hook", Action.POST_JSON, triggerItems);
 	}
 
+	private Hook update(long id, Hook incoming) {
+		return this.service.update(id, _ -> incoming, null);
+	}
+
 	private WebHook stored(long id) {
 		return (WebHook) this.transactions.read(dsl -> new HookRepository().find(dsl, id));
 	}
@@ -177,7 +181,7 @@ class HookServiceTest {
 			HttpsCaTrustMode.TRUST_ANY, null);
 		WebHook incoming = new WebHook(0, 0, null, renamed.name(), false, renamed.triggers(), renamed.action(), renamed.url(),
 			renamed.httpsCaTrustMode(), null);
-		Hook updated = this.service.update(created.id(), incoming);
+		Hook updated = this.update(created.id(), incoming);
 		Assertions.assertEquals(new WebHook(created.id(), updated.version(), updated.changeDate(), incoming.name(), incoming.enabled(),
 			incoming.triggers(), incoming.action(), incoming.url(), incoming.httpsCaTrustMode(), incoming.httpsCustomCaCertificate()),
 			updated, "the new definition is what is returned");
@@ -197,19 +201,20 @@ class HookServiceTest {
 	void updateDefaults() {
 		WebHook created = (WebHook) this.service.create(this.valid());
 		WebHook incoming = webHook(created.name(), "https://example.net/x", Action.POST_JSON).withId(99999999L).withHttpsCaTrustMode(null);
-		Hook updated = this.service.update(created.id(), incoming);
+		Hook updated = this.update(created.id(), incoming);
 		Assertions.assertEquals(created.id(), updated.id());
 		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, ((WebHook) updated).httpsCaTrustMode());
 		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, this.stored(created.id()).httpsCaTrustMode());
 	}
 
 	@Test
-	@DisplayName("update() validates the definition before looking for the hook")
-	void updateValidationOrder() {
-		assertError(ErrorCode.NETSHOT_INVALID_HOOK_NAME, () -> this.service.update(99999999L, webHook("", "bad", null)));
-		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.service.update(99999999L, webHook("x", "not a url", null)));
-		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB, () -> this.service.update(99999999L, webHook("x", "http://example.net", null)));
-		assertError(ErrorCode.NETSHOT_INVALID_HOOK, () -> this.service.update(99999999L, webHook("x", "http://example.net", Action.POST_XML)));
+	@DisplayName("update() refuses an unknown hook and invalid values")
+	void updateInvalid() {
+		assertError(ErrorCode.NETSHOT_HOOK_NOT_FOUND, () -> this.update(99999999L, this.valid()));
+		long id = this.service.create(this.valid()).id();
+		assertError(ErrorCode.NETSHOT_INVALID_HOOK_NAME, () -> this.update(id, webHook("", "bad", null)));
+		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.update(id, webHook("x", "not a url", null)));
+		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB, () -> this.update(id, webHook("x", "http://example.net", null)));
 	}
 
 	@Test
@@ -218,7 +223,7 @@ class HookServiceTest {
 		WebHook first = (WebHook) this.service.create(this.valid());
 		WebHook second = (WebHook) this.service.create(this.valid("A"));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_HOOK,
-			() -> this.service.update(second.id(), webHook(first.name(), "https://example.net/changed", Action.POST_XML, "Z")));
+			() -> this.update(second.id(), webHook(first.name(), "https://example.net/changed", Action.POST_XML, "Z")));
 		WebHook reloaded = this.stored(second.id());
 		Assertions.assertEquals(second.name(), reloaded.name());
 		Assertions.assertEquals("https://example.net/hook", reloaded.url());
@@ -230,7 +235,7 @@ class HookServiceTest {
 	void updateNullTriggers() {
 		WebHook created = (WebHook) this.service.create(this.valid("A"));
 		WebHook incoming = webHook("Changed " + created.name(), "https://example.net/x", Action.POST_JSON).withTriggers(null);
-		this.service.update(created.id(), incoming);
+		this.update(created.id(), incoming);
 		WebHook reloaded = (WebHook) this.stored(created.id());
 		Assertions.assertEquals("Changed " + created.name(), reloaded.name());
 		Assertions.assertEquals(Set.of(), items(reloaded));
