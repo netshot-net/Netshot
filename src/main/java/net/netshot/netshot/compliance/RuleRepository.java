@@ -27,9 +27,7 @@ import static net.netshot.netshot.platform.database.schema.Tables.POLICY_TARGET_
 import static net.netshot.netshot.platform.database.schema.Tables.RULE;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +37,10 @@ import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
-import org.jooq.SelectField;
 import org.jooq.Table;
 
 import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
@@ -165,18 +161,6 @@ public class RuleRepository {
 
 	private static List<Rule> query(DSLContext dsl, Condition condition, Page page) {
 		return page.apply(dsl.select(RULE.fields()).from(RULE).where(condition).orderBy(RULE.ID)).fetch(RuleRepository::toRule);
-	}
-
-	/**
-	 * Lists all the rules, with minimal details, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the rule summaries
-	 */
-	public List<RuleSummary> findSummaries(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(RULE.ID, RULE.NAME, RULE.TYPE, RULE.ENABLED, RULE.POLICY).from(RULE).orderBy(RULE.ID))
-			.fetch(r -> new RuleSummary(r.value1(), r.value2(), typeName(r.value3()), r.value4(), r.value5()));
 	}
 
 	/**
@@ -339,19 +323,6 @@ public class RuleRepository {
 	 */
 	public List<Rule> findByPolicy(DSLContext dsl, long policyId, Page page) {
 		return query(dsl, RULE.POLICY.eq(policyId), page);
-	}
-
-	/**
-	 * Gets a rule of a policy.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param policyId the ID of the policy
-	 * @param id the ID of the rule
-	 * @return the rule, or null if the policy has no such rule
-	 */
-	public Rule findOfPolicy(DSLContext dsl, long policyId, long id) {
-		List<Rule> rules = query(dsl, RULE.POLICY.eq(policyId).and(RULE.ID.eq(id)), Page.ALL);
-		return rules.isEmpty() ? null : rules.get(0);
 	}
 
 	/**
@@ -570,49 +541,5 @@ public class RuleRepository {
 	 */
 	public boolean deviceExists(DSLContext dsl, long deviceId) {
 		return dsl.fetchExists(DEVICE, DEVICE.ID.eq(deviceId));
-	}
-
-	/**
-	 * Lists the devices exempted from a rule, by device ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param ruleId the ID of the rule
-	 * @param page the window on the result
-	 * @return the exempted devices
-	 */
-	public List<ExemptedDevice> findExemptedDevices(DSLContext dsl, long ruleId, Page page) {
-		List<SelectField<?>> fields = new ArrayList<>(DeviceSummary.FIELDS);
-		fields.add(EXEMPTION.EXPIRATION_DATE);
-		return page.apply(dsl.select(fields).from(EXEMPTION).join(DEVICE).on(DEVICE.ID.eq(EXEMPTION.DEVICE))
-				.where(EXEMPTION.RULE.eq(ruleId)).orderBy(DEVICE.ID))
-			.fetch(r -> new ExemptedDevice(DeviceSummary.fromRecord(r), toDate(r.get(EXEMPTION.EXPIRATION_DATE))));
-	}
-
-	private static Date toDate(Instant instant) {
-		return instant == null ? null : Date.from(instant);
-	}
-
-	/**
-	 * Lists the compliance state of a device: the rules of the policies applying to it (through
-	 * its groups), with their last result and exemption.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param deviceId the ID of the device
-	 * @param page the window on the result
-	 * @return the rule results, by policy and rule ID
-	 */
-	public List<DeviceRuleResult> findDeviceResults(DSLContext dsl, long deviceId, Page page) {
-		return page.apply(dsl.select(RULE.ID, RULE.NAME, POLICY.ID, POLICY.NAME, CHECK_RESULT.RESULT, CHECK_RESULT.COMMENT,
-					CHECK_RESULT.CHECK_DATE, EXEMPTION.EXPIRATION_DATE)
-				.from(RULE)
-				.join(POLICY).on(POLICY.ID.eq(RULE.POLICY))
-				.join(POLICY_TARGET_GROUPS).on(POLICY_TARGET_GROUPS.POLICY.eq(POLICY.ID))
-				.join(DEVICE_GROUP_CACHED_DEVICES).on(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(POLICY_TARGET_GROUPS.TARGET_GROUPS)
-					.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId)))
-				.leftJoin(CHECK_RESULT).on(CHECK_RESULT.RULE.eq(RULE.ID).and(CHECK_RESULT.DEVICE.eq(deviceId)))
-				.leftJoin(EXEMPTION).on(EXEMPTION.RULE.eq(RULE.ID).and(EXEMPTION.DEVICE.eq(deviceId)))
-				.orderBy(POLICY.ID, RULE.ID))
-			.fetch(r -> new DeviceRuleResult(r.value1(), r.value2(), r.value3(), r.value4(),
-				r.value5() == null ? null : ResultOption.valueOf(r.value5()), r.value6(), toDate(r.value7()), toDate(r.value8())));
 	}
 }

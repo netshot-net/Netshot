@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.DSLContext;
@@ -31,7 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -64,29 +61,6 @@ public class PolicyService {
 	public PolicyService(Transactions transactions, PolicyRepository repository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the policies, with their target groups.
-	 *
-	 * @param page the window on the result
-	 * @return the policies
-	 * @throws NetshotException if the policies can't be read
-	 */
-	public List<PolicyView> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> {
-				List<PolicyView> views = new ArrayList<>();
-				for (Policy policy : this.repository.findAll(dsl, page)) {
-					views.add(this.view(dsl, policy));
-				}
-				return views;
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the policies.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the policies");
-		}
 	}
 
 	/**
@@ -221,21 +195,6 @@ public class PolicyService {
 		}
 		AAA_LOG.info("{} has been edited.", policy);
 		return policy;
-	}
-
-	/**
-	 * Gets the view of a policy: the policy with its target groups, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param policy the policy
-	 * @return the view
-	 */
-	private PolicyView view(DSLContext dsl, Policy policy) {
-		List<DeviceGroup> groups = new ArrayList<>();
-		for (Long groupId : policy.targetGroupIds().stream().sorted().toList()) {
-			groups.add(this.requireGroup(dsl, groupId));
-		}
-		return new PolicyView(policy, groups);
 	}
 
 	/**

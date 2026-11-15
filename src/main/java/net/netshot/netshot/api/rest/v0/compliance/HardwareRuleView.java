@@ -16,17 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.compliance;
+package net.netshot.netshot.api.rest.v0.compliance;
 
-import java.util.List;
-
+import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
- * A policy with its target groups, as the API publishes it.
+ * a hardware rule with its target group, as the API publishes it.
  *
- * @param policy the policy
- * @param targetGroups the groups the policy applies to, by ID
+ * @param rule the rule
+ * @param targetGroup the group the rule applies to (null for all the devices)
  */
-public record PolicyView(Policy policy, List<DeviceGroup> targetGroups) {
+public record HardwareRuleView(HardwareRule rule, DeviceGroup targetGroup) {
 }

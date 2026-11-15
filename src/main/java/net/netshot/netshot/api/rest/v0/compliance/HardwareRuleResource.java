@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
+import java.util.Map;
 
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,11 +44,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleService;
-import net.netshot.netshot.compliance.HardwareRuleView;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
@@ -101,7 +104,10 @@ public class HardwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public List<HardwareRuleDto> getHardwareRules() throws WebApplicationException {
 		log.debug("REST request, hardware rules.");
-		return HardwareRuleMapper.toDtos(this.driverRegistry, this.hardwareRuleService.list());
+		List<HardwareRule> rules = this.hardwareRuleService.list(V0Lists.query(Page.ALL)).items();
+		Map<Long, DeviceGroup> groups = V0Lists.groups(this.groupService, rules.stream().map(HardwareRule::targetGroupId).toList());
+		return HardwareRuleMapper.toDtos(this.driverRegistry, rules.stream()
+			.map(rule -> new HardwareRuleView(rule, rule.targetGroupId() == null ? null : groups.get(rule.targetGroupId()))).toList());
 	}
 
 	/**
@@ -186,6 +192,6 @@ public class HardwareRuleResource {
 
 	private HardwareRuleDto toDto(HardwareRule rule) {
 		return HardwareRuleMapper.toDto(this.driverRegistry,
-			new HardwareRuleView(rule, TargetGroups.find(this.groupService, rule.targetGroupId())));
+			new HardwareRuleView(rule, V0Lists.group(this.groupService, rule.targetGroupId())));
 	}
 }
