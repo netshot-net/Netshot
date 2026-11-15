@@ -53,7 +53,7 @@ To create a hardware rule, go to the _Compliance_ page, select the _Hardware_ se
 
 Apart from _software_ and _hardware_ rules, you can create advanced rules that will check the configuration or other attributes of the devices.
 
-First you need to create a _policy_, which will contain the actual rules. A policy applies to a group of devices. If you want to assign a policy to all devices, just create a dynamic group without criteria, so it will contain all devices.
+First you need to create a _policy_, which will contain the actual rules. A policy applies to a group of devices. If you want to assign a policy to all devices, just create a dynamic group with an empty query, so it will contain all devices.
 
 To create a policy, click on the _Create policy..._ button in the main toolbar. To edit or delete a policy, select it first, the buttons will appear.
 

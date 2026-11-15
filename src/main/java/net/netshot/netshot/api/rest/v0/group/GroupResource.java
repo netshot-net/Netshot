@@ -45,7 +45,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.V0Errors;
-import net.netshot.netshot.inventory.group.GroupDefinition;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.error.ErrorCode;
 
@@ -188,7 +187,6 @@ public class GroupResource {
 	public DeviceGroupDto setGroup(@PathParam("id") @Parameter(description = "Group ID") Long id, GroupRequest rsGroup)
 		throws WebApplicationException {
 		log.debug("REST request, edit group {}.", id);
-		GroupDefinition definition = GroupMapper.toUpdateDefinition(rsGroup);
-		return GroupMapper.toDto(this.groupService.update(id, _ -> definition, null));
+		return GroupMapper.toDto(this.groupService.update(id, group -> GroupMapper.toUpdateDefinition(group, rsGroup), null));
 	}
 }

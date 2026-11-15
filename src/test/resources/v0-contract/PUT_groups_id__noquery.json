@@ -4,6 +4,6 @@
   "hiddenFromReports": false,
   "id": 6,
   "name": "New dynamic group",
-  "query": "[Name] is \"example\"",
+  "query": "[Family] contains \"Cisco\"",
   "type": "DynamicDeviceGroup"
 }

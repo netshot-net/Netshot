@@ -33,7 +33,7 @@ import net.netshot.netshot.api.rest.v1.ReadOnlyFrom;
  * @param folder the folder (none if absent)
  * @param type STATIC or DYNAMIC (it can't change)
  * @param hiddenFromReports whether the group is hidden from the reports (false if absent)
- * @param query the query selecting the devices of a dynamic group (the default query if absent)
+ * @param query the query selecting the devices of a dynamic group (required for a dynamic group; empty to select all the devices)
  * @param devices the IDs of the devices of a static group, in order (write-only: absent means unchanged, no
  *        device for a new group)
  */

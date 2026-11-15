@@ -209,7 +209,7 @@ Read-only lists of the values found in the inventory (read-only level), with fil
 
 ### Groups
 
-`/api/v1/groups`: list and get (read-only level), create, replace, update and delete (read-write level). `type` is `STATIC` or `DYNAMIC` and can't change. The devices of a static group are given by `devices` (their IDs, in order), which is write-only: it isn't part of the group representation, and when it is absent from a `PUT` or a `PATCH` the members are unchanged. The members of a dynamic group follow its `query`.
+`/api/v1/groups`: list and get (read-only level), create, replace, update and delete (read-write level). `type` is `STATIC` or `DYNAMIC` and can't change. The devices of a static group are given by `devices` (their IDs, in order), which is write-only: it isn't part of the group representation, and when it is absent from a `PUT` or a `PATCH` the members are unchanged. The members of a dynamic group follow its `query`, which is required (400 when it is absent or `null`); an empty query selects all the devices.
 
 `GET /api/v1/groups/{id}/devices` lists the devices of a group, with the parameters of the device list (it is the device list filtered on `group={id}`).
 
