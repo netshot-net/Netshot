@@ -142,9 +142,9 @@ class ScriptServiceTest {
 	}
 
 	@Test
-	@DisplayName("get() returns null for an unknown script")
+	@DisplayName("get() reports an unknown script")
 	void getUnknown() {
-		Assertions.assertNull(this.service.get(99999999L));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.get(99999999L));
 	}
 
 	@Test
@@ -166,7 +166,7 @@ class ScriptServiceTest {
 	void delete() {
 		DeviceJsScript script = this.service.create(this.creation(this.name("To delete")));
 		this.service.delete(script.id(), null);
-		Assertions.assertNull(this.service.get(script.id()));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.get(script.id()));
 		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(script.id(), null));
 		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(99999999L, null));
 	}

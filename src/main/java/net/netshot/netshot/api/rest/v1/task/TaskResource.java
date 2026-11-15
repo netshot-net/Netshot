@@ -194,7 +194,7 @@ public class TaskResource {
 	public TaskDto cancelTask(@PathParam("id") @Parameter(description = "Task ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		User user = (User) this.securityContext.getUserPrincipal();
-		return this.responses.respond(this.request, this.uriInfo, this.taskService.update(id, true, user.username()));
+		return this.responses.respond(this.request, this.uriInfo, this.taskService.cancel(id, user.username()));
 	}
 
 	/**

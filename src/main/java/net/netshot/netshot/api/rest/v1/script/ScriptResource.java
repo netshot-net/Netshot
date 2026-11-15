@@ -53,8 +53,6 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptCreation;
@@ -130,9 +128,6 @@ public class ScriptResource {
 	public ScriptDto getScript(@PathParam("id") @Parameter(description = "Script ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		DeviceJsScript script = this.scriptService.get(id);
-		if (script == null) {
-			throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "The script doesn't exist.");
-		}
 		return this.respond(this.withInputs(script));
 	}
 

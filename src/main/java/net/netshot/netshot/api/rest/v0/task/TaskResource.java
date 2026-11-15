@@ -49,10 +49,10 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.NetshotNotAuthorizedException;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskFilter;
 import net.netshot.netshot.task.TaskService;
@@ -141,10 +141,8 @@ public class TaskResource {
 	@Tag(name = "Tasks", description = "Task management")
 	public TaskDto getTask(@PathParam("id") @Parameter(description = "Task ID") Long id) {
 		log.debug("REST request, get task {}", id);
-		Task task = this.taskService.find(id);
-		if (task == null) {
-			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found.");
-		}
+		Task task = V0Errors.translate(() -> this.taskService.get(id),
+			V0Errors.code(ErrorCode.NETSHOT_TASK_NOT_FOUND, ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found."));
 		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
@@ -227,7 +225,11 @@ public class TaskResource {
 	public TaskDto setTask(@PathParam("id") @Parameter(description = "Task ID") Long id, TaskRequest rsTask)
 		throws WebApplicationException {
 		log.debug("REST request, edit task {}.", id);
-		return TaskMapper.toDto(this.driverRegistry, this.taskService.update(id, rsTask.isCancelled(), this.getUsername()));
+		// Cancelling is the only change; without it, the task is returned as it is
+		Task task = rsTask.isCancelled() ? this.taskService.cancel(id, this.getUsername())
+			: V0Errors.translate(() -> this.taskService.get(id),
+				V0Errors.code(ErrorCode.NETSHOT_TASK_NOT_FOUND, ErrorCode.NETSHOT_TASK_NOT_FOUND, "Unable to find the task."));
+		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	/**
