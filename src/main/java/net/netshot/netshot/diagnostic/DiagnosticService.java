@@ -281,31 +281,18 @@ public class DiagnosticService {
 	}
 
 	/**
-	 * Deletes a diagnostic, with its results.
-	 *
-	 * @param id the diagnostic ID
-	 * @return true if the diagnostic has been deleted, false if there was no such diagnostic
-	 * @throws NetshotException if the diagnostic can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a diagnostic, with its results, if it is at a given version.
 	 *
 	 * @param id the diagnostic ID
 	 * @param expectedVersion the version the diagnostic must be at, or null for any
-	 * @return true if the diagnostic has been deleted, false if there was no such diagnostic
-	 * @throws NetshotException if the diagnostic isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the diagnostic doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		try {
 			Diagnostic deleted = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such diagnostic of ID {}", id);
-					return null;
+					throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "The diagnostic doesn't exist.");
 				}
 				Versions.check("diagnostic", version, expectedVersion);
 				Diagnostic diagnostic = this.repository.find(dsl, id);
@@ -313,10 +300,7 @@ public class DiagnosticService {
 				this.repository.remove(dsl, id);
 				return diagnostic;
 			});
-			if (deleted != null) {
-				AAA_LOG.info("{} has been deleted", deleted);
-			}
-			return deleted != null;
+			AAA_LOG.info("{} has been deleted", deleted);
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to delete the diagnostic {}.", id, e);

@@ -247,39 +247,23 @@ public class SoftwareRuleService {
 	}
 
 	/**
-	 * Deletes a software rule.
-	 *
-	 * @param id the rule ID
-	 * @return true if the rule has been deleted, false if there was no such rule
-	 * @throws NetshotException if the rule can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a software rule, if it is at a given version.
 	 *
 	 * @param id the rule ID
 	 * @param expectedVersion the version the rule must be at, or null for any
-	 * @return true if the rule has been deleted, false if there was no such rule
-	 * @throws NetshotException if the rule isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the rule doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		try {
-			boolean deleted = this.transactions.write(dsl -> {
+			this.transactions.run(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such software rule of ID {}", id);
-					return false;
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The software rule doesn't exist.");
 				}
 				Versions.check("software rule", version, expectedVersion);
-				return this.repository.remove(dsl, id);
+				this.repository.remove(dsl, id);
 			});
-			if (deleted) {
-				AAA_LOG.info("Software rule of ID {} has been deleted", id);
-			}
-			return deleted;
+			AAA_LOG.info("Software rule of ID {} has been deleted", id);
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to delete the rule {}.", id, e);

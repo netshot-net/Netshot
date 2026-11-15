@@ -232,16 +232,6 @@ public class ScriptService {
 	}
 
 	/**
-	 * Deletes a script.
-	 *
-	 * @param id the script ID
-	 * @throws NetshotException if the script doesn't exist or can't be deleted
-	 */
-	public void delete(long id) {
-		this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a script, if it is at a given version.
 	 *
 	 * @param id the script ID

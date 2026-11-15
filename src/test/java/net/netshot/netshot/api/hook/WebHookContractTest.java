@@ -116,7 +116,7 @@ class WebHookContractTest {
 
 		// Only the hooks of this test: the hooks of the seed point to the outside
 		for (Hook hook : TestWiring.get().hookService().list(Page.ALL)) {
-			TestWiring.get().hookService().delete(hook.id());
+			TestWiring.get().hookService().delete(hook.id(), null);
 		}
 		for (WebHook.Action action : FORMATS.keySet()) {
 			Set<HookTrigger> triggers = new HashSet<>();

@@ -122,7 +122,7 @@ public class VaultInstanceResource {
 	public void deleteVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete Vault instance {}", id);
-		if (this.vaultInstanceService.delete(id)) {
+		if (V0Errors.found(() -> this.vaultInstanceService.delete(id, null), ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

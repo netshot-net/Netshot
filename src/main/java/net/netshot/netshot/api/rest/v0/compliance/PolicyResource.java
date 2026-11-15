@@ -146,7 +146,7 @@ public class PolicyResource {
 	public void deletePolicy(@PathParam("id") @Parameter(description = "Policy ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete policy {}.", id);
-		if (this.policyService.delete(id)) {
+		if (V0Errors.found(() -> this.policyService.delete(id, null), ErrorCode.NETSHOT_POLICY_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

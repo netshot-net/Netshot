@@ -193,12 +193,12 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Policy delete() tells whether the policy existed, and removes its rules")
+	@DisplayName("Policy delete() removes the policy with its rules, and reports an unknown one")
 	void policyDelete() {
 		Policy policy = this.createPolicy(this.name("To delete"));
 		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
-		Assertions.assertTrue(this.policyService.delete(policy.id()));
-		Assertions.assertFalse(this.policyService.delete(policy.id()));
+		this.policyService.delete(policy.id(), null);
+		assertError(ErrorCode.NETSHOT_POLICY_NOT_FOUND, () -> this.policyService.delete(policy.id(), null));
 		Assertions.assertEquals(0, this.countResults(rule.id()));
 		assertError(ErrorCode.NETSHOT_INVALID_POLICY, () -> this.ruleService.listOfPolicy(policy.id(), Page.ALL));
 	}
@@ -356,12 +356,12 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Rule delete() tells whether the rule existed")
+	@DisplayName("Rule delete() removes the rule, and reports an unknown one")
 	void ruleDelete() {
 		Policy policy = this.createPolicy(this.name("Delete"));
 		Rule rule = this.ruleService.add(textRule(this.name("Rule"), policy.id()));
-		Assertions.assertTrue(this.ruleService.delete(rule.id()));
-		Assertions.assertFalse(this.ruleService.delete(rule.id()));
+		this.ruleService.delete(rule.id(), null);
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.ruleService.delete(rule.id(), null));
 		Assertions.assertTrue(this.ruleService.listOfPolicy(policy.id(), Page.ALL).isEmpty());
 	}
 
@@ -426,7 +426,7 @@ class ComplianceServiceTest {
 	}
 
 	@Test
-	@DisplayName("Software rule replace() replaces all the properties and keeps the priority, delete() tells whether the rule existed")
+	@DisplayName("Software rule replace() replaces all the properties and keeps the priority, delete() reports an unknown rule")
 	void softwareReplaceDelete() {
 		SoftwareRule rule = this.softwareRuleService.add(software(this.groupId, "CiscoIOS12", "1.0"), null).rule();
 		SoftwareRule updated = this.softwareRuleService.replace(rule.id(), _ -> new SoftwareRuleService.Replacement(
@@ -443,8 +443,8 @@ class ComplianceServiceTest {
 		Assertions.assertEquals(rule.priority(), updated.priority());
 		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND,
 			() -> this.softwareRuleService.replace(99999999L, r -> new SoftwareRuleService.Replacement(r.rule(), null), null));
-		Assertions.assertTrue(this.softwareRuleService.delete(rule.id()));
-		Assertions.assertFalse(this.softwareRuleService.delete(rule.id()));
+		this.softwareRuleService.delete(rule.id(), null);
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.softwareRuleService.delete(rule.id(), null));
 	}
 
 	private List<Long> softwareOrder() {
@@ -514,7 +514,7 @@ class ComplianceServiceTest {
 		Assertions.assertEquals(life, updated.endOfLife());
 		Assertions.assertEquals("other", updated.partNumber());
 		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.hardwareRuleService.replace(99999999L, r -> r, null));
-		Assertions.assertTrue(this.hardwareRuleService.delete(rule.id()));
-		Assertions.assertFalse(this.hardwareRuleService.delete(rule.id()));
+		this.hardwareRuleService.delete(rule.id(), null);
+		assertError(ErrorCode.NETSHOT_RULE_NOT_FOUND, () -> this.hardwareRuleService.delete(rule.id(), null));
 	}
 }

@@ -47,7 +47,6 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
-import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 
@@ -148,9 +147,7 @@ public class ApiTokenResource {
 	@Operation(summary = "Delete an API token", description = "Deletes an API token, which can't authenticate anymore.")
 	public void deleteApiToken(@PathParam("id") @Parameter(description = "API token ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.apiTokenService.delete(id)) {
-			throw new NetshotException(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, "The API token doesn't exist.");
-		}
+		this.apiTokenService.delete(id);
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 }

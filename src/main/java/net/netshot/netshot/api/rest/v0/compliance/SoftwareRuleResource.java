@@ -158,7 +158,7 @@ public class SoftwareRuleResource {
 	public void deleteSoftwareRule(@PathParam("id") @Parameter(description = "Software rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete software rule {}.", id);
-		if (this.softwareRuleService.delete(id)) {
+		if (V0Errors.found(() -> this.softwareRuleService.delete(id, null), ErrorCode.NETSHOT_RULE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

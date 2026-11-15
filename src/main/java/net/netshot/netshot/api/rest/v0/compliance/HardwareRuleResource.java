@@ -147,7 +147,7 @@ public class HardwareRuleResource {
 	public void deleteHardwareRule(@PathParam("id") @Parameter(description = "Hardware rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete hardware rule {}.", id);
-		if (this.hardwareRuleService.delete(id)) {
+		if (V0Errors.found(() -> this.hardwareRuleService.delete(id, null), ErrorCode.NETSHOT_RULE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

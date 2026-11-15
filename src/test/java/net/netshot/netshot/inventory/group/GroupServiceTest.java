@@ -266,14 +266,14 @@ class GroupServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("delete() removes the group and its memberships, but not the devices; an unknown group is reported by the result")
+	@DisplayName("delete() removes the group and its memberships, but not the devices; an unknown group is reported")
 	void delete() {
 		DeviceGroup fixed = this.service.create(staticGroup(this.nextName(), this.routerA, this.routerB));
 		DeviceGroup dynamic = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"router\""));
-		Assertions.assertTrue(this.service.delete(fixed.id()));
-		Assertions.assertTrue(this.service.delete(dynamic.id()));
-		Assertions.assertFalse(this.service.delete(fixed.id()));
-		Assertions.assertFalse(this.service.delete(99999999L));
+		this.service.delete(fixed.id(), null);
+		this.service.delete(dynamic.id(), null);
+		assertError(ErrorCode.NETSHOT_GROUP_NOT_FOUND, () -> this.service.delete(fixed.id(), null));
+		assertError(ErrorCode.NETSHOT_GROUP_NOT_FOUND, () -> this.service.delete(99999999L, null));
 		assertError(ErrorCode.NETSHOT_GROUP_NOT_FOUND, () -> this.service.get(fixed.id()));
 		long memberships = TestDevices.memberIds(fixed.id()).size() + TestDevices.memberIds(dynamic.id()).size();
 		Assertions.assertEquals(0L, memberships);

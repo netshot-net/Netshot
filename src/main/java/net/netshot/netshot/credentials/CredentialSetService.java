@@ -256,45 +256,4 @@ public class CredentialSetService {
 		return new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the credential set");
 	}
 
-	/**
-	 * Deletes a global credential set.
-	 *
-	 * @param id the credential set ID
-	 * @return true if the credential set has been deleted, false if there was no such credential set
-	 * @throws NetshotException if the credential set is specific to a device access or used by
-	 *         devices or tasks, or can't be deleted
-	 */
-	public boolean delete(long id) {
-		boolean deleted;
-		try {
-			deleted = this.transactions.write(dsl -> {
-				this.repository.lock(dsl, id);
-				DeviceCredentialSet credentialSet = this.repository.find(dsl, id);
-				if (credentialSet == null) {
-					log.info("No such credential set of ID {}", id);
-					return false;
-				}
-				if (credentialSet.deviceSpecific()) {
-					throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, "Can't delete a device-specific credential set.");
-				}
-				return this.repository.remove(dsl, id);
-			});
-		}
-		catch (NetshotException e) {
-			log.error("Unable to delete the credentials {}", id, e);
-			throw e;
-		}
-		catch (RuntimeException e) {
-			log.error("Unable to delete the credentials {}", id, e);
-			if (e instanceof DataAccessException dae && DatabaseErrors.isForeignKeyViolation(dae)) {
-				throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_IN_USE,
-					"Unable to delete the credential set, there must be devices or tasks using it.");
-			}
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the credential set");
-		}
-		if (deleted) {
-			AAA_LOG.info("Credential set of ID {} has been deleted.", id);
-		}
-		return deleted;
-	}
 }

@@ -66,8 +66,6 @@ import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 
@@ -232,9 +230,7 @@ public class DiagnosticResource {
 		+ "diagnostic must still be at the given version (ETag).")
 	public void deleteDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.diagnosticService.delete(id, V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "The diagnostic doesn't exist.");
-		}
+		this.diagnosticService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 

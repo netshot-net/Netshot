@@ -44,6 +44,8 @@ import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the API tokens (administrators only): list, add and delete.
@@ -133,7 +135,7 @@ public class ApiTokenResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public void deleteApiToken(@PathParam("id") @Parameter(description = "Token ID") Long id) throws WebApplicationException {
 		log.debug("REST request, delete API token {}.", id);
-		if (this.apiTokenService.delete(id)) {
+		if (V0Errors.found(() -> this.apiTokenService.delete(id), ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

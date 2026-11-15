@@ -238,7 +238,7 @@ public class RuleResource {
 	public void deleteRule(@PathParam("id") @Parameter(description = "Rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete rule {}.", id);
-		if (this.ruleService.delete(id)) {
+		if (V0Errors.found(() -> this.ruleService.delete(id, null), ErrorCode.NETSHOT_RULE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

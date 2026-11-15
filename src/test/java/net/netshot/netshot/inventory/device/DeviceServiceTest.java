@@ -377,13 +377,13 @@ class DeviceServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("delete() removes the device, and tells whether there was one")
+	@DisplayName("delete() removes the device, and reports an unknown one")
 	void delete() {
 		Device created = this.createDevice(this.nextAddress());
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id(), null);
 		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.get(created.id()));
-		Assertions.assertFalse(this.service.delete(created.id()), "already deleted");
-		Assertions.assertFalse(this.service.delete(99999999L));
+		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.delete(created.id(), null));
+		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.delete(99999999L, null));
 	}
 
 	@Test
@@ -401,7 +401,7 @@ class DeviceServiceTest {
 			.build());
 		long specificId = device.getDeviceAccess("telnet").specificCredentialSet().id();
 
-		Assertions.assertTrue(this.service.delete(device.id()));
+		this.service.delete(device.id(), null);
 		int accesses = this.transactions.read(dsl -> dsl.fetchCount(DEVICE_ACCESS, DEVICE_ACCESS.DEVICE.eq(device.id())));
 		Assertions.assertEquals(0, accesses, "The accesses of the device are kept");
 		Assertions.assertNull(TestDevices.findCredentialSet(specificId), "The specific credential set of an access is kept");
@@ -417,7 +417,7 @@ class DeviceServiceTest {
 		Path file = attribute.getFilePath(created.id(), configId);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, "binary content");
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id(), null);
 		Assertions.assertFalse(Files.exists(file), "the binary file is removed with the device");
 	}
 }

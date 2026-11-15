@@ -119,7 +119,7 @@ public class ScriptResource {
 	public void deleteScript(@PathParam("id") @Parameter(description = "Script ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete script {}.", id);
-		this.scriptService.delete(id);
+		this.scriptService.delete(id, null);
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 	}
 

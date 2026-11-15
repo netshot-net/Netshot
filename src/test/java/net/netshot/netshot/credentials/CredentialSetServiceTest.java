@@ -417,20 +417,20 @@ class CredentialSetServiceTest {
 	}
 
 	@Test
-	@DisplayName("delete() removes a credential set, and says when there was none")
+	@DisplayName("delete() removes a credential set, and reports an unknown one")
 	void delete() {
 		DeviceSshAccount created = this.createSsh("u", "p", null);
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id(), null);
 		Assertions.assertNull(this.stored(created.id()));
-		Assertions.assertFalse(this.service.delete(created.id()));
-		Assertions.assertFalse(this.service.delete(99999999L));
+		assertError(ErrorCode.NETSHOT_CREDENTIALS_NOT_FOUND, () -> this.service.delete(created.id(), null));
+		assertError(ErrorCode.NETSHOT_CREDENTIALS_NOT_FOUND, () -> this.service.delete(99999999L, null));
 	}
 
 	@Test
 	@DisplayName("delete() refuses a credential set specific to a device access")
 	void deleteDeviceSpecific() {
 		DeviceCredentialSet specific = this.addSpecific();
-		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> this.service.delete(specific.id()));
+		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> this.service.delete(specific.id(), null));
 		Assertions.assertNotNull(this.stored(specific.id()));
 	}
 
@@ -439,7 +439,7 @@ class CredentialSetServiceTest {
 	void deleteUsedByTask() {
 		DeviceSshAccount created = this.createSsh("u", "p", null);
 		TestTasks.add(DiscoverDeviceTypeTask.of("10.99.9.1", this.domainId, Set.of(created.id()), "c", "tester"));
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id(), null);
 		Assertions.assertNull(this.stored(created.id()));
 	}
 
@@ -453,14 +453,14 @@ class CredentialSetServiceTest {
 				throw new DataAccessException("in use", new SQLException("fk", "23503"));
 			}
 		});
-		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> violating.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> violating.delete(created.id(), null));
 		CredentialSetService failing = new CredentialSetService(this.transactions, new CredentialSetRepository() {
 			@Override
 			public boolean remove(DSLContext dsl, long id) {
-				throw new IllegalStateException("boom");
+				throw new DataAccessException("boom", new SQLException("down", "08006"));
 			}
 		});
-		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> failing.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> failing.delete(created.id(), null));
 		Assertions.assertNotNull(this.stored(created.id()));
 	}
 
@@ -471,7 +471,7 @@ class CredentialSetServiceTest {
 		Device device = TestDevices.add(Device.create("CiscoIOS12", "10.99.9.2", Domain.reference(this.domainId), "tester").toBuilder()
 			.accesses(List.of(DeviceAccess.of("ssh").toBuilder().globalCredentialSet(created).build())).build());
 		Assertions.assertEquals(created.id(), TestDevices.find(device.id()).getDeviceAccess("ssh").globalCredentialSet().id());
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id(), null);
 		Assertions.assertNull(TestDevices.find(device.id()).getDeviceAccess("ssh").globalCredentialSet());
 	}
 }

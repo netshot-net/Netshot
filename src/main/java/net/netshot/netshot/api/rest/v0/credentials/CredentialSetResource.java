@@ -125,7 +125,7 @@ public class CredentialSetResource {
 	public void deleteCredentialSet(@PathParam("id") @Parameter(description = "Credential set ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete credential set {}", id);
-		if (this.credentialSetService.delete(id)) {
+		if (V0Errors.found(() -> this.credentialSetService.delete(id, null), ErrorCode.NETSHOT_CREDENTIALS_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

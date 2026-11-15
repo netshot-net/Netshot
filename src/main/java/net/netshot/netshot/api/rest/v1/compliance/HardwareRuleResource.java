@@ -58,8 +58,6 @@ import net.netshot.netshot.compliance.HardwareRuleService;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 
@@ -205,9 +203,7 @@ public class HardwareRuleResource {
 		+ "at the given version (ETag).")
 	public void deleteHardwareRule(@PathParam("id") @Parameter(description = "Hardware rule ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.hardwareRuleService.delete(id, V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The hardware rule doesn't exist.");
-		}
+		this.hardwareRuleService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 

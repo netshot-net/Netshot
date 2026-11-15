@@ -242,12 +242,12 @@ class HookServiceTest {
 	}
 
 	@Test
-	@DisplayName("delete() removes the hook with its triggers, and says when there was none")
+	@DisplayName("delete() removes the hook with its triggers, and reports an unknown one")
 	void delete() {
 		WebHook created = (WebHook) this.service.create(this.valid("A"));
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id(), null);
 		Assertions.assertNull(this.stored(created.id()));
-		Assertions.assertFalse(this.service.delete(created.id()));
-		Assertions.assertFalse(this.service.delete(99999999L));
+		assertError(ErrorCode.NETSHOT_HOOK_NOT_FOUND, () -> this.service.delete(created.id(), null));
+		assertError(ErrorCode.NETSHOT_HOOK_NOT_FOUND, () -> this.service.delete(99999999L, null));
 	}
 }
