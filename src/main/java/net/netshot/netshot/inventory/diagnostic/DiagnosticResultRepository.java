@@ -31,7 +31,6 @@ import org.jooq.Record;
 import org.jooq.impl.DSL;
 
 import net.netshot.netshot.inventory.device.DeviceRepository;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -116,30 +115,18 @@ public class DiagnosticResultRepository {
 	 *
 	 * @param dsl the jOOQ context
 	 * @param deviceId the device ID
-	 * @param page the window on the result
 	 * @return the results
 	 */
-	public List<DiagnosticResult> findByDevice(DSLContext dsl, long deviceId, Page page) {
-		return page.apply(dsl.select(DIAGNOSTIC_RESULT.TYPE, DIAGNOSTIC_RESULT.DIAGNOSTIC, DIAGNOSTIC.NAME, DIAGNOSTIC_RESULT.CREATION_DATE,
+	public List<DiagnosticResult> findByDevice(DSLContext dsl, long deviceId) {
+		return dsl.select(DIAGNOSTIC_RESULT.TYPE, DIAGNOSTIC_RESULT.DIAGNOSTIC, DIAGNOSTIC.NAME, DIAGNOSTIC_RESULT.CREATION_DATE,
 					DIAGNOSTIC_RESULT.LAST_CHECK_DATE, DIAGNOSTIC_RESULT.TEXT, DIAGNOSTIC_RESULT.NUMBER, DIAGNOSTIC_RESULT.ASSUMPTION,
 					LONG_TEXT_CONFIGURATION.TEXT)
 				.from(DIAGNOSTIC_RESULT)
 				.leftJoin(DIAGNOSTIC).on(DIAGNOSTIC.ID.eq(DIAGNOSTIC_RESULT.DIAGNOSTIC))
 				.leftJoin(LONG_TEXT_CONFIGURATION).on(LONG_TEXT_CONFIGURATION.ID.eq(DIAGNOSTIC_RESULT.LONG_TEXT))
 				.where(DIAGNOSTIC_RESULT.DEVICE.eq(deviceId))
-				.orderBy(DIAGNOSTIC_RESULT.ID))
-			.fetch(DiagnosticResultRepository::toResult);
-	}
-
-	/**
-	 * Finds the diagnostic results of a device (with their long texts), by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param deviceId the device ID
-	 * @return the results
-	 */
-	public List<DiagnosticResult> findByDevice(DSLContext dsl, long deviceId) {
-		return this.findByDevice(dsl, deviceId, Page.ALL);
+				.orderBy(DIAGNOSTIC_RESULT.ID)
+				.fetch(DiagnosticResultRepository::toResult);
 	}
 
 	/**

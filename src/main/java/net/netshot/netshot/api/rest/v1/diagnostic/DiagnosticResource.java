@@ -20,6 +20,7 @@ package net.netshot.netshot.api.rest.v1.diagnostic;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -63,7 +64,6 @@ import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticDefinition;
 import net.netshot.netshot.diagnostic.DiagnosticService;
-import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -170,9 +170,9 @@ public class DiagnosticResource {
 		+ "or a JavaScript or Python script.")
 	public DiagnosticDto createDiagnostic(DiagnosticRequest diagnosticRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DiagnosticView view = this.diagnosticService.create(DiagnosticMapper.toDefinition(diagnosticRequest));
-		V1Response.created(this.request, V1Links.of(DiagnosticMapper.PATH, view.diagnostic().id()));
-		return this.respond(view);
+		Diagnostic diagnostic = this.diagnosticService.create(DiagnosticMapper.toDefinition(diagnosticRequest));
+		V1Response.created(this.request, V1Links.of(DiagnosticMapper.PATH, diagnostic.id()));
+		return this.respond(diagnostic);
 	}
 
 	/**
@@ -234,11 +234,11 @@ public class DiagnosticResource {
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 
-	private DiagnosticDto respond(DiagnosticView view) {
-		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), DiagnosticDto.class, Selection.View.FULL),
-			DiagnosticDto.class);
-		V1Response.etag(this.request, view.diagnostic().version());
-		return DiagnosticMapper.toDto(this.driverRegistry, view.diagnostic(),
-			_ -> GroupMapper.toDto(view.targetGroup()));
+	private DiagnosticDto respond(Diagnostic diagnostic) {
+		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), DiagnosticDto.class, Selection.View.FULL);
+		V1Response.select(this.request, selection, DiagnosticDto.class);
+		V1Response.etag(this.request, diagnostic.version());
+		return DiagnosticMapper.toDto(this.driverRegistry, diagnostic,
+			groups(this.groupService, selection.includes("targetGroup"), List.of(diagnostic)));
 	}
 }
