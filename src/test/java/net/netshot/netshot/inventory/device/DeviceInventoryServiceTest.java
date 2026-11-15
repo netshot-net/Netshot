@@ -247,7 +247,7 @@ class DeviceInventoryServiceTest {
 	@DisplayName("The device types are the loaded drivers")
 	void deviceTypes() {
 		DeviceDriverService service = new DeviceDriverService(TestDrivers.registry(), () -> { });
-		List<DeviceDriver> drivers = service.list(false);
+		List<DeviceDriver> drivers = service.list(ListQuery.ALL).items();
 		Assertions.assertEquals(TestDrivers.registry().getAllDrivers().size(), drivers.size());
 		Assertions.assertTrue(drivers.stream().anyMatch(d -> "CiscoIOS12".equals(d.getName())));
 	}
