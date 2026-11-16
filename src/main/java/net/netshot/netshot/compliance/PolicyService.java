@@ -51,16 +51,19 @@ public class PolicyService {
 
 	private final Transactions transactions;
 	private final PolicyRepository repository;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the policy repository
+	 * @param groupRepository the group repository (to check the target groups)
 	 */
-	public PolicyService(Transactions transactions, PolicyRepository repository) {
+	public PolicyService(Transactions transactions, PolicyRepository repository, GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.groupRepository = groupRepository;
 	}
 
 	/**
@@ -230,7 +233,7 @@ public class PolicyService {
 	}
 
 	private DeviceGroup requireGroup(DSLContext dsl, long groupId) {
-		DeviceGroup group = new GroupRepository().find(dsl, groupId);
+		DeviceGroup group = this.groupRepository.find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");

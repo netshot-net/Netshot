@@ -27,6 +27,7 @@ import org.quartz.spi.TriggerFiredBundle;
 
 import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.task.TaskHandlers;
+import net.netshot.netshot.task.TaskRepository;
 
 /**
  * The Quartz job factory: builds the {@link TaskJob}s with the objects they need, and any other
@@ -39,6 +40,7 @@ public class TaskJobFactory implements JobFactory {
 	private final DomainEvents domainEvents;
 
 	private final TaskManager taskManager;
+	private final TaskRepository repository;
 
 	private final JobFactory defaultFactory = new SimpleJobFactory();
 
@@ -48,11 +50,13 @@ public class TaskJobFactory implements JobFactory {
 	 * @param handlers the task handlers, given to the task jobs
 	 * @param domainEvents where the task jobs publish the end of the tasks
 	 * @param taskManager the task manager (locks, clustering, repetition of the tasks)
+	 * @param repository the task repository (for the task jobs)
 	 */
-	public TaskJobFactory(TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager) {
+	public TaskJobFactory(TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager, TaskRepository repository) {
 		this.handlers = handlers;
 		this.domainEvents = domainEvents;
 		this.taskManager = taskManager;
+		this.repository = repository;
 	}
 
 	/**
@@ -61,7 +65,7 @@ public class TaskJobFactory implements JobFactory {
 	 * @return a new task job
 	 */
 	public TaskJob newTaskJob() {
-		return new TaskJob(this.taskManager.transactions(), this.handlers, this.domainEvents, this.taskManager);
+		return new TaskJob(this.taskManager.transactions(), this.handlers, this.domainEvents, this.taskManager, this.repository);
 	}
 
 	@Override

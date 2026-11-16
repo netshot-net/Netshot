@@ -32,10 +32,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.ScheduleMode;
 import net.netshot.netshot.task.Task.SequentialScheduling;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.DeviceBasedTask;
@@ -67,7 +67,7 @@ public class ChildTaskOrchestrator {
 
 	private final ChildScheduler scheduler;
 
-	private final TaskRepository repository = new TaskRepository();
+	private final TaskRepository repository;
 
 	/** The transaction support. */
 	private final Transactions transactions;
@@ -76,10 +76,12 @@ public class ChildTaskOrchestrator {
 	 * Creates the orchestrator.
 	 * @param transactions the transaction support
 	 * @param scheduler the scheduler to promote children with
+	 * @param repository the task repository
 	 */
-	public ChildTaskOrchestrator(Transactions transactions, ChildScheduler scheduler) {
+	public ChildTaskOrchestrator(Transactions transactions, ChildScheduler scheduler, TaskRepository repository) {
 		this.transactions = transactions;
 		this.scheduler = scheduler;
+		this.repository = repository;
 	}
 
 	/**

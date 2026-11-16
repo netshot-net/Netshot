@@ -26,7 +26,6 @@ import org.quartz.SchedulerException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.TaskRepository;
 
 /**
  * A Quartz job which runs a Netshot task.
@@ -62,7 +61,7 @@ public class MasterJob implements Job {
 		try {
 			Thread.sleep(500);
 			taskManager.transactions().system(dsl -> {
-				Task task = new TaskRepository().find(dsl, id);
+				Task task = taskManager.repository().find(dsl, id);
 				if (task == null) {
 					log.error("The retrieved task {} is null.", id);
 					throw new IllegalStateException("No such task " + id);

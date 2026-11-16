@@ -48,6 +48,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests for {@link PurgeDatabaseTask}'s "remove orphan binary files"
@@ -122,7 +123,7 @@ class OrphanBinaryFilePurgeTest {
 		PurgeDatabaseTask spec = PurgeDatabaseTask.builder().configDays(0).moduleDays(0).removeOrphanFiles(true).build();
 		Task task = Task.of(spec, "Test", "Global", "tester");
 		TaskRun run = new TaskRun(task);
-		new PurgeDatabaseHandler(TestWiring.get().transactions()).run(task, spec, run);
+		new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK).run(task, spec, run);
 
 		Assertions.assertEquals(Status.SUCCESS, run.getStatus());
 		Assertions.assertTrue(Files.exists(attrAFinalPath), "The real, finalized attribute file must survive");

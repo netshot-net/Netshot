@@ -22,10 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.task.Task;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
@@ -42,15 +44,22 @@ public class RunGroupDiagnosticsHandler implements TaskHandler<RunGroupDiagnosti
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final DeviceRepository deviceRepository;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Creates the handler.
 	 * @param transactions the transaction support
 	 * @param childTaskOrchestrator the child task orchestrator
+	 * @param deviceRepository the device repository
+	 * @param groupRepository the group repository (the target group)
 	 */
-	public RunGroupDiagnosticsHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator) {
+	public RunGroupDiagnosticsHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator,
+		DeviceRepository deviceRepository, GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.childTaskOrchestrator = childTaskOrchestrator;
+		this.deviceRepository = deviceRepository;
+		this.groupRepository = groupRepository;
 	}
 
 	@Override
@@ -60,7 +69,7 @@ public class RunGroupDiagnosticsHandler implements TaskHandler<RunGroupDiagnosti
 
 	@Override
 	public void run(Task task, RunGroupDiagnosticsTask spec, TaskRun run) {
-		TaskTargets targets = TaskTargets.load(this.transactions, spec);
+		TaskTargets targets = TaskTargets.load(this.transactions, this.deviceRepository, this.groupRepository, spec);
 		List<Device> devices = targets.devices();
 		if (targets.group() == null && devices.isEmpty()) {
 			run.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");

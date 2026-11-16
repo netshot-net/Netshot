@@ -67,7 +67,7 @@ public class RuleService {
 	private final RuleRepository repository;
 	private final PolicyRepository policyRepository;
 	private final RuleEvaluators evaluators;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
 	/**
 	 * Instantiates the service.
@@ -76,13 +76,15 @@ public class RuleService {
 	 * @param repository the rule repository
 	 * @param policyRepository the policy repository (to find the policy of a rule)
 	 * @param evaluators the rule evaluators (to test a rule)
+	 * @param deviceRepository the device repository (to test a rule on a device)
 	 */
 	public RuleService(Transactions transactions, RuleRepository repository, PolicyRepository policyRepository,
-		RuleEvaluators evaluators) {
+		RuleEvaluators evaluators, DeviceRepository deviceRepository) {
 		this.transactions = transactions;
 		this.evaluators = evaluators;
 		this.repository = repository;
 		this.policyRepository = policyRepository;
+		this.deviceRepository = deviceRepository;
 	}
 
 	/**

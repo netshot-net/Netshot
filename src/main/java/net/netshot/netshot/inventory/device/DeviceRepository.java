@@ -81,8 +81,8 @@ import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
-import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
@@ -261,6 +261,29 @@ public class DeviceRepository {
 		fields.addAll(PART_FIELDS.values());
 		fields.addAll(List.of(MODULES, INTERFACES));
 		FIELDS = List.copyOf(fields);
+	}
+
+	/** The configurations (the new configuration of a snapshot). */
+	private final ConfigRepository configRepository;
+
+	/** The diagnostic results (of a snapshot). */
+	private final DiagnosticResultRepository diagnosticResultRepository;
+
+	/** The credential sets (the specific credential sets of the devices). */
+	private final CredentialSetRepository credentialSetRepository;
+
+	/**
+	 * Instantiates the repository.
+	 *
+	 * @param configRepository the configuration repository (to save the new configuration of a snapshot)
+	 * @param diagnosticResultRepository the diagnostic result repository (to save the results of a snapshot)
+	 * @param credentialSetRepository the credential set repository (to remove the specific credential sets of a device)
+	 */
+	public DeviceRepository(ConfigRepository configRepository, DiagnosticResultRepository diagnosticResultRepository,
+		CredentialSetRepository credentialSetRepository) {
+		this.configRepository = configRepository;
+		this.diagnosticResultRepository = diagnosticResultRepository;
+		this.credentialSetRepository = credentialSetRepository;
 	}
 
 	private static <E extends Enum<E>> E toEnum(Class<E> type, String name) {
@@ -821,13 +844,12 @@ public class DeviceRepository {
 		Device edited = draft.toDevice();
 		Config newConfig = null;
 		if (draft.getNewConfig() != null) {
-			ConfigRepository configRepository = new ConfigRepository();
-			long configId = configRepository.add(dsl, draft.getNewConfig());
-			newConfig = configRepository.find(dsl, configId, false);
+			long configId = this.configRepository.add(dsl, draft.getNewConfig());
+			newConfig = this.configRepository.find(dsl, configId, false);
 			edited = edited.toBuilder().lastConfigId(configId).build();
 		}
 		this.save(dsl, draft.getOriginal(), edited);
-		new DiagnosticResultRepository().save(dsl, draft.getId(), draft.getDiagnosticResults().values());
+		this.diagnosticResultRepository.save(dsl, draft.getId(), draft.getDiagnosticResults().values());
 		return newConfig;
 	}
 
@@ -905,7 +927,7 @@ public class DeviceRepository {
 				.execute();
 		}
 		// Once no access references them anymore (their removal would remove the accesses)
-		new CredentialSetRepository().removeAll(dsl, obsoleteSpecificIds);
+		this.credentialSetRepository.removeAll(dsl, obsoleteSpecificIds);
 	}
 
 	/**
@@ -933,7 +955,7 @@ public class DeviceRepository {
 			return false;
 		}
 		deleteLongTexts(dsl, longTextIds);
-		new CredentialSetRepository().removeAll(dsl, specificIds);
+		this.credentialSetRepository.removeAll(dsl, specificIds);
 		return true;
 	}
 

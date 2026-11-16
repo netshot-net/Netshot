@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.credentials.CredentialSetAssembler;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.domain.Domain;
@@ -85,11 +86,13 @@ public class DeviceCreationService {
 	private final DeviceRepository repository;
 	private final TaskSubmitter taskSubmitter;
 	private final DriverRegistry driverRegistry;
-	private final DomainRepository domainRepository = new DomainRepository();
-	private final CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+	private final DomainRepository domainRepository;
+	private final CredentialSetRepository credentialSetRepository;
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
+	private final TaskRepository taskRepository;
+	private final CredentialSetAssembler credentialSetAssembler;
 
 	/**
 	 * Instantiates the service.
@@ -99,14 +102,23 @@ public class DeviceCreationService {
 	 * @param taskSubmitter how to hand a new task over to the task engine
 	 * @param driverRegistry the loaded device drivers
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param domainRepository the domain repository (to check the domain)
+	 * @param credentialSetRepository the credential set repository (to check the credentials)
+	 * @param taskRepository the task repository (to add the initial snapshot task)
+	 * @param credentialSetAssembler the credential set assembler (the specific credential sets)
 	 */
 	public DeviceCreationService(Transactions transactions, DeviceRepository repository, TaskSubmitter taskSubmitter,
-		DriverRegistry driverRegistry, DynamicGroups dynamicGroups) {
+		DriverRegistry driverRegistry, DynamicGroups dynamicGroups, DomainRepository domainRepository,
+		CredentialSetRepository credentialSetRepository, TaskRepository taskRepository, CredentialSetAssembler credentialSetAssembler) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.taskSubmitter = taskSubmitter;
 		this.driverRegistry = driverRegistry;
 		this.dynamicGroups = dynamicGroups;
+		this.domainRepository = domainRepository;
+		this.credentialSetRepository = credentialSetRepository;
+		this.taskRepository = taskRepository;
+		this.credentialSetAssembler = credentialSetAssembler;
 	}
 
 	/**
@@ -206,7 +218,7 @@ public class DeviceCreationService {
 					creation.specificCredentials());
 				Map<String, Object> options = DeviceValidation.validateOptions(driver, creation.options());
 				Device.DeviceBuilder newDevice = Device.create(driver.getName(), creation.ipAddress(), domain, creation.author()).toBuilder();
-				accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, List.of(), accesses,
+				accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, this.credentialSetAssembler, dsl, driver, List.of(), accesses,
 					creation.specificCredentials());
 				if (accesses != null) {
 					newDevice.accesses(Device.mergeAccesses(List.of(), accesses));
@@ -219,7 +231,7 @@ public class DeviceCreationService {
 				}
 				newDevice.tags(Device.normalizeTags(creation.tags()));
 				Device added = this.repository.add(dsl, newDevice.build());
-				Task task = new TaskRepository().add(dsl, TakeSnapshotTask.of(added, "Initial snapshot after device creation",
+				Task task = this.taskRepository.add(dsl, TakeSnapshotTask.of(added, "Initial snapshot after device creation",
 					creation.author(), true, false, false));
 				return new CreatedDevice(added, task);
 			});

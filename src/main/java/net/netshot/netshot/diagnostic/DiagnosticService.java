@@ -51,16 +51,23 @@ public class DiagnosticService {
 
 	private final Transactions transactions;
 	private final DiagnosticRepository repository;
+	private final DiagnosticResultRepository resultRepository;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the diagnostic repository
+	 * @param resultRepository the diagnostic result repository
+	 * @param groupRepository the group repository (to check the target group)
 	 */
-	public DiagnosticService(Transactions transactions, DiagnosticRepository repository) {
+	public DiagnosticService(Transactions transactions, DiagnosticRepository repository, DiagnosticResultRepository resultRepository,
+		GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.resultRepository = resultRepository;
+		this.groupRepository = groupRepository;
 	}
 
 	/**
@@ -108,9 +115,8 @@ public class DiagnosticService {
 	 */
 	public ListResult<DiagnosticResult> listResults(ListQuery query) {
 		try {
-			DiagnosticResultRepository results = new DiagnosticResultRepository();
-			return this.transactions.read(dsl -> new ListResult<>(results.findAll(dsl, query),
-				query.count() ? results.count(dsl, query) : null));
+			return this.transactions.read(dsl -> new ListResult<>(this.resultRepository.findAll(dsl, query),
+				query.count() ? this.resultRepository.count(dsl, query) : null));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the diagnostic results.", e);
@@ -333,7 +339,7 @@ public class DiagnosticService {
 	}
 
 	private DeviceGroup requireGroup(DSLContext dsl, long groupId) {
-		DeviceGroup group = new GroupRepository().find(dsl, groupId);
+		DeviceGroup group = this.groupRepository.find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");

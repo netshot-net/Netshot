@@ -35,10 +35,18 @@ import net.netshot.netshot.vault.VaultInstanceRepository;
  * unless the definition changes them), and checks that the result is complete: the secrets each kind needs are
  * set (locally or in a Vault instance), and the referenced Vault instances exist.
  */
-final class CredentialSetAssembler {
+public final class CredentialSetAssembler {
 
-	private CredentialSetAssembler() {
-		// Static helpers only
+	/** The Vault instances (to check the referenced ones exist). */
+	private final VaultInstanceRepository vaultInstanceRepository;
+
+	/**
+	 * Instantiates the assembler.
+	 *
+	 * @param vaultInstanceRepository the Vault instance repository (to check the referenced Vault instances)
+	 */
+	public CredentialSetAssembler(VaultInstanceRepository vaultInstanceRepository) {
+		this.vaultInstanceRepository = vaultInstanceRepository;
 	}
 
 	private static DeviceCredentialSet blank(Kind kind) {
@@ -64,9 +72,9 @@ final class CredentialSetAssembler {
 	 * @return the new state (null if not set)
 	 * @throws NetshotException if the Vault instance doesn't exist, or a required field is empty
 	 */
-	private static Secret apply(DSLContext dsl, String property, SecretChange change, Secret current, boolean required) {
+	private Secret apply(DSLContext dsl, String property, SecretChange change, Secret current, boolean required) {
 		SecretChange effective = change == null ? SecretChange.UNCHANGED : change;
-		if (effective instanceof SecretChange.Referenced r && new VaultInstanceRepository().find(dsl, r.vaultInstanceId()) == null) {
+		if (effective instanceof SecretChange.Referenced r && this.vaultInstanceRepository.find(dsl, r.vaultInstanceId()) == null) {
 			throw NetshotException.invalidParameter(property + "Vault", "The Vault instance %d doesn't exist.".formatted(r.vaultInstanceId()));
 		}
 		Secret result = effective.applyTo(current);
@@ -86,7 +94,7 @@ final class CredentialSetAssembler {
 	 * @return the credential set, to store
 	 * @throws NetshotException if the definition is invalid or incomplete
 	 */
-	static DeviceCredentialSet assemble(DSLContext dsl, DeviceCredentialSet existing, CredentialSetDefinition definition, Domain domain) {
+	public DeviceCredentialSet assemble(DSLContext dsl, DeviceCredentialSet existing, CredentialSetDefinition definition, Domain domain) {
 		String name = definition.name() == null ? "" : definition.name().trim();
 		if (name.isEmpty()) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, "Invalid name for the credential set");

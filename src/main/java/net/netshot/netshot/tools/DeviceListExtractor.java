@@ -30,12 +30,15 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
+import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
@@ -105,7 +108,9 @@ public class DeviceListExtractor extends Netshot {
 			Wiring wiring = Wiring.init();
 
 			log.info("Requesting data from the DB...");
-			List<Device> devices = wiring.transactions().read(dsl -> new DeviceRepository().findAll(dsl,
+			DeviceRepository deviceRepository = new DeviceRepository(new ConfigRepository(), new DiagnosticResultRepository(),
+				new CredentialSetRepository());
+			List<Device> devices = wiring.transactions().read(dsl -> deviceRepository.findAll(dsl,
 				dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())).fetch(DEVICE.ID)));
 			for (Device device : devices) {
 				DeviceCliAccount cliAccount = null;

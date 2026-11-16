@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.credentials.CredentialSetAssembler;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainRepository;
@@ -65,11 +66,12 @@ public class DeviceService {
 	private final Transactions transactions;
 	private final DeviceRepository repository;
 	private final DriverRegistry driverRegistry;
-	private final DomainRepository domainRepository = new DomainRepository();
-	private final CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+	private final DomainRepository domainRepository;
+	private final CredentialSetRepository credentialSetRepository;
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
+	private final CredentialSetAssembler credentialSetAssembler;
 
 	/**
 	 * Instantiates the service.
@@ -78,13 +80,20 @@ public class DeviceService {
 	 * @param repository the device repository
 	 * @param driverRegistry the loaded device drivers
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param domainRepository the domain repository (to check the management domain)
+	 * @param credentialSetRepository the credential set repository (to check the credentials)
+	 * @param credentialSetAssembler the credential set assembler (the specific credential sets)
 	 */
 	public DeviceService(Transactions transactions, DeviceRepository repository,
-		DriverRegistry driverRegistry, DynamicGroups dynamicGroups) {
+		DriverRegistry driverRegistry, DynamicGroups dynamicGroups, DomainRepository domainRepository,
+		CredentialSetRepository credentialSetRepository, CredentialSetAssembler credentialSetAssembler) {
 		this.dynamicGroups = dynamicGroups;
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
+		this.domainRepository = domainRepository;
+		this.credentialSetRepository = credentialSetRepository;
+		this.credentialSetAssembler = credentialSetAssembler;
 	}
 
 	/**
@@ -172,7 +181,7 @@ public class DeviceService {
 		DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
 		List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver,
 			change.accesses() == null ? List.of() : change.accesses(), change.specificCredentials());
-		accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, device.accesses(), accesses,
+		accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, this.credentialSetAssembler, dsl, driver, device.accesses(), accesses,
 			change.specificCredentials());
 		Map<String, Object> options = DeviceValidation.validateOptions(driver, change.options());
 		Device.DeviceBuilder edited = device.toBuilder()

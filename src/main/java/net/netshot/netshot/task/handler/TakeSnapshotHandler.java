@@ -35,8 +35,8 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.AutoSnapshotQueue;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
@@ -60,7 +60,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	private final SshServer sshServer;
 	/** The transaction support. */
 	private final Transactions transactions;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
@@ -77,9 +77,10 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if disabled)
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
+	 * @param deviceRepository the device repository
 	 */
 	public TakeSnapshotHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
-		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors) {
+		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors, DeviceRepository deviceRepository) {
 		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
@@ -87,6 +88,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		this.sshServer = sshServer;
 		this.taskSubmitter = taskSubmitter;
 		this.autoSnapshots = autoSnapshots;
+		this.deviceRepository = deviceRepository;
 	}
 
 	@Override

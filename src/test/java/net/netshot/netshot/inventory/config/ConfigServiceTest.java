@@ -55,6 +55,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the configuration use cases, against a real database.
@@ -82,7 +83,7 @@ class ConfigServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry());
+		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry(), TestRepositories.DEVICE);
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.domainId = domain.id();
 		Device routerDevice = device("CiscoIOS12", "router-a", "10.40.0.1", domain);

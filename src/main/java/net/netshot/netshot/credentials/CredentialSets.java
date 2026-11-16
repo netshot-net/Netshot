@@ -40,6 +40,7 @@ public final class CredentialSets {
 	 *
 	 * @param dsl the jOOQ context
 	 * @param repository the credential set repository
+	 * @param assembler the credential set assembler
 	 * @param accessName the name of the access
 	 * @param existing the current specific credential set of the access, or null if there is none
 	 * @param definition the definition (its name and domain are not used)
@@ -48,14 +49,15 @@ public final class CredentialSets {
 	 * @throws NetshotException if the definition is invalid or incomplete, a referenced Vault instance doesn't
 	 *         exist, or the credential set is not of the class the access takes
 	 */
-	public static DeviceCredentialSet applySpecificDefinition(DSLContext dsl, CredentialSetRepository repository, String accessName,
+	public static DeviceCredentialSet applySpecificDefinition(DSLContext dsl, CredentialSetRepository repository, CredentialSetAssembler assembler,
+			String accessName,
 			DeviceCredentialSet existing, CredentialSetDefinition definition, Class<? extends DeviceCredentialSet> expectedClass) {
 		DeviceCredentialSet base = existing != null && CredentialSetDefinition.Kind.of(existing) == definition.kind() ? existing : null;
 		String name = base != null ? base.name() : DeviceCredentialSet.generateSpecificName();
 		CredentialSetDefinition named = new CredentialSetDefinition(definition.kind(), name, null, definition.username(),
 			definition.password(), definition.superPassword(), definition.privateKey(), definition.community(), definition.authType(),
 			definition.authKey(), definition.privType(), definition.privKey());
-		DeviceCredentialSet assembled = CredentialSetAssembler.assemble(dsl, base, named, null);
+		DeviceCredentialSet assembled = assembler.assemble(dsl, base, named, null);
 		if (!expectedClass.isInstance(assembled)) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
 				"The specific credential set is not compatible with access '" + accessName + "'.");

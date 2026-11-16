@@ -31,13 +31,13 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.devicescript.helper.PyDeviceHelper;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.ScriptToolbox;
@@ -60,7 +60,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	private final DriverRegistry driverRegistry;
 
 	/** The transaction support, for the device helpers. */
-	private final Transactions transactions;
+	private final DeviceReads reads;
 
 	/** Is the script of the rule a Python-valid rule (once prepared, for the lifetime of the rule instance)? */
 	private final RuleStateCache<PythonRule, Boolean> validity = new RuleStateCache<>();
@@ -70,10 +70,10 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	 *
 	 * @param runtime the Python runtime of the rules
 	 * @param driverRegistry the loaded device drivers
-	 * @param transactions the transaction support, for the device helpers
+	 * @param reads the reads of the database, for the device helpers
 	 */
-	public PythonRuleEvaluator(PyRuleRuntime runtime, DriverRegistry driverRegistry, Transactions transactions) {
-		this.transactions = transactions;
+	public PythonRuleEvaluator(PyRuleRuntime runtime, DriverRegistry driverRegistry, DeviceReads reads) {
+		this.reads = reads;
 		this.runtime = runtime;
 		this.driverRegistry = driverRegistry;
 	}
@@ -156,7 +156,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 					checkResult = CheckResult.of(rule.id(), device.getId(), ResultOption.EXEMPTED);
 				}
 				else {
-					PyDeviceHelper deviceHelper = new PyDeviceHelper(this.driverRegistry, this.transactions, device, taskContext, true);
+					PyDeviceHelper deviceHelper = new PyDeviceHelper(this.driverRegistry, this.reads, device, taskContext, true);
 					Value result = runBeforeDeadline(executor,
 						() -> ctx.getBindings("python").getMember("_check").execute(deviceHelper), deadline);
 					checkResult = this.toCheckResult(rule, result, device, taskContext);

@@ -40,7 +40,6 @@ import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.DatabaseTest;
@@ -49,6 +48,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Unit tests for {@link AccessManager}, the generalized lazy connect +
@@ -336,7 +336,7 @@ class AccessManagerTest {
 			Client client = resolution.ensureResolved(true);
 			Assertions.assertNotNull(client);
 			resolution.confirmCredentialWorks();
-			TestWiring.get().transactions().write(dsl -> new DeviceRepository().saveDraft(dsl, device));
+			TestWiring.get().transactions().write(dsl -> TestRepositories.DEVICE.saveDraft(dsl, device));
 
 			Assertions.assertNotNull(device.getDeviceAccess("ssh"),
 				"A DeviceAccess row should have been created to hold the pin");

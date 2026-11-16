@@ -59,7 +59,7 @@ public final class TestDevices {
 		return TestWiring.get().transactions();
 	}
 
-	private static final DeviceRepository DEVICES = new DeviceRepository();
+	private static final DeviceRepository DEVICES = TestRepositories.DEVICE;
 
 	private static final ConfigRepository CONFIGS = new ConfigRepository();
 
@@ -347,7 +347,7 @@ public final class TestDevices {
 			DynamicDeviceGroup group = (DynamicDeviceGroup) GROUPS.add(dsl,
 				DynamicDeviceGroup.builder().name(name).folder("").query(query).build());
 			try {
-				new DynamicGroups(transactions(), TestDrivers.registry()).refresh(dsl, group);
+				new DynamicGroups(transactions(), TestDrivers.registry(), TestRepositories.GROUP).refresh(dsl, group);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalArgumentException("Invalid query", e);

@@ -50,8 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskRun;
@@ -63,7 +63,7 @@ import net.netshot.netshot.task.type.PurgeDatabaseTask;
 @Slf4j
 public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 
-	private final TaskRepository taskRepository = new TaskRepository();
+	private final TaskRepository taskRepository;
 
 	/** The transaction support. */
 	private final Transactions transactions;
@@ -72,9 +72,11 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 	 * Instantiates the handler.
 	 *
 	 * @param transactions the transaction support
+	 * @param taskRepository the task repository
 	 */
-	public PurgeDatabaseHandler(Transactions transactions) {
+	public PurgeDatabaseHandler(Transactions transactions, TaskRepository taskRepository) {
 		this.transactions = transactions;
+		this.taskRepository = taskRepository;
 	}
 
 	@Override

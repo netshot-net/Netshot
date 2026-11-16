@@ -30,9 +30,9 @@ import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.DeviceLockPolicy;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskRun;
@@ -60,7 +60,7 @@ public class TaskJob implements Job {
 	/** The task manager (locks, clustering, repetition of the tasks). */
 	private final TaskManager taskManager;
 
-	private final TaskRepository repository = new TaskRepository();
+	private final TaskRepository repository;
 
 	/** The transaction support. */
 	private final Transactions transactions;
@@ -72,12 +72,15 @@ public class TaskJob implements Job {
 	 * @param handlers the task handlers
 	 * @param domainEvents where the end of the tasks is published
 	 * @param taskManager the task manager (locks, clustering, repetition of the tasks)
+	 * @param repository the task repository
 	 */
-	public TaskJob(Transactions transactions, TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager) {
+	public TaskJob(Transactions transactions, TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager,
+		TaskRepository repository) {
 		this.transactions = transactions;
 		this.handlers = handlers;
 		this.domainEvents = domainEvents;
 		this.taskManager = taskManager;
+		this.repository = repository;
 	}
 
 	/*(non-Javadoc)

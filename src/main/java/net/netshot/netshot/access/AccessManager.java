@@ -32,7 +32,6 @@ import org.apache.sshd.client.SshClient;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -189,8 +188,7 @@ public class AccessManager {
 			}
 		}
 		Long domainId = device.getMgmtDomain() == null ? null : device.getMgmtDomain().id();
-		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> connectors.transactions().read(
-			dsl -> new CredentialSetRepository().findUsableInDomain(dsl, domainId));
+		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> connectors.reads().findUsableCredentialSets(domainId);
 		return new AccessManager(driverRegistry, connectors, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
 	}
 
