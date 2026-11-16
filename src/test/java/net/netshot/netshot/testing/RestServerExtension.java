@@ -26,9 +26,7 @@ import java.util.Map;
 
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
-import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.platform.database.schema.Tables;
-import net.netshot.netshot.Netshot;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -42,8 +40,8 @@ import org.quartz.impl.SchedulerRepository;
 
 /**
  * Extension of {@link ApiTest} and {@link ContractTest}, registered after {@link DatabaseExtension}: before
- * the annotated class, starts the task manager and the REST server (waiting for it to listen); after it,
- * stops the server and clears the schedulers. For an {@link ApiTest}, also replaces the users by the API
+ * the annotated class, starts the task manager and the REST server of the application (waiting for it to listen); after it,
+ * closes the application. For an {@link ApiTest}, also replaces the users by the API
  * tokens of {@link TestServer#API_TOKENS} before each test, and removes the tokens after it. Resolves the
  * {@link TestServer} parameters (each API version builds its clients from it).
  */
@@ -53,16 +51,13 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 	/** How long to wait for the REST server to listen, in milliseconds. */
 	private static final long START_TIMEOUT = 30_000;
 
-	/** How long to wait for the running tasks to end after an {@link ApiTest} class, in milliseconds. */
-	private static final long TASK_END_TIMEOUT = 30_000;
-
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
 		Class<?> testClass = context.getRequiredTestClass();
 		if (!Kinds.usesRestServer(testClass)) {
 			return;
 		}
-		TestWiring.get().taskManager().start();
+		TestWiring.application().start("task-manager", "rest-server");
 		// Tasks must be stored but never run (they would reach no device, and could hold locks
 		// the cleanup of the next test needs): keep the schedulers in standby, and drop any job
 		// left by another test class sharing the JVM.
@@ -70,9 +65,6 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			scheduler.standby();
 			scheduler.clear();
 		}
-		RestServer restServer = new RestServer(TestWiring.get().binder(), Netshot.config());
-		restServer.start();
-		context.getStore(Kinds.NAMESPACE).put(RestServer.class, restServer);
 		waitUntilListening(TestServer.of(context).apiUri());
 	}
 
@@ -82,21 +74,9 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!Kinds.usesRestServer(testClass)) {
 			return;
 		}
-		RestServer restServer = context.getStore(Kinds.NAMESPACE).remove(RestServer.class, RestServer.class);
-		if (restServer != null) {
-			restServer.stop();
-		}
-		// Drop the tasks scheduled by this class, and let the running ones end, before the next class
-		// initializes the database again (they would otherwise fail on a closed session).
-		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
-			scheduler.clear();
-			long deadline = System.currentTimeMillis() + TASK_END_TIMEOUT;
-			while (!scheduler.getCurrentlyExecutingJobs().isEmpty() && System.currentTimeMillis() < deadline) {
-				Thread.sleep(100);
-			}
-			// Other test classes may rely on a running scheduler.
-			scheduler.start();
-		}
+		// Stops the REST server, the task manager (letting the running tasks end) and the database access of
+		// the class, before the next class initializes the database again
+		TestWiring.application().close();
 	}
 
 	@Override

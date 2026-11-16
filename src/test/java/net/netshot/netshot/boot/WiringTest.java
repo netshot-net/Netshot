@@ -26,9 +26,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.lifecycle.ServiceStatus;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest(boot = Boot.MIGRATED)
@@ -37,18 +39,19 @@ import net.netshot.netshot.testing.TestWiring;
 class WiringTest {
 
 	@Test
-	@DisplayName("Wiring.init() builds the wiring")
-	void init() {
-		Wiring wiring = TestWiring.set(Wiring.init());
-		Assertions.assertNotNull(wiring.transactions());
+	@DisplayName("The application builds the wiring, and starts the database access")
+	void create() throws Exception {
+		Application application = TestWiring.set(Application.create(Netshot.config(), TestDrivers.registry()));
+		application.start("database");
+		Assertions.assertEquals(1, (int) application.wiring().transactions().read(dsl -> dsl.selectOne().fetchOne(0, Integer.class)));
 	}
 
 	@Test
 	@DisplayName("The services, in start order")
 	void services() {
-		Wiring wiring = TestWiring.set(Wiring.init());
+		Application application = Application.create(Netshot.config(), TestDrivers.registry());
 		Assertions.assertEquals(List.of("database", "device-drivers", "oidc-discovery", "task-lock-manager",
 			"vault-token-refresher", "ssh-client", "task-manager", "syslog-server", "snmp-trap-receiver", "ssh-server",
-			"rest-server"), wiring.services().stream().map(Service::id).toList());
+			"rest-server"), application.services().status().stream().map(ServiceStatus::id).toList());
 	}
 }
