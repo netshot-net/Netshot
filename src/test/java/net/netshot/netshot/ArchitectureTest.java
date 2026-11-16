@@ -220,6 +220,17 @@ final class ArchitectureTest {
 			.should().dependOnClassesThat().resideInAPackage("org.glassfish.hk2..")
 			.allowEmptyShould(true);
 
+	/**
+	 * Only the services listen to the changes of the configuration (they start listening when started, and stop when
+	 * stopped), and the bootstrap (the logging); the other long-lived objects hold bindings.
+	 */
+	@ArchTest
+	static final ArchRule CONFIGURATION_LISTENERS_ARE_SERVICES =
+		noClasses().that().resideOutsideOfPackage(ROOT + "boot..")
+			.and().doNotImplement(ROOT + "platform.lifecycle.Service")
+			.should().callMethod(ROOT + "platform.config.ConfigStore", "addListener", "java.util.function.Consumer")
+			.allowEmptyShould(true);
+
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
 	@ArchTest
 	static final ArchRule API_DOES_NOT_USE_THE_DATABASE = 

@@ -33,13 +33,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.BootstrapException;
+import net.netshot.netshot.boot.Signals;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.runtime.AgentInstrumentation;
 import net.netshot.netshot.platform.runtime.BuildInfo;
-//CHECKSTYLE:OFF: IllegalImport
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
-//CHECKSTYLE:ON: IllegalImport
 
 /**
  * The entry points of Netshot: {@link #main} starts the server (the process is prepared by {@code Bootstrap}, the
@@ -107,18 +104,12 @@ public final class Netshot {
 
 			Application application = Application.create(config);
 			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
-			Runtime.getRuntime().addShutdownHook(application.services().shutdownHook());
+			Signals.stopOnShutdown(application);
 			application.migrate();
 			application.start();
 
 			log.info("Starting signal listener.");
-			Signal.handle(new Signal("HUP"), new SignalHandler() {
-				@Override
-				public void handle(Signal sig) {
-					// The components are notified of the change by the configuration store
-					application.reload(configFiles);
-				}
-			});
+			Signals.reloadOnHangup(application, configFiles);
 			log.warn("Netshot is started");
 
 		}
