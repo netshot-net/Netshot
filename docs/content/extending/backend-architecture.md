@@ -45,7 +45,7 @@ The REST API must stay byte-for-byte equivalent (JSON, XML, YAML) while it is re
 
 ## Dependency rules
 
-The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; `api.rest` and `api.hook` do not depend on each other; `api` does not reach the database (neither jOOQ nor `platform.database`, except the `Page` window); JAX-RS server classes are used only by the REST layer, and the JAX-RS client and `core` types only by the packages making outgoing calls; `@JsonView` and the JAXB annotations are only used by the API channels and the cluster wire format; and there is no cycle between top-level packages.
+The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; only the entry points (`Netshot`, `tools`) use `boot`, and nothing depends on `Netshot`; the repositories and the services (`platform.lifecycle.Service`) are built by `boot` only, no static field holds the configuration, the object graph, a service or a repository, and HK2 stays in `api.rest`; `api.rest` and `api.hook` do not depend on each other; `api` does not reach the database (neither jOOQ nor `platform.database`, except the `Page` window); JAX-RS server classes are used only by the REST layer, and the JAX-RS client and `core` types only by the packages making outgoing calls; `@JsonView` and the JAXB annotations are only used by the API channels and the cluster wire format; and there is no cycle between top-level packages.
 
 The feature packages around the devices are layered, each one only depending on the ones before it:
 

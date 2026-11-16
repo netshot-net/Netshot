@@ -231,6 +231,38 @@ final class ArchitectureTest {
 			.should().callMethod(ROOT + "platform.config.ConfigStore", "addListener", "java.util.function.Consumer")
 			.allowEmptyShould(true);
 
+	/**
+	 * Only the entry point, the command line tools and the composition root itself use the composition root
+	 * ({@code boot}): the other classes receive what they need by constructor.
+	 */
+	@ArchTest
+	static final ArchRule ONLY_THE_ENTRY_POINTS_USE_THE_COMPOSITION_ROOT =
+		noClasses().that().resideOutsideOfPackages(ROOT + "boot..", ROOT + "tools..")
+			.and().resideOutsideOfPackage(ROOT.substring(0, ROOT.length() - 1))
+			.should().dependOnClassesThat().resideInAPackage(ROOT + "boot..")
+			.allowEmptyShould(true);
+
+	/**
+	 * The services (the long-running components, with a lifecycle) are built once, by the composition root, which
+	 * registers them in the service manager: no other class creates one (but the service itself, in a factory).
+	 */
+	@ArchTest
+	static final ArchRule SERVICES_ARE_BUILT_BY_THE_COMPOSITION_ROOT =
+		classes().that().resideOutsideOfPackage(ROOT + "boot..")
+			.should(new ArchCondition<JavaClass>("not create a service") {
+				@Override
+				public void check(JavaClass javaClass, ConditionEvents events) {
+					for (JavaConstructorCall call : javaClass.getConstructorCallsFromSelf()) {
+						JavaClass target = call.getTargetOwner();
+						if (target.isAssignableTo(ROOT + "platform.lifecycle.Service") && !target.isAssignableFrom(javaClass.getName())
+							&& !javaClass.isAssignableTo(target.getName())) {
+							events.add(SimpleConditionEvent.violated(call, call.getDescription()));
+						}
+					}
+				}
+			})
+			.allowEmptyShould(true);
+
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
 	@ArchTest
 	static final ArchRule API_DOES_NOT_USE_THE_DATABASE = 
