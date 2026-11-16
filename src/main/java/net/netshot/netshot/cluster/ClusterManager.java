@@ -77,7 +77,7 @@ import org.postgresql.PGNotification;
  * Cluster Manager - main component of clustering feature.
  */
 @Slf4j
-public class ClusterManager implements Service, ClusterCoordinator {
+public class ClusterManager implements Service, ClusterCoordinator, ClusterLink {
 
 	/** Name of the PSQL notification channel. */
 	private static final String NOTIFICATION_CHANNEL = "clustering";
@@ -165,10 +165,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		return local == null ? null : local.getInstanceId();
 	}
 
-	/**
-	 * Gets the list of cluster members for external use.
-	 * @return the cluster members
-	 */
+	@Override
 	public List<ClusterMember> getClusterMembers() {
 		List<ClusterMember> list = new ArrayList<>();
 		for (ClusterMember member : this.members.values()) {
@@ -198,9 +195,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		return runners;
 	}
 
-	/**
-	 * Request driver reload on all cluster members.
-	 */
+	@Override
 	public void requestDriverReload() {
 		this.driverReloadRequested = true;
 	}
@@ -222,11 +217,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		}
 	}
 
-	/**
-	 * Request all cluster members to invalidate their local Vault cache
-	 * for the given Vault instance (e.g. after its connection settings changed).
-	 * @param vaultInstanceId the ID of the Vault instance
-	 */
+	@Override
 	public void requestVaultInstanceReload(long vaultInstanceId) {
 		synchronized (this.vaultInstanceReloadIds) {
 			this.vaultInstanceReloadIds.add(vaultInstanceId);

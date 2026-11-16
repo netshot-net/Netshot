@@ -41,6 +41,7 @@ import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.api.hook.HookDispatcher;
 import net.netshot.netshot.api.hook.WebHookSender;
 import net.netshot.netshot.api.rest.RestServer;
+import net.netshot.netshot.cluster.ClusterLink;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.compliance.HardwareRuleService;
@@ -228,6 +229,7 @@ public final class Wiring {
 		else {
 			this.clusterManager = null;
 		}
+		ClusterLink cluster = this.clusterManager == null ? ClusterLink.NONE : this.clusterManager;
 		// Device
 		this.deviceService = new DeviceService(this.transactions, r.device(), this.driverRegistry, this.dynamicGroups,
 			r.domain(), r.credentialSet(), r.credentialSetAssembler(), r.binaryFiles());
@@ -249,11 +251,7 @@ public final class Wiring {
 		this.reportService = new ReportService(this.transactions, r.report(), this.driverRegistry);
 		// Inventory
 		this.deviceCatalogService = new DeviceCatalogService(this.transactions, r.deviceInventory());
-		this.deviceDriverService = new DeviceDriverService(this.driverRegistry, () -> {
-			if (this.clusterManager != null) {
-				this.clusterManager.requestDriverReload();
-			}
-		});
+		this.deviceDriverService = new DeviceDriverService(this.driverRegistry, cluster::requestDriverReload);
 		this.domainService = new DomainService(this.transactions, r.domain());
 		this.groupService = new GroupService(this.transactions, r.group(), this.dynamicGroups);
 		this.searchService = new SearchService(this.transactions, r.device(), this.driverRegistry);
@@ -265,7 +263,7 @@ public final class Wiring {
 		this.apiTokenService = new ApiTokenService(this.transactions, r.apiToken());
 		this.loginService = new LoginService(this.transactions, r.user(), new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs),
 			config);
-		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
+		this.clusterService = new ClusterService(cluster::getClusterMembers);
 		this.serverInfoService = new ServerInfoService(config);
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, r.diagnostic(), r.diagnosticResult(), r.group());
@@ -278,9 +276,7 @@ public final class Wiring {
 		this.vaultInstanceService = new VaultInstanceService(this.transactions, r.vaultInstance(),
 			vaultInstanceId -> {
 				this.vaultManager.invalidate(vaultInstanceId);
-				if (this.clusterManager != null) {
-					this.clusterManager.requestVaultInstanceReload(vaultInstanceId);
-				}
+				cluster.requestVaultInstanceReload(vaultInstanceId);
 			},
 			this.vaultManager::testConnection);
 		// Hooks
