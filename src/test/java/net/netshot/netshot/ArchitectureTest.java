@@ -171,6 +171,17 @@ final class ArchitectureTest {
 			})
 			.allowEmptyShould(true);
 
+	/**
+	 * The configuration is given to the classes which read it (by constructor, or as an argument): only the entry point,
+	 * the composition root and the command line tools read the global configuration store.
+	 */
+	@ArchTest
+	static final ArchRule CONFIGURATION_IS_GIVEN_BY_THE_COMPOSITION_ROOT =
+		noClasses().that().resideOutsideOfPackages(ROOT + "boot..", ROOT + "tools..")
+			.and().doNotHaveFullyQualifiedName(ROOT + "Netshot")
+			.should().callMethod(net.netshot.netshot.Netshot.class, "config")
+			.allowEmptyShould(true);
+
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
 	@ArchTest
 	static final ArchRule API_DOES_NOT_USE_THE_DATABASE = 
@@ -279,12 +290,18 @@ final class ArchitectureTest {
 
 	/**
 	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring,
-	 * and the values read once are held by lazily initialized holder classes. The only exception is the
-	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}).
+	 * and the values read once are held by lazily initialized holder classes. The exceptions are the
+	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}), and the
+	 * values given once at start to the classes which can't receive them by constructor: the encryption of the
+	 * secrets (the converter is built by the generated jOOQ code) and the path of the REST API (the v1 links are used
+	 * by the static mappers).
 	 */
 	@ArchTest
 	static final ArchRule STATIC_FIELDS_ARE_FINAL =
-		fields().that().areStatic().and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
+		fields().that().areStatic()
+			.and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
+			.and().doNotHaveFullName(ROOT + "platform.database.LocalSecretConverter.encryptor")
+			.and().doNotHaveFullName(ROOT + "api.rest.v1.V1Links.apiPath")
 			.should().beFinal().allowEmptyShould(true);
 
 	/**
