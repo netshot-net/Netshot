@@ -246,7 +246,7 @@ public class Netshot {
 		}
 		try {
 			log.info("Registering crypto libraries");
-			BouncyCastleLoader.registerBouncyCastle();
+			BouncyCastleLoader.registerBouncyCastle(CONFIG.current());
 		}
 		catch (Exception e) {
 			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
@@ -272,7 +272,7 @@ public class Netshot {
 			Netshot.setTruststore();
 
 			log.info("Updating the database schema, if necessary.");
-			Database.update();
+			Database.update(CONFIG.current());
 
 			Wiring wiring = Wiring.create(CONFIG);
 			ServiceManager services = new ServiceManager(wiring.services());

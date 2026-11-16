@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot;
 
+
 import java.util.Properties;
 
 /**

@@ -41,7 +41,6 @@ import liquibase.resource.ResourceAccessor;
 import liquibase.statement.SqlStatement;
 import liquibase.statement.core.UpdateStatement;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
@@ -126,7 +125,7 @@ public class DynamicDeviceGroupDriverRemoval implements CustomSqlChange {
 
 	private void readAdditionalDrivers() {
 		// netshot.drivers.path, declared by the driver loader (the migrations don't depend on the features)
-		final String addPath = Netshot.config().current().get("netshot.drivers.path");
+		final String addPath = net.netshot.netshot.platform.database.Database.migrationConfig().get("netshot.drivers.path");
 		if (addPath != null) {
 			final File folder = new File(addPath);
 			if (folder.isDirectory()) {

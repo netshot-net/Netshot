@@ -18,14 +18,12 @@
  */
 package net.netshot.netshot.platform.database;
 
-import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.testing.UnitTest;
 
@@ -34,8 +32,9 @@ import net.netshot.netshot.testing.UnitTest;
 class LocalSecretConverterTest {
 
 	@BeforeAll
-	static void config() {
-		TestConfig.init(new Properties());
+	static void init() {
+		// The default encryption password
+		LocalSecretConverter.init("NETSHOT");
 	}
 
 	@Test

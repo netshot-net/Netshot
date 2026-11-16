@@ -35,6 +35,7 @@ import org.apache.sshd.common.util.security.SecurityUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
 
 /**
@@ -75,12 +76,11 @@ public final class BouncyCastleLoader {
 	 *
 	 * @param jar the JAR file
 	 * @param je the JAR entry
+	 * @param tmpPath the folder to extract the JAR to, null for the default temporary folder
 	 * @throws Exception in case of error
 	 */
-	private static void loadJar(JarFile jar, JarEntry je) throws Exception {
+	private static void loadJar(JarFile jar, JarEntry je, String tmpPath) throws Exception {
 		log.debug("Extracting embedded JAR {}", je.getName());
-
-		String tmpPath = Netshot.config().current().get(TMP_PATH);
 
 		try (InputStream in = jar.getInputStream(je)) {
 			String baseName = new File(je.getName()).getName();
@@ -103,9 +103,10 @@ public final class BouncyCastleLoader {
 	/**
 	 * Extract all JARs from the RESOURCE_PATH inside the uber-jar.
 	 *
+	 * @param tmpPath the folder to extract the JARs to, null for the default temporary folder
 	 * @throws Exception in case of error
 	 */
-	private static void loadAllJars() throws Exception {
+	private static void loadAllJars(String tmpPath) throws Exception {
 		// Locate the running uber-jar
 		CodeSource codeSource = Netshot.class.getProtectionDomain().getCodeSource();
 		if (codeSource == null) {
@@ -124,7 +125,7 @@ public final class BouncyCastleLoader {
 						&& name.startsWith(RESOURCE_PATH)
 						&& name.endsWith(".jar")) {
 					log.debug("Found embedded BC JAR: {}", name);
-					loadJar(jar, je);
+					loadJar(jar, je, tmpPath);
 				}
 			}
 		}
@@ -222,21 +223,22 @@ public final class BouncyCastleLoader {
 	/**
 	 * Load BC jars if needed and register the Bouncy Castle provider.
 	 *
+	 * @param config the configuration
 	 * @throws Exception in case of error
 	 */
-	public static void registerBouncyCastle() throws Exception {
+	public static void registerBouncyCastle(Config config) throws Exception {
 		// Check if BC classes are already on the classpath (dev mode)
 		if (BouncyCastleLoader.tryRegister("native classpath")) {
 			return;
 		}
 
-		if (!Netshot.config().current().get(LOAD)) {
+		if (!config.get(LOAD)) {
 			log.warn("Loading of additional crypto libraries is disabled by configuration.");
 			return;
 		}
 
 		// Otherwise, extract jars and register
-		BouncyCastleLoader.loadAllJars();
+		BouncyCastleLoader.loadAllJars(config.get(TMP_PATH));
 		if (BouncyCastleLoader.tryRegister("embedded JARs")) {
 			return;
 		}

@@ -32,8 +32,8 @@ import net.netshot.netshot.platform.secret.LocalSecret;
  * <p>A value is read without being decrypted: the {@link LocalSecret} decrypts it when it is revealed, at the
  * moment it is used. A value which was read is written back as it was read (it isn't encrypted again).</p>
  *
- * <p>The password is read on the first conversion, not when the generated table classes are
- * loaded (which may happen before the configuration is).</p>
+ * <p>The password is given by the database access when it starts ({@link #init(String)}), not read when the
+ * generated table classes are loaded (which may happen before the configuration is).</p>
  */
 public class LocalSecretConverter extends AbstractConverter<String, LocalSecret> {
 
@@ -43,18 +43,34 @@ public class LocalSecretConverter extends AbstractConverter<String, LocalSecret>
 		super(String.class, LocalSecret.class);
 	}
 
-	/** Holder of the encryptor, built once, on first use (lazy, thread-safe class initialization). */
-	private static final class Encryptor {
-		static final PasswordBasedEncryptor VALUE = new Sha2AesPasswordBasedEncryptor(Database.getEncryptionPassword());
+	/** The encryptor (set by {@link #init(String)} when the database access starts). */
+	private static volatile PasswordBasedEncryptor encryptor;
+
+	/**
+	 * Sets the password of the encryption, when the database access starts (the generated table classes build the
+	 * converter themselves: it can't receive it otherwise).
+	 *
+	 * @param password the encryption password
+	 */
+	public static synchronized void init(String password) {
+		encryptor = new Sha2AesPasswordBasedEncryptor(password);
+	}
+
+	private static PasswordBasedEncryptor encryptor() {
+		PasswordBasedEncryptor current = encryptor;
+		if (current == null) {
+			throw new IllegalStateException("The encryption of the secrets is not initialized");
+		}
+		return current;
 	}
 
 	@Override
 	public LocalSecret from(String databaseObject) {
-		return databaseObject == null ? null : LocalSecret.encrypted(databaseObject, Encryptor.VALUE);
+		return databaseObject == null ? null : LocalSecret.encrypted(databaseObject, encryptor());
 	}
 
 	@Override
 	public String to(LocalSecret userObject) {
-		return userObject == null ? null : userObject.encrypt(Encryptor.VALUE);
+		return userObject == null ? null : userObject.encrypt(encryptor());
 	}
 }

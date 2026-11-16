@@ -22,6 +22,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
@@ -31,8 +33,20 @@ import net.netshot.netshot.platform.lifecycle.Service;
  */
 public final class DatabaseService implements Service {
 
+	/** The configuration store. */
+	private final ConfigStore config;
+
 	/** The connection pools, while started. */
 	private volatile ConnectionPools pools;
+
+	/**
+	 * Creates the database access.
+	 *
+	 * @param config the configuration store (the database, the encryption password and the sizes of the pools)
+	 */
+	public DatabaseService(ConfigStore config) {
+		this.config = config;
+	}
 
 	@Override
 	public String id() {
@@ -47,8 +61,10 @@ public final class DatabaseService implements Service {
 	@Override
 	public synchronized void start() {
 		if (this.pools == null) {
-			this.pools = new ConnectionPools(Database.getDriverClass(), Database.getUrl(), Database.getReadUrl(),
-				Database.getUsername(), Database.getPassword());
+			Config current = this.config.current();
+			LocalSecretConverter.init(Database.getEncryptionPassword(current));
+			this.pools = new ConnectionPools(current, Database.getDriverClass(current), Database.getUrl(current),
+				Database.getReadUrl(current), Database.getUsername(current), Database.getPassword(current));
 		}
 	}
 
