@@ -65,6 +65,20 @@ public final class ServiceManager {
 	}
 
 	/**
+	 * Adds a service, started after the ones added before it (while building the application: the services which need
+	 * the manager, such as the report of their health, are built before the manager is complete).
+	 *
+	 * @param service the service
+	 * @throws IllegalStateException if a service was already started
+	 */
+	public synchronized void add(Service service) {
+		if (this.services.stream().anyMatch(managed -> managed.state != ServiceState.NEW)) {
+			throw new IllegalStateException("The services are started: no service can be added");
+		}
+		this.services.add(new Managed(service));
+	}
+
+	/**
 	 * Starts the services, in order.
 	 *
 	 * @throws ServiceStartException if a service fails to start (the started ones are stopped then)

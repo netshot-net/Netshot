@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicLongArray;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.servlet.ServletContainer;
 
 import io.undertow.Handlers;
@@ -120,8 +119,8 @@ public final class RestServer implements Service {
 	private String httpSslKeystoreFile;
 	private String httpSslKeystorePass;
 
-	/** The dependency injection binder for the web application. */
-	private final AbstractBinder binder;
+	/** What the resources of the web applications may inject. */
+	private final RestDependencies dependencies;
 	private final ConfigStore config;
 
 	/** The number of handled requests. */
@@ -142,12 +141,12 @@ public final class RestServer implements Service {
 	/**
 	 * Creates the server.
 	 *
-	 * @param binder the dependency injection binder exposing the services to the REST resources
+	 * @param dependencies what the resources of the web applications may inject
 	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
 	 * @param config the configuration store
 	 */
-	public RestServer(AbstractBinder binder, ConfigStore config) {
-		this.binder = binder;
+	public RestServer(RestDependencies dependencies, ConfigStore config) {
+		this.dependencies = dependencies;
 		this.config = config;
 	}
 
@@ -218,12 +217,12 @@ public final class RestServer implements Service {
 			.setContextPath(apiPath) // same as Grizzly context path
 			.setDeploymentName("NetshotREST")
 			.addServlet(Servlets.servlet("JerseyV1", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.binder, new V1Links(apiPath)))))
+					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.dependencies.binder(), new V1Links(apiPath)))))
 				.setLoadOnStartup(1)
 				.addMapping(V1Links.VERSION_PATH + "/*"));
 		if (current.get(V0_ENABLED)) {
 			ServletInfo v0 = Servlets.servlet("Jersey", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.binder))))
+					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.dependencies.binder()))))
 				.setLoadOnStartup(1)
 				.addMapping("/*");
 			deployment.addServlet(v0);

@@ -21,7 +21,6 @@ package net.netshot.netshot.boot;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverLoader;
@@ -31,17 +30,14 @@ import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
 
 /**
- * The composition root: builds the long-lived objects of the application
- * (transaction support, the repositories and the services) and holds them.
+ * The composition root: builds the long-lived objects of the application, as modules (each one built from the
+ * modules before it), and holds them.
  *
  * <p>The wiring is built without side effect, by {@link Application} (the server, the tools and the tests),
  * which starts its {@link #services()}.</p>
  *
- * <p>The REST resources receive the objects of the wiring through dependency
- * injection: {@link #binder()} is handed to the web application, which registers
- * it into Jersey. Code which is
- * not created by an injection container (Quartz jobs, cluster code, entities)
- * gets what it needs from the entry point ({@code Netshot.main}) or from the handlers.</p>
+ * <p>The REST resources receive what they may inject through the {@code RestDependencies} of the {@link ApiModule},
+ * given to the REST server. The other objects receive their dependencies by constructor.</p>
  */
 @Slf4j
 public final class Wiring {
@@ -71,10 +67,11 @@ public final class Wiring {
 		this.inventory = InventoryModule.create(this.core, this.tasks);
 		this.credentials = CredentialsModule.create(this.core, this.tasks);
 		this.aaa = AaaModule.create(this.core);
-		this.api = ApiModule.create(this.core, this.tasks, this.binder());
-		// The lifecycle of the services, and the report of their state
-		this.services = new ServiceManager(this.serviceList());
+		// The lifecycle of the services (filled once they are all built), and the report of their state
+		this.services = new ServiceManager(List.of());
 		this.system = SystemModule.create(this.core, this.tasks, this.services);
+		this.api = ApiModule.create(this.core, this.compliance, this.tasks, this.inventory, this.credentials, this.aaa, this.system);
+		this.serviceList().forEach(this.services::add);
 	}
 
 	/**
@@ -125,16 +122,6 @@ public final class Wiring {
 		// Last: the server is ready when it accepts the requests
 		this.api.restServer().ifPresentOrElse(list::add, () -> log.info("HTTP server is not enabled."));
 		return list;
-	}
-
-	/**
-	 * Gets the dependency injection binder exposing the objects of this wiring
-	 * to the REST resources. To be handed to the web application.
-	 *
-	 * @return a new binder
-	 */
-	public AbstractBinder binder() {
-		return new WiringBinder(this);
 	}
 
 	/**

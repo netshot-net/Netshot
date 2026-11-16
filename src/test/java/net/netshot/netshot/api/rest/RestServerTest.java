@@ -46,7 +46,7 @@ class RestServerTest {
 		config.setProperty("netshot.http.ssl.enabled", "false");
 		config.setProperty("netshot.http.baseurl", "http://127.0.0.1:%d".formatted(port));
 		TestConfig.init(config);
-		RestServer server = new RestServer(TestWiring.get().binder(), TestConfig.store());
+		RestServer server = new RestServer(TestWiring.get().api().restDependencies(), TestConfig.store());
 		Assertions.assertFalse(server.isHealthy());
 		server.start();
 		try {
