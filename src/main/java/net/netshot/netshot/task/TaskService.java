@@ -94,6 +94,9 @@ public class TaskService {
 	private final TaskSubmitter taskSubmitter;
 	private final TaskEngine taskEngine;
 	private final DriverRegistry driverRegistry;
+	private final DeviceRepository deviceRepository;
+	private final DomainRepository domainRepository;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the service.
@@ -103,14 +106,20 @@ public class TaskService {
 	 * @param taskSubmitter how to hand a new task over to the task engine
 	 * @param taskEngine how to cancel tasks and to know the size of the task engine
 	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRepository the device repository (to find the target devices)
+	 * @param domainRepository the domain repository (to find the target domains)
+	 * @param groupRepository the group repository (to find the target groups)
 	 */
 	public TaskService(Transactions transactions, TaskRepository repository, TaskSubmitter taskSubmitter, TaskEngine taskEngine,
-		DriverRegistry driverRegistry) {
+		DriverRegistry driverRegistry, DeviceRepository deviceRepository, DomainRepository domainRepository, GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.taskSubmitter = taskSubmitter;
 		this.taskEngine = taskEngine;
 		this.driverRegistry = driverRegistry;
+		this.deviceRepository = deviceRepository;
+		this.domainRepository = domainRepository;
+		this.groupRepository = groupRepository;
 	}
 
 	/**
@@ -218,7 +227,7 @@ public class TaskService {
 					log.error("Unable to find the task {}.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
 				}
-				return mapper.map(task, deviceId -> deviceId == null ? null : new DeviceRepository().find(dsl, deviceId));
+				return mapper.map(task, deviceId -> deviceId == null ? null : this.deviceRepository.find(dsl, deviceId));
 			});
 		}
 		catch (DataAccessException e) {
@@ -524,7 +533,7 @@ public class TaskService {
 		Domain domain;
 		try {
 			domain = this.transactions.write(dsl -> {
-				Domain found = new DomainRepository().find(dsl, c.domain());
+				Domain found = this.domainRepository.find(dsl, c.domain());
 				if (found == null) {
 					log.error("No such domain of ID {}.", c.domain());
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
@@ -637,7 +646,7 @@ public class TaskService {
 	// Loads the target device of a device-based task.
 	private Device loadDevice(Long deviceId) {
 		return this.inTransaction(dsl -> {
-			Device device = new DeviceRepository().find(dsl, deviceId);
+			Device device = this.deviceRepository.find(dsl, deviceId);
 			if (device == null) {
 				log.error("Unable to find the device {}.", deviceId);
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, "Unable to find the device.");
@@ -647,7 +656,7 @@ public class TaskService {
 	}
 
 	private DeviceGroup loadGroup(DSLContext dsl, Long groupId) {
-		DeviceGroup group = new GroupRepository().find(dsl, groupId);
+		DeviceGroup group = this.groupRepository.find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Unable to find the group.");
@@ -659,7 +668,7 @@ public class TaskService {
 	private List<Long> resolveDeviceList(DSLContext dsl, TaskCreation c) {
 		List<Long> devices = new ArrayList<>();
 		for (Long deviceId : c.deviceList()) {
-			Device device = new DeviceRepository().find(dsl, deviceId);
+			Device device = this.deviceRepository.find(dsl, deviceId);
 			if (device == null) {
 				log.error("Unable to find the device {}.", deviceId);
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, String.format("Unable to find device %d.", deviceId));

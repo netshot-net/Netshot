@@ -54,7 +54,6 @@ import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
@@ -68,6 +67,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the report use cases (statistics, device lists, export), against a real database.
@@ -140,9 +140,10 @@ class ReportServiceTest {
 		StaticDeviceGroup hidden = TestDevices.addStaticGroup("Report hidden group", d4);
 		TestWiring.get().transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
 		TestDevices.addStaticGroup("Report empty group");
-		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository());
+		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository(), TestRepositories.GROUP);
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
-			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), TestWiring.get().transactions()));
+			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(),
+				TestRepositories.deviceReads(TestWiring.get().transactions())), TestRepositories.DEVICE);
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).id();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
 		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();
@@ -166,7 +167,7 @@ class ReportServiceTest {
 
 	private void snapshot(DSLContext dsl, long deviceId, Task.Status status, long date) {
 		Instant when = Instant.ofEpochMilli(date);
-		new TaskRepository().add(dsl, TakeSnapshotTask.of(new DeviceRepository().find(dsl, deviceId), "snapshot", "tester", true, false, false)
+		new TaskRepository().add(dsl, TakeSnapshotTask.of(TestRepositories.DEVICE.find(dsl, deviceId), "snapshot", "tester", true, false, false)
 			.toBuilder()
 			.status(status)
 			.creationDate(when)

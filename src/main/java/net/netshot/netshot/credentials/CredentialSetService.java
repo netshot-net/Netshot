@@ -54,17 +54,23 @@ public class CredentialSetService {
 
 	private final Transactions transactions;
 	private final CredentialSetRepository repository;
-	private final DomainRepository domainRepository = new DomainRepository();
+	private final DomainRepository domainRepository;
+	private final CredentialSetAssembler assembler;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the credential set repository
+	 * @param domainRepository the domain repository (to check the domain of a credential set)
+	 * @param assembler the credential set assembler
 	 */
-	public CredentialSetService(Transactions transactions, CredentialSetRepository repository) {
+	public CredentialSetService(Transactions transactions, CredentialSetRepository repository, DomainRepository domainRepository,
+		CredentialSetAssembler assembler) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.domainRepository = domainRepository;
+		this.assembler = assembler;
 	}
 
 	/**
@@ -140,7 +146,7 @@ public class CredentialSetService {
 		try {
 			created = this.transactions.write(dsl -> {
 				Domain domain = this.findDomain(dsl, definition.mgmtDomainId());
-				return this.repository.add(dsl, CredentialSetAssembler.assemble(dsl, null, definition, domain));
+				return this.repository.add(dsl, this.assembler.assemble(dsl, null, definition, domain));
 			});
 		}
 		catch (DataAccessException e) {
@@ -183,7 +189,7 @@ public class CredentialSetService {
 				}
 				Versions.check("credential set", version, expectedVersion);
 				Domain domain = this.findDomain(dsl, definition.mgmtDomainId());
-				return this.repository.save(dsl, CredentialSetAssembler.assemble(dsl, existing, definition, domain));
+				return this.repository.save(dsl, this.assembler.assemble(dsl, existing, definition, domain));
 			});
 		}
 		catch (DataAccessException e) {

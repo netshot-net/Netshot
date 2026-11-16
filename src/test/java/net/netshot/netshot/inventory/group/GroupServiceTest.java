@@ -44,6 +44,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the device group use cases, against a real database.
@@ -66,7 +67,7 @@ class GroupServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new GroupService(this.transactions, new GroupRepository(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
+		this.service = new GroupService(this.transactions, new GroupRepository(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP));
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.routerA = this.createDevice(domain, "router-a", "10.30.0.1");
 		this.routerB = this.createDevice(domain, "router-b", "10.30.0.2");
@@ -299,7 +300,7 @@ class GroupServiceTest {
 		DeviceGroup notMatching = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-b\""));
 		// Stale membership, which the refresh must remove
 		TestDevices.addMembers(notMatching, TestDevices.find(this.routerA));
-		new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()).refreshAllGroupsOfOneDevice(this.routerA);
+		new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP).refreshAllGroupsOfOneDevice(this.routerA);
 		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(fixed.id()));
 		Assertions.assertEquals(List.of(this.routerA), this.members(matching.id()));
 		Assertions.assertEquals(List.of(this.routerB), this.members(notMatching.id()));
@@ -366,7 +367,7 @@ class GroupServiceTest {
 	}
 
 	private static DynamicGroups dynamicGroups() {
-		return new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry());
+		return new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP);
 	}
 
 	@Test

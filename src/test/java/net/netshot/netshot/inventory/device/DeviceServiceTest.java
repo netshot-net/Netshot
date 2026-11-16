@@ -68,6 +68,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.SecretChange;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the device use cases (the devices are added by the {@link DeviceCreationService}), against a
@@ -99,9 +100,11 @@ class DeviceServiceTest {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry());
-		this.service = new DeviceService(this.transactions, new DeviceRepository(), TestDrivers.registry(), dynamicGroups);
-		this.creationService = new DeviceCreationService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry(), dynamicGroups);
+		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP);
+		this.service = new DeviceService(this.transactions, TestRepositories.DEVICE, TestDrivers.registry(), dynamicGroups, TestRepositories.DOMAIN,
+			TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
+		this.creationService = new DeviceCreationService(this.transactions, TestRepositories.DEVICE, submitter, TestDrivers.registry(), dynamicGroups,
+			TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET, TestRepositories.TASK, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
 		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("secret")).superPassword(Secret.local("enable"))

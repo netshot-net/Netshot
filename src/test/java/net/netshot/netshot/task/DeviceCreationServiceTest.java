@@ -47,7 +47,6 @@ import net.netshot.netshot.inventory.device.AccessSpecificCredential;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceCreation;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
@@ -63,6 +62,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.SecretChange;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the use case which adds a device, against a real database and a recording task submitter.
@@ -94,9 +94,11 @@ class DeviceCreationServiceTest {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry());
-		this.service = new DeviceService(this.transactions, new DeviceRepository(), TestDrivers.registry(), dynamicGroups);
-		this.creationService = new DeviceCreationService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry(), dynamicGroups);
+		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP);
+		this.service = new DeviceService(this.transactions, TestRepositories.DEVICE, TestDrivers.registry(), dynamicGroups, TestRepositories.DOMAIN,
+			TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
+		this.creationService = new DeviceCreationService(this.transactions, TestRepositories.DEVICE, submitter, TestDrivers.registry(), dynamicGroups,
+			TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET, TestRepositories.TASK, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
 		this.sshAccountId = TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("secret")).superPassword(Secret.local("enable"))

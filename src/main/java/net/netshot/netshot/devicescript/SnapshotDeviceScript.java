@@ -45,14 +45,13 @@ import net.netshot.netshot.devicescript.helper.JsConfigHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceScriptOptions;
 import net.netshot.netshot.devicescript.helper.JsSnmpHelper;
-import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
+import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigDraft;
-import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.DeviceDraft;
@@ -164,7 +163,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 		if (lastConfigId == null) {
 			return null;
 		}
-		return this.connectors.transactions().read(dsl -> new ConfigRepository().find(dsl, lastConfigId, true));
+		return this.connectors.reads().findConfig(lastConfigId);
 	}
 
 	@Override
@@ -183,7 +182,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			this.taskContext.info("Starting snapshot of device {} using driver {} version {}",
 				device.getId(), driver.getName(), driver.getVersion());
 			driver.loadCode(context);
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.connectors.transactions(), device, jsCliHelper, this.taskContext, false);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.connectors.reads(), device, jsCliHelper, this.taskContext, false);
 			options.setDeviceHelper(deviceHelper);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Device {} options: {}", device.getId(), deviceHelper.resolveOptionValues());

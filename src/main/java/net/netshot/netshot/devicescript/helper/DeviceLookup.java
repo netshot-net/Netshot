@@ -22,13 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
-import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
-import net.netshot.netshot.platform.database.Transactions;
 
 /**
  * What the device helpers read from the database while a script runs (each read in a short
@@ -37,20 +34,17 @@ import net.netshot.netshot.platform.database.Transactions;
  */
 final class DeviceLookup {
 
-	/** The transaction support. */
-	private final Transactions transactions;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
-	private final ConfigRepository configRepository = new ConfigRepository();
-	private final DiagnosticResultRepository diagnosticResultRepository = new DiagnosticResultRepository();
+	/** The reads of the database. */
+	private final DeviceReads reads;
 	private final Map<Long, Config> configs = new HashMap<>();
 
 	/**
 	 * Instantiates the lookup.
 	 *
-	 * @param transactions the transaction support
+	 * @param reads the reads of the database
 	 */
-	DeviceLookup(Transactions transactions) {
-		this.transactions = transactions;
+	DeviceLookup(DeviceReads reads) {
+		this.reads = reads;
 	}
 
 	/**
@@ -60,7 +54,7 @@ final class DeviceLookup {
 	 * @return the device, or null if there is no such device
 	 */
 	Device findDevice(long id) {
-		return this.transactions.read(dsl -> this.deviceRepository.find(dsl, id));
+		return this.reads.findDevice(id);
 	}
 
 	/**
@@ -70,7 +64,7 @@ final class DeviceLookup {
 	 * @return the device, or null if there is no such device
 	 */
 	Device findDevice(String name) {
-		return this.transactions.read(dsl -> this.deviceRepository.findByName(dsl, name));
+		return this.reads.findDevice(name);
 	}
 
 	/**
@@ -84,7 +78,7 @@ final class DeviceLookup {
 		if (configId == null) {
 			return null;
 		}
-		return this.configs.computeIfAbsent(configId, id -> this.transactions.read(dsl -> this.configRepository.find(dsl, id, true)));
+		return this.configs.computeIfAbsent(configId, this.reads::findConfig);
 	}
 
 	/**
@@ -94,6 +88,6 @@ final class DeviceLookup {
 	 * @return the results
 	 */
 	List<DiagnosticResult> diagnosticResults(long deviceId) {
-		return this.transactions.read(dsl -> this.diagnosticResultRepository.findByDevice(dsl, deviceId));
+		return this.reads.findDiagnosticResults(deviceId);
 	}
 }

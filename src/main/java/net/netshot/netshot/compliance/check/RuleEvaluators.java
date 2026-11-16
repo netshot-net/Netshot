@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.compliance.CheckResult;
@@ -62,15 +62,15 @@ public final class RuleEvaluators {
 	 * @param jsRuntime the JavaScript runtime of the rules
 	 * @param pyRuntime the Python runtime of the rules
 	 * @param driverRegistry the loaded device drivers
-	 * @param transactions the transaction support, for the device helpers of the scripts
+	 * @param reads the reads of the database, for the device helpers of the scripts
 	 * @return the registry
 	 */
 	public static RuleEvaluators standard(JsRuleRuntime jsRuntime, PyRuleRuntime pyRuntime, DriverRegistry driverRegistry,
-		Transactions transactions) {
+		DeviceReads reads) {
 		return new RuleEvaluators(List.of(
-			new TextRuleEvaluator(driverRegistry, transactions),
-			new JavaScriptRuleEvaluator(jsRuntime, driverRegistry, transactions),
-			new PythonRuleEvaluator(pyRuntime, driverRegistry, transactions)));
+			new TextRuleEvaluator(driverRegistry, reads),
+			new JavaScriptRuleEvaluator(jsRuntime, driverRegistry, reads),
+			new PythonRuleEvaluator(pyRuntime, driverRegistry, reads)));
 	}
 
 	/**

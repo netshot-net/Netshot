@@ -809,9 +809,10 @@ public class DemoDataCreator {
 			}
 			accesses.add(access);
 		}
-		DeviceRepository deviceRepository = new DeviceRepository();
-		Device added = deviceRepository.add(dsl, fake.device().toBuilder().accesses(accesses).build());
 		ConfigRepository configRepository = new ConfigRepository();
+		DiagnosticResultRepository diagnosticResultRepository = new DiagnosticResultRepository();
+		DeviceRepository deviceRepository = new DeviceRepository(configRepository, diagnosticResultRepository, credentialSetRepository);
+		Device added = deviceRepository.add(dsl, fake.device().toBuilder().accesses(accesses).build());
 		Long lastConfigId = null;
 		for (Config config : fake.configs()) {
 			lastConfigId = configRepository.add(dsl, config.toBuilder().deviceId(added.id()).build());
@@ -820,7 +821,7 @@ public class DemoDataCreator {
 			deviceRepository.save(dsl, added, added.toBuilder().lastConfigId(lastConfigId).build());
 		}
 		if (fake.diagnosticResult() != null) {
-			new DiagnosticResultRepository().save(dsl, added.id(), List.of(fake.diagnosticResult()));
+			diagnosticResultRepository.save(dsl, added.id(), List.of(fake.diagnosticResult()));
 		}
 		return added;
 	}

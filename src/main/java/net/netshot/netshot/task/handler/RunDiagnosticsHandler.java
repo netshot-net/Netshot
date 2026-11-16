@@ -32,8 +32,8 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
@@ -51,13 +51,14 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 	private final TaskSubmitter taskSubmitter;
 	/** The transaction support. */
 	private final Transactions transactions;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
 	/** The secret resolver and the SSH client of the device accesses. */
 	private final Connectors connectors;
+	private final DiagnosticRepository diagnosticRepository;
 
 	/**
 	 * Creates the handler.
@@ -67,15 +68,20 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
+	 * @param deviceRepository the device repository
+	 * @param diagnosticRepository the diagnostic repository
 	 */
 	public RunDiagnosticsHandler(Transactions transactions, DriverRegistry driverRegistry, DiagnosticAdapters diagnosticAdapters,
-		TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors) {
+		TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors, DeviceRepository deviceRepository,
+		DiagnosticRepository diagnosticRepository) {
 		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.diagnosticAdapters = diagnosticAdapters;
 		this.taskSubmitter = taskSubmitter;
+		this.deviceRepository = deviceRepository;
+		this.diagnosticRepository = diagnosticRepository;
 	}
 
 	@Override
@@ -109,7 +115,7 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 				run.setStatus(Status.CANCELLED);
 				return;
 			}
-			List<Diagnostic> diagnostics = this.transactions.read(dsl -> new DiagnosticRepository().findEnabledForDevice(dsl, deviceId));
+			List<Diagnostic> diagnostics = this.transactions.read(dsl -> this.diagnosticRepository.findEnabledForDevice(dsl, deviceId));
 			if (diagnostics.size() > 0) {
 				deviceScript = new RunDiagnosticDeviceScript(this.driverRegistry, this.connectors, diagnostics, this.diagnosticAdapters, run.logger);
 				DeviceDraft draft = new DeviceDraft(device);

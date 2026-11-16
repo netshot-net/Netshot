@@ -54,6 +54,7 @@ public class SoftwareRuleService {
 	private final Transactions transactions;
 	private final SoftwareRuleRepository repository;
 	private final DriverRegistry driverRegistry;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the service.
@@ -61,11 +62,14 @@ public class SoftwareRuleService {
 	 * @param transactions the transaction support
 	 * @param repository the software rule repository
 	 * @param driverRegistry the loaded device drivers
+	 * @param groupRepository the group repository (to check the target group)
 	 */
-	public SoftwareRuleService(Transactions transactions, SoftwareRuleRepository repository, DriverRegistry driverRegistry) {
+	public SoftwareRuleService(Transactions transactions, SoftwareRuleRepository repository, DriverRegistry driverRegistry,
+		GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
+		this.groupRepository = groupRepository;
 	}
 
 	/**
@@ -121,7 +125,7 @@ public class SoftwareRuleService {
 	}
 
 	private void check(DSLContext dsl, SoftwareRule rule) {
-		if (rule.targetGroupId() != null && new GroupRepository().find(dsl, rule.targetGroupId()) == null) {
+		if (rule.targetGroupId() != null && this.groupRepository.find(dsl, rule.targetGroupId()) == null) {
 			throw NetshotException.invalidParameter("group", "The group doesn't exist.");
 		}
 		if (rule.driver() != null && this.driverRegistry.getDriverByName(rule.driver()) == null) {

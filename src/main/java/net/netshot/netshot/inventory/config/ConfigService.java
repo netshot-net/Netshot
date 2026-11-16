@@ -68,7 +68,7 @@ public class ConfigService {
 	private final Transactions transactions;
 	private final ConfigRepository repository;
 	private final DriverRegistry driverRegistry;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
 	/**
 	 * Instantiates the service.
@@ -76,11 +76,14 @@ public class ConfigService {
 	 * @param transactions the transaction support
 	 * @param repository the configuration repository
 	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRepository the device repository (to find the device of a configuration)
 	 */
-	public ConfigService(Transactions transactions, ConfigRepository repository, DriverRegistry driverRegistry) {
+	public ConfigService(Transactions transactions, ConfigRepository repository, DriverRegistry driverRegistry,
+		DeviceRepository deviceRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
+		this.deviceRepository = deviceRepository;
 	}
 
 	/**

@@ -71,6 +71,7 @@ public class AutoSnapshotScheduler {
 	private final TaskSubmitter taskSubmitter;
 	private final TaskManager taskManager;
 	private final AutoSnapshotQueue queue;
+	private final DeviceRepository deviceRepository;
 
 	/**
 	 * Creates the scheduler.
@@ -78,12 +79,15 @@ public class AutoSnapshotScheduler {
 	 * @param config the configuration store, to read the settings from
 	 * @param taskManager the task manager (to know whether the local instance is a cluster member)
 	 * @param queue the devices with a queued automatic snapshot
+	 * @param deviceRepository the device repository
 	 */
-	public AutoSnapshotScheduler(TaskSubmitter taskSubmitter, ConfigStore config, TaskManager taskManager, AutoSnapshotQueue queue) {
+	public AutoSnapshotScheduler(TaskSubmitter taskSubmitter, ConfigStore config, TaskManager taskManager, AutoSnapshotQueue queue,
+		DeviceRepository deviceRepository) {
 		this.taskSubmitter = taskSubmitter;
 		this.settings = config.bind(Settings::from);
 		this.taskManager = taskManager;
 		this.queue = queue;
+		this.deviceRepository = deviceRepository;
 	}
 
 	/**
@@ -113,7 +117,7 @@ public class AutoSnapshotScheduler {
 						.where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name()), NETWORK_INTERFACE_IP4ADDRESSES.ADDRESS.eq(address.getAddress()))
 						.fetchOne(DEVICE.ID);
 				}
-				return deviceId == null ? null : new DeviceRepository().find(dsl, deviceId);
+				return deviceId == null ? null : this.deviceRepository.find(dsl, deviceId);
 			});
 			if (device == null) {
 				log.warn("No device with such IP address {} in the database.", address.getIp());
@@ -144,7 +148,7 @@ public class AutoSnapshotScheduler {
 		Device device;
 		try {
 			log.trace("Retrieving the device.");
-			device = this.taskManager.transactions().read(dsl -> new DeviceRepository().find(dsl, deviceId));
+			device = this.taskManager.transactions().read(dsl -> this.deviceRepository.find(dsl, deviceId));
 			if (device == null) {
 				log.warn("No device with such ID {} in the database.", deviceId);
 				return false;

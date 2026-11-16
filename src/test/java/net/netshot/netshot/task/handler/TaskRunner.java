@@ -38,6 +38,7 @@ import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -74,24 +75,31 @@ final class TaskRunner {
 		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(TestWiring.get().transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
-		});
+		}, TestRepositories.TASK);
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
-		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), wiring.transactions());
+		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), TestRepositories.deviceReads(wiring.transactions()));
 		TaskHandlers handlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups()),
-			new CheckGroupComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups()),
-			new CheckGroupSoftwareHandler(TestWiring.get().transactions()),
-			new DiscoverDeviceTypeHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
-			new PurgeDatabaseHandler(TestWiring.get().transactions()),
-			new RunDeviceGroupScriptHandler(TestWiring.get().transactions(), orchestrator, TestDrivers.registry()),
-			new RunDeviceScriptHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors),
-			new RunDiagnosticsHandler(TestWiring.get().transactions(), TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors),
-			new RunGroupDiagnosticsHandler(TestWiring.get().transactions(), orchestrator),
-			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator),
-			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator),
+			new CheckComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
+				TestRepositories.POLICY, TestRepositories.RULE, TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE,
+				TestRepositories.CONFIG, TestRepositories.GROUP),
+			new CheckGroupComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
+				TestRepositories.POLICY, TestRepositories.RULE, TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE,
+				TestRepositories.CONFIG, TestRepositories.GROUP),
+			new CheckGroupSoftwareHandler(TestWiring.get().transactions(), TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE, TestRepositories.GROUP),
+			new DiscoverDeviceTypeHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager(),
+				TestRepositories.TASK, TestRepositories.CREDENTIAL_SET, TestRepositories.DOMAIN, TestRepositories.DEVICE),
+			new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK),
+			new RunDeviceGroupScriptHandler(TestWiring.get().transactions(), orchestrator, TestDrivers.registry(), TestRepositories.DEVICE, TestRepositories.GROUP),
+			new RunDeviceScriptHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors,
+				TestRepositories.DEVICE),
+			new RunDiagnosticsHandler(TestWiring.get().transactions(), TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors,
+				TestRepositories.DEVICE, TestRepositories.DIAGNOSTIC),
+			new RunGroupDiagnosticsHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.DEVICE, TestRepositories.GROUP),
+			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.CREDENTIAL_SET),
+			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.DEVICE, TestRepositories.GROUP),
 			new TakeSnapshotHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
-				connectors)));
-		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager());
+				connectors, TestRepositories.DEVICE)));
+		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), TestRepositories.TASK);
 	}
 
 	/**

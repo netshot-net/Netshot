@@ -155,9 +155,10 @@ public final class VaultManager implements SecretResolver {
 	 *
 	 * @param config the configuration store, to read the settings from
 	 * @param transactions the transaction support, to read the Vault instances
+	 * @param repository the Vault instance repository
 	 */
-	public VaultManager(ConfigStore config, Transactions transactions) {
-		this(config, id -> transactions.read(dsl -> new VaultInstanceRepository().find(dsl, id)));
+	public VaultManager(ConfigStore config, Transactions transactions, VaultInstanceRepository repository) {
+		this(config, id -> transactions.read(dsl -> repository.find(dsl, id)));
 	}
 
 	/**

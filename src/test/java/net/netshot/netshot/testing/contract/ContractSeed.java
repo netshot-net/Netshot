@@ -137,6 +137,7 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Deterministic dataset used by the contract tests (API responses, webhook payloads), created through the
@@ -358,7 +359,7 @@ public final class ContractSeed {
 		for (Config config : configs) {
 			ids.add(configRepository.add(dsl, config.toBuilder().deviceId(device.id()).build()));
 		}
-		DeviceRepository deviceRepository = new DeviceRepository();
+		DeviceRepository deviceRepository = TestRepositories.DEVICE;
 		Device stored = deviceRepository.find(dsl, device.id());
 		deviceRepository.save(dsl, stored, stored.toBuilder().lastConfigId(ids.get(ids.size() - 1)).build());
 		return ids;
@@ -368,7 +369,7 @@ public final class ContractSeed {
 		TestWiring.get().transactions().run(dsl -> {
 			DomainRepository domainRepository = new DomainRepository();
 			CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
-			DeviceRepository deviceRepository = new DeviceRepository();
+			DeviceRepository deviceRepository = TestRepositories.DEVICE;
 			Domain paris = domainRepository.find(dsl, this.id("domain.paris"));
 			Domain lyon = domainRepository.find(dsl, this.id("domain.lyon"));
 
@@ -570,7 +571,7 @@ public final class ContractSeed {
 		TestWiring.get().ruleService().update(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
 			Map.of(this.id("device.router2"), Instant.ofEpochMilli(D2040))), null);
 		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = new DeviceRepository();
+			DeviceRepository deviceRepository = TestRepositories.DEVICE;
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			Device proxy = deviceRepository.find(dsl, this.id("device.proxy"));
@@ -639,7 +640,7 @@ public final class ContractSeed {
 
 	private void seedTasks() {
 		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = new DeviceRepository();
+			DeviceRepository deviceRepository = TestRepositories.DEVICE;
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			long paris = this.id("domain.paris");

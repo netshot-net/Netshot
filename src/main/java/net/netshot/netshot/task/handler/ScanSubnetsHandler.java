@@ -35,8 +35,8 @@ import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
@@ -53,15 +53,19 @@ public class ScanSubnetsHandler implements TaskHandler<ScanSubnetsTask> {
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final CredentialSetRepository credentialSetRepository;
 
 	/**
 	 * Creates the handler.
 	 * @param transactions the transaction support
 	 * @param childTaskOrchestrator the child task orchestrator
+	 * @param credentialSetRepository the credential set repository (the known SNMP communities)
 	 */
-	public ScanSubnetsHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator) {
+	public ScanSubnetsHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator,
+		CredentialSetRepository credentialSetRepository) {
 		this.transactions = transactions;
 		this.childTaskOrchestrator = childTaskOrchestrator;
+		this.credentialSetRepository = credentialSetRepository;
 	}
 
 	@Override
@@ -115,7 +119,7 @@ public class ScanSubnetsHandler implements TaskHandler<ScanSubnetsTask> {
 			}
 
 			try {
-				knownCommunities = this.transactions.read(dsl -> new CredentialSetRepository().findAllSnmpCommunities(dsl, spec.domainId()));
+				knownCommunities = this.transactions.read(dsl -> this.credentialSetRepository.findAllSnmpCommunities(dsl, spec.domainId()));
 			}
 			catch (Exception e) {
 				log.error("Task {}. Error while retrieving the communities.", task.id(), e);

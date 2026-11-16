@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
 import org.jooq.DSLContext;
 
+import net.netshot.netshot.credentials.CredentialSetAssembler;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSets;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -241,6 +242,7 @@ public final class DeviceValidation {
 	 * are validated: an access which gets no specific credential set here has none.
 	 *
 	 * @param credentialSetRepository the credential set repository
+	 * @param assembler the credential set assembler
 	 * @param dsl the jOOQ context
 	 * @param driver the device's driver
 	 * @param current the current accesses of the device (none for a new device)
@@ -249,7 +251,8 @@ public final class DeviceValidation {
 	 * @return the accesses, with their stored specific credential sets
 	 * @throws NetshotException if a credential set is invalid, doesn't match an access, or doesn't fit its access
 	 */
-	public static List<DeviceAccess> applySpecificCredentials(CredentialSetRepository credentialSetRepository, DSLContext dsl,
+	public static List<DeviceAccess> applySpecificCredentials(CredentialSetRepository credentialSetRepository,
+			CredentialSetAssembler assembler, DSLContext dsl,
 			DeviceDriver driver, List<DeviceAccess> current, List<DeviceAccess> accesses, List<AccessSpecificCredential> specifics) {
 		if (specifics == null || specifics.isEmpty()) {
 			return accesses;
@@ -285,7 +288,7 @@ public final class DeviceValidation {
 				.reduce((_, second) -> second)
 				.map(DeviceAccess::specificCredentialSet)
 				.orElse(null);
-			DeviceCredentialSet stored = CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, access.accessName(), existing,
+			DeviceCredentialSet stored = CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, assembler, access.accessName(), existing,
 				specific.definition(), accessDef.getCredentialClass());
 			result.set(index, access.toBuilder().specificCredentialSet(stored).build());
 		}

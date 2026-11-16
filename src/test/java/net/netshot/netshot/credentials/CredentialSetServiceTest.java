@@ -59,6 +59,7 @@ import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.vault.VaultInstanceRepository;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the credential set use cases, against a real database: error codes and their order,
@@ -78,7 +79,7 @@ class CredentialSetServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new CredentialSetService(this.transactions, new CredentialSetRepository());
+		this.service = new CredentialSetService(this.transactions, new CredentialSetRepository(), TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		this.domainId = TestDevices.addDomain(Domain.builder().name("Credentials domain").description("d")
 			.server4Address(new Network4Address("10.255.0.1")).server6Address(new Network6Address("::")).build()).id();
 		this.vaultId = this.transactions.write(dsl -> new VaultInstanceRepository().add(dsl,
@@ -453,14 +454,14 @@ class CredentialSetServiceTest {
 			public boolean remove(DSLContext dsl, long id) {
 				throw new DataAccessException("in use", new SQLException("fk", "23503"));
 			}
-		});
+		}, TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> violating.delete(created.id(), null));
 		CredentialSetService failing = new CredentialSetService(this.transactions, new CredentialSetRepository() {
 			@Override
 			public boolean remove(DSLContext dsl, long id) {
 				throw new DataAccessException("boom", new SQLException("down", "08006"));
 			}
-		});
+		}, TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> failing.delete(created.id(), null));
 		Assertions.assertNotNull(this.stored(created.id()));
 	}
