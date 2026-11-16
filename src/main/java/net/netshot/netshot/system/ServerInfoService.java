@@ -18,9 +18,9 @@
  */
 package net.netshot.netshot.system;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 /**
  * Gives the general information about the running server. The values are read on each call,
@@ -46,6 +46,6 @@ public class ServerInfoService {
 	 * @return the server information
 	 */
 	public ServerInfo get() {
-		return new ServerInfo(Netshot.VERSION, UiUser.Settings.from(this.config.current()).maxIdleTime());
+		return new ServerInfo(BuildInfo.VERSION, UiUser.Settings.from(this.config.current()).maxIdleTime());
 	}
 }

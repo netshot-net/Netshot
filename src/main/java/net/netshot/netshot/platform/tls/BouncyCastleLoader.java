@@ -34,9 +34,9 @@ import org.apache.sshd.common.kex.BuiltinDHFactories;
 import org.apache.sshd.common.util.security.SecurityUtils;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.runtime.AgentInstrumentation;
 
 /**
  * Helper to load BouncyCastle library (JAR files).
@@ -96,7 +96,7 @@ public final class BouncyCastleLoader {
 			tempFile.toFile().deleteOnExit();
 			Files.copy(in, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
-			Netshot.appendJar(new JarFile(tempFile.toFile()));
+			AgentInstrumentation.appendJar(new JarFile(tempFile.toFile()));
 		}
 	}
 
@@ -108,7 +108,7 @@ public final class BouncyCastleLoader {
 	 */
 	private static void loadAllJars(String tmpPath) throws Exception {
 		// Locate the running uber-jar
-		CodeSource codeSource = Netshot.class.getProtectionDomain().getCodeSource();
+		CodeSource codeSource = BouncyCastleLoader.class.getProtectionDomain().getCodeSource();
 		if (codeSource == null) {
 			throw new IllegalStateException("Cannot determine location of running JAR");
 		}

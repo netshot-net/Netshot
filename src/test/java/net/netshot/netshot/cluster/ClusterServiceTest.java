@@ -31,6 +31,7 @@ import net.netshot.netshot.cluster.ClusterService.MasterStatus;
 import net.netshot.netshot.system.ServerInfo;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 /**
  * Tests of the cluster and server information use cases.
@@ -85,7 +86,7 @@ class ClusterServiceTest {
 	@DisplayName("The server information is read when asked, from the version and the loaded settings")
 	void serverInfo() {
 		ServerInfo info = new ServerInfoService(Netshot.config()).get();
-		Assertions.assertEquals(Netshot.VERSION, info.serverVersion());
+		Assertions.assertEquals(BuildInfo.VERSION, info.serverVersion());
 		Assertions.assertEquals(UiUser.Settings.from(Netshot.config().current()).maxIdleTime(), info.maxIdleTimeout());
 	}
 }

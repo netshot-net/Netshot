@@ -50,7 +50,6 @@ import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSessionConfig;
 import io.undertow.servlet.util.ImmediateInstanceFactory;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.api.rest.v0.V0Application;
 import net.netshot.netshot.api.rest.v1.V1Application;
@@ -215,7 +214,7 @@ public final class RestServer implements Service {
 
 		// === Servlet (Jersey REST API) Deployment ===
 		DeploymentInfo deployment = Servlets.deployment()
-			.setClassLoader(Netshot.class.getClassLoader())
+			.setClassLoader(RestServer.class.getClassLoader())
 			.setContextPath(apiPath) // same as Grizzly context path
 			.setDeploymentName("NetshotREST")
 			.addServlet(Servlets.servlet("JerseyV1", ServletContainer.class,
@@ -249,7 +248,7 @@ public final class RestServer implements Service {
 
 		// === Static files from /www/ (classpath) ===
 		ClassPathResourceManager staticResourceManager =
-			new ClassPathResourceManager(Netshot.class.getClassLoader(), "www");
+			new ClassPathResourceManager(RestServer.class.getClassLoader(), "www");
 		// The WebUI uses client-side routing (React Router), so a direct request or a
 		// refresh on a route like /devices/42 won't match any file on disk. Fall back to
 		// index.html for such requests (i.e. those without a file extension), and leave

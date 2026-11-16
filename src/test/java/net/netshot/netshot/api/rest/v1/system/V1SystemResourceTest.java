@@ -32,7 +32,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
@@ -42,6 +41,7 @@ import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.v1.V1Client;
 import net.netshot.netshot.testing.api.v1.V1Client.Answer;
 import net.netshot.netshot.testing.api.v1.V1Endpoints;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 @ApiTest
 @V1Endpoints({
@@ -133,7 +133,7 @@ class V1SystemResourceTest {
 		Assertions.assertEquals(200, answer.status(), answer.toString());
 		JsonNode info = answer.json();
 		Assertions.assertEquals(Set.of("version", "serverTime", "sessionMaxIdleTime"), names(info));
-		Assertions.assertEquals(Netshot.VERSION, info.get("version").asText());
+		Assertions.assertEquals(BuildInfo.VERSION, info.get("version").asText());
 		Assertions.assertTrue(info.get("serverTime").asText().endsWith("Z"));
 		Assertions.assertTrue(info.get("sessionMaxIdleTime").asInt() > 0);
 		Assertions.assertEquals(200, new V1Client(this.server, UiUser.LEVEL_READONLY).get("/system/info").status());
@@ -194,7 +194,7 @@ class V1SystemResourceTest {
 		Assertions.assertEquals(200, answer.status(), answer.toString());
 		Assertions.assertEquals(Set.of("status"), names(answer.json()));
 		Assertions.assertEquals("UP", answer.json().get("status").asText());
-		Assertions.assertFalse(answer.body().contains(Netshot.VERSION));
+		Assertions.assertFalse(answer.body().contains(BuildInfo.VERSION));
 		// Credentials are not needed, and invalid ones don't matter
 		Assertions.assertEquals(200, this.anonymous.get("/health", "X-Netshot-API-Token", "00000000000000000000000000000000").status());
 		Assertions.assertEquals(200, this.admin.get("/health").status());
