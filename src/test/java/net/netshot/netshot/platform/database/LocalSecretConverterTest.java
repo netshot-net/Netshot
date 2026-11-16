@@ -78,6 +78,14 @@ class LocalSecretConverterTest {
 	void ownPassword() {
 		String stored = CONVERTER.to(LocalSecret.of("S3cr3t"));
 		Assertions.assertEquals("S3cr3t", new LocalSecretConverter("NETSHOT").from(stored).reveal());
-		Assertions.assertThrows(RuntimeException.class, () -> new LocalSecretConverter("other").from(stored).reveal());
+		// Another password fails to decrypt, or (rarely, when the padding happens to be valid) gives another value
+		String other;
+		try {
+			other = new LocalSecretConverter("other").from(stored).reveal();
+		}
+		catch (RuntimeException e) {
+			other = null;
+		}
+		Assertions.assertNotEquals("S3cr3t", other);
 	}
 }
