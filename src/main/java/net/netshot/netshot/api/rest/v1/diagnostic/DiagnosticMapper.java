@@ -21,6 +21,8 @@ package net.netshot.netshot.api.rest.v1.diagnostic;
 import java.util.Set;
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
@@ -43,7 +45,7 @@ import net.netshot.netshot.platform.error.NetshotException;
  * Maps the diagnostics and their results to their v1 representation, and the requests to the definitions the
  * service takes.
  */
-public final class DiagnosticMapper {
+public class DiagnosticMapper {
 
 	/** The path of the diagnostics. */
 	public static final String PATH = "diagnostics";
@@ -51,7 +53,17 @@ public final class DiagnosticMapper {
 	/** The types of result a diagnostic can have. */
 	private static final Set<String> RESULT_TYPES = Set.of("TEXT", "LONGTEXT", "NUMERIC", "BINARY");
 
-	private DiagnosticMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public DiagnosticMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -60,11 +72,11 @@ public final class DiagnosticMapper {
 	 * @param id the group ID
 	 * @return the representation
 	 */
-	static GroupDto groupById(long id) {
-		return new GroupDto(id, V1Links.of(GroupMapper.PATH, id), null, 0, null, null, null, null, false, null);
+	GroupDto groupById(long id) {
+		return new GroupDto(id, this.links.of(GroupMapper.PATH, id), null, 0, null, null, null, null, false, null);
 	}
 
-	private static String driverDescription(DriverRegistry driverRegistry, String driverName) {
+	private String driverDescription(DriverRegistry driverRegistry, String driverName) {
 		if (driverName == null || driverName.isEmpty()) {
 			return "";
 		}
@@ -80,10 +92,10 @@ public final class DiagnosticMapper {
 	 * @param groups the target groups, already mapped
 	 * @return the representation
 	 */
-	public static DiagnosticDto toDto(DriverRegistry driverRegistry, Diagnostic diagnostic, LongFunction<GroupDto> groups) {
+	public DiagnosticDto toDto(DriverRegistry driverRegistry, Diagnostic diagnostic, LongFunction<GroupDto> groups) {
 		GroupDto group = diagnostic.targetGroupId() == null ? null : groups.apply(diagnostic.targetGroupId());
 		String resultType = diagnostic.resultType() == null ? null : diagnostic.resultType().name();
-		String url = V1Links.of(PATH, diagnostic.id());
+		String url = this.links.of(PATH, diagnostic.id());
 		return switch (diagnostic) {
 			case SimpleDiagnostic d -> new DiagnosticDto(d.id(), url, d.name(), d.version(), d.changeDate(), d.name(), "SIMPLE", resultType, d.enabled(), group,
 				null, d.deviceDriver(), driverDescription(driverRegistry, d.deviceDriver()), d.cliMode(), d.command(),
@@ -101,7 +113,7 @@ public final class DiagnosticMapper {
 	 * @param diagnostic the diagnostic
 	 * @return the request
 	 */
-	public static DiagnosticRequest toRequest(Diagnostic diagnostic) {
+	public DiagnosticRequest toRequest(Diagnostic diagnostic) {
 		RefId group = diagnostic.targetGroupId() == null ? null : new RefId(diagnostic.targetGroupId());
 		String resultType = diagnostic.resultType() == null ? null : diagnostic.resultType().name();
 		return switch (diagnostic) {
@@ -121,7 +133,7 @@ public final class DiagnosticMapper {
 	 * @return the definition
 	 * @throws NetshotException if the name, type or result type is invalid
 	 */
-	public static DiagnosticDefinition toDefinition(DiagnosticRequest request) {
+	public DiagnosticDefinition toDefinition(DiagnosticRequest request) {
 		if (request.name() == null) {
 			throw NetshotException.invalidParameter("name", "The name is required");
 		}
@@ -148,7 +160,7 @@ public final class DiagnosticMapper {
 	 * @param diagnostics the diagnostics, already mapped
 	 * @return the representation
 	 */
-	public static DiagnosticResultDto toDto(DiagnosticResult result, LongFunction<DiagnosticDto> diagnostics) {
+	public DiagnosticResultDto toDto(DiagnosticResult result, LongFunction<DiagnosticDto> diagnostics) {
 		DiagnosticDto diagnostic = diagnostics.apply(result.diagnosticId());
 		return switch (result) {
 			case DiagnosticTextResult r -> new DiagnosticResultDto(r.diagnosticName(), diagnostic, "TEXT", r.text(),

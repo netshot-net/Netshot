@@ -20,6 +20,7 @@ package net.netshot.netshot;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
@@ -290,16 +291,26 @@ final class ArchitectureTest {
 
 	/**
 	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring,
-	 * and the values read once are held by lazily initialized holder classes. The exceptions are the
-	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}), and the
-	 * path of the REST API (the v1 links are used by the static mappers).
+	 * and the values read once are held by lazily initialized holder classes. The exception is the
+	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}).
 	 */
 	@ArchTest
 	static final ArchRule STATIC_FIELDS_ARE_FINAL =
 		fields().that().areStatic()
 			.and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
-			.and().doNotHaveFullName(ROOT + "api.rest.v1.V1Links.apiPath")
 			.should().beFinal().allowEmptyShould(true);
+
+	/**
+	 * The v1 mappers are singletons bound by {@code V1Application} and injected into the resources, which receive
+	 * by constructor the paths of the v1 objects ({@code V1Links}) and the other mappers they use: they have no
+	 * static method (the v0 mappers, frozen, keep theirs).
+	 */
+	@ArchTest
+	static final ArchRule V1_MAPPERS_ARE_INJECTED_INSTANCES =
+		methods().that().areDeclaredInClassesThat().resideInAPackage(ROOT + "api.rest.v1.*..")
+			.and().areDeclaredInClassesThat().haveSimpleNameEndingWith("Mapper")
+			.and().doNotHaveModifier(JavaModifier.SYNTHETIC)
+			.should().notBeStatic().allowEmptyShould(true);
 
 	/**
 	 * No cycles between top-level slices (net.netshot.netshot.(*)..). Unlike ArchUnit's own

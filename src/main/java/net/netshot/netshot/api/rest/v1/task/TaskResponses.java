@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.SecurityContext;
@@ -56,6 +57,10 @@ public final class TaskResponses {
 	private final TaskService taskService;
 	private final GroupService groupService;
 	private final DeviceRefs deviceRefs;
+	private final V1Links links;
+	private final GroupMapper groupMapper;
+	private final TaskCreationMapper taskCreationMapper;
+	private final TaskMapper taskMapper;
 
 	/**
 	 * Instantiates the helper.
@@ -63,11 +68,21 @@ public final class TaskResponses {
 	 * @param taskService the task use cases
 	 * @param groupService the group use cases
 	 * @param deviceRefs writes the devices
+	 * @param links the paths of the v1 objects
+	 * @param groupMapper maps the group objects
+	 * @param taskCreationMapper maps the task creation objects
+	 * @param taskMapper maps the task objects
 	 */
-	public TaskResponses(TaskService taskService, GroupService groupService, DeviceRefs deviceRefs) {
+	@Inject
+	public TaskResponses(TaskService taskService, GroupService groupService, DeviceRefs deviceRefs, V1Links links, GroupMapper groupMapper,
+		TaskCreationMapper taskCreationMapper, TaskMapper taskMapper) {
 		this.taskService = taskService;
 		this.groupService = groupService;
 		this.deviceRefs = deviceRefs;
+		this.links = links;
+		this.groupMapper = groupMapper;
+		this.taskCreationMapper = taskCreationMapper;
+		this.taskMapper = taskMapper;
 	}
 
 	/**
@@ -95,12 +110,12 @@ public final class TaskResponses {
 	 * @throws net.netshot.netshot.platform.error.NetshotException if the task is invalid, or can't be stored or scheduled
 	 */
 	public Task create(SecurityContext securityContext, TaskRequest taskRequest) {
-		String role = TaskCreationMapper.requiredRole(taskRequest.type());
+		String role = this.taskCreationMapper.requiredRole(taskRequest.type());
 		if (role != null && !securityContext.isUserInRole(role)) {
 			throw new ForbiddenException("Insufficient permissions to create a task of the type %s.".formatted(taskRequest.type()));
 		}
 		User user = (User) securityContext.getUserPrincipal();
-		return this.taskService.create(TaskCreationMapper.toCreation(user.username(), taskRequest));
+		return this.taskService.create(this.taskCreationMapper.toCreation(user.username(), taskRequest));
 	}
 
 	/**
@@ -114,12 +129,12 @@ public final class TaskResponses {
 	public TaskDto accepted(HttpServletRequest request, UriInfo uriInfo, Task task) {
 		Selection selection = Selection.of(uriInfo.getQueryParameters(), TaskDto.class, Selection.View.FULL);
 		V1Response.select(request, selection, TaskDto.class);
-		V1Response.accepted(request, V1Links.of(TaskMapper.PATH, task.id()));
+		V1Response.accepted(request, this.links.of(TaskMapper.PATH, task.id()));
 		return this.map(selection, task);
 	}
 
 	private TaskDto map(Selection selection, Task task) {
-		return TaskMapper.toDto(task, this.refs(selection, Collections.singletonList(deviceId(task)),
+		return this.taskMapper.toDto(task, this.refs(selection, Collections.singletonList(deviceId(task)),
 			Collections.singletonList(groupId(task)), Collections.singletonList(task.parentTaskId())));
 	}
 
@@ -158,16 +173,16 @@ public final class TaskResponses {
 		Map<Long, GroupDto> groups = new HashMap<>();
 		Set<Long> ids = nonNull(groupIds);
 		if (!ids.isEmpty() && selection.includes("group")) {
-			this.groupService.list(ListQuery.byIds(ids)).items().forEach(g -> groups.put(g.id(), GroupMapper.toDto(g)));
+			this.groupService.list(ListQuery.byIds(ids)).items().forEach(g -> groups.put(g.id(), this.groupMapper.toDto(g)));
 		}
 		Map<Long, TaskDto> parents = new HashMap<>();
 		ids = nonNull(parentIds);
 		if (!ids.isEmpty() && selection.includes("parentTask")) {
 			this.taskService.listSummaries(ListQuery.byIds(ids)).items()
-				.forEach(t -> parents.put(t.id(), TaskMapper.toDto(t, TaskMapper.Refs.IDS_ONLY)));
+				.forEach(t -> parents.put(t.id(), this.taskMapper.toDto(t, this.taskMapper.idsOnly())));
 		}
 		return new TaskMapper.Refs(devices,
-			orIds(groups, TaskMapper.Refs.IDS_ONLY.groups()::apply), orIds(parents, TaskMapper.Refs.IDS_ONLY.tasks()::apply));
+			orIds(groups, this.taskMapper.idsOnly().groups()::apply), orIds(parents, this.taskMapper.idsOnly().tasks()::apply));
 	}
 
 	private static Set<Long> nonNull(Collection<Long> ids) {

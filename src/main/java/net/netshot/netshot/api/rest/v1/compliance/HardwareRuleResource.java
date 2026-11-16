@@ -52,12 +52,8 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleService;
-import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 
@@ -71,6 +67,8 @@ public class HardwareRuleResource {
 	private final HardwareRuleService hardwareRuleService;
 	private final ComplianceRefs refs;
 	private final ListParams lists;
+	private final V1Links links;
+	private final HardwareRuleMapper hardwareRuleMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -85,18 +83,19 @@ public class HardwareRuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param hardwareRuleService the hardware rule use cases
-	 * @param groupService the group use cases
-	 * @param policyService the policy use cases
-	 * @param ruleService the rule use cases
-	 * @param deviceRefs writes the devices
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param hardwareRuleMapper maps the hardware rule objects
+	 * @param refs resolves the references of the compliance objects
 	 */
 	@Inject
-	public HardwareRuleResource(HardwareRuleService hardwareRuleService, GroupService groupService, PolicyService policyService,
-		RuleService ruleService, DeviceRefs deviceRefs, ListParams lists) {
+	public HardwareRuleResource(HardwareRuleService hardwareRuleService, ListParams lists, V1Links links,
+		HardwareRuleMapper hardwareRuleMapper, ComplianceRefs refs) {
 		this.hardwareRuleService = hardwareRuleService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.refs = refs;
 		this.lists = lists;
+		this.links = links;
+		this.hardwareRuleMapper = hardwareRuleMapper;
 	}
 
 	/**
@@ -115,7 +114,7 @@ public class HardwareRuleResource {
 		V1Response.select(this.request, selection, HardwareRuleDto.class);
 		ListResult<HardwareRule> rules = this.hardwareRuleService.list(query);
 		var groups = this.refs.groups(selection, "group", rules.items().stream().map(HardwareRule::targetGroupId).toList());
-		return ListResponse.of(this.uriInfo, query, rules, r -> HardwareRuleMapper.toDto(r, groups));
+		return ListResponse.of(this.uriInfo, query, rules, r -> this.hardwareRuleMapper.toDto(r, groups));
 	}
 
 	/**
@@ -147,8 +146,8 @@ public class HardwareRuleResource {
 	@Operation(summary = "Create a hardware rule")
 	public HardwareRuleDto createHardwareRule(HardwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		HardwareRule rule = this.hardwareRuleService.create(HardwareRuleMapper.toRule(ruleRequest));
-		V1Response.created(this.request, V1Links.of(HardwareRuleMapper.PATH, rule.id()));
+		HardwareRule rule = this.hardwareRuleService.create(this.hardwareRuleMapper.toRule(ruleRequest));
+		V1Response.created(this.request, this.links.of(HardwareRuleMapper.PATH, rule.id()));
 		return this.respond(rule);
 	}
 
@@ -169,7 +168,7 @@ public class HardwareRuleResource {
 	public HardwareRuleDto replaceHardwareRule(@PathParam("id") @Parameter(description = "Hardware rule ID") long id,
 		HardwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		HardwareRule rule = HardwareRuleMapper.toRule(ruleRequest);
+		HardwareRule rule = this.hardwareRuleMapper.toRule(ruleRequest);
 		return this.respond(this.hardwareRuleService.update(id, _ -> rule, V1Response.ifMatch(this.headers)));
 	}
 
@@ -191,7 +190,7 @@ public class HardwareRuleResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.hardwareRuleService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
-			HardwareRuleRequest.class, HardwareRuleMapper::toRequest, HardwareRuleMapper::toRule), V1Response.ifMatch(this.headers)));
+			HardwareRuleRequest.class, this.hardwareRuleMapper::toRequest, this.hardwareRuleMapper::toRule), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -214,7 +213,7 @@ public class HardwareRuleResource {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), HardwareRuleDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, HardwareRuleDto.class);
 		V1Response.etag(this.request, rule.version());
-		return HardwareRuleMapper.toDto(rule, this.refs.groups(selection, "group",
+		return this.hardwareRuleMapper.toDto(rule, this.refs.groups(selection, "group",
 			rule.targetGroupId() == null ? List.of() : List.of(rule.targetGroupId())));
 	}
 }

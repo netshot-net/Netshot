@@ -65,15 +65,18 @@ public class V1OpenApiResource {
 
 	/** The configuration store. */
 	private final ConfigStore config;
+	private final V1Links links;
 
 	/**
 	 * Creates the resource.
 	 *
-	 * @param config the configuration store (the API path, the name of the session cookie)
+	 * @param config the configuration store (the name of the session cookie)
+	 * @param links the paths of the v1 objects
 	 */
 	@Inject
-	public V1OpenApiResource(ConfigStore config) {
+	public V1OpenApiResource(ConfigStore config, V1Links links) {
 		this.config = config;
+		this.links = links;
 	}
 
 	private OpenAPI document() {
@@ -82,7 +85,7 @@ public class V1OpenApiResource {
 			synchronized (this) {
 				current = this.document;
 				if (current == null) {
-					current = build(this.application, this.config.current());
+					current = build(this.application, this.config.current(), this.links);
 					this.document = current;
 				}
 			}
@@ -94,10 +97,11 @@ public class V1OpenApiResource {
 	 * Builds the document.
 	 *
 	 * @param application the v1 application
-	 * @param config the configuration (the API path, the name of the session cookie)
+	 * @param config the configuration (the name of the session cookie)
+	 * @param links the paths of the v1 objects (the base path of the API)
 	 * @return the document
 	 */
-	static OpenAPI build(Application application, Config config) {
+	static OpenAPI build(Application application, Config config, V1Links links) {
 		OpenAPI base = new OpenAPI()
 			.info(new Info()
 				.title("Netshot API")
@@ -105,7 +109,7 @@ public class V1OpenApiResource {
 				.description("Network Infrastructure Configuration and Compliance Management Software")
 				.contact(new Contact().email("contact@netshot.net"))
 				.license(new License().name("GPLv3").url("https://www.gnu.org/licenses/gpl-3.0.txt")))
-			.servers(List.of(new Server().url(V1Links.base())))
+			.servers(List.of(new Server().url(links.base())))
 			.components(new Components()
 				.addSecuritySchemes("ApiTokenAuth", new SecurityScheme()
 					.name(ApiTokenAuthenticator.HTTP_API_TOKEN_HEADER)

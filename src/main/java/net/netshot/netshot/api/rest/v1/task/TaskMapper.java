@@ -22,6 +22,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
@@ -47,7 +49,7 @@ import net.netshot.netshot.task.type.TaskSpecs;
 /**
  * Maps the tasks to their v1 representation.
  */
-public final class TaskMapper {
+public class TaskMapper {
 
 	/** The path of the tasks. */
 	public static final String PATH = "tasks";
@@ -60,18 +62,39 @@ public final class TaskMapper {
 	 * @param tasks the (parent) tasks by ID
 	 */
 	public record Refs(LongFunction<DeviceDto> devices, LongFunction<GroupDto> groups, LongFunction<TaskDto> tasks) {
-
-		/** No reference resolved: the references are given by ID only. */
-		public static final Refs IDS_ONLY = new Refs(
-			DeviceMapper::byId,
-			id -> new GroupDto(id, V1Links.of("groups", id), null, 0, null, null, null, null, false, null),
-			id -> brief(id, null, null, null));
 	}
 
-	private TaskMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/** No reference resolved: the references are given by ID only. */
+	private final Refs idsOnly;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 * @param deviceMapper maps the device objects (the devices of the references by ID only)
+	 */
+	@Inject
+	public TaskMapper(V1Links links, DeviceMapper deviceMapper) {
+		this.links = links;
+		this.idsOnly = new Refs(
+			deviceMapper::byId,
+			id -> new GroupDto(id, links.of("groups", id), null, 0, null, null, null, null, false, null),
+			id -> this.brief(id, null, null, null));
 	}
 
-	private static String display(String typeName, String target) {
+	/**
+	 * Gives the references resolved to none: the references are given by ID only.
+	 *
+	 * @return the references
+	 */
+	public Refs idsOnly() {
+		return this.idsOnly;
+	}
+
+	private String display(String typeName, String target) {
 		String description = TaskSpecs.description(typeName);
 		return target == null || target.isBlank() ? description : description + " - " + target;
 	}
@@ -85,8 +108,8 @@ public final class TaskMapper {
 	 * @param target the target
 	 * @return the representation
 	 */
-	public static TaskDto brief(long id, String typeName, Task.Status status, String target) {
-		return new TaskDto(id, V1Links.of(PATH, id), typeName == null ? null : display(typeName, target), null, typeName, status,
+	public TaskDto brief(long id, String typeName, Task.Status status, String target) {
+		return new TaskDto(id, this.links.of(PATH, id), typeName == null ? null : display(typeName, target), null, typeName, status,
 			null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
 			null, null, null, null, null);
 	}
@@ -98,8 +121,8 @@ public final class TaskMapper {
 	 * @param refs the referenced objects
 	 * @return the representation (without the parameters, the log and the next execution)
 	 */
-	public static TaskDto toDto(TaskSummary summary, Refs refs) {
-		return new TaskDto(summary.id(), V1Links.of(PATH, summary.id()), display(summary.type(), summary.target()),
+	public TaskDto toDto(TaskSummary summary, Refs refs) {
+		return new TaskDto(summary.id(), this.links.of(PATH, summary.id()), display(summary.type(), summary.target()),
 			(long) summary.version(), summary.type(), summary.status(), TaskSpecs.description(summary.type()), summary.target(),
 			summary.author(), summary.comments(),
 			summary.deviceId() == null ? null : refs.devices().apply(summary.deviceId()),
@@ -117,11 +140,11 @@ public final class TaskMapper {
 	 * @param refs the referenced objects
 	 * @return the representation
 	 */
-	public static TaskDto toDto(Task task, Refs refs) {
+	public TaskDto toDto(Task task, Refs refs) {
 		Long deviceId = task.spec() instanceof DeviceBasedTask t ? t.deviceId() : null;
 		Long groupId = task.spec() instanceof GroupBasedTask t ? t.deviceGroupId() : null;
 		String type = task.spec().typeName();
-		return new TaskDto(task.id(), V1Links.of(PATH, task.id()), display(type, task.target()), (long) task.version(), type,
+		return new TaskDto(task.id(), this.links.of(PATH, task.id()), display(type, task.target()), (long) task.version(), type,
 			task.status(), task.description(), task.target(), task.author(), task.comments(),
 			deviceId == null ? null : refs.devices().apply(deviceId),
 			groupId == null ? null : refs.groups().apply(groupId),
@@ -138,7 +161,7 @@ public final class TaskMapper {
 	 * @param task the task
 	 * @return the parameters, by name
 	 */
-	static Map<String, Object> parameters(Task task) {
+	Map<String, Object> parameters(Task task) {
 		Map<String, Object> p = new LinkedHashMap<>();
 		switch (task.spec()) {
 			case TakeSnapshotTask s -> {

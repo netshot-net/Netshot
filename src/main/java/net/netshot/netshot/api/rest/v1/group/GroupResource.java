@@ -75,6 +75,8 @@ public class GroupResource {
 	private final SearchService searchService;
 	private final DeviceRefs deviceRefs;
 	private final ListParams lists;
+	private final V1Links links;
+	private final GroupMapper groupMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -92,13 +94,18 @@ public class GroupResource {
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param groupMapper maps the group objects
 	 */
 	@Inject
-	public GroupResource(GroupService groupService, SearchService searchService, DeviceRefs deviceRefs, ListParams lists) {
+	public GroupResource(GroupService groupService, SearchService searchService, DeviceRefs deviceRefs, ListParams lists, V1Links links,
+		GroupMapper groupMapper) {
 		this.groupService = groupService;
 		this.searchService = searchService;
 		this.deviceRefs = deviceRefs;
 		this.lists = lists;
+		this.links = links;
+		this.groupMapper = groupMapper;
 	}
 
 	/**
@@ -116,7 +123,7 @@ public class GroupResource {
 		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.GROUPS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), GroupDto.class, Selection.View.BRIEF),
 			GroupDto.class);
-		return ListResponse.of(this.uriInfo, query, this.groupService.list(query), GroupMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.groupService.list(query), this.groupMapper::toDto);
 	}
 
 	/**
@@ -170,8 +177,8 @@ public class GroupResource {
 		+ "or a dynamic group of the devices matching the query.")
 	public GroupDto createGroup(GroupRequest groupRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DeviceGroup group = this.groupService.create(GroupMapper.toDefinition(groupRequest));
-		V1Response.created(this.request, V1Links.of(GroupMapper.PATH, group.id()));
+		DeviceGroup group = this.groupService.create(this.groupMapper.toDefinition(groupRequest));
+		V1Response.created(this.request, this.links.of(GroupMapper.PATH, group.id()));
 		return this.respond(group);
 	}
 
@@ -192,7 +199,7 @@ public class GroupResource {
 		+ "With If-Match, the group must still be at the given version (ETag).")
 	public GroupDto replaceGroup(@PathParam("id") @Parameter(description = "Group ID") long id, GroupRequest groupRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		GroupDefinition definition = GroupMapper.toDefinition(groupRequest);
+		GroupDefinition definition = this.groupMapper.toDefinition(groupRequest);
 		return this.respond(this.groupService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
@@ -214,7 +221,7 @@ public class GroupResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.groupService.update(id, MergePatch.of(patch, this.headers.getMediaType(), GroupRequest.class,
-			GroupMapper::toRequest, GroupMapper::toDefinition), V1Response.ifMatch(this.headers)));
+			this.groupMapper::toRequest, this.groupMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -237,6 +244,6 @@ public class GroupResource {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), GroupDto.class, Selection.View.FULL),
 			GroupDto.class);
 		V1Response.etag(this.request, group.version());
-		return GroupMapper.toDto(group);
+		return this.groupMapper.toDto(group);
 	}
 }

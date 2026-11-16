@@ -20,6 +20,8 @@ package net.netshot.netshot.api.rest.v1.compliance;
 
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
@@ -29,12 +31,22 @@ import net.netshot.netshot.compliance.SoftwareRule;
 /**
  * Maps the software rules to their v1 representation, and the requests to the rules the service takes.
  */
-public final class SoftwareRuleMapper {
+public class SoftwareRuleMapper {
 
 	/** The path of the software rules. */
 	public static final String PATH = "compliance/software-rules";
 
-	private SoftwareRuleMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public SoftwareRuleMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -44,7 +56,7 @@ public final class SoftwareRuleMapper {
 	 * @param groups the groups, already mapped, by ID
 	 * @return the representation
 	 */
-	public static SoftwareRuleDto toDto(RankedSoftwareRule ranked, LongFunction<GroupDto> groups) {
+	public SoftwareRuleDto toDto(RankedSoftwareRule ranked, LongFunction<GroupDto> groups) {
 		if (ranked == null) {
 			return null;
 		}
@@ -55,7 +67,7 @@ public final class SoftwareRuleMapper {
 				display.append(' ').append(part);
 			}
 		}
-		return new SoftwareRuleDto(r.id(), V1Links.of(PATH, r.id()), display.toString(), r.version(), r.changeDate(), ranked.rank(), r.level(),
+		return new SoftwareRuleDto(r.id(), this.links.of(PATH, r.id()), display.toString(), r.version(), r.changeDate(), ranked.rank(), r.level(),
 			r.targetGroupId() == null ? null : groups.apply(r.targetGroupId()), r.driver(), r.family(), r.familyRegExp(), r.softwareVersion(),
 			r.softwareVersionRegExp(), r.partNumber(), r.partNumberRegExp());
 	}
@@ -66,13 +78,13 @@ public final class SoftwareRuleMapper {
 	 * @param ranked the rule with its position
 	 * @return the request
 	 */
-	public static SoftwareRuleRequest toRequest(RankedSoftwareRule ranked) {
+	public SoftwareRuleRequest toRequest(RankedSoftwareRule ranked) {
 		SoftwareRule r = ranked.rule();
 		return new SoftwareRuleRequest(ranked.rank(), r.level(), r.targetGroupId() == null ? null : new RefId(r.targetGroupId()), r.driver(), r.family(), r.familyRegExp(), r.softwareVersion(),
 			r.softwareVersionRegExp(), r.partNumber(), r.partNumberRegExp());
 	}
 
-	private static String orEmpty(String value) {
+	private String orEmpty(String value) {
 		return value == null ? "" : value;
 	}
 
@@ -82,7 +94,7 @@ public final class SoftwareRuleMapper {
 	 * @param request the request
 	 * @return the rule
 	 */
-	public static SoftwareRule toRule(SoftwareRuleRequest request) {
+	public SoftwareRule toRule(SoftwareRuleRequest request) {
 		return SoftwareRule.builder()
 			.targetGroupId(request.group() == null ? null : request.group().id())
 			.driver(request.driver() == null || request.driver().isEmpty() ? null : request.driver())

@@ -20,23 +20,35 @@ package net.netshot.netshot.api.rest.v1.domain;
 
 import java.util.stream.Collectors;
 
-import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.domain.DomainService;
-import net.netshot.netshot.api.rest.v1.StatsResponse;
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefDto;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainDefinition;
+import net.netshot.netshot.domain.DomainService;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * Maps the domains to their v1 representation, and the requests to the definitions the service takes.
  */
-public final class DomainMapper {
+public class DomainMapper {
 
 	/** The path of the domains. */
 	public static final String PATH = "domains";
 
-	private DomainMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public DomainMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -45,11 +57,11 @@ public final class DomainMapper {
 	 * @param domain the domain (null gives null)
 	 * @return the representation
 	 */
-	public static DomainDto toDto(Domain domain) {
+	public DomainDto toDto(Domain domain) {
 		if (domain == null) {
 			return null;
 		}
-		return new DomainDto(domain.id(), V1Links.of(PATH, domain.id()), domain.name(), domain.version(),
+		return new DomainDto(domain.id(), this.links.of(PATH, domain.id()), domain.name(), domain.version(),
 			domain.changeDate(), domain.name(), domain.description(),
 			domain.server4Address() == null ? null : domain.server4Address().getIp(),
 			domain.server6Address() == null ? null : domain.server6Address().getIp());
@@ -61,7 +73,7 @@ public final class DomainMapper {
 	 * @param domain the domain
 	 * @return the request
 	 */
-	public static DomainRequest toRequest(Domain domain) {
+	public DomainRequest toRequest(Domain domain) {
 		return new DomainRequest(domain.name(), domain.description(),
 			domain.server4Address() == null ? null : domain.server4Address().getIp());
 	}
@@ -72,7 +84,7 @@ public final class DomainMapper {
 	 * @param request the request
 	 * @return the definition
 	 */
-	public static DomainDefinition toDefinition(DomainRequest request) {
+	public DomainDefinition toDefinition(DomainRequest request) {
 		return new DomainDefinition(request.name(), request.description(), request.server4Address());
 	}
 
@@ -82,8 +94,8 @@ public final class DomainMapper {
 	 * @param domainService the domain use cases
 	 * @return the resolver
 	 */
-	public static StatsResponse.Resolver resolver(DomainService domainService) {
+	public StatsResponse.Resolver resolver(DomainService domainService) {
 		return ids -> domainService.list(ListQuery.byIds(ids)).items().stream()
-			.collect(Collectors.toMap(Domain::id, d -> new RefDto(d.id(), V1Links.of(PATH, d.id()), d.name())));
+			.collect(Collectors.toMap(Domain::id, d -> new RefDto(d.id(), this.links.of(PATH, d.id()), d.name())));
 	}
 }

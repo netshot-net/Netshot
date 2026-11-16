@@ -20,26 +20,38 @@ package net.netshot.netshot.api.rest.v1.group;
 
 import java.util.stream.Collectors;
 
-import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.api.rest.v1.StatsResponse;
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefDto;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.GroupDefinition;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
+import net.netshot.netshot.inventory.group.GroupDefinition;
+import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * Maps the device groups to their v1 representation.
  */
-public final class GroupMapper {
+public class GroupMapper {
 
 	/** The path of the groups. */
 	public static final String PATH = "groups";
 
-	private GroupMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public GroupMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -48,12 +60,12 @@ public final class GroupMapper {
 	 * @param group the group (null gives null)
 	 * @return the representation
 	 */
-	public static GroupDto toDto(DeviceGroup group) {
+	public GroupDto toDto(DeviceGroup group) {
 		return switch (group) {
 			case null -> null;
-			case StaticDeviceGroup g -> new GroupDto(g.id(), V1Links.of(PATH, g.id()), g.name(), g.version(), g.changeDate(),
+			case StaticDeviceGroup g -> new GroupDto(g.id(), this.links.of(PATH, g.id()), g.name(), g.version(), g.changeDate(),
 				g.name(), g.folder(), "STATIC", g.hiddenFromReports(), null);
-			case DynamicDeviceGroup g -> new GroupDto(g.id(), V1Links.of(PATH, g.id()), g.name(), g.version(), g.changeDate(),
+			case DynamicDeviceGroup g -> new GroupDto(g.id(), this.links.of(PATH, g.id()), g.name(), g.version(), g.changeDate(),
 				g.name(), g.folder(), "DYNAMIC", g.hiddenFromReports(), g.query());
 		};
 	}
@@ -65,7 +77,7 @@ public final class GroupMapper {
 	 * @param group the group
 	 * @return the request
 	 */
-	public static GroupRequest toRequest(DeviceGroup group) {
+	public GroupRequest toRequest(DeviceGroup group) {
 		return new GroupRequest(group.name(), group.folder(), group.type().name(), group.hiddenFromReports(),
 			group instanceof DynamicDeviceGroup dynamic ? dynamic.query() : null, null);
 	}
@@ -77,7 +89,7 @@ public final class GroupMapper {
 	 * @return the definition
 	 * @throws NetshotException if the type is unknown
 	 */
-	public static GroupDefinition toDefinition(GroupRequest request) {
+	public GroupDefinition toDefinition(GroupRequest request) {
 		String type = switch (request.type() == null ? "" : request.type()) {
 			case "STATIC" -> "StaticDeviceGroup";
 			case "DYNAMIC" -> "DynamicDeviceGroup";
@@ -93,8 +105,8 @@ public final class GroupMapper {
 	 * @param groupService the group use cases
 	 * @return the resolver
 	 */
-	public static StatsResponse.Resolver resolver(GroupService groupService) {
+	public StatsResponse.Resolver resolver(GroupService groupService) {
 		return ids -> groupService.list(ListQuery.byIds(ids)).items().stream()
-			.collect(Collectors.toMap(DeviceGroup::id, g -> new RefDto(g.id(), V1Links.of(PATH, g.id()), g.name())));
+			.collect(Collectors.toMap(DeviceGroup::id, g -> new RefDto(g.id(), this.links.of(PATH, g.id()), g.name())));
 	}
 }

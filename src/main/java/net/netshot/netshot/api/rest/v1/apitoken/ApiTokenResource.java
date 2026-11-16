@@ -59,6 +59,8 @@ public class ApiTokenResource {
 
 	private final ApiTokenService apiTokenService;
 	private final ListParams lists;
+	private final V1Links links;
+	private final ApiTokenMapper apiTokenMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -71,11 +73,15 @@ public class ApiTokenResource {
 	 *
 	 * @param apiTokenService the API token use cases
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param apiTokenMapper maps the api token objects
 	 */
 	@Inject
-	public ApiTokenResource(ApiTokenService apiTokenService, ListParams lists) {
+	public ApiTokenResource(ApiTokenService apiTokenService, ListParams lists, V1Links links, ApiTokenMapper apiTokenMapper) {
 		this.apiTokenService = apiTokenService;
 		this.lists = lists;
+		this.links = links;
+		this.apiTokenMapper = apiTokenMapper;
 	}
 
 	/**
@@ -93,7 +99,7 @@ public class ApiTokenResource {
 		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.API_TOKENS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ApiTokenDto.class, Selection.View.BRIEF),
 			ApiTokenDto.class);
-		return ListResponse.of(this.uriInfo, query, this.apiTokenService.list(query), ApiTokenMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.apiTokenService.list(query), this.apiTokenMapper::toDto);
 	}
 
 	/**
@@ -111,7 +117,7 @@ public class ApiTokenResource {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ApiTokenDto.class, Selection.View.FULL),
 			ApiTokenDto.class);
-		return ApiTokenMapper.toDto(this.apiTokenService.get(id));
+		return this.apiTokenMapper.toDto(this.apiTokenService.get(id));
 	}
 
 	/**
@@ -134,9 +140,9 @@ public class ApiTokenResource {
 			throw NetshotException.invalidParameter("token", "The token value can't be null");
 		}
 		ApiToken token = this.apiTokenService.create(tokenRequest.description(), value, tokenRequest.level());
-		V1Response.created(this.request, V1Links.of(AuthMapper.API_TOKENS_PATH, token.id()));
+		V1Response.created(this.request, this.links.of(AuthMapper.API_TOKENS_PATH, token.id()));
 		V1Response.noStore(this.request);
-		return ApiTokenMapper.toCreatedDto(token, value);
+		return this.apiTokenMapper.toCreatedDto(token, value);
 	}
 
 	/**

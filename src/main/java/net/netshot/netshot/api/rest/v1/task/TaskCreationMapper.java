@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -35,7 +37,7 @@ import net.netshot.netshot.task.TaskCreation;
 /**
  * Maps the requests which create a task to the command of the task service.
  */
-public final class TaskCreationMapper {
+public class TaskCreationMapper {
 
 	/** The parameters each type of task which can be created accepts (the ones the type of task returns, but the read only ones). */
 	private static final Map<String, Set<String>> PARAMETERS = Map.ofEntries(
@@ -53,7 +55,11 @@ public final class TaskCreationMapper {
 		Map.entry("CheckGroupSoftwareTask", Set.of()),
 		Map.entry("RunGroupDiagnosticsTask", Set.of("dontCheckCompliance")));
 
-	private TaskCreationMapper() {
+	/**
+	 * Instantiates the mapper.
+	 */
+	@Inject
+	public TaskCreationMapper() {
 	}
 
 	/**
@@ -62,7 +68,7 @@ public final class TaskCreationMapper {
 	 * @param type the type of task
 	 * @return the role, or null if the role of the operator is enough
 	 */
-	public static String requiredRole(String type) {
+	public String requiredRole(String type) {
 		if ("RunDeviceScriptTask".equals(type) || "RunDeviceGroupScriptTask".equals(type)) {
 			return User.ROLE_EXECUTEREADWRITE;
 		}
@@ -83,7 +89,7 @@ public final class TaskCreationMapper {
 	 * @return the command
 	 * @throws NetshotException if the type or a parameter is invalid, or the schedule is incomplete
 	 */
-	public static TaskCreation toCreation(String author, TaskRequest request) {
+	public TaskCreation toCreation(String author, TaskRequest request) {
 		String type = request.type();
 		Set<String> allowed = type == null ? null : PARAMETERS.get(type);
 		if (allowed == null) {

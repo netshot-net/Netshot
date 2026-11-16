@@ -80,6 +80,9 @@ public class DiagnosticResource {
 	private final GroupService groupService;
 	private final DriverRegistry driverRegistry;
 	private final ListParams lists;
+	private final V1Links links;
+	private final DiagnosticMapper diagnosticMapper;
+	private final GroupMapper groupMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -97,32 +100,40 @@ public class DiagnosticResource {
 	 * @param groupService the group use cases
 	 * @param driverRegistry the loaded device drivers
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param diagnosticMapper maps the diagnostic objects
+	 * @param groupMapper maps the group objects
 	 */
 	@Inject
 	public DiagnosticResource(DiagnosticService diagnosticService, GroupService groupService, DriverRegistry driverRegistry,
-		ListParams lists) {
+		ListParams lists, V1Links links, DiagnosticMapper diagnosticMapper, GroupMapper groupMapper) {
 		this.diagnosticService = diagnosticService;
 		this.groupService = groupService;
 		this.driverRegistry = driverRegistry;
 		this.lists = lists;
+		this.links = links;
+		this.diagnosticMapper = diagnosticMapper;
+		this.groupMapper = groupMapper;
 	}
 
 	/**
 	 * Loads the target groups of diagnostics, in one query (only if the selection writes them).
 	 *
 	 * @param groupService the group use cases
+	 * @param groupMapper maps the group objects
+	 * @param diagnosticMapper maps the diagnostic objects
 	 * @param load whether the groups are written
 	 * @param diagnostics the diagnostics
 	 * @return the groups, by ID (a reference by ID only for a group not loaded)
 	 */
-	static LongFunction<GroupDto> groups(GroupService groupService, boolean load,
+	static LongFunction<GroupDto> groups(GroupService groupService, GroupMapper groupMapper, DiagnosticMapper diagnosticMapper, boolean load,
 		Collection<? extends Diagnostic> diagnostics) {
 		Set<Long> ids = diagnostics.stream().map(Diagnostic::targetGroupId).filter(Objects::nonNull).collect(Collectors.toSet());
 		Map<Long, GroupDto> groups = new HashMap<>();
 		if (!ids.isEmpty() && load) {
-			groupService.list(ListQuery.byIds(ids)).items().forEach(g -> groups.put(g.id(), GroupMapper.toDto(g)));
+			groupService.list(ListQuery.byIds(ids)).items().forEach(g -> groups.put(g.id(), groupMapper.toDto(g)));
 		}
-		return id -> groups.getOrDefault(id, DiagnosticMapper.groupById(id));
+		return id -> groups.getOrDefault(id, diagnosticMapper.groupById(id));
 	}
 
 	/**
@@ -140,8 +151,8 @@ public class DiagnosticResource {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), DiagnosticDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DiagnosticDto.class);
 		ListResult<Diagnostic> result = this.diagnosticService.list(query);
-		LongFunction<GroupDto> groups = groups(this.groupService, selection.includes("targetGroup"), result.items());
-		return ListResponse.of(this.uriInfo, query, result, d -> DiagnosticMapper.toDto(this.driverRegistry, d, groups));
+		LongFunction<GroupDto> groups = groups(this.groupService, this.groupMapper, this.diagnosticMapper, selection.includes("targetGroup"), result.items());
+		return ListResponse.of(this.uriInfo, query, result, d -> this.diagnosticMapper.toDto(this.driverRegistry, d, groups));
 	}
 
 	/**
@@ -174,8 +185,8 @@ public class DiagnosticResource {
 		+ "or a JavaScript or Python script.")
 	public DiagnosticDto createDiagnostic(DiagnosticRequest diagnosticRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Diagnostic diagnostic = this.diagnosticService.create(DiagnosticMapper.toDefinition(diagnosticRequest));
-		V1Response.created(this.request, V1Links.of(DiagnosticMapper.PATH, diagnostic.id()));
+		Diagnostic diagnostic = this.diagnosticService.create(this.diagnosticMapper.toDefinition(diagnosticRequest));
+		V1Response.created(this.request, this.links.of(DiagnosticMapper.PATH, diagnostic.id()));
 		return this.respond(diagnostic);
 	}
 
@@ -197,7 +208,7 @@ public class DiagnosticResource {
 	public DiagnosticDto replaceDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") long id,
 		DiagnosticRequest diagnosticRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DiagnosticDefinition definition = DiagnosticMapper.toDefinition(diagnosticRequest);
+		DiagnosticDefinition definition = this.diagnosticMapper.toDefinition(diagnosticRequest);
 		return this.respond(this.diagnosticService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
@@ -219,7 +230,7 @@ public class DiagnosticResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.diagnosticService.update(id, MergePatch.of(patch, this.headers.getMediaType(), DiagnosticRequest.class,
-			DiagnosticMapper::toRequest, DiagnosticMapper::toDefinition), V1Response.ifMatch(this.headers)));
+			this.diagnosticMapper::toRequest, this.diagnosticMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -242,7 +253,7 @@ public class DiagnosticResource {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), DiagnosticDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, DiagnosticDto.class);
 		V1Response.etag(this.request, diagnostic.version());
-		return DiagnosticMapper.toDto(this.driverRegistry, diagnostic,
-			groups(this.groupService, selection.includes("targetGroup"), List.of(diagnostic)));
+		return this.diagnosticMapper.toDto(this.driverRegistry, diagnostic,
+			groups(this.groupService, this.groupMapper, this.diagnosticMapper, selection.includes("targetGroup"), List.of(diagnostic)));
 	}
 }

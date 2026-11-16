@@ -21,6 +21,8 @@ package net.netshot.netshot.api.rest.v1.script;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
@@ -31,15 +33,25 @@ import net.netshot.netshot.userscript.ScriptDefinition;
 /**
  * Maps the command scripts to their v1 representation, and the requests to the commands the service takes.
  */
-public final class ScriptMapper {
+public class ScriptMapper {
 
 	/** The path of the scripts. */
 	public static final String PATH = "scripts";
 
-	private ScriptMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public ScriptMapper(V1Links links) {
+		this.links = links;
 	}
 
-	private static String driverDescription(DriverRegistry driverRegistry, String driverName) {
+	private String driverDescription(DriverRegistry driverRegistry, String driverName) {
 		DeviceDriver driver = driverRegistry.getDriverByName(driverName);
 		return driver == null ? "Unknown driver" : driver.getDescription();
 	}
@@ -51,7 +63,7 @@ public final class ScriptMapper {
 	 * @param script the script (its user input definitions are written if it has them)
 	 * @return the representation (without url for a script not stored)
 	 */
-	public static ScriptDto toDto(DriverRegistry driverRegistry, DeviceJsScript script) {
+	public ScriptDto toDto(DriverRegistry driverRegistry, DeviceJsScript script) {
 		Map<String, UserInputDefinitionDto> definitions = null;
 		if (script.userInputDefinitions() != null) {
 			definitions = new LinkedHashMap<>();
@@ -61,7 +73,7 @@ public final class ScriptMapper {
 					d.getChoices(), d.getDefaultValue()));
 			}
 		}
-		return new ScriptDto(script.id(), script.id() == 0 ? null : V1Links.of(PATH, script.id()), script.name(),
+		return new ScriptDto(script.id(), script.id() == 0 ? null : this.links.of(PATH, script.id()), script.name(),
 			script.version(), script.changeDate(), script.name(),
 			script.folder(), script.deviceDriver(), driverDescription(driverRegistry, script.deviceDriver()), script.author(),
 			script.script(), definitions);
@@ -73,7 +85,7 @@ public final class ScriptMapper {
 	 * @param script the script
 	 * @return the request
 	 */
-	public static ScriptRequest toRequest(DeviceJsScript script) {
+	public ScriptRequest toRequest(DeviceJsScript script) {
 		return new ScriptRequest(script.name(), script.folder(), script.deviceDriver(), script.script());
 	}
 
@@ -84,7 +96,7 @@ public final class ScriptMapper {
 	 * @param author the user creating the script (ignored on a change: the author is kept)
 	 * @return the command
 	 */
-	public static ScriptDefinition toDefinition(ScriptRequest request, String author) {
+	public ScriptDefinition toDefinition(ScriptRequest request, String author) {
 		return new ScriptDefinition(request.name(), request.deviceDriver(), request.script(), author,
 			request.folder() == null ? "" : request.folder());
 	}

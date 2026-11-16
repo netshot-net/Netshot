@@ -23,6 +23,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
@@ -33,12 +35,22 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 /**
  * Maps the hooks to their v1 representation and back.
  */
-public final class HookMapper {
+public class HookMapper {
 
 	/** The path of the hooks. */
 	public static final String PATH = "hooks";
 
-	private HookMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public HookMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -47,12 +59,12 @@ public final class HookMapper {
 	 * @param hook the hook, with its triggers loaded (null gives null)
 	 * @return the representation
 	 */
-	public static HookDto toDto(Hook hook) {
+	public HookDto toDto(Hook hook) {
 		if (hook == null) {
 			return null;
 		}
 		return switch (hook) {
-			case WebHook web -> new WebHookDto(web.id(), V1Links.of(PATH, web.id()), web.name(), web.version(), web.changeDate(), "WEB",
+			case WebHook web -> new WebHookDto(web.id(), this.links.of(PATH, web.id()), web.name(), web.version(), web.changeDate(), "WEB",
 				web.name(), web.enabled(), triggers(web), web.action(), web.url(), web.httpsCaTrustMode(), web.httpsCustomCaCertificate());
 		};
 	}
@@ -63,7 +75,7 @@ public final class HookMapper {
 	 * @param hook the hook
 	 * @return the request
 	 */
-	public static HookRequest toRequest(Hook hook) {
+	public HookRequest toRequest(Hook hook) {
 		return switch (hook) {
 			case WebHook web -> new WebHookRequest(web.name(), web.enabled(), triggers(web), web.action(), web.url(),
 				web.httpsCaTrustMode(), web.httpsCustomCaCertificate());
@@ -77,7 +89,7 @@ public final class HookMapper {
 	 * @return the hook
 	 * @throws NetshotException if a trigger is invalid
 	 */
-	public static Hook toHook(HookRequest request) {
+	public Hook toHook(HookRequest request) {
 		return switch (request) {
 			case WebHookRequest web -> new WebHook(0, 0, null, web.name(), web.enabled() == null || web.enabled(), triggers(web.triggers()),
 				web.action(), web.targetUrl(),
@@ -92,7 +104,7 @@ public final class HookMapper {
 	 * @param hook the hook
 	 * @return the representation of the triggers
 	 */
-	private static List<HookTriggerDto> triggers(Hook hook) {
+	private List<HookTriggerDto> triggers(Hook hook) {
 		if (hook.triggers() == null) {
 			return List.of();
 		}
@@ -103,7 +115,7 @@ public final class HookMapper {
 			.toList();
 	}
 
-	private static Set<HookTrigger> triggers(List<HookTriggerDto> dtos) {
+	private Set<HookTrigger> triggers(List<HookTriggerDto> dtos) {
 		Set<HookTrigger> triggers = new LinkedHashSet<>();
 		if (dtos != null) {
 			for (HookTriggerDto dto : dtos) {

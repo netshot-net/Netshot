@@ -27,6 +27,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
@@ -45,18 +47,40 @@ import net.netshot.netshot.platform.query.ListQuery;
  * references the response writes, in their full representation only when expanded). A reference to an object which
  * isn't loaded is given by ID only.
  */
-final class ComplianceRefs {
+public class ComplianceRefs {
 
 	private final GroupService groupService;
 	private final PolicyService policyService;
 	private final RuleService ruleService;
 	private final DeviceRefs deviceRefs;
+	private final V1Links links;
+	private final GroupMapper groupMapper;
+	private final PolicyMapper policyMapper;
+	private final RuleMapper ruleMapper;
 
-	ComplianceRefs(GroupService groupService, PolicyService policyService, RuleService ruleService, DeviceRefs deviceRefs) {
+	/**
+	 * Instantiates the helper.
+	 *
+	 * @param groupService the group use cases
+	 * @param policyService the policy use cases
+	 * @param ruleService the rule use cases
+	 * @param deviceRefs writes the devices
+	 * @param links the paths of the v1 objects
+	 * @param groupMapper maps the group objects
+	 * @param policyMapper maps the policy objects
+	 * @param ruleMapper maps the rule objects
+	 */
+	@Inject
+	public ComplianceRefs(GroupService groupService, PolicyService policyService, RuleService ruleService, DeviceRefs deviceRefs,
+		V1Links links, GroupMapper groupMapper, PolicyMapper policyMapper, RuleMapper ruleMapper) {
 		this.groupService = groupService;
 		this.policyService = policyService;
 		this.ruleService = ruleService;
 		this.deviceRefs = deviceRefs;
+		this.links = links;
+		this.groupMapper = groupMapper;
+		this.policyMapper = policyMapper;
+		this.ruleMapper = ruleMapper;
 	}
 
 	private static Set<Long> nonNull(Collection<Long> ids) {
@@ -85,9 +109,9 @@ final class ComplianceRefs {
 		Map<Long, GroupDto> groups = new HashMap<>();
 		Set<Long> wanted = nonNull(ids);
 		if (!wanted.isEmpty() && selection.includes(property)) {
-			this.groupService.list(ListQuery.byIds(wanted)).items().forEach(g -> groups.put(g.id(), GroupMapper.toDto(g)));
+			this.groupService.list(ListQuery.byIds(wanted)).items().forEach(g -> groups.put(g.id(), this.groupMapper.toDto(g)));
 		}
-		return orIds(groups, PolicyMapper::groupRef);
+		return orIds(groups, this.policyMapper::groupRef);
 	}
 
 	/**
@@ -120,8 +144,8 @@ final class ComplianceRefs {
 	 * @param loaded the loaded policies by ID
 	 * @return the policies by ID
 	 */
-	static LongFunction<PolicyDto> policies(Map<Long, PolicyDto> loaded) {
-		return orIds(loaded, id -> new PolicyDto(id, V1Links.of(PolicyMapper.PATH, id), null, 0, null, null, null));
+	LongFunction<PolicyDto> policies(Map<Long, PolicyDto> loaded) {
+		return orIds(loaded, id -> new PolicyDto(id, this.links.of(PolicyMapper.PATH, id), null, 0, null, null, null));
 	}
 
 	private Map<Long, PolicyDto> loadPolicies(Collection<Long> ids, boolean expand) {
@@ -132,8 +156,8 @@ final class ComplianceRefs {
 			LongFunction<GroupDto> groups = expand
 				? this.groups(Selection.full(PolicyDto.class), "targetGroups",
 					found.stream().flatMap(p -> p.targetGroupIds().stream()).toList())
-				: PolicyMapper::groupRef;
-			found.forEach(p -> policies.put(p.id(), PolicyMapper.toDto(p, groups)));
+				: this.policyMapper::groupRef;
+			found.forEach(p -> policies.put(p.id(), this.policyMapper.toDto(p, groups)));
 		}
 		return policies;
 	}
@@ -155,7 +179,7 @@ final class ComplianceRefs {
 			Map<Long, PolicyDto> policies = new HashMap<>(loadedPolicies);
 			policies.putAll(this.loadPolicies(found.stream().map(Rule::policyId).filter(id -> !loadedPolicies.containsKey(id)).toList(), false));
 			LongFunction<PolicyDto> rulePolicies = policies(policies);
-			found.forEach(r -> rules.put(r.id(), RuleMapper.toDto(r, rulePolicies)));
+			found.forEach(r -> rules.put(r.id(), this.ruleMapper.toDto(r, rulePolicies)));
 		}
 		return id -> rules.get(id);
 	}

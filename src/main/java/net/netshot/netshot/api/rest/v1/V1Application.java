@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1;
 
+import java.util.List;
+
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
@@ -26,11 +28,33 @@ import jakarta.inject.Singleton;
 
 import net.netshot.netshot.api.rest.AuthenticationFilter;
 import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.v1.apitoken.ApiTokenMapper;
+import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
+import net.netshot.netshot.api.rest.v1.compliance.ComplianceRefs;
+import net.netshot.netshot.api.rest.v1.compliance.HardwareRuleMapper;
+import net.netshot.netshot.api.rest.v1.compliance.PolicyMapper;
+import net.netshot.netshot.api.rest.v1.compliance.RuleMapper;
+import net.netshot.netshot.api.rest.v1.compliance.SoftwareRuleMapper;
+import net.netshot.netshot.api.rest.v1.config.ConfigMapper;
+import net.netshot.netshot.api.rest.v1.credentials.CredentialSetMapper;
+import net.netshot.netshot.api.rest.v1.device.DeviceInventoryMapper;
+import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
 import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
+import net.netshot.netshot.api.rest.v1.diagnostic.DiagnosticMapper;
+import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v1.export.CsvListWriter;
 import net.netshot.netshot.api.rest.v1.export.ExportFilter;
 import net.netshot.netshot.api.rest.v1.export.ExportNegotiation;
 import net.netshot.netshot.api.rest.v1.export.XlsxListWriter;
+import net.netshot.netshot.api.rest.v1.group.GroupMapper;
+import net.netshot.netshot.api.rest.v1.hook.HookMapper;
+import net.netshot.netshot.api.rest.v1.script.ScriptMapper;
+import net.netshot.netshot.api.rest.v1.system.SystemMapper;
+import net.netshot.netshot.api.rest.v1.task.TaskCreationMapper;
+import net.netshot.netshot.api.rest.v1.task.TaskMapper;
+import net.netshot.netshot.api.rest.v1.task.TaskResponses;
+import net.netshot.netshot.api.rest.v1.user.UserMapper;
+import net.netshot.netshot.api.rest.v1.vault.VaultInstanceMapper;
 
 /**
  * The Jersey application of the v1 REST API, served on {@code <api path>/v1} beside the legacy (v0) one. It
@@ -45,8 +69,9 @@ public class V1Application extends ResourceConfig {
 	 * Instantiates the web application.
 	 *
 	 * @param binder the dependency injection binder exposing the services to the REST resources
+	 * @param links the paths of the v1 objects (built with the path the API is served on)
 	 */
-	public V1Application(AbstractBinder binder) {
+	public V1Application(AbstractBinder binder, V1Links links) {
 		packages(V1Application.class.getPackageName());
 		register(AuthenticationFilter.class);
 		register(V1ExceptionMapper.class);
@@ -71,8 +96,17 @@ public class V1Application extends ResourceConfig {
 		register(new AbstractBinder() {
 			@Override
 			protected void configure() {
-				bindAsContract(DeviceRefs.class).in(Singleton.class);
+				bind(links).to(V1Links.class);
 				bindAsContract(ListParams.class).in(Singleton.class);
+				// The mappers and the response helpers of the resources
+				for (Class<?> helper : List.of(
+					ApiTokenMapper.class, AuthMapper.class, ComplianceRefs.class, ConfigMapper.class, CredentialSetMapper.class,
+					DeviceInventoryMapper.class, DeviceMapper.class, DiagnosticMapper.class, DomainMapper.class,
+					GroupMapper.class, HardwareRuleMapper.class, HookMapper.class, PolicyMapper.class, RuleMapper.class,
+					ScriptMapper.class, SoftwareRuleMapper.class, SystemMapper.class, TaskCreationMapper.class, TaskMapper.class,
+					TaskResponses.class, UserMapper.class, VaultInstanceMapper.class, DeviceRefs.class)) {
+					bindAsContract(helper).in(Singleton.class);
+				}
 			}
 		});
 	}
