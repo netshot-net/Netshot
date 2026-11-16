@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.compliance;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
@@ -58,6 +57,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestRepositories;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the compliance use cases (policies, rules, software and hardware rules), against a
@@ -84,7 +84,7 @@ class ComplianceServiceTest {
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository, TestRepositories.GROUP);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository,
-			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(),
+			RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(),
 				TestRepositories.deviceReads(TestWiring.get().transactions())), TestRepositories.DEVICE);
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry(), TestRepositories.GROUP);
 		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry(), TestRepositories.GROUP);

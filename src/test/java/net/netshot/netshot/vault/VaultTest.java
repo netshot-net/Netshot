@@ -29,7 +29,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.platform.secret.Secret;
@@ -39,6 +38,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.testing.TestRepositories;
+import net.netshot.netshot.testing.TestConfig;
 
 @DatabaseTest(boot = Boot.MANUAL)
 @Testcontainers
@@ -78,7 +78,7 @@ class VaultTest {
 		private static final VaultContainer<?> VAULT_CONTAINER = buildVaultContainer();
 
 		/** The Vault client, reading the Vault instances from the database. */
-		private final VaultManager vault = new VaultManager(Netshot.config(), TestWiring.get().transactions(), TestRepositories.VAULT_INSTANCE);
+		private final VaultManager vault = new VaultManager(TestConfig.store(), TestWiring.get().transactions(), TestRepositories.VAULT_INSTANCE);
 
 		/**
 		 * Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class.

@@ -61,7 +61,7 @@ import net.netshot.netshot.testing.UnitTest;
 
 /**
  * Rules on the layout of the tests: a test lives in the package of the code it tests (the root package only
- * holds the tests of the whole application and TestConfig, the shared helpers are in the testing package),
+ * holds the tests of the whole application, the shared helpers are in the testing package),
  * the simple names of the test classes are unique (the expected files of DtoContract are stored under the
  * simple name of the class), the test classes and methods are package-private and the classes have a display name, and each test class has a kind (several only among the kinds needing Docker),
  * which the unit and script engine tests respect (they run without Docker). The tests and helpers of a version
@@ -76,9 +76,6 @@ class TestLayoutTest {
 
 	/** Tests allowed in the root package, as they cover the whole application. */
 	private static final Set<String> ROOT_TESTS = Set.of("ArchitectureTest", "ConfigReloadTest", "NetshotConfigTest", "TestLayoutTest");
-
-	/** Helpers allowed in the root package: TestConfig calls the protected Netshot.initConfig. */
-	private static final Set<String> ROOT_HELPERS = Set.of("TestConfig");
 
 	/** The annotations giving the kind of a test class (see the {@code testing} package). */
 	private static final List<Class<? extends Annotation>> KINDS = List.of(
@@ -148,7 +145,7 @@ class TestLayoutTest {
 			.filter(JavaClass::isTopLevelClass)
 			.filter(c -> c.getPackageName().equals(ROOT))
 			.map(JavaClass::getSimpleName)
-			.filter(name -> !ROOT_TESTS.contains(name) && !ROOT_HELPERS.contains(name))
+			.filter(name -> !ROOT_TESTS.contains(name))
 			.sorted()
 			.toList();
 		Assertions.assertEquals(List.of(), misplaced,

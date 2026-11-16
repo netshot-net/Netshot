@@ -16,32 +16,50 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot;
-
+package net.netshot.netshot.testing;
 
 import java.util.Properties;
 
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+
 /**
- * Gives tests from other packages access to the Netshot configuration.
+ * The configuration store of the tests (the main code has no static configuration: the store is given to the
+ * application by its entry point). The tests share it: {@link DatabaseExtension} sets the configuration of each
+ * database test class, the other tests set what they need.
  */
 public final class TestConfig {
+
+	/** The configuration store of the tests. */
+	private static final ConfigStore STORE = new ConfigStore(Config.empty());
 
 	private TestConfig() {
 	}
 
 	/**
-	 * Replaces the current Netshot configuration.
-	 * @param config the new configuration
+	 * Gets the configuration store of the tests.
+	 *
+	 * @return the configuration store
 	 */
-	public static void init(Properties config) {
-		Netshot.initConfig(config);
+	public static ConfigStore store() {
+		return STORE;
 	}
 
 	/**
-	 * Gets a copy of the items of the current Netshot configuration (to modify and init again).
+	 * Replaces the configuration of the tests (the bindings and the listeners are refreshed, as on a reload).
+	 *
+	 * @param config the new configuration
+	 */
+	public static void init(Properties config) {
+		STORE.replace(Config.of(config));
+	}
+
+	/**
+	 * Gets a copy of the items of the current configuration of the tests (to modify and init again).
+	 *
 	 * @return the configuration items
 	 */
 	public static Properties properties() {
-		return Netshot.config().current().toProperties();
+		return STORE.current().toProperties();
 	}
 }

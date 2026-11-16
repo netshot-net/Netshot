@@ -35,6 +35,7 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaConstructorCall;
+import com.tngtech.archunit.core.domain.JavaField;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.domain.JavaModifier;
@@ -173,14 +174,40 @@ final class ArchitectureTest {
 			.allowEmptyShould(true);
 
 	/**
-	 * The configuration is given to the classes which read it (by constructor, or as an argument): only the entry point,
-	 * the composition root and the command line tools read the global configuration store.
+	 * Nothing depends on the entry point ({@code Netshot}: {@code main} and {@code agentmain}): the configuration
+	 * is given by the composition root, the facts of the process by {@code platform.runtime}.
 	 */
 	@ArchTest
-	static final ArchRule CONFIGURATION_IS_GIVEN_BY_THE_COMPOSITION_ROOT =
-		noClasses().that().resideOutsideOfPackages(ROOT + "boot..", ROOT + "tools..")
-			.and().doNotHaveFullyQualifiedName(ROOT + "Netshot")
-			.should().callMethod(net.netshot.netshot.Netshot.class, "config")
+	static final ArchRule NOTHING_DEPENDS_ON_THE_ENTRY_POINT =
+		noClasses().that().resideOutsideOfPackage(ROOT.substring(0, ROOT.length() - 1))
+			.should().dependOnClassesThat().haveFullyQualifiedName(ROOT + "Netshot")
+			.allowEmptyShould(true);
+
+	/**
+	 * No static access to the application: no static field holds the configuration, the object graph, the services
+	 * or the repositories (a static final reference to a mutable store is global state too). They are given by
+	 * constructor, from the composition root.
+	 */
+	@ArchTest
+	static final ArchRule NO_STATIC_ACCESS_TO_THE_APPLICATION =
+		fields().that().areStatic()
+			.should(new ArchCondition<JavaField>("not hold the configuration, the object graph, a service or a repository") {
+				@Override
+				public void check(JavaField field, ConditionEvents events) {
+					JavaClass type = field.getRawType();
+					boolean graph = type.isAssignableTo(ROOT + "platform.config.ConfigStore")
+						|| type.isAssignableTo(ROOT + "platform.config.Config")
+						|| type.isAssignableTo(ROOT + "boot.Wiring")
+						|| type.isAssignableTo(ROOT + "boot.Application")
+						|| type.isAssignableTo(ROOT + "platform.lifecycle.ServiceManager")
+						|| type.isAssignableTo(ROOT + "platform.lifecycle.Service")
+						|| type.getPackageName().startsWith(ROOT) && type.getSimpleName().endsWith("Repository");
+					if (graph) {
+						events.add(SimpleConditionEvent.violated(field, "%s is a static field of type %s"
+							.formatted(field.getFullName(), type.getName())));
+					}
+				}
+			})
 			.allowEmptyShould(true);
 
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */

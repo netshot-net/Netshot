@@ -30,9 +30,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * The sessions of Netshot on PostgreSQL run without JIT compilation (driver property {@code options}).
@@ -58,7 +58,7 @@ class DatabaseJitTest {
 	@Test
 	@DisplayName("The unpooled connections (schema update, locks, notifications) have JIT off")
 	void unpooledConnection() throws SQLException {
-		try (Connection connection = Database.openUnpooledConnection(Netshot.config().current())) {
+		try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current())) {
 			Assertions.assertEquals("off", jit(connection));
 		}
 	}
@@ -66,10 +66,10 @@ class DatabaseJitTest {
 	@Test
 	@DisplayName("An options parameter of the JDBC URL replaces the default one")
 	void urlOptions() throws SQLException {
-		String url = Database.getUrl(Netshot.config().current());
+		String url = Database.getUrl(TestConfig.store().current());
 		String withOptions = url + (url.contains("?") ? "&" : "?") + "options=-c%20jit%3Don";
 		try (Connection connection = DriverManager.getConnection(withOptions,
-				Database.connectionProperties(withOptions, Database.getUsername(Netshot.config().current()), Database.getPassword(Netshot.config().current())))) {
+				Database.connectionProperties(withOptions, Database.getUsername(TestConfig.store().current()), Database.getPassword(TestConfig.store().current())))) {
 			Assertions.assertEquals("on", jit(connection));
 		}
 	}

@@ -45,7 +45,7 @@ import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.testing.TestRepositories;
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests for the task execution flow of {@link TaskJob} when the task handler fails.
@@ -105,7 +105,7 @@ class TaskJobTest {
 			.<TaskHandler<?>>map(type -> throwingHandler(type.asSubclass(TaskSpec.class), exception))
 			.toList();
 		TaskJob taskJob = new TaskJob(TestWiring.get().transactions(), new TaskHandlers(handlers), TestWiring.get().domainEvents(), TestWiring.get().taskManager(),
-			TestRepositories.TASK, Netshot.config());
+			TestRepositories.TASK, TestConfig.store());
 		long id = TestTasks.add(TakeSnapshotTask.of(device, "test", "tester", false, true, true), Status.SCHEDULED).id();
 
 		Assertions.assertDoesNotThrow(() -> taskJob.runTask(id));

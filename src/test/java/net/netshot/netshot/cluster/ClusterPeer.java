@@ -35,8 +35,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.TestConfig;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
@@ -87,8 +87,8 @@ final class ClusterPeer implements AutoCloseable {
 	ClusterPeer(String instanceId, int masterPriority) throws SQLException {
 		this.instanceId = instanceId;
 		this.masterPriority = masterPriority;
-		this.listenConnection = Database.openUnpooledConnection(Netshot.config().current());
-		this.sendConnection = Database.openUnpooledConnection(Netshot.config().current());
+		this.listenConnection = Database.openUnpooledConnection(TestConfig.store().current());
+		this.sendConnection = Database.openUnpooledConnection(TestConfig.store().current());
 		try (Statement statement = this.listenConnection.createStatement()) {
 			statement.execute("LISTEN " + CHANNEL);
 		}

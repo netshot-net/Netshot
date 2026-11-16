@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.testing;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
 
@@ -41,7 +40,7 @@ public final class TestDrivers {
 	 */
 	public static synchronized DriverRegistry registry() {
 		if (registry == null) {
-			DriverRegistry loading = new DriverRegistry(new DriverLoader(Netshot.config()));
+			DriverRegistry loading = new DriverRegistry(new DriverLoader(TestConfig.store()));
 			try {
 				loading.refresh();
 			}

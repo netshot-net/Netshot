@@ -24,7 +24,6 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.support.AnnotationSupport;
 
-import net.netshot.netshot.TestConfig;
 
 /**
  * Extension of {@link ScriptEngineTest} and {@link SimulatorTest}: before the annotated class, sets an

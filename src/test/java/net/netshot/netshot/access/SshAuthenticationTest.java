@@ -31,7 +31,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessManager.Resolution;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -45,6 +44,7 @@ import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * The outcome of the SSH authentication: a rejected password is invalid credentials (the next credential set is tried), a
@@ -91,7 +91,7 @@ class SshAuthenticationTest {
 	}
 
 	private static Ssh ssh(String username, String password) {
-		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(Netshot.config().current()), "127.0.0.1", server.getPort(), username, password, new FakeTaskContext());
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1", server.getPort(), username, password, new FakeTaskContext());
 		ssh.setConnectionTimeout(TIMEOUT);
 		return ssh;
 	}

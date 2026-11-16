@@ -36,12 +36,12 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.protocol.SshConfig;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * The SSH client proposes the algorithms of the configuration of the access, and only them, from the first
@@ -94,7 +94,7 @@ class SshAlgorithmsTest {
 	 * @return the configuration
 	 */
 	private static SshConfig restrictedConfig() {
-		SshConfig config = new SshConfig(Ssh.Settings.from(Netshot.config().current()));
+		SshConfig config = new SshConfig(Ssh.Settings.from(TestConfig.store().current()));
 		config.setCiphers(new String[] { "aes128-ctr" });
 		config.setMacs(new String[] { "hmac-sha2-256" });
 		return config;
@@ -114,7 +114,7 @@ class SshAlgorithmsTest {
 	void connectionProposesTheConfiguredAlgorithms() throws Exception {
 		List<Map<KexProposalOption, String>> proposals = clientProposals(() -> {
 			for (int i = 0; i < 5; i++) {
-				Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(Netshot.config().current()), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin",
+				Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin",
 					new FakeTaskContext());
 				SshConfig config = new SshConfig();
 				config.setCiphers(new String[] { "aes128-ctr" });

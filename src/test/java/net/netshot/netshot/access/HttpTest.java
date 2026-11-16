@@ -43,8 +43,7 @@ import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.protocol.AuthScheme;
@@ -97,7 +96,7 @@ class HttpTest {
 	}
 
 	private Http newClient() throws IOException {
-		return new Http("127.0.0.1", this.port, false, Http.Settings.from(Netshot.config().current()), new FakeTaskContext(), SecretResolver.LOCAL);
+		return new Http("127.0.0.1", this.port, false, Http.Settings.from(TestConfig.store().current()), new FakeTaskContext(), SecretResolver.LOCAL);
 	}
 
 	@Test
@@ -170,7 +169,7 @@ class HttpTest {
 	@Test
 	@DisplayName("the configured host (FQDN or IP) is used as the request's Host, resolved by the HTTP client itself")
 	void configuredHostIsUsedAsRequestHost() throws IOException {
-		Http client = new Http("localhost", this.port, false, Http.Settings.from(Netshot.config().current()), new FakeTaskContext(), SecretResolver.LOCAL);
+		Http client = new Http("localhost", this.port, false, Http.Settings.from(TestConfig.store().current()), new FakeTaskContext(), SecretResolver.LOCAL);
 
 		HttpResult result = client.request("GET", "/status", null, null, null, null, null, null);
 
@@ -260,12 +259,12 @@ class HttpTest {
 	void httpsTrustPolicy() throws IOException {
 		Identity authority = TestTls.authority("Device CA");
 		try (TestTls.Server server = new TestTls.Server(TestTls.server(authority, "localhost"), "{\"status\": \"ok\"}")) {
-			Http byDefault = new Http("localhost", server.port(), true, Http.Settings.from(Netshot.config().current()), new FakeTaskContext(), SecretResolver.LOCAL);
+			Http byDefault = new Http("localhost", server.port(), true, Http.Settings.from(TestConfig.store().current()), new FakeTaskContext(), SecretResolver.LOCAL);
 			IOException e = Assertions.assertThrows(IOException.class,
 				() -> byDefault.request("GET", "/status", null, null, null, null, new HttpConfig(), null));
 			Assertions.assertNotNull(findSslException(e), "Not refused by TLS: " + e);
 
-			Http customCa = new Http("localhost", server.port(), true, Http.Settings.from(Netshot.config().current()), new FakeTaskContext(), SecretResolver.LOCAL);
+			Http customCa = new Http("localhost", server.port(), true, Http.Settings.from(TestConfig.store().current()), new FakeTaskContext(), SecretResolver.LOCAL);
 			customCa.applyTrustPolicy(HttpsCaTrustMode.CUSTOM_CA, authority.pem());
 			HttpResult result = customCa.request("GET", "/status", null, null, null, null, new HttpConfig(), null);
 			Assertions.assertEquals(200, result.getStatus());
@@ -282,7 +281,7 @@ class HttpTest {
 		TestConfig.init(config);
 		// The kernel completes the TCP handshake (backlog) but nothing ever reads or answers
 		try (ServerSocket silent = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
-			Http http = new Http("127.0.0.1", silent.getLocalPort(), false, Http.Settings.from(Netshot.config().current()), new FakeTaskContext(), SecretResolver.LOCAL);
+			Http http = new Http("127.0.0.1", silent.getLocalPort(), false, Http.Settings.from(TestConfig.store().current()), new FakeTaskContext(), SecretResolver.LOCAL);
 			IOException e = Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10),
 				() -> Assertions.assertThrows(IOException.class,
 					() -> http.request("GET", "/status", null, null, null, null, new HttpConfig(), null)));

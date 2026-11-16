@@ -30,8 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.UnitTest;
@@ -52,8 +51,8 @@ class OidcDiscoveryTest {
 		this.idpServer = new FakeOidcIdpServer(URI.create("http://127.0.0.1:%d/".formatted(TestNetwork.freePort())));
 		this.idpServer.registerClient("netshot", "secret", URI.create("http://localhost:8080/"));
 		this.idpServer.start();
-		this.oidc = new Oidc(Netshot.config());
-		this.discovery = new OidcDiscovery(this.oidc, Netshot.config());
+		this.oidc = new Oidc(TestConfig.store());
+		this.discovery = new OidcDiscovery(this.oidc, TestConfig.store());
 	}
 
 	@AfterEach

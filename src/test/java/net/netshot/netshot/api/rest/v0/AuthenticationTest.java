@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.MissingNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
@@ -51,7 +51,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestServer;
@@ -198,7 +197,7 @@ class AuthenticationTest {
 			UiUser user = UiUser.withPassword(testUsername, true, testUserLevel, oldPasswords.removeLast());
 			while (oldPasswords.size() > 0) {
 				try {
-					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.fromConfig(Netshot.config().current()));
+					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.fromConfig(TestConfig.store().current()));
 				}
 				catch (PasswordPolicyException e) {
 					// Ignore

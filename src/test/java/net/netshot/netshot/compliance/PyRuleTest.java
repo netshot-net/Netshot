@@ -23,8 +23,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
@@ -54,8 +53,8 @@ class PyRuleTest {
 	@BeforeAll
 	static void initNetshot() throws Exception {
 		originalConfig = TestConfig.properties();
-		pyRuntime = new PyRuleRuntime(Netshot.config());
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), pyRuntime, TestDrivers.registry(), null);
+		pyRuntime = new PyRuleRuntime(TestConfig.store());
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), pyRuntime, TestDrivers.registry(), null);
 	}
 
 	@AfterEach

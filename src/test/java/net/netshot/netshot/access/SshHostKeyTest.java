@@ -42,7 +42,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessManager.Resolution;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -58,6 +57,7 @@ import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * The verification of the SSH host keys on real connections, against an SSH server on the loopback interface
@@ -152,7 +152,7 @@ class SshHostKeyTest {
 	}
 
 	private static Ssh ssh(int port, String password, DeviceHostKeyVerifier verifier) {
-		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(Netshot.config().current()), "127.0.0.1", port, "admin", password, new FakeTaskContext());
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1", port, "admin", password, new FakeTaskContext());
 		ssh.setConnectionTimeout(5000);
 		ssh.setHostKeyVerifier(verifier);
 		return ssh;

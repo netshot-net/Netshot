@@ -38,8 +38,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.aaa.auth.OidcDiscovery;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
@@ -198,7 +197,7 @@ class V1AuthenticationTest {
 			this.idpServer.registerClient(CLIENT_ID, CLIENT_SECRET, java.net.URI.create(REDIRECT_URI));
 			this.idpServer.start();
 			this.setJwt(false, null);
-			this.oidcDiscovery = new OidcDiscovery(TestWiring.get().oidc(), Netshot.config());
+			this.oidcDiscovery = new OidcDiscovery(TestWiring.get().oidc(), TestConfig.store());
 			this.oidcDiscovery.start();
 			// Wait for the discovery daemon to fetch the IdP metadata, instead of a fixed
 			// sleep: the daemon retries only every 30s (netshot.aaa.oidc.idp.retryinterval)
