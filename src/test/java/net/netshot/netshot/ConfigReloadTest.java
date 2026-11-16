@@ -96,7 +96,7 @@ class ConfigReloadTest {
 			Collector.settings().clusterIpOverrides().get(InetAddress.getByName("10.0.0.1")));
 		Assertions.assertEquals(2222, new VaultManager(Netshot.config(), _ -> null).settings().httpReadTimeoutMs());
 		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.settings().storageFolderPath());
-		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.settings().venvFolder());
+		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.Settings.from(Netshot.config().current()).venvFolder());
 
 		reload(Map.of());
 		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory());
@@ -105,7 +105,7 @@ class ConfigReloadTest {
 		Assertions.assertEquals(60000, Telnet.settings().receiveTimeout());
 		Assertions.assertTrue(Collector.settings().clusterIpOverrides().isEmpty());
 		Assertions.assertEquals(10000, new VaultManager(Netshot.config(), _ -> null).settings().httpReadTimeoutMs());
-		Assertions.assertNull(PythonFileSystem.settings().venvFolder());
+		Assertions.assertNull(PythonFileSystem.Settings.from(Netshot.config().current()).venvFolder());
 	}
 
 	@Test

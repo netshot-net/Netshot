@@ -102,6 +102,9 @@ public class PyRuleRuntime {
 	/** The settings, from the configuration. */
 	private final ConfigStore.Binding<Settings> settings;
 
+	/** The settings of the Python file system, from the configuration. */
+	private final ConfigStore.Binding<PythonFileSystem.Settings> fileSystemSettings;
+
 	/** Rule loader Python source. */
 	@Getter
 	private final Source loaderSource = readLoaderSource();
@@ -113,6 +116,7 @@ public class PyRuleRuntime {
 	 */
 	public PyRuleRuntime(ConfigStore config) {
 		this.settings = config.bind(Settings::from);
+		this.fileSystemSettings = config.bind(PythonFileSystem.Settings::from);
 	}
 
 	/**
@@ -186,7 +190,7 @@ public class PyRuleRuntime {
 		Settings current = this.settings.get();
 		IOAccess.Builder accessBuilder = IOAccess.newBuilder();
 		if (current.fileSystemFilter()) {
-			accessBuilder.fileSystem(PythonFileSystem.newRestrictedFileSystem());
+			accessBuilder.fileSystem(PythonFileSystem.newRestrictedFileSystem(this.fileSystemSettings.get()));
 		}
 		else {
 			log.info("Python VM, file system filter is disabled (this is not secure)");
@@ -226,7 +230,7 @@ public class PyRuleRuntime {
 		}
 		builder.allowIO(accessBuilder.build());
 
-		String venvFolder = PythonFileSystem.settings().venvFolder();
+		String venvFolder = this.fileSystemSettings.get().venvFolder();
 		if (venvFolder != null) {
 			builder
 				.option("python.Executable", venvFolder + "/bin/graalpy")

@@ -26,7 +26,6 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
@@ -38,6 +37,7 @@ import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.task.type.DeviceBasedTask;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * A Quartz job which runs a Netshot task.
@@ -64,6 +64,7 @@ public class TaskJob implements Job {
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final ConfigStore config;
 
 	/**
 	 * Creates the job.
@@ -73,14 +74,16 @@ public class TaskJob implements Job {
 	 * @param domainEvents where the end of the tasks is published
 	 * @param taskManager the task manager (locks, clustering, repetition of the tasks)
 	 * @param repository the task repository
+	 * @param config the configuration store
 	 */
 	public TaskJob(Transactions transactions, TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager,
-		TaskRepository repository) {
+		TaskRepository repository, ConfigStore config) {
 		this.transactions = transactions;
 		this.handlers = handlers;
 		this.domainEvents = domainEvents;
 		this.taskManager = taskManager;
 		this.repository = repository;
+		this.config = config;
 	}
 
 	/*(non-Javadoc)
@@ -154,7 +157,7 @@ public class TaskJob implements Job {
 		else {
 			run.logger.info("Waiting for the device to be released by task {}.", holderTaskId);
 		}
-		int pollInterval = Netshot.config().current().get(DEVICE_LOCK_POLL_INTERVAL);
+		int pollInterval = this.config.current().get(DEVICE_LOCK_POLL_INTERVAL);
 		long startTime = System.currentTimeMillis();
 		while (true) {
 			Thread.sleep(pollInterval);

@@ -34,7 +34,6 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
@@ -63,10 +62,13 @@ import net.netshot.netshot.platform.script.JsUtils;
 public final class SnapshotDeviceScript extends DeviceScript {
 
 	/** Folder to dump the configurations into, after each snapshot. */
-	static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
+	public static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
 
 	/** The embedded SSH server, where the devices upload files (null if not running). */
 	private final SshServer sshServer;
+
+	/** The folder to write the configurations to (null for none). */
+	private final String dumpFolder;
 
 	/**
 	 * Creates the snapshot script.
@@ -75,10 +77,14 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if not running)
 	 * @param logger the task logger
+	 * @param dumpFolder the folder to write the configurations to, null to write them nowhere
+	 *        ({@code netshot.snapshots.dump})
 	 */
-	public SnapshotDeviceScript(DriverRegistry driverRegistry, Connectors connectors, SshServer sshServer, TaskContext logger) {
+	public SnapshotDeviceScript(DriverRegistry driverRegistry, Connectors connectors, SshServer sshServer, TaskContext logger,
+		String dumpFolder) {
 		super(driverRegistry, connectors, logger);
 		this.sshServer = sshServer;
+		this.dumpFolder = dumpFolder;
 	}
 
 	/**
@@ -87,13 +93,13 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param config = the config
 	 */
 	protected void dumpConfig(DeviceDraft device, ConfigDraft config) {
-		String path = Netshot.config().current().get(DUMP_PATH);
+		String path = this.dumpFolder;
 		if (path != null) {
 			// The device name is reported by the device itself, it must not be able to escape the dump folder
-			Path dumpFolder = Paths.get(path).toAbsolutePath().normalize();
+			Path folder = Paths.get(path).toAbsolutePath().normalize();
 			String fileName = Objects.toString(device.getName(), "").replaceAll("[/\\\\\\x00]", "_");
-			Path dumpFile = dumpFolder.resolve(fileName).normalize();
-			if (fileName.isEmpty() || !dumpFolder.equals(dumpFile.getParent())) {
+			Path dumpFile = folder.resolve(fileName).normalize();
+			if (fileName.isEmpty() || !folder.equals(dumpFile.getParent())) {
 				log.warn("Invalid device name '{}' to dump the configuration into the dump folder.", device.getName());
 				this.taskContext.warn("Unable to write the configuration to a file: invalid device name.");
 				return;

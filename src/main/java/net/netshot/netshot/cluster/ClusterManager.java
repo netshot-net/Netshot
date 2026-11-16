@@ -68,6 +68,7 @@ import net.netshot.netshot.task.engine.ClusterCoordinator;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.platform.config.ConfigStore;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
@@ -138,6 +139,9 @@ public class ClusterManager implements Service, ClusterCoordinator {
 
 	/** The timers. */
 	private final Timers timers;
+
+	/** The configuration store. */
+	private final ConfigStore config;
 
 	/** Whether a driver reload was just requested. */
 	private boolean driverReloadRequested;
@@ -290,19 +294,23 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 * @param taskManager the task manager
 	 * @param vaultManager the Vault client (its caches are invalidated on request of the other members)
+	 * @param config the configuration store
 	 */
-	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager, VaultManager vaultManager) {
-		this(LocalNode.of(driverRegistry, autoSnapshotScheduler, taskManager, vaultManager), Timers.DEFAULT);
+	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager, VaultManager vaultManager,
+		ConfigStore config) {
+		this(LocalNode.of(driverRegistry, autoSnapshotScheduler, taskManager, vaultManager), config, Timers.DEFAULT);
 	}
 
 	/**
 	 * Constructor.
 	 *
 	 * @param node what the cluster manager drives on the local node
+	 * @param config the configuration store
 	 * @param timers the timers
 	 */
-	ClusterManager(LocalNode node, Timers timers) {
+	ClusterManager(LocalNode node, ConfigStore config, Timers timers) {
 		this.node = node;
+		this.config = config;
 		this.timers = timers;
 		ObjectMapper jsonMapper = new ObjectMapper();
 		this.jsonReader = jsonMapper.readerWithView(ClusteringView.class);
@@ -318,12 +326,12 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	 */
 	private void initLocalMember() {
 		String jvmVersion = System.getProperty("java.vm.version");
-		Config config = Netshot.config().current();
-		int masterPriority = config.get(MASTER_PRIORITY);
-		int runnerPriority = config.get(RUNNER_PRIORITY);
-		int runnerWeight = config.get(RUNNER_WEIGHT);
+		Config current = this.config.current();
+		int masterPriority = current.get(MASTER_PRIORITY);
+		int runnerPriority = current.get(RUNNER_PRIORITY);
+		int runnerWeight = current.get(RUNNER_WEIGHT);
 
-		String localId = config.get(ID);
+		String localId = current.get(ID);
 		if (localId != null) {
 			// First option: configured ID
 			if (!localId.matches("^[0-9a-z]{20}$")) {
@@ -334,7 +342,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		if (localId == null) {
 			// Second option: based on MAC address and HTTP port (read from the configuration,
 			// the HTTP server isn't started yet)
-			final int restPort = HttpServerAddress.fromConfig().port();
+			final int restPort = HttpServerAddress.fromConfig(current).port();
 			try {
 				InetAddress mainAddress = InetAddress.getLocalHost();
 				NetworkInterface networkInterface = NetworkInterface.getByInetAddress(mainAddress);

@@ -33,6 +33,7 @@ import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.Netshot;
 
 @DatabaseTest
 @DisplayName("Web/REST server service")
@@ -46,7 +47,7 @@ class RestServerTest {
 		config.setProperty("netshot.http.ssl.enabled", "false");
 		config.setProperty("netshot.http.baseurl", "http://127.0.0.1:%d".formatted(port));
 		TestConfig.init(config);
-		RestServer server = new RestServer(TestWiring.get().binder());
+		RestServer server = new RestServer(TestWiring.get().binder(), Netshot.config());
 		Assertions.assertFalse(server.isHealthy());
 		server.start();
 		try {

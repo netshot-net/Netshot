@@ -62,7 +62,7 @@ class TaskHandlersTest {
 			new RunGroupDiagnosticsHandler(null, null, null, null),
 			new ScanSubnetsHandler(null, null, null),
 			new TakeGroupSnapshotHandler(null, null, null, null),
-			new TakeSnapshotHandler(null, null, null, null, null, null, null, null)));
+			new TakeSnapshotHandler(null, null, null, null, null, null, null, null, null)));
 	}
 
 	@Test

@@ -252,7 +252,7 @@ public final class Wiring {
 		TaskSubmitter taskSubmitter = this.taskManager::addTask;
 		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots, deviceRepository);
 		if (clustered) {
-			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager, this.vaultManager);
+			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager, this.vaultManager, config);
 			this.taskManager.setCluster(this.clusterManager);
 		}
 		else {
@@ -319,7 +319,7 @@ public final class Wiring {
 		this.domainEvents = new DomainEvents();
 		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
 		// Task handlers
-		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask, taskRepository);
+		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask, taskRepository, config);
 		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
 		this.sshClientService = new SshClientService(config);
 		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), deviceReads);
@@ -340,8 +340,8 @@ public final class Wiring {
 			new ScanSubnetsHandler(this.transactions, childTaskOrchestrator, credentialSetRepository),
 			new TakeGroupSnapshotHandler(this.transactions, childTaskOrchestrator, deviceRepository, groupRepository),
 			new TakeSnapshotHandler(this.transactions, this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
-				connectors, deviceRepository)));
-		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager, taskRepository);
+				connectors, deviceRepository, config)));
+		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager, taskRepository, config);
 		this.taskManager.setJobFactory(this.taskJobFactory);
 		// Background services
 		this.oidcDiscovery = new OidcDiscovery(this.oidc, config);
@@ -349,7 +349,7 @@ public final class Wiring {
 		this.syslogServer = config.current().get(SyslogServer.DISABLED) ? null
 			: new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.snmpTrapReceiver = new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
-		this.restServer = config.current().get(RestServer.ENABLED) ? new RestServer(this.binder()) : null;
+		this.restServer = config.current().get(RestServer.ENABLED) ? new RestServer(this.binder(), config) : null;
 	}
 
 	/**
@@ -358,7 +358,7 @@ public final class Wiring {
 	 * @return the new wiring
 	 */
 	public static synchronized Wiring init() {
-		return init(new DriverRegistry(new DriverLoader()));
+		return init(new DriverRegistry(new DriverLoader(Netshot.config())));
 	}
 
 	/**
@@ -381,7 +381,7 @@ public final class Wiring {
 	 * @return the new wiring
 	 */
 	public static synchronized Wiring create(ConfigStore config) {
-		return new Wiring(new DriverRegistry(new DriverLoader()), config);
+		return new Wiring(new DriverRegistry(new DriverLoader(config)), config);
 	}
 
 	/**
