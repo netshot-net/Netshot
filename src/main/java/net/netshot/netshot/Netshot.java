@@ -29,11 +29,10 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.help.HelpFormatter;
-import org.slf4j.MarkerFactory;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.boot.LoggingSetup;
-import net.netshot.netshot.boot.NetshotSettings;
+import net.netshot.netshot.boot.Bootstrap;
+import net.netshot.netshot.boot.BootstrapException;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
@@ -41,8 +40,6 @@ import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.platform.runtime.AgentInstrumentation;
 import net.netshot.netshot.platform.runtime.BuildInfo;
-import net.netshot.netshot.platform.tls.BouncyCastleLoader;
-import net.netshot.netshot.platform.tls.Truststore;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -54,9 +51,6 @@ import sun.misc.SignalHandler;
 @Slf4j
 public class Netshot {
 
-	/** The list of configuration files to look at, in sequence. */
-	private static final String[] CONFIG_FILENAMES = new String[] {
-		"netshot.conf", "/etc/netshot.conf"};
 
 	/** The application configuration (the current snapshot, replaced as a whole on a reload). */
 	private static final ConfigStore CONFIG = new ConfigStore(Config.empty());
@@ -79,7 +73,7 @@ public class Netshot {
 	 * @return true, if successful
 	 */
 	public static boolean readConfig() {
-		return readConfig(Netshot.CONFIG_FILENAMES);
+		return readConfig(Bootstrap.DEFAULT_FILES.toArray(String[]::new));
 	}
 
 	/**
@@ -113,22 +107,6 @@ public class Netshot {
 	protected static boolean initConfig(Properties newConfig) {
 		CONFIG.replace(Config.of(newConfig));
 		return true;
-	}
-
-	/**
-	 * Check the JVM name and print a warning message if it's not GraalVM.
-	 */
-	protected static void checkJvm() {
-		final String vendorVersion = System.getProperty("java.vendor.version"); // e.g. Oracle GraalVM 25.0.4+7.1
-		final String vendor = System.getProperty("java.vendor"); // e.g. Oracle Corporation
-		final String version = System.getProperty("java.vm.version"); // e.g. 25.0.4+7-LTS-jvmci-b01
-		log.warn("Running on JVM: {}", vendorVersion);
-		if (!vendorVersion.matches(".*GraalVM.*")) {
-			log.error("The current JVM vendor version '{}' by '{}' doesn't look like GraalVM, Netshot might not work properly.", vendorVersion, vendor);
-		}
-		if (!version.matches("^25\\..*")) {
-			log.error("The JVM version '{}' doesn't look like version 25, Netshot might not work properly.", version);
-		}
 	}
 
 	/**
@@ -173,58 +151,22 @@ public class Netshot {
 		System.out.println(String.format("Starting Netshot version %s.", BuildInfo.VERSION));
 		log.info("Starting Netshot");
 
-		final String[] configFileNames;
+		final List<String> configFiles;
 		String configFilename = commandLine.getOptionValue("c");
 		if (configFilename == null) {
-			configFileNames = Netshot.CONFIG_FILENAMES;
+			configFiles = Bootstrap.DEFAULT_FILES;
 		}
 		else {
-			configFileNames = new String[] { configFilename };
+			configFiles = List.of(configFilename);
 		}
 
-		// The crypto libraries are registered before anything initializes the SSH library, which checks the
-		// available crypto providers (EdDSA, X25519...) only once. Building the catalog of the settings initializes
-		// the classes which declare them, the SSH ones included: the settings of the crypto libraries are read from
-		// a first load of the configuration, without catalog (without the secrets), then the configuration is loaded
-		// again with the catalog.
-		if (!Netshot.readConfig(configFileNames)) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
-			System.exit(1);
-		}
-		if (!LoggingSetup.apply(CONFIG.current())) {
-			System.exit(1);
-		}
 		try {
-			log.info("Registering crypto libraries");
-			BouncyCastleLoader.registerBouncyCastle(CONFIG.current());
-		}
-		catch (Exception e) {
-			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
-			e.printStackTrace();
-			System.exit(1);
-		}
-		CONFIG.setCatalog(NetshotSettings.catalog());
-		if (!Netshot.readConfig(configFileNames)) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
-			System.exit(1);
-		}
-		if (!LoggingSetup.apply(CONFIG.current())) {
-			System.exit(1);
-		}
-		// Applied again on each configuration change (first, so that the other changes are logged accordingly)
-		CONFIG.addListener(LoggingSetup::apply);
-		CONFIG.catalog().warnUnknownItems(CONFIG.current());
-
-		try {
-			log.info("Checking current JVM.");
-			Netshot.checkJvm();
-			log.info("Selecting truststore.");
-			Truststore.apply(CONFIG.current());
+			ConfigStore config = Bootstrap.load(configFiles);
 
 			log.info("Updating the database schema, if necessary.");
-			Database.update(CONFIG.current());
+			Database.update(config.current());
 
-			Wiring wiring = Wiring.create(CONFIG);
+			Wiring wiring = Wiring.create(config);
 			ServiceManager services = new ServiceManager(wiring.services());
 			wiring.serviceHealthService().attach(services);
 			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
@@ -236,11 +178,18 @@ public class Netshot {
 				@Override
 				public void handle(Signal sig) {
 					// The components are notified of the change by the configuration store
-					Netshot.reloadConfig(configFileNames);
+					config.reload(() -> Config.load(configFiles));
 				}
 			});
 			log.warn("Netshot is started");
 
+		}
+		catch (BootstrapException e) {
+			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
+			if (e.getCause() != null) {
+				e.printStackTrace();
+			}
+			System.exit(1);
 		}
 		catch (Exception e) {
 			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
