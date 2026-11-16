@@ -839,7 +839,7 @@ public class DemoDataCreator {
 		Wiring wiring = null;
 		try {
 			log.info("Updating the database schema, if necessary.");
-			Database.update();
+			Database.update(Netshot.config().current());
 			log.info("Initializing access to the database.");
 			wiring = Wiring.init();
 		}

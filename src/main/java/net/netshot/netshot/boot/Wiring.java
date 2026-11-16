@@ -219,7 +219,7 @@ public final class Wiring {
 	 * @param config the configuration store
 	 */
 	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
-		this.database = new DatabaseService();
+		this.database = new DatabaseService(config);
 		this.transactions = new Transactions(this.database);
 		// Repositories (stateless: one of each, shared)
 		ConfigRepository configRepository = new ConfigRepository();
@@ -246,7 +246,7 @@ public final class Wiring {
 		this.vaultManager = new VaultManager(config, this.transactions, vaultInstanceRepository);
 		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
-		this.lockManager = TaskLockManager.create(clustered);
+		this.lockManager = TaskLockManager.create(clustered, config);
 		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
 		this.taskManager = new TaskManager(this.transactions, config, autoSnapshots, this.lockManager, taskRepository);
 		TaskSubmitter taskSubmitter = this.taskManager::addTask;

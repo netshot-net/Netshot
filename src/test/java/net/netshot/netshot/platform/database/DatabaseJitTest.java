@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestWiring;
 
@@ -57,7 +58,7 @@ class DatabaseJitTest {
 	@Test
 	@DisplayName("The unpooled connections (schema update, locks, notifications) have JIT off")
 	void unpooledConnection() throws SQLException {
-		try (Connection connection = Database.openUnpooledConnection()) {
+		try (Connection connection = Database.openUnpooledConnection(Netshot.config().current())) {
 			Assertions.assertEquals("off", jit(connection));
 		}
 	}
@@ -65,10 +66,10 @@ class DatabaseJitTest {
 	@Test
 	@DisplayName("An options parameter of the JDBC URL replaces the default one")
 	void urlOptions() throws SQLException {
-		String url = Database.getUrl();
+		String url = Database.getUrl(Netshot.config().current());
 		String withOptions = url + (url.contains("?") ? "&" : "?") + "options=-c%20jit%3Don";
 		try (Connection connection = DriverManager.getConnection(withOptions,
-				Database.connectionProperties(withOptions, Database.getUsername(), Database.getPassword()))) {
+				Database.connectionProperties(withOptions, Database.getUsername(Netshot.config().current()), Database.getPassword(Netshot.config().current())))) {
 			Assertions.assertEquals("on", jit(connection));
 		}
 	}

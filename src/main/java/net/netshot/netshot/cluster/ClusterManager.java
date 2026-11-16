@@ -58,6 +58,7 @@ import net.netshot.netshot.cluster.messages.VaultInstanceChangedMessage;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.http.HttpServerAddress;
@@ -65,10 +66,9 @@ import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.engine.ClusterCoordinator;
-import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
+import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.vault.VaultManager;
-import net.netshot.netshot.platform.config.ConfigStore;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
@@ -601,7 +601,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 				// Stopping
 				break;
 			}
-			try (Connection dbConnection = Database.openUnpooledConnection()) {
+			try (Connection dbConnection = Database.openUnpooledConnection(this.config.current())) {
 				PGConnection pgConnection = dbConnection.unwrap(PGConnection.class);
 
 				try (Statement listenStatement = dbConnection.createStatement()) {
