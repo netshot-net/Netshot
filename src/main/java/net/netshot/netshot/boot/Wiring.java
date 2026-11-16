@@ -294,11 +294,12 @@ public final class Wiring {
 		// AAA and system
 		this.oidc = new Oidc(config);
 		this.tacacs = new Tacacs(config);
-		this.userService = new UserService(this.transactions, userRepository);
+		this.userService = new UserService(this.transactions, userRepository, config);
 		this.apiTokenService = new ApiTokenService(this.transactions, new ApiTokenRepository());
-		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs));
+		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs),
+			config);
 		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
-		this.serverInfoService = new ServerInfoService();
+		this.serverInfoService = new ServerInfoService(config);
 		this.serviceHealthService = new ServiceHealthService();
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, diagnosticRepository, diagnosticResultRepository, groupRepository);

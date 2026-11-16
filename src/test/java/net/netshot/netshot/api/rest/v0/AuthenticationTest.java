@@ -35,7 +35,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.MissingNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
@@ -44,6 +43,7 @@ import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.platform.database.schema.Tables;
+import net.netshot.netshot.testing.TestWiring;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -51,12 +51,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.testing.ApiTest;
-import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.api.v0.V0Client;
 import net.netshot.netshot.testing.api.v0.V0Client.WrongApiResponseException;
+import net.netshot.netshot.testing.api.v0.V0Client;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import org.junit.jupiter.api.BeforeEach;
 
 /**
@@ -197,7 +198,7 @@ class AuthenticationTest {
 			UiUser user = UiUser.withPassword(testUsername, true, testUserLevel, oldPasswords.removeLast());
 			while (oldPasswords.size() > 0) {
 				try {
-					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.getMainPolicy());
+					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.fromConfig(Netshot.config().current()));
 				}
 				catch (PasswordPolicyException e) {
 					// Ignore

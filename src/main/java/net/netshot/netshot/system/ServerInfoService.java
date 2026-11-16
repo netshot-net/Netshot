@@ -20,6 +20,7 @@ package net.netshot.netshot.system;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * Gives the general information about the running server. The values are read on each call,
@@ -27,12 +28,24 @@ import net.netshot.netshot.aaa.user.UiUser;
  */
 public class ServerInfoService {
 
+	/** The configuration store. */
+	private final ConfigStore config;
+
+	/**
+	 * Instantiates the service.
+	 *
+	 * @param config the configuration store (the maximum idle time of the sessions)
+	 */
+	public ServerInfoService(ConfigStore config) {
+		this.config = config;
+	}
+
 	/**
 	 * Gets the server information.
 	 *
 	 * @return the server information
 	 */
 	public ServerInfo get() {
-		return new ServerInfo(Netshot.VERSION, UiUser.settings().maxIdleTime());
+		return new ServerInfo(Netshot.VERSION, UiUser.Settings.from(this.config.current()).maxIdleTime());
 	}
 }

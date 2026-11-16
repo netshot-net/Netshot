@@ -34,6 +34,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
@@ -114,8 +115,8 @@ class LoginServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.users = new UserService(this.transactions, this.repository);
-		this.service = new LoginService(this.transactions, this.repository, this.remote);
+		this.users = new UserService(this.transactions, this.repository, Netshot.config());
+		this.service = new LoginService(this.transactions, this.repository, this.remote, Netshot.config());
 	}
 
 	@BeforeEach
@@ -227,7 +228,7 @@ class LoginServiceTest {
 
 		UiUser result = this.service.authenticate(new LoginAttempt(name, PASSWORD, "New-passw0rd", null, null, ADDRESS));
 		Assertions.assertNotNull(result);
-		this.reload(name).checkPassword("New-passw0rd", PasswordPolicy.getMainPolicy());
+		this.reload(name).checkPassword("New-passw0rd", PasswordPolicy.fromConfig(Netshot.config().current()));
 		Assertions.assertNotNull(this.service.authenticate(password(name, "New-passw0rd")));
 	}
 
@@ -239,7 +240,7 @@ class LoginServiceTest {
 		NetshotException failed = assertError(ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY,
 			() -> this.service.authenticate(new LoginAttempt(name, PASSWORD, "short", null, null, ADDRESS)));
 		Assertions.assertTrue(failed.getMessage().startsWith("The password doesn't match the defined policy"), failed.getMessage());
-		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.getMainPolicy());
+		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.fromConfig(Netshot.config().current()));
 	}
 
 	@Test
@@ -248,7 +249,7 @@ class LoginServiceTest {
 		UiUser user = this.createLocal(User.LEVEL_READONLY);
 		String name = user.username();
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(name, "wrong", "New-passw0rd", null, null, ADDRESS)));
-		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.getMainPolicy());
+		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.fromConfig(Netshot.config().current()));
 	}
 
 	@Test

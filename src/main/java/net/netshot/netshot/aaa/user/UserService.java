@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
@@ -51,16 +52,20 @@ public class UserService {
 
 	private final Transactions transactions;
 	private final UserRepository repository;
+	/** The password policy of the local users, from the configuration. */
+	private final ConfigStore.Binding<PasswordPolicy> passwordPolicy;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the user queries
+	 * @param config the configuration store (the password policy)
 	 */
-	public UserService(Transactions transactions, UserRepository repository) {
+	public UserService(Transactions transactions, UserRepository repository, ConfigStore config) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.passwordPolicy = config.bind(PasswordPolicy::fromConfig);
 	}
 
 	/**
@@ -143,7 +148,7 @@ public class UserService {
 		if (creation.local()) {
 			try {
 				valid = new UiUser(0, 0, null, username, true, creation.level(), null, List.of(), null)
-					.withPassword(password, PasswordPolicy.getMainPolicy());
+					.withPassword(password, this.passwordPolicy.get());
 			}
 			catch (PasswordPolicyException e) {
 				log.warn("New user password doesn't comply with password policy.", e);
@@ -214,7 +219,7 @@ public class UserService {
 					}
 					else {
 						try {
-							edited = edited.withPassword(update.password(), PasswordPolicy.getMainPolicy());
+							edited = edited.withPassword(update.password(), this.passwordPolicy.get());
 						}
 						catch (PasswordPolicyException e) {
 							log.error("New user password doesn't comply with password policy.", e);
@@ -295,7 +300,7 @@ public class UserService {
 				UiUser existing = this.repository.find(dsl, found.id());
 
 				try {
-					existing.checkPassword(password, PasswordPolicy.getMainPolicy());
+					existing.checkPassword(password, this.passwordPolicy.get());
 				}
 				catch (WrongPasswordException e) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_PASSWORD, "Invalid current password.");
@@ -310,7 +315,7 @@ public class UserService {
 
 				UiUser changed;
 				try {
-					changed = existing.withPassword(newPassword, PasswordPolicy.getMainPolicy());
+					changed = existing.withPassword(newPassword, this.passwordPolicy.get());
 				}
 				catch (PasswordPolicyException e) {
 					log.error("New user password doesn't comply with password policy.", e);
