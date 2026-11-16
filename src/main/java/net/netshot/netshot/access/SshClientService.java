@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
@@ -41,6 +42,7 @@ import org.apache.sshd.core.CoreModuleProperties;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.runtime.BuildInfo;
+import net.netshot.netshot.platform.config.Config;
 
 /**
  * The SSH client shared by the SSH accesses to the devices ({@link Ssh}): built with the settings of
@@ -59,6 +61,9 @@ public final class SshClientService implements Service {
 
 	/** The configuration store. */
 	private final ConfigStore config;
+
+	/** Applies the settings on each configuration change (while the service runs). */
+	private final Consumer<Config> listener = _ -> this.applySettings();
 
 	/**
 	 * Builds the client (not started).
@@ -113,8 +118,6 @@ public final class SshClientService implements Service {
 			}
 		});
 		this.applySettings();
-		// Applied again on each configuration change
-		config.addListener(_ -> this.applySettings());
 	}
 
 	/**
@@ -150,11 +153,15 @@ public final class SshClientService implements Service {
 
 	@Override
 	public void start() {
+		// The settings are applied again on each configuration change
+		this.applySettings();
+		this.config.addListener(this.listener);
 		this.client.start();
 	}
 
 	@Override
 	public void stop() {
+		this.config.removeListener(this.listener);
 		this.client.stop();
 	}
 

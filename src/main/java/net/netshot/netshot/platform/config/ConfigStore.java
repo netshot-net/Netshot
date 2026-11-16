@@ -146,7 +146,7 @@ public final class ConfigStore {
 	 * @param loader the loader
 	 * @return true if the configuration was loaded
 	 */
-	public boolean load(Loader loader) {
+	public synchronized boolean load(Loader loader) {
 		Config config;
 		try {
 			config = this.check(loader.load());
@@ -166,7 +166,7 @@ public final class ConfigStore {
 	 * @param loader the loader
 	 * @return true if the configuration was reloaded
 	 */
-	public boolean reload(Loader loader) {
+	public synchronized boolean reload(Loader loader) {
 		Config config;
 		try {
 			config = this.check(loader.load());
@@ -193,7 +193,7 @@ public final class ConfigStore {
 	 *
 	 * @param config the new configuration
 	 */
-	public void replace(Config config) {
+	public synchronized void replace(Config config) {
 		this.current = Objects.requireNonNull(config);
 		List<Binding<?>> toRefresh;
 		synchronized (this.bindings) {

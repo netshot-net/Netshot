@@ -148,4 +148,34 @@ class ConfigStoreTest {
 			CATALOG.unknownKeys(config));
 		Assertions.assertEquals(Set.of(), SettingCatalog.EMPTY.unknownKeys(config), "Nothing is checked without catalog");
 	}
+
+	@Test
+	@DisplayName("Concurrent reloads are run one at a time, listeners included")
+	void reloadsAreSerialized() throws Exception {
+		ConfigStore store = new ConfigStore(Config.empty());
+		AtomicInteger running = new AtomicInteger();
+		AtomicInteger overlaps = new AtomicInteger();
+		store.addListener(_ -> {
+			if (running.incrementAndGet() > 1) {
+				overlaps.incrementAndGet();
+			}
+			try {
+				Thread.sleep(50);
+			}
+			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+			running.decrementAndGet();
+		});
+		List<Thread> threads = new ArrayList<>();
+		for (int i = 0; i < 4; i++) {
+			Thread thread = Thread.ofVirtual().unstarted(() -> store.reload(() -> Config.of(new Properties())));
+			threads.add(thread);
+			thread.start();
+		}
+		for (Thread thread : threads) {
+			thread.join();
+		}
+		Assertions.assertEquals(0, overlaps.get());
+	}
 }
