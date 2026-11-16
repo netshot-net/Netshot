@@ -30,13 +30,10 @@ import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.auth.OidcDiscovery;
 import net.netshot.netshot.aaa.auth.Radius;
 import net.netshot.netshot.aaa.auth.Tacacs;
-import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
-import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.access.AccessSettings;
 import net.netshot.netshot.access.Connectors;
-import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.access.SshClientService;
 import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
@@ -46,40 +43,26 @@ import net.netshot.netshot.api.hook.WebHookSender;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterService;
-import net.netshot.netshot.compliance.HardwareRuleRepository;
 import net.netshot.netshot.compliance.HardwareRuleService;
-import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.check.ComplianceChecker;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
-import net.netshot.netshot.credentials.CredentialSetAssembler;
-import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSetService;
-import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
-import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.domain.DomainService;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.hook.HookRepository;
 import net.netshot.netshot.hook.HookService;
-import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
-import net.netshot.netshot.inventory.device.DeviceInventoryRepository;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
-import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
-import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.config.ConfigStore;
@@ -87,7 +70,6 @@ import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.report.ReportRepository;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.system.ServiceHealthService;
@@ -95,7 +77,6 @@ import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.TaskHandlers;
-import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
@@ -114,13 +95,10 @@ import net.netshot.netshot.task.handler.RunGroupDiagnosticsHandler;
 import net.netshot.netshot.task.handler.ScanSubnetsHandler;
 import net.netshot.netshot.task.handler.TakeGroupSnapshotHandler;
 import net.netshot.netshot.task.handler.TakeSnapshotHandler;
-import net.netshot.netshot.userscript.ScriptRepository;
 import net.netshot.netshot.userscript.ScriptService;
-import net.netshot.netshot.vault.VaultInstanceRepository;
 import net.netshot.netshot.vault.VaultInstanceService;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultTokenRefresher;
-import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 import net.netshot.netshot.platform.database.LocalSecretConverter;
 import net.netshot.netshot.platform.database.Database;
 
@@ -144,6 +122,7 @@ public final class Wiring {
 	private final DatabaseService database;
 	private final Transactions transactions;
 	private final LocalSecretConverter secretConverter;
+	private final Repositories repositories;
 	// Drivers
 	private final DriverRegistry driverRegistry;
 	private final DynamicGroups dynamicGroups;
@@ -224,38 +203,22 @@ public final class Wiring {
 		this.config = config;
 		this.database = new DatabaseService(config);
 		this.transactions = new Transactions(this.database);
-		// Repositories (stateless: one of each, shared)
-		ConfigRepository configRepository = new ConfigRepository();
-		DiagnosticResultRepository diagnosticResultRepository = new DiagnosticResultRepository();
 		this.secretConverter = new LocalSecretConverter(Database.getEncryptionPassword(config.current()));
-		CredentialSetRepository credentialSetRepository = new CredentialSetRepository(this.secretConverter);
-		DeviceRepository deviceRepository = new DeviceRepository(configRepository, diagnosticResultRepository, credentialSetRepository);
-		DomainRepository domainRepository = new DomainRepository();
-		GroupRepository groupRepository = new GroupRepository();
-		PolicyRepository policyRepository = new PolicyRepository();
-		RuleRepository ruleRepository = new RuleRepository();
-		SoftwareRuleRepository softwareRuleRepository = new SoftwareRuleRepository();
-		HardwareRuleRepository hardwareRuleRepository = new HardwareRuleRepository();
-		TaskRepository taskRepository = new TaskRepository();
-		DiagnosticRepository diagnosticRepository = new DiagnosticRepository();
-		VaultInstanceRepository vaultInstanceRepository = new VaultInstanceRepository(this.secretConverter);
-		UserRepository userRepository = new UserRepository();
-		CredentialSetAssembler credentialSetAssembler = new CredentialSetAssembler(vaultInstanceRepository);
-		BinaryFileStorage binaryFiles = new BinaryFileStorage(config);
-		DeviceReads deviceReads = new DeviceReads(this.transactions, deviceRepository, configRepository, diagnosticResultRepository,
-			credentialSetRepository);
+		// Repositories (stateless: one of each, shared)
+		this.repositories = Repositories.create(this.transactions, this.secretConverter, config);
+		Repositories r = this.repositories;
 		// Drivers
 		this.driverRegistry = driverRegistry;
-		this.dynamicGroups = new DynamicGroups(this.transactions, driverRegistry, groupRepository);
+		this.dynamicGroups = new DynamicGroups(this.transactions, driverRegistry, r.group());
 		// Vault (the secret resolver of the device accesses)
-		this.vaultManager = new VaultManager(config, this.transactions, vaultInstanceRepository);
+		this.vaultManager = new VaultManager(config, this.transactions, r.vaultInstance());
 		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
 		this.lockManager = TaskLockManager.create(clustered, config);
 		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
-		this.taskManager = new TaskManager(this.transactions, config, autoSnapshots, this.lockManager, taskRepository);
+		this.taskManager = new TaskManager(this.transactions, config, autoSnapshots, this.lockManager, r.task());
 		TaskSubmitter taskSubmitter = this.taskManager::addTask;
-		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots, deviceRepository);
+		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots, r.device());
 		if (clustered) {
 			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager, this.vaultManager, config);
 			this.taskManager.setCluster(this.clusterManager);
@@ -264,54 +227,54 @@ public final class Wiring {
 			this.clusterManager = null;
 		}
 		// Device
-		this.deviceService = new DeviceService(this.transactions, deviceRepository, this.driverRegistry, this.dynamicGroups,
-			domainRepository, credentialSetRepository, credentialSetAssembler, binaryFiles);
-		this.deviceCreationService = new DeviceCreationService(this.transactions, deviceRepository, taskSubmitter,
-			this.driverRegistry, this.dynamicGroups, domainRepository, credentialSetRepository, taskRepository, credentialSetAssembler);
+		this.deviceService = new DeviceService(this.transactions, r.device(), this.driverRegistry, this.dynamicGroups,
+			r.domain(), r.credentialSet(), r.credentialSetAssembler(), r.binaryFiles());
+		this.deviceCreationService = new DeviceCreationService(this.transactions, r.device(), taskSubmitter,
+			this.driverRegistry, this.dynamicGroups, r.domain(), r.credentialSet(), r.task(), r.credentialSetAssembler());
 		// Compliance
-		this.policyService = new PolicyService(this.transactions, policyRepository, groupRepository);
+		this.policyService = new PolicyService(this.transactions, r.policy(), r.group());
 		this.jsRuleRuntime = new JsRuleRuntime(config);
 		this.pyRuleRuntime = new PyRuleRuntime(config);
-		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry, deviceReads);
+		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry, r.deviceReads());
 		this.complianceChecker = new ComplianceChecker(this.ruleEvaluators);
-		this.ruleService = new RuleService(this.transactions, ruleRepository, policyRepository, this.ruleEvaluators, deviceRepository);
-		this.softwareRuleService = new SoftwareRuleService(this.transactions, softwareRuleRepository, this.driverRegistry, groupRepository);
-		this.hardwareRuleService = new HardwareRuleService(this.transactions, hardwareRuleRepository, this.driverRegistry, groupRepository);
+		this.ruleService = new RuleService(this.transactions, r.rule(), r.policy(), this.ruleEvaluators, r.device());
+		this.softwareRuleService = new SoftwareRuleService(this.transactions, r.softwareRule(), this.driverRegistry, r.group());
+		this.hardwareRuleService = new HardwareRuleService(this.transactions, r.hardwareRule(), this.driverRegistry, r.group());
 		// Tasks
-		this.taskService = new TaskService(this.transactions, taskRepository, taskSubmitter, this.taskManager,
-			this.driverRegistry, deviceRepository, domainRepository, groupRepository);
+		this.taskService = new TaskService(this.transactions, r.task(), taskSubmitter, this.taskManager,
+			this.driverRegistry, r.device(), r.domain(), r.group());
 		// Reports
-		this.reportService = new ReportService(this.transactions, new ReportRepository(), this.driverRegistry);
+		this.reportService = new ReportService(this.transactions, r.report(), this.driverRegistry);
 		// Inventory
-		this.deviceCatalogService = new DeviceCatalogService(this.transactions, new DeviceInventoryRepository());
+		this.deviceCatalogService = new DeviceCatalogService(this.transactions, r.deviceInventory());
 		this.deviceDriverService = new DeviceDriverService(this.driverRegistry, () -> {
 			if (this.clusterManager != null) {
 				this.clusterManager.requestDriverReload();
 			}
 		});
-		this.domainService = new DomainService(this.transactions, domainRepository);
-		this.groupService = new GroupService(this.transactions, groupRepository, this.dynamicGroups);
-		this.searchService = new SearchService(this.transactions, deviceRepository, this.driverRegistry);
-		this.configService = new ConfigService(this.transactions, configRepository, this.driverRegistry, deviceRepository, binaryFiles);
+		this.domainService = new DomainService(this.transactions, r.domain());
+		this.groupService = new GroupService(this.transactions, r.group(), this.dynamicGroups);
+		this.searchService = new SearchService(this.transactions, r.device(), this.driverRegistry);
+		this.configService = new ConfigService(this.transactions, r.config(), this.driverRegistry, r.device(), r.binaryFiles());
 		// AAA and system
 		this.oidc = new Oidc(config);
 		this.tacacs = new Tacacs(config);
-		this.userService = new UserService(this.transactions, userRepository, config);
-		this.apiTokenService = new ApiTokenService(this.transactions, new ApiTokenRepository());
-		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs),
+		this.userService = new UserService(this.transactions, r.user(), config);
+		this.apiTokenService = new ApiTokenService(this.transactions, r.apiToken());
+		this.loginService = new LoginService(this.transactions, r.user(), new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs),
 			config);
 		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
 		this.serverInfoService = new ServerInfoService(config);
 		this.serviceHealthService = new ServiceHealthService();
 		// Diagnostics
-		this.diagnosticService = new DiagnosticService(this.transactions, diagnosticRepository, diagnosticResultRepository, groupRepository);
+		this.diagnosticService = new DiagnosticService(this.transactions, r.diagnostic(), r.diagnosticResult(), r.group());
 		this.diagnosticAdapters = DiagnosticAdapters.standard();
 		// Scripts
-		this.scriptService = new ScriptService(this.transactions, new ScriptRepository(), this.driverRegistry);
+		this.scriptService = new ScriptService(this.transactions, r.script(), this.driverRegistry);
 		// Credentials
-		this.credentialSetService = new CredentialSetService(this.transactions, credentialSetRepository, domainRepository, credentialSetAssembler);
+		this.credentialSetService = new CredentialSetService(this.transactions, r.credentialSet(), r.domain(), r.credentialSetAssembler());
 		// Vault
-		this.vaultInstanceService = new VaultInstanceService(this.transactions, vaultInstanceRepository,
+		this.vaultInstanceService = new VaultInstanceService(this.transactions, r.vaultInstance(),
 			vaultInstanceId -> {
 				this.vaultManager.invalidate(vaultInstanceId);
 				if (this.clusterManager != null) {
@@ -320,38 +283,38 @@ public final class Wiring {
 			},
 			this.vaultManager::testConnection);
 		// Hooks
-		this.hookService = new HookService(this.transactions, new HookRepository());
+		this.hookService = new HookService(this.transactions, r.hook());
 		// Events
 		this.domainEvents = new DomainEvents();
 		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
 		// Task handlers
-		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask, taskRepository, config);
+		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask, r.task(), config);
 		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
 		this.sshClientService = new SshClientService(config);
-		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), deviceReads, new AccessSettings(config));
+		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), r.deviceReads(), new AccessSettings(config));
 		this.taskHandlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups, policyRepository, ruleRepository,
-				softwareRuleRepository, hardwareRuleRepository, deviceRepository, configRepository, groupRepository),
-			new CheckGroupComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups, policyRepository, ruleRepository,
-				softwareRuleRepository, hardwareRuleRepository, deviceRepository, configRepository, groupRepository),
-			new CheckGroupSoftwareHandler(this.transactions, softwareRuleRepository, hardwareRuleRepository, deviceRepository, groupRepository),
+			new CheckComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups, r.policy(), r.rule(),
+				r.softwareRule(), r.hardwareRule(), r.device(), r.config(), r.group()),
+			new CheckGroupComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups, r.policy(), r.rule(),
+				r.softwareRule(), r.hardwareRule(), r.device(), r.config(), r.group()),
+			new CheckGroupSoftwareHandler(this.transactions, r.softwareRule(), r.hardwareRule(), r.device(), r.group()),
 			new DiscoverDeviceTypeHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager,
-				taskRepository, credentialSetRepository, domainRepository, deviceRepository),
-			new PurgeDatabaseHandler(this.transactions, taskRepository, binaryFiles),
-			new RunDeviceGroupScriptHandler(this.transactions, childTaskOrchestrator, this.driverRegistry, deviceRepository, groupRepository),
-			new RunDeviceScriptHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors, deviceRepository),
+				r.task(), r.credentialSet(), r.domain(), r.device()),
+			new PurgeDatabaseHandler(this.transactions, r.task(), r.binaryFiles()),
+			new RunDeviceGroupScriptHandler(this.transactions, childTaskOrchestrator, this.driverRegistry, r.device(), r.group()),
+			new RunDeviceScriptHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors, r.device()),
 			new RunDiagnosticsHandler(this.transactions, this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, connectors,
-				deviceRepository, diagnosticRepository),
-			new RunGroupDiagnosticsHandler(this.transactions, childTaskOrchestrator, deviceRepository, groupRepository),
-			new ScanSubnetsHandler(this.transactions, childTaskOrchestrator, credentialSetRepository),
-			new TakeGroupSnapshotHandler(this.transactions, childTaskOrchestrator, deviceRepository, groupRepository),
+				r.device(), r.diagnostic()),
+			new RunGroupDiagnosticsHandler(this.transactions, childTaskOrchestrator, r.device(), r.group()),
+			new ScanSubnetsHandler(this.transactions, childTaskOrchestrator, r.credentialSet()),
+			new TakeGroupSnapshotHandler(this.transactions, childTaskOrchestrator, r.device(), r.group()),
 			new TakeSnapshotHandler(this.transactions, this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
-				connectors, deviceRepository, config, binaryFiles)));
-		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager, taskRepository, config);
+				connectors, r.device(), config, r.binaryFiles())));
+		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager, r.task(), config);
 		this.taskManager.setJobFactory(this.taskJobFactory);
 		// Background services
 		this.oidcDiscovery = new OidcDiscovery(this.oidc, config);
-		this.vaultTokenRefresher = new VaultTokenRefresher(this.transactions, this.vaultManager, config, vaultInstanceRepository);
+		this.vaultTokenRefresher = new VaultTokenRefresher(this.transactions, this.vaultManager, config, r.vaultInstance());
 		this.syslogServer = new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.snmpTrapReceiver = new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.restServer = config.current().get(RestServer.ENABLED) ? new RestServer(this.binder(), config) : null;
@@ -449,6 +412,15 @@ public final class Wiring {
 	 */
 	public Transactions transactions() {
 		return this.transactions;
+	}
+
+	/**
+	 * Gets the repositories (one of each).
+	 *
+	 * @return the repositories
+	 */
+	public Repositories repositories() {
+		return this.repositories;
 	}
 
 	/**

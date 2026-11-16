@@ -32,7 +32,6 @@ import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceChange;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -59,8 +58,7 @@ public final class TestDevices {
 		return TestWiring.get().transactions();
 	}
 
-	private static final DeviceRepository DEVICES = TestRepositories.DEVICE;
-
+	
 	private static final ConfigRepository CONFIGS = new ConfigRepository();
 
 	private static final GroupRepository GROUPS = new GroupRepository();
@@ -96,7 +94,7 @@ public final class TestDevices {
 	 * @return the stored credential set
 	 */
 	public static DeviceCredentialSet addCredentialSet(DeviceCredentialSet credentialSet) {
-		return transactions().write(dsl -> TestRepositories.CREDENTIAL_SET.add(dsl, credentialSet));
+		return transactions().write(dsl -> TestWiring.get().repositories().credentialSet().add(dsl, credentialSet));
 	}
 
 	/**
@@ -106,7 +104,7 @@ public final class TestDevices {
 	 * @return the credential set, or null if there is none
 	 */
 	public static DeviceCredentialSet findCredentialSet(long id) {
-		return transactions().read(dsl -> TestRepositories.CREDENTIAL_SET.find(dsl, id));
+		return transactions().read(dsl -> TestWiring.get().repositories().credentialSet().find(dsl, id));
 	}
 
 	/**
@@ -126,7 +124,7 @@ public final class TestDevices {
 	 */
 	public static Device add(Device device) {
 		return transactions().write(dsl -> {
-			CredentialSetRepository credentialSets = TestRepositories.CREDENTIAL_SET;
+			CredentialSetRepository credentialSets = TestWiring.get().repositories().credentialSet();
 			List<DeviceAccess> accesses = new ArrayList<>();
 			for (DeviceAccess access : device.accesses()) {
 				DeviceCredentialSet specific = access.specificCredentialSet();
@@ -135,7 +133,7 @@ public final class TestDevices {
 				}
 				accesses.add(access);
 			}
-			return DEVICES.add(dsl, device.toBuilder().accesses(accesses).build());
+			return TestWiring.get().repositories().device().add(dsl, device.toBuilder().accesses(accesses).build());
 		});
 	}
 
@@ -180,8 +178,8 @@ public final class TestDevices {
 	public static long addConfig(Device device, Config config) {
 		return transactions().write(dsl -> {
 			long configId = CONFIGS.add(dsl, config.toBuilder().deviceId(device.id()).build());
-			Device stored = DEVICES.find(dsl, device.id());
-			DEVICES.save(dsl, stored, stored.toBuilder().lastConfigId(configId).build());
+			Device stored = TestWiring.get().repositories().device().find(dsl, device.id());
+			TestWiring.get().repositories().device().save(dsl, stored, stored.toBuilder().lastConfigId(configId).build());
 			return configId;
 		});
 	}
@@ -205,8 +203,8 @@ public final class TestDevices {
 	 */
 	public static Device save(Device device) {
 		return transactions().write(dsl -> {
-			DEVICES.save(dsl, DEVICES.find(dsl, device.id()), device);
-			return DEVICES.find(dsl, device.id());
+			TestWiring.get().repositories().device().save(dsl, TestWiring.get().repositories().device().find(dsl, device.id()), device);
+			return TestWiring.get().repositories().device().find(dsl, device.id());
 		});
 	}
 
@@ -246,7 +244,7 @@ public final class TestDevices {
 	 * @param date the date
 	 */
 	public static void setSnapshotDate(long deviceId, boolean success, Instant date) {
-		transactions().run(dsl -> DEVICES.saveSnapshotDate(dsl, deviceId, success, date));
+		transactions().run(dsl -> TestWiring.get().repositories().device().saveSnapshotDate(dsl, deviceId, success, date));
 	}
 
 	/**
@@ -255,7 +253,7 @@ public final class TestDevices {
 	 * @param id the device ID
 	 */
 	public static void delete(long id) {
-		transactions().run(dsl -> DEVICES.remove(dsl, id));
+		transactions().run(dsl -> TestWiring.get().repositories().device().remove(dsl, id));
 	}
 
 	/**
@@ -293,7 +291,7 @@ public final class TestDevices {
 	 * @return the device, or null if there is no such device
 	 */
 	public static Device find(long id) {
-		return transactions().read(dsl -> DEVICES.find(dsl, id));
+		return transactions().read(dsl -> TestWiring.get().repositories().device().find(dsl, id));
 	}
 
 	/**
@@ -347,7 +345,7 @@ public final class TestDevices {
 			DynamicDeviceGroup group = (DynamicDeviceGroup) GROUPS.add(dsl,
 				DynamicDeviceGroup.builder().name(name).folder("").query(query).build());
 			try {
-				new DynamicGroups(transactions(), TestDrivers.registry(), TestRepositories.GROUP).refresh(dsl, group);
+				new DynamicGroups(transactions(), TestDrivers.registry(), TestWiring.get().repositories().group()).refresh(dsl, group);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalArgumentException("Invalid query", e);

@@ -45,7 +45,6 @@ import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.UtcTimeZoneExtension;
@@ -355,7 +354,7 @@ class PurgeDatabaseHandlerTest {
 	private void purge(int days, int configDays, int configSize, int configKeepDays, int moduleDays, Long groupId, List<Long> deviceIds) {
 		PurgeDatabaseTask spec = new PurgeDatabaseTask(groupId, deviceIds, days, configDays, configSize, configKeepDays, moduleDays, false);
 		Task task = Task.of(spec, "Test", "Global", "tester");
-		new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK, TestRepositories.BINARY_FILES).run(task, spec, new TaskRun(task));
+		new PurgeDatabaseHandler(TestWiring.get().transactions(), TestWiring.get().repositories().task(), TestWiring.get().repositories().binaryFiles()).run(task, spec, new TaskRun(task));
 	}
 
 	@Test

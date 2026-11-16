@@ -32,9 +32,10 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
+import net.netshot.netshot.testing.TestConfig;
 
 @ScriptEngineTest
 @DisplayName("Snapshot configuration dump")
@@ -53,7 +54,7 @@ class SnapshotDumpTest {
 	private void dump(String deviceName) {
 		DeviceDraft device = new DeviceDraft(FakeDeviceFactory.getFakeCiscoIosDevice());
 		device.setName(deviceName);
-		new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, new FakeTaskContext(), this.dumpDir.toString(), TestRepositories.BINARY_FILES)
+		new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, new FakeTaskContext(), this.dumpDir.toString(), new BinaryFileStorage(TestConfig.store()))
 			.dumpConfig(device, new ConfigDraft(device.getId()));
 	}
 

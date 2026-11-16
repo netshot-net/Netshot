@@ -56,7 +56,6 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestConfig;
 
 /**
@@ -82,12 +81,12 @@ class ComplianceServiceTest {
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
 		PolicyRepository policyRepository = new PolicyRepository();
-		this.policyService = new PolicyService(this.transactions, policyRepository, TestRepositories.GROUP);
+		this.policyService = new PolicyService(this.transactions, policyRepository, TestWiring.get().repositories().group());
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository,
 			RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(),
-				TestRepositories.deviceReads(TestWiring.get().transactions())), TestRepositories.DEVICE);
-		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry(), TestRepositories.GROUP);
-		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry(), TestRepositories.GROUP);
+				TestWiring.get().repositories().deviceReads()), TestWiring.get().repositories().device());
+		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry(), TestWiring.get().repositories().group());
+		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry(), TestWiring.get().repositories().group());
 		this.groupId = TestDevices.addStaticGroup("Group").id();
 		this.otherGroupId = TestDevices.addStaticGroup("Other group").id();
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");

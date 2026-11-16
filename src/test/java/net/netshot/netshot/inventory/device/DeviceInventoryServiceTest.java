@@ -47,7 +47,6 @@ import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestWiring;
 
 /**
@@ -69,12 +68,13 @@ class DeviceInventoryServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		DeviceRepository repository = TestRepositories.DEVICE;
+		DeviceRepository repository = TestWiring.get().repositories().device();
 		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(),
-			TestDrivers.registry(), TestRepositories.GROUP),
-			TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER, TestRepositories.BINARY_FILES);
+			TestDrivers.registry(), TestWiring.get().repositories().group()),
+			TestWiring.get().repositories().domain(), TestWiring.get().repositories().credentialSet(),
+				TestWiring.get().repositories().credentialSetAssembler(), TestWiring.get().repositories().binaryFiles());
 		this.catalogService = new DeviceCatalogService(this.transactions, new DeviceInventoryRepository());
-		this.searchService = new SearchService(this.transactions, TestRepositories.DEVICE, TestDrivers.registry());
+		this.searchService = new SearchService(this.transactions, TestWiring.get().repositories().device(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		Set<Network4Address> ip4 = new LinkedHashSet<>();
 		Set<Network6Address> ip6 = new LinkedHashSet<>();

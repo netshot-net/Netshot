@@ -130,7 +130,6 @@ import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.userscript.ScriptDefinition;
 import net.netshot.netshot.userscript.ScriptService;
@@ -360,7 +359,7 @@ public final class ContractSeed {
 		for (Config config : configs) {
 			ids.add(configRepository.add(dsl, config.toBuilder().deviceId(device.id()).build()));
 		}
-		DeviceRepository deviceRepository = TestRepositories.DEVICE;
+		DeviceRepository deviceRepository = TestWiring.get().repositories().device();
 		Device stored = deviceRepository.find(dsl, device.id());
 		deviceRepository.save(dsl, stored, stored.toBuilder().lastConfigId(ids.get(ids.size() - 1)).build());
 		return ids;
@@ -369,8 +368,8 @@ public final class ContractSeed {
 	private void seedDevices() {
 		TestWiring.get().transactions().run(dsl -> {
 			DomainRepository domainRepository = new DomainRepository();
-			CredentialSetRepository credentialSetRepository = TestRepositories.CREDENTIAL_SET;
-			DeviceRepository deviceRepository = TestRepositories.DEVICE;
+			CredentialSetRepository credentialSetRepository = TestWiring.get().repositories().credentialSet();
+			DeviceRepository deviceRepository = TestWiring.get().repositories().device();
 			Domain paris = domainRepository.find(dsl, this.id("domain.paris"));
 			Domain lyon = domainRepository.find(dsl, this.id("domain.lyon"));
 
@@ -572,7 +571,7 @@ public final class ContractSeed {
 		TestWiring.get().ruleService().update(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
 			Map.of(this.id("device.router2"), Instant.ofEpochMilli(D2040))), null);
 		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = TestRepositories.DEVICE;
+			DeviceRepository deviceRepository = TestWiring.get().repositories().device();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			Device proxy = deviceRepository.find(dsl, this.id("device.proxy"));
@@ -641,7 +640,7 @@ public final class ContractSeed {
 
 	private void seedTasks() {
 		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = TestRepositories.DEVICE;
+			DeviceRepository deviceRepository = TestWiring.get().repositories().device();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			long paris = this.id("domain.paris");

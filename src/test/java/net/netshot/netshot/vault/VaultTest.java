@@ -37,7 +37,6 @@ import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestConfig;
 
 @DatabaseTest(boot = Boot.MANUAL)
@@ -78,7 +77,7 @@ class VaultTest {
 		private static final VaultContainer<?> VAULT_CONTAINER = buildVaultContainer();
 
 		/** The Vault client, reading the Vault instances from the database. */
-		private final VaultManager vault = new VaultManager(TestConfig.store(), TestWiring.get().transactions(), TestRepositories.VAULT_INSTANCE);
+		private final VaultManager vault = new VaultManager(TestConfig.store(), TestWiring.get().transactions(), TestWiring.get().repositories().vaultInstance());
 
 		/**
 		 * Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class.
@@ -112,7 +111,7 @@ class VaultTest {
 				.appRoleId(ROLE_ID)
 				.appRoleSecretId(Secret.local(SECRET_ID))
 				.build();
-			vaultInstanceId = TestWiring.get().transactions().write(dsl -> TestRepositories.VAULT_INSTANCE.add(dsl, vaultInstance)).id();
+			vaultInstanceId = TestWiring.get().transactions().write(dsl -> TestWiring.get().repositories().vaultInstance().add(dsl, vaultInstance)).id();
 
 			DeviceSshAccount account = DeviceSshAccount.builder().superPassword(Secret.local(LOCAL_SUPER_PASSWORD)).name("vault-test-account")
 				.username(Secret.vault(vaultInstanceId, SECRET_PATH + "/username"))
@@ -165,7 +164,7 @@ class VaultTest {
 				.appRoleId(ROLE_ID)
 				.appRoleSecretId(Secret.local("not-the-right-secret-id"))
 				.build();
-			long wrongInstanceId = TestWiring.get().transactions().write(dsl -> TestRepositories.VAULT_INSTANCE.add(dsl, wrongInstance)).id();
+			long wrongInstanceId = TestWiring.get().transactions().write(dsl -> TestWiring.get().repositories().vaultInstance().add(dsl, wrongInstance)).id();
 
 			Secret secret = Secret.vault(wrongInstanceId, SECRET_PATH + "/username");
 

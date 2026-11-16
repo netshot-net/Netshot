@@ -39,8 +39,9 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests for the {@code Options} descriptor block: per-device,
@@ -252,7 +253,7 @@ class OptionsBlockTest {
 			Device.DeviceBuilder deviceBuilder = Device.create("OptionsTestDriver", null, domain, "test").toBuilder();
 			DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 			FakeTaskContext taskContext = new FakeTaskContext();
-			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, TestRepositories.BINARY_FILES);
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, new BinaryFileStorage(TestConfig.store()));
 			AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, null);
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 			runMethod.setAccessible(true);

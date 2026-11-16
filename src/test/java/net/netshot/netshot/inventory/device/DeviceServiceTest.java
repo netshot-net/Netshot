@@ -66,7 +66,6 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.SecretChange;
 
@@ -100,11 +99,12 @@ class DeviceServiceTest {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP);
-		this.service = new DeviceService(this.transactions, TestRepositories.DEVICE, TestDrivers.registry(), dynamicGroups, TestRepositories.DOMAIN,
-			TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER, TestRepositories.BINARY_FILES);
-		this.creationService = new DeviceCreationService(this.transactions, TestRepositories.DEVICE, submitter, TestDrivers.registry(), dynamicGroups,
-			TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET, TestRepositories.TASK, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
+		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestWiring.get().repositories().group());
+		this.service = new DeviceService(this.transactions, TestWiring.get().repositories().device(), TestDrivers.registry(), dynamicGroups, TestWiring.get().repositories().domain(),
+			TestWiring.get().repositories().credentialSet(), TestWiring.get().repositories().credentialSetAssembler(), TestWiring.get().repositories().binaryFiles());
+		this.creationService = new DeviceCreationService(this.transactions, TestWiring.get().repositories().device(), submitter, TestDrivers.registry(), dynamicGroups,
+			TestWiring.get().repositories().domain(), TestWiring.get().repositories().credentialSet(), TestWiring.get().repositories().task(),
+				TestWiring.get().repositories().credentialSetAssembler());
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
 		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("secret")).superPassword(Secret.local("enable"))
@@ -424,7 +424,7 @@ class DeviceServiceTest {
 		Device created = this.createDevice(this.nextAddress());
 		ConfigBinaryFileAttribute attribute = ConfigBinaryFileAttribute.create("binary", "original.bin");
 		long configId = TestDevices.addOldConfig(created.id(), Config.builder().author("").attributes(List.of(attribute)).build());
-		Path file = TestRepositories.BINARY_FILES.filePath(attribute, created.id(), configId);
+		Path file = TestWiring.get().repositories().binaryFiles().filePath(attribute, created.id(), configId);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, "binary content");
 		this.service.delete(created.id(), null);

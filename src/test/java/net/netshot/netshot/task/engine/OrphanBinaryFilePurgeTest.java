@@ -47,7 +47,6 @@ import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestDevices;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestWiring;
 
 /**
@@ -92,14 +91,14 @@ class OrphanBinaryFilePurgeTest {
 		long configId = device.lastConfigId();
 
 		// attrA: fully finalized, real referenced file - must survive.
-		Files.write(TestRepositories.BINARY_FILES.pendingFilePath(attrA, device.id()), "real-data-a".getBytes());
-		TestRepositories.BINARY_FILES.finalizeStorage(attrA, device.id(), configId);
-		Path attrAFinalPath = TestRepositories.BINARY_FILES.filePath(attrA, device.id(), configId);
+		Files.write(TestWiring.get().repositories().binaryFiles().pendingFilePath(attrA, device.id()), "real-data-a".getBytes());
+		TestWiring.get().repositories().binaryFiles().finalizeStorage(attrA, device.id(), configId);
+		Path attrAFinalPath = TestWiring.get().repositories().binaryFiles().filePath(attrA, device.id(), configId);
 
 		// attrB: real, referenced, but stuck at its pending name and old -
 		// simulates a crash between commit() and finalizeStorage(). Must
 		// survive: its uid is known, so it's not an orphan.
-		Path attrBPendingPath = TestRepositories.BINARY_FILES.pendingFilePath(attrB, device.id());
+		Path attrBPendingPath = TestWiring.get().repositories().binaryFiles().pendingFilePath(attrB, device.id());
 		Files.write(attrBPendingPath, "real-data-b".getBytes());
 		this.setOldMtime(attrBPendingPath);
 
@@ -123,7 +122,7 @@ class OrphanBinaryFilePurgeTest {
 		PurgeDatabaseTask spec = PurgeDatabaseTask.builder().configDays(0).moduleDays(0).removeOrphanFiles(true).build();
 		Task task = Task.of(spec, "Test", "Global", "tester");
 		TaskRun run = new TaskRun(task);
-		new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK, TestRepositories.BINARY_FILES).run(task, spec, run);
+		new PurgeDatabaseHandler(TestWiring.get().transactions(), TestWiring.get().repositories().task(), TestWiring.get().repositories().binaryFiles()).run(task, spec, run);
 
 		Assertions.assertEquals(Status.SUCCESS, run.getStatus());
 		Assertions.assertTrue(Files.exists(attrAFinalPath), "The real, finalized attribute file must survive");
