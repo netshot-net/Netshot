@@ -25,10 +25,9 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.bridge.SLF4JBridgeHandler;
-
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.boot.Application;
+import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCliAccount;
@@ -45,7 +44,10 @@ import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.platform.runtime.BuildInfo;
 
 @Slf4j
-public class DeviceListExtractor extends Netshot {
+public final class DeviceListExtractor {
+
+	private DeviceListExtractor() {
+	}
 
 	/**
 	 * Resolves a credential field's actual value (local, or from Vault),
@@ -68,25 +70,6 @@ public class DeviceListExtractor extends Netshot {
 	}
 
 	/**
-	 * Initializes the logging.
-	 *
-	 * @return true, if successful
-	 */
-	protected static boolean initLogging() {
-		// Redirect JUL to SLF4J
-		SLF4JBridgeHandler.removeHandlersForRootLogger();
-		SLF4JBridgeHandler.install();
-
-		//ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger)
-		//		LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-		
-		System.setProperty("org.jboss.logging.provider", "slf4j");
-		//rootLogger.setLevel(Level.WARN);
-
-		return true;
-	}
-
-	/**
 	 * Function entry point.
 	 * @param args the program arguments
 	 */
@@ -95,18 +78,12 @@ public class DeviceListExtractor extends Netshot {
 		System.out.println(String.format("Based on Netshot version %s.", BuildInfo.VERSION));
 		log.info("Starting now.");
 
-		if (!Netshot.readConfig()) {
-			System.exit(1);
-		}
-		if (!DeviceListExtractor.initLogging()) {
-			System.exit(1);
-		}
-
 		StringBuffer output = new StringBuffer();
 
-		try {
+		try (Application application = Application.create(Bootstrap.load(ToolCommandLine.configFiles(args)))) {
 			log.info("Initializing access to the database.");
-			Wiring wiring = Wiring.init();
+			application.start("database");
+			Wiring wiring = application.wiring();
 
 			log.info("Requesting data from the DB...");
 			DeviceRepository deviceRepository = new DeviceRepository(new ConfigRepository(), new DiagnosticResultRepository(),
