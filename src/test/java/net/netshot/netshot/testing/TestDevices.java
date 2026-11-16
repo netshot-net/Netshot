@@ -96,7 +96,7 @@ public final class TestDevices {
 	 * @return the stored credential set
 	 */
 	public static DeviceCredentialSet addCredentialSet(DeviceCredentialSet credentialSet) {
-		return transactions().write(dsl -> new CredentialSetRepository().add(dsl, credentialSet));
+		return transactions().write(dsl -> TestRepositories.CREDENTIAL_SET.add(dsl, credentialSet));
 	}
 
 	/**
@@ -106,7 +106,7 @@ public final class TestDevices {
 	 * @return the credential set, or null if there is none
 	 */
 	public static DeviceCredentialSet findCredentialSet(long id) {
-		return transactions().read(dsl -> new CredentialSetRepository().find(dsl, id));
+		return transactions().read(dsl -> TestRepositories.CREDENTIAL_SET.find(dsl, id));
 	}
 
 	/**
@@ -126,7 +126,7 @@ public final class TestDevices {
 	 */
 	public static Device add(Device device) {
 		return transactions().write(dsl -> {
-			CredentialSetRepository credentialSets = new CredentialSetRepository();
+			CredentialSetRepository credentialSets = TestRepositories.CREDENTIAL_SET;
 			List<DeviceAccess> accesses = new ArrayList<>();
 			for (DeviceAccess access : device.accesses()) {
 				DeviceCredentialSet specific = access.specificCredentialSet();

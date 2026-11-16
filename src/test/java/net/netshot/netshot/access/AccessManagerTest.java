@@ -30,7 +30,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.access.AccessManager.Resolution;
-import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
@@ -97,7 +96,7 @@ class AccessManagerTest {
 
 	// The auto-try pool of a stored device, read from the database
 	private static Supplier<List<DeviceCredentialSet>> autoPool(DeviceDraft device) {
-		return () -> TestWiring.get().transactions().read(dsl -> new CredentialSetRepository().findUsableInDomain(dsl, device.getMgmtDomain().id()));
+		return () -> TestWiring.get().transactions().read(dsl -> TestRepositories.CREDENTIAL_SET.findUsableInDomain(dsl, device.getMgmtDomain().id()));
 	}
 
 	@Test

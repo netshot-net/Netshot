@@ -369,7 +369,7 @@ public final class ContractSeed {
 	private void seedDevices() {
 		TestWiring.get().transactions().run(dsl -> {
 			DomainRepository domainRepository = new DomainRepository();
-			CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+			CredentialSetRepository credentialSetRepository = TestRepositories.CREDENTIAL_SET;
 			DeviceRepository deviceRepository = TestRepositories.DEVICE;
 			Domain paris = domainRepository.find(dsl, this.id("domain.paris"));
 			Domain lyon = domainRepository.find(dsl, this.id("domain.lyon"));

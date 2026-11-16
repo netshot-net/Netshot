@@ -58,7 +58,6 @@ import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.SecretChange;
-import net.netshot.netshot.vault.VaultInstanceRepository;
 import net.netshot.netshot.testing.TestRepositories;
 
 /**
@@ -79,10 +78,10 @@ class CredentialSetServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new CredentialSetService(this.transactions, new CredentialSetRepository(), TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
+		this.service = new CredentialSetService(this.transactions, TestRepositories.CREDENTIAL_SET, TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		this.domainId = TestDevices.addDomain(Domain.builder().name("Credentials domain").description("d")
 			.server4Address(new Network4Address("10.255.0.1")).server6Address(new Network6Address("::")).build()).id();
-		this.vaultId = this.transactions.write(dsl -> new VaultInstanceRepository().add(dsl,
+		this.vaultId = this.transactions.write(dsl -> TestRepositories.VAULT_INSTANCE.add(dsl,
 			HashicorpVaultKv2Instance.builder("Credentials vault")
 				.baseUrl("https://vault.example.net")
 				.authMethod(HashicorpVaultKv2Instance.AuthMethod.APPROLE)
@@ -449,14 +448,14 @@ class CredentialSetServiceTest {
 	@DisplayName("delete() reports a constraint violation as 'in use', and any other failure as a database error")
 	void deleteFailures() {
 		DeviceSshAccount created = this.createSsh("u", "p", null);
-		CredentialSetService violating = new CredentialSetService(this.transactions, new CredentialSetRepository() {
+		CredentialSetService violating = new CredentialSetService(this.transactions, new CredentialSetRepository(TestRepositories.SECRET_CONVERTER) {
 			@Override
 			public boolean remove(DSLContext dsl, long id) {
 				throw new DataAccessException("in use", new SQLException("fk", "23503"));
 			}
 		}, TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		assertError(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, () -> violating.delete(created.id(), null));
-		CredentialSetService failing = new CredentialSetService(this.transactions, new CredentialSetRepository() {
+		CredentialSetService failing = new CredentialSetService(this.transactions, new CredentialSetRepository(TestRepositories.SECRET_CONVERTER) {
 			@Override
 			public boolean remove(DSLContext dsl, long id) {
 				throw new DataAccessException("boom", new SQLException("down", "08006"));

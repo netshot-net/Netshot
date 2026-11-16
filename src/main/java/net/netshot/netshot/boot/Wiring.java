@@ -122,6 +122,8 @@ import net.netshot.netshot.vault.VaultInstanceService;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultTokenRefresher;
 import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
+import net.netshot.netshot.platform.database.LocalSecretConverter;
+import net.netshot.netshot.platform.database.Database;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -145,6 +147,7 @@ public final class Wiring {
 	private final ConfigStore config;
 	private final DatabaseService database;
 	private final Transactions transactions;
+	private final LocalSecretConverter secretConverter;
 	// Drivers
 	private final DriverRegistry driverRegistry;
 	private final DynamicGroups dynamicGroups;
@@ -228,7 +231,8 @@ public final class Wiring {
 		// Repositories (stateless: one of each, shared)
 		ConfigRepository configRepository = new ConfigRepository();
 		DiagnosticResultRepository diagnosticResultRepository = new DiagnosticResultRepository();
-		CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+		this.secretConverter = new LocalSecretConverter(Database.getEncryptionPassword(config.current()));
+		CredentialSetRepository credentialSetRepository = new CredentialSetRepository(this.secretConverter);
 		DeviceRepository deviceRepository = new DeviceRepository(configRepository, diagnosticResultRepository, credentialSetRepository);
 		DomainRepository domainRepository = new DomainRepository();
 		GroupRepository groupRepository = new GroupRepository();
@@ -238,7 +242,7 @@ public final class Wiring {
 		HardwareRuleRepository hardwareRuleRepository = new HardwareRuleRepository();
 		TaskRepository taskRepository = new TaskRepository();
 		DiagnosticRepository diagnosticRepository = new DiagnosticRepository();
-		VaultInstanceRepository vaultInstanceRepository = new VaultInstanceRepository();
+		VaultInstanceRepository vaultInstanceRepository = new VaultInstanceRepository(this.secretConverter);
 		UserRepository userRepository = new UserRepository();
 		CredentialSetAssembler credentialSetAssembler = new CredentialSetAssembler(vaultInstanceRepository);
 		BinaryFileStorage binaryFiles = new BinaryFileStorage(config);
@@ -459,6 +463,15 @@ public final class Wiring {
 	 */
 	public Transactions transactions() {
 		return this.transactions;
+	}
+
+	/**
+	 * Gets the converter of the encrypted columns (the secrets stored in the database).
+	 *
+	 * @return the converter
+	 */
+	public LocalSecretConverter secretConverter() {
+		return this.secretConverter;
 	}
 
 	/**

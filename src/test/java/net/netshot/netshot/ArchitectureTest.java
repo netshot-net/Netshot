@@ -292,15 +292,12 @@ final class ArchitectureTest {
 	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring,
 	 * and the values read once are held by lazily initialized holder classes. The exceptions are the
 	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}), and the
-	 * values given once at start to the classes which can't receive them by constructor: the encryption of the
-	 * secrets (the converter is built by the generated jOOQ code) and the path of the REST API (the v1 links are used
-	 * by the static mappers).
+	 * path of the REST API (the v1 links are used by the static mappers).
 	 */
 	@ArchTest
 	static final ArchRule STATIC_FIELDS_ARE_FINAL =
 		fields().that().areStatic()
 			.and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
-			.and().doNotHaveFullName(ROOT + "platform.database.LocalSecretConverter.encryptor")
 			.and().doNotHaveFullName(ROOT + "api.rest.v1.V1Links.apiPath")
 			.should().beFinal().allowEmptyShould(true);
 

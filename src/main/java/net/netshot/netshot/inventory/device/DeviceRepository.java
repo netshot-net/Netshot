@@ -58,6 +58,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JSONB;
 import org.jooq.Record;
+import org.jooq.Result;
 import org.jooq.SelectField;
 import org.jooq.exception.DataChangedException;
 import org.jooq.impl.DSL;
@@ -176,7 +177,8 @@ public class DeviceRepository {
 		ACCESS_FIELDS = List.copyOf(fields);
 	}
 
-	private static final Field<List<DeviceAccess>> ACCESSES = DSL.multiset(
+	/** The accesses of the device (records: their credential sets are decoded by the instance, see {@link #toAccess}). */
+	private static final Field<Result<Record>> ACCESSES = DSL.multiset(
 			DSL.select(ACCESS_FIELDS)
 				.from(DEVICE_ACCESS)
 				.leftJoin(GLOBAL_CS).on(GLOBAL_CS.ID.eq(DEVICE_ACCESS.GLOBAL_CREDENTIAL_SET))
@@ -185,7 +187,6 @@ public class DeviceRepository {
 				.leftJoin(SPECIFIC_CS_DOMAIN).on(SPECIFIC_CS_DOMAIN.ID.eq(SPECIFIC_CS.MGMT_DOMAIN))
 				.where(DEVICE_ACCESS.DEVICE.eq(DEVICE.ID))
 				.orderBy(DEVICE_ACCESS.ACCESS_NAME))
-		.convertFrom(r -> r.map(DeviceRepository::toAccess))
 		.as("accesses");
 
 	private static final Field<List<Module>> MODULES = DSL.multiset(
@@ -350,13 +351,13 @@ public class DeviceRepository {
 			r.get(m.LAST_SEEN_DATE), Boolean.TRUE.equals(r.get(m.REMOVED)));
 	}
 
-	private static DeviceAccess toAccess(Record r) {
+	private DeviceAccess toAccess(Record r) {
 		return new DeviceAccess(
 			r.get(DEVICE_ACCESS.ACCESS_NAME),
 			r.get(DEVICE_ACCESS.ADDRESS),
 			r.get(DEVICE_ACCESS.PORT),
-			CredentialSetRepository.toCredentialSet(r, GLOBAL_CS, GLOBAL_CS_DOMAIN),
-			CredentialSetRepository.toCredentialSet(r, SPECIFIC_CS, SPECIFIC_CS_DOMAIN),
+			this.credentialSetRepository.toCredentialSet(r, GLOBAL_CS, GLOBAL_CS_DOMAIN),
+			this.credentialSetRepository.toCredentialSet(r, SPECIFIC_CS, SPECIFIC_CS_DOMAIN),
 			toEnum(DeviceAccess.SshHostKeyVerification.class, r.get(DEVICE_ACCESS.SSH_HOST_KEY_VERIFICATION)),
 			r.get(DEVICE_ACCESS.SSH_TRUSTED_HOST_KEYS),
 			r.get(DEVICE_ACCESS.SSH_TRUSTED_HOST_KEYS_SINCE),
@@ -385,7 +386,7 @@ public class DeviceRepository {
 			Boolean.TRUE.equals(r.get(NETWORK_INTERFACE.LEVEL3)));
 	}
 
-	private static Device toDevice(Record r) {
+	private Device toDevice(Record r) {
 		return new Device(
 			r.get(DEVICE.ID),
 			r.get(DEVICE.VERSION),
@@ -419,7 +420,7 @@ public class DeviceRepository {
 			optional(r, VIRTUAL_DEVICES),
 			optional(r, VRF_INSTANCES),
 			optional(r, ATTRIBUTES),
-			optional(r, ACCESSES),
+			this.accesses(r),
 			optional(r, MODULES),
 			optional(r, INTERFACES),
 			optional(r, GROUPS));
@@ -437,6 +438,17 @@ public class DeviceRepository {
 		return r.field(field) == null ? null : r.get(field);
 	}
 
+	/**
+	 * Reads the accesses of a device, if the query selected them.
+	 *
+	 * @param r the record
+	 * @return the accesses, or null if the query didn't select them
+	 */
+	private List<DeviceAccess> accesses(Record r) {
+		Result<Record> accesses = optional(r, ACCESSES);
+		return accesses == null ? null : accesses.map(this::toAccess);
+	}
+
 	private List<Device> findWhere(DSLContext dsl, Condition condition) {
 		return dsl.select(FIELDS)
 			.from(DEVICE)
@@ -445,7 +457,7 @@ public class DeviceRepository {
 			.leftJoin(EOS).on(EOS.ID.eq(DEVICE.EOS_MODULE))
 			.where(condition)
 			.orderBy(DEVICE.ID)
-			.fetch(DeviceRepository::toDevice);
+			.fetch(this::toDevice);
 	}
 
 	/**
@@ -602,7 +614,7 @@ public class DeviceRepository {
 				.leftJoin(EOS).on(EOS.ID.eq(DEVICE.EOS_MODULE))
 				.where(LIST.condition(query)).and(condition)
 				.orderBy(LIST.orderBy(query)))
-			.fetch(DeviceRepository::toDevice);
+			.fetch(this::toDevice);
 	}
 
 	/**
