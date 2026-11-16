@@ -29,7 +29,8 @@ import java.util.Set;
 import org.jooq.DSLContext;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.boot.Application;
+import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -64,7 +65,6 @@ import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
@@ -832,31 +832,23 @@ public class DemoDataCreator {
 		return added;
 	}
 
+	/**
+	 * Creates the demo data in the database of the configuration (schema updated first).
+	 *
+	 * @param args the arguments ({@code -c} the configuration file, as for the server)
+	 */
 	public static void main(String[] args) {
-		// Configure logging level to INFO
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger)
-			org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-		rootLogger.setLevel(ch.qos.logback.classic.Level.INFO);
-
-		if (!Netshot.readConfig()) {
-			System.exit(1);
-		}
-
-		Wiring wiring = null;
-		try {
-			log.info("Updating the database schema, if necessary.");
-			Database.update(Netshot.config().current());
+		try (Application application = Application.create(Bootstrap.load(ToolCommandLine.configFiles(args)))) {
+			application.migrate();
 			log.info("Initializing access to the database.");
-			wiring = Wiring.init();
+			application.start("database");
+			Wiring wiring = application.wiring();
+			new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups(), wiring.secretConverter()).createData();
 		}
 		catch (Exception e) {
-			log.error("Error while updating/initializing DB", e);
-			System.exit(-1);
+			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
+			log.error("Error while creating the demo data", e);
+			System.exit(1);
 		}
-
-		DemoDataCreator creator = new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups(), wiring.secretConverter());
-		creator.createData();
 	}
-
-	
 }

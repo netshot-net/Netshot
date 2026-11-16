@@ -24,7 +24,6 @@ import java.util.List;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
 import net.netshot.netshot.aaa.auth.LoginService;
 import net.netshot.netshot.aaa.auth.Oidc;
@@ -129,11 +128,8 @@ import net.netshot.netshot.platform.database.Database;
  * The composition root: builds the long-lived objects of the application
  * (transaction support, the repositories and the services) and holds them.
  *
- * <p>{@link #init()} initializes the database access and builds the wiring;
- * it must be called once the database schema is up to date, and before
- * anything that uses a service (the REST application, the task manager...).
- * It is the single entry point for the server startup as well as for the
- * tests which need a working database.</p>
+ * <p>The wiring is built without side effect, by {@link Application} (the server, the tools and the tests),
+ * which starts its {@link #services()}.</p>
  *
  * <p>The REST resources receive the objects of the wiring through dependency
  * injection: {@link #binder()} is handed to the web application, which registers
@@ -359,27 +355,6 @@ public final class Wiring {
 		this.syslogServer = new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.snmpTrapReceiver = new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.restServer = config.current().get(RestServer.ENABLED) ? new RestServer(this.binder(), config) : null;
-	}
-
-	/**
-	 * Initializes the database access and builds the wiring.
-	 *
-	 * @return the new wiring
-	 */
-	public static synchronized Wiring init() {
-		return init(new DriverRegistry(new DriverLoader(Netshot.config())));
-	}
-
-	/**
-	 * Initializes the database access and builds the wiring around an existing registry of drivers.
-	 *
-	 * @param driverRegistry the registry of the device drivers (loaded or not)
-	 * @return the new wiring
-	 */
-	public static synchronized Wiring init(DriverRegistry driverRegistry) {
-		Wiring wiring = new Wiring(driverRegistry, Netshot.config());
-		wiring.database.start();
-		return wiring;
 	}
 
 	/**
