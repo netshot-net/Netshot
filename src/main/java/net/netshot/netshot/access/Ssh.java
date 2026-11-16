@@ -81,13 +81,11 @@ import org.apache.sshd.sftp.client.SftpClientFactory;
 
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.protocol.SshConfig;
 import net.netshot.netshot.driver.protocol.SshInteractionInstruction;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 
@@ -227,7 +225,7 @@ public class Ssh extends Cli {
 		 * @param config the configuration
 		 * @return the settings
 		 */
-		static Settings from(Config config) {
+		public static Settings from(Config config) {
 			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT),
 				config.get(COMMAND_TIMEOUT), config.get(REKEY_TIME_LIMIT), config.get(REKEY_DATA_LIMIT),
 				config.get(REKEY_BLOCKS_LIMIT), config.get(REKEY_PACKETS_LIMIT), config.get(KEX_ALGORITHMS),
@@ -235,17 +233,6 @@ public class Ssh extends Cli {
 			log.debug("The default SSH settings are {}", settings);
 			return settings;
 		}
-	}
-
-	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
-
-	/**
-	 * Gets the settings of the SSH client.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		return SETTINGS.get();
 	}
 
 	/**
@@ -350,7 +337,7 @@ public class Ssh extends Cli {
 	private String privateKey;
 
 	/** The SSH connection config. */
-	private SshConfig sshConfig = new SshConfig(settings());
+	private SshConfig sshConfig;
 
 	/** Per-access host key verifier (trust any/on first use/manual), set via {@link #setHostKeyVerifier}. */
 	@Setter
@@ -368,28 +355,31 @@ public class Ssh extends Cli {
 	 * Instantiates a new SSH connection (password authentication).
 	 *
 	 * @param client the shared SSH client
+	 * @param settings the SSH settings (timeouts, algorithms)
 	 * @param host the host
 	 * @param port the port
 	 * @param username the username
 	 * @param password the password
 	 * @param taskContext the current task context
 	 */
-	public Ssh(SshClient client, String host, int port, String username, String password, TaskContext taskContext) {
+	public Ssh(SshClient client, Settings settings, String host, int port, String username, String password, TaskContext taskContext) {
 		super(host, taskContext);
 		this.client = client;
 		this.port = port;
 		this.username = username;
 		this.password = password;
 		this.privateKey = null;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
+		this.connectionTimeout = settings.connectionTimeout();
+		this.commandTimeout = settings.commandTimeout();
+		this.receiveTimeout = settings.receiveTimeout();
+		this.sshConfig = new SshConfig(settings);
 	}
 
 	/**
 	 * Instantiates a new SSH connection (private key authentication).
 	 *
 	 * @param client the shared SSH client
+	 * @param settings the SSH settings (timeouts, algorithms)
 	 * @param host the host
 	 * @param port the port
 	 * @param username the SSH username
@@ -397,7 +387,7 @@ public class Ssh extends Cli {
 	 * @param passphrase the passphrase which protects the private key
 	 * @param taskContext the current task context
 	 */
-	public Ssh(SshClient client, String host, int port, String username, String privateKey,
+	public Ssh(SshClient client, Settings settings, String host, int port, String username, String privateKey,
 		String passphrase, TaskContext taskContext) {
 		super(host, taskContext);
 		this.client = client;
@@ -405,52 +395,10 @@ public class Ssh extends Cli {
 		this.username = username;
 		this.privateKey = privateKey;
 		this.password = passphrase;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
-	}
-
-	/**
-	 * Instantiates a new SSH connection (private key authentication).
-	 *
-	 * @param client the shared SSH client
-	 * @param host the host
-	 * @param username the SSH username
-	 * @param privateKey the RSA/DSA private key
-	 * @param passphrase the passphrase which protects the private key
-	 * @param taskContext the current task context
-	 */
-	public Ssh(SshClient client, String host, String username, String privateKey,
-		String passphrase, TaskContext taskContext) {
-		super(host, taskContext);
-		this.client = client;
-		this.username = username;
-		this.privateKey = privateKey;
-		this.password = passphrase;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
-	}
-
-
-	/**
-	 * Instantiates a new ssh.
-	 *
-	 * @param client the shared SSH client
-	 * @param host the host
-	 * @param username the username
-	 * @param password the password
-	 * @param taskContext the current task context
-	 */
-	public Ssh(SshClient client, String host, String username, String password, TaskContext taskContext) {
-		super(host, taskContext);
-		this.client = client;
-		this.username = username;
-		this.password = password;
-		this.privateKey = null;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
+		this.connectionTimeout = settings.connectionTimeout();
+		this.commandTimeout = settings.commandTimeout();
+		this.receiveTimeout = settings.receiveTimeout();
+		this.sshConfig = new SshConfig(settings);
 	}
 
 	/**

@@ -22,12 +22,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import net.netshot.netshot.Netshot;
+import net.netshot.netshot.access.AccessSettings;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.AutoSnapshotQueue;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
@@ -36,10 +38,9 @@ import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.TestRepositories;
-import net.netshot.netshot.Netshot;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -78,7 +79,8 @@ final class TaskRunner {
 			TestTasks.setStatus(child.id(), this.childStatus);
 		}, TestRepositories.TASK, Netshot.config());
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
-		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), TestRepositories.deviceReads(wiring.transactions()));
+		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), TestRepositories.deviceReads(wiring.transactions()),
+			new AccessSettings(wiring.config()));
 		TaskHandlers handlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
 				TestRepositories.POLICY, TestRepositories.RULE, TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE,

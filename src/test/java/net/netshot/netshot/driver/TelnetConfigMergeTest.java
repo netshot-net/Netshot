@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.testing.UnitTest;
@@ -51,7 +52,7 @@ class TelnetConfigMergeTest {
 	@Test
 	@DisplayName("applyTelnetConfig(...) merges non-null fields only, leaving the rest at their prior value")
 	void applyTelnetConfigMergesNonNullFieldsOnly() throws Exception {
-		Telnet telnet = new Telnet("127.0.0.1", 23, new FakeTaskContext());
+		Telnet telnet = new Telnet("127.0.0.1", 23, Telnet.Settings.from(Netshot.config().current()), new FakeTaskContext());
 
 		// Fresh session: seeded with the historical defaults (vt100/80/24).
 		TelnetConfig initial = telnet.getTelnetConfig();

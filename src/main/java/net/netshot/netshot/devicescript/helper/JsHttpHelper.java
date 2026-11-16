@@ -31,12 +31,12 @@ import org.graalvm.polyglot.proxy.ProxyObject;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessAuthenticationException;
-import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.AccessManager.Resolution;
+import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.Client;
-import net.netshot.netshot.access.Http;
 import net.netshot.netshot.access.Http.HttpDownloadResult;
 import net.netshot.netshot.access.Http.HttpResult;
+import net.netshot.netshot.access.Http;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
@@ -123,7 +123,8 @@ public class JsHttpHelper {
 		int port = this.accessManager.resolvePort(candidateAccessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
 			candidateAccessDef.getName(), candidateAccessDef.getProtocol(), credentialSet.name(), host, port);
-		Http httpClient = new Http(host, port, httpConfig.isTls(), this.taskContext, this.accessManager.secrets());
+		Http httpClient = new Http(host, port, httpConfig.isTls(), this.accessManager.settings().http(), this.taskContext,
+			this.accessManager.secrets());
 		this.accessManager.applyHttpsTrustPolicy(candidateAccessDef, httpClient);
 		return httpClient;
 	}

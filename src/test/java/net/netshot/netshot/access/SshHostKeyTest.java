@@ -42,6 +42,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessManager.Resolution;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -49,8 +50,8 @@ import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.TestConnectors;
@@ -151,7 +152,7 @@ class SshHostKeyTest {
 	}
 
 	private static Ssh ssh(int port, String password, DeviceHostKeyVerifier verifier) {
-		Ssh ssh = new Ssh(TestConnectors.sshClient(), "127.0.0.1", port, "admin", password, new FakeTaskContext());
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(Netshot.config().current()), "127.0.0.1", port, "admin", password, new FakeTaskContext());
 		ssh.setConnectionTimeout(5000);
 		ssh.setHostKeyVerifier(verifier);
 		return ssh;

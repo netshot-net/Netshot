@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 
 import com.sun.net.httpserver.HttpServer;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.Http;
@@ -126,7 +127,7 @@ class HttpDownloadTest {
 		this.serveBinary("/binary.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http http = new Http("127.0.0.1", this.port, false, Http.Settings.from(Netshot.config().current()), taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Http.HttpDownloadResult result =
@@ -152,7 +153,7 @@ class HttpDownloadTest {
 		this.serveBinary("/binary2.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http http = new Http("127.0.0.1", this.port, false, Http.Settings.from(Netshot.config().current()), taskContext, SecretResolver.LOCAL);
 		Http.HttpResult result = http.request("GET", "/binary2.bin", null, null, null, null, null, null);
 
 		Assertions.assertEquals(200, result.getStatus());
@@ -185,7 +186,7 @@ class HttpDownloadTest {
 		});
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http http = new Http("127.0.0.1", this.port, false, Http.Settings.from(Netshot.config().current()), taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Map<String, String> headers = new HashMap<>();
@@ -232,7 +233,7 @@ class HttpDownloadTest {
 		TestDrivers.registry().getDrivers().put("HttpDownloadTestDriver", driver);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http fakeHttp = new Http("127.0.0.1", this.port, false, Http.Settings.from(Netshot.config().current()), taskContext, SecretResolver.LOCAL);
 		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username(Secret.local("user")).password(Secret.local("pass")).name("test-http-account").build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();

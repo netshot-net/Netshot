@@ -196,7 +196,8 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			ConfigDraft config = new ConfigDraft(device.getId());
 			Config lastConfig = device.getLastConfig() != null ? device.getLastConfig() : loadLastConfig(device);
 			device.setLastConfig(lastConfig);
-			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.sshServer, this.taskContext);
+			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.sshServer,
+				this.connectors.settings().collector(), this.taskContext);
 			options.setConfigHelper(configHelper);
 			context.getBindings("js").getMember("_connect")
 				.execute("snapshot", options);

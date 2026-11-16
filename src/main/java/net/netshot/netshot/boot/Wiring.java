@@ -35,6 +35,7 @@ import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.access.AccessSettings;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.access.SshClientService;
@@ -324,7 +325,7 @@ public final class Wiring {
 		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask, taskRepository, config);
 		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
 		this.sshClientService = new SshClientService(config);
-		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), deviceReads);
+		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), deviceReads, new AccessSettings(config));
 		this.taskHandlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups, policyRepository, ruleRepository,
 				softwareRuleRepository, hardwareRuleRepository, deviceRepository, configRepository, groupRepository),

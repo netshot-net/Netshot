@@ -25,10 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.net.NetworkAddress;
 
@@ -59,7 +57,7 @@ public final class Collector {
 		 * @param config the configuration
 		 * @return the settings
 		 */
-		static Settings from(Config config) {
+		public static Settings from(Config config) {
 			Map<InetAddress, NetworkAddress> ipOverrides = new HashMap<>();
 			for (String override : config.get(DOMAIN_IP_OVERRIDE)) {
 				String[] parts = override.split("\\|");
@@ -80,24 +78,14 @@ public final class Collector {
 		}
 	}
 
-	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
-
-	/**
-	 * Gets the settings of the collectors.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		return SETTINGS.get();
-	}
-
 	/**
 	 * Find the collector IP address to use for the given domain.
 	 * @param domain to look for
+	 * @param settings the collector settings (the IP addresses overridden for the cluster members)
 	 * @return the collector IP address to upload data to
 	 * @throws IllegalArgumentException
 	 */
-	public static NetworkAddress getCollectorAddress(Domain domain) throws IllegalArgumentException {
+	public static NetworkAddress getCollectorAddress(Domain domain, Settings settings) throws IllegalArgumentException {
 		if (domain == null) {
 			throw new IllegalArgumentException("Unable to find collector address be cause domain is null");
 		}
@@ -106,7 +94,7 @@ public final class Collector {
 			throw new IllegalArgumentException("Domain %s (%d) has no server address".formatted(domain.name(), domain.id()));
 		}
 		// By IP only: the prefix length of the domain address doesn't matter
-		return Collector.settings().clusterIpOverrides().getOrDefault(ip.getInetAddress(), ip);
+		return settings.clusterIpOverrides().getOrDefault(ip.getInetAddress(), ip);
 	}
 
 }
