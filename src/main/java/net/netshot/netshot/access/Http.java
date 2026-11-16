@@ -53,14 +53,12 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.protocol.AuthScheme;
 import net.netshot.netshot.driver.protocol.HttpConfig;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.secret.Secret;
@@ -102,22 +100,11 @@ public class Http implements Client {
 		 * @param config the configuration
 		 * @return the settings
 		 */
-		static Settings from(Config config) {
+		public static Settings from(Config config) {
 			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT));
 			log.debug("The device HTTP client settings are {}", settings);
 			return settings;
 		}
-	}
-
-	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
-
-	/**
-	 * Gets the settings of the HTTP client.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		return SETTINGS.get();
 	}
 
 	/**
@@ -188,16 +175,21 @@ public class Http implements Client {
 	/** Resolves the secrets of the HTTP accounts. */
 	private final SecretResolver secrets;
 
+	/** The HTTP settings (timeouts). */
+	private final Settings settings;
+
 	/**
 	 * Instantiates a new HTTP access.
 	 * @param host the target host (IPv4/IPv6 literal or FQDN)
 	 * @param port the target TCP port
 	 * @param tls whether to use TLS (https) or not
+	 * @param settings the HTTP settings (timeouts)
 	 * @param taskContext the current task context
 	 * @param secrets resolves the secrets of the HTTP accounts (local or Vault-backed)
 	 */
-	public Http(String host, int port, boolean tls, TaskContext taskContext, SecretResolver secrets) {
+	public Http(String host, int port, boolean tls, Settings settings, TaskContext taskContext, SecretResolver secrets) {
 		this.secrets = secrets;
+		this.settings = settings;
 		this.host = host;
 		this.port = port;
 		this.tls = tls;
@@ -224,12 +216,11 @@ public class Http implements Client {
 		}
 		try {
 			ClientConfig config = new ClientConfig();
-			Settings settings = Http.settings();
 			// Without timeouts, a device which accepts the connection but never answers
 			// would block the task (and hold the device lock) forever
 			ClientBuilder builder = ClientBuilder.newBuilder().withConfig(config)
-				.connectTimeout(settings.connectionTimeout(), TimeUnit.MILLISECONDS)
-				.readTimeout(settings.receiveTimeout(), TimeUnit.MILLISECONDS);
+				.connectTimeout(this.settings.connectionTimeout(), TimeUnit.MILLISECONDS)
+				.readTimeout(this.settings.receiveTimeout(), TimeUnit.MILLISECONDS);
 			if (this.tls) {
 				SSLContext sslContext = HttpsTrustPolicy.buildSslContext(this.caTrustMode, this.customCaCertificate);
 				builder.sslContext(sslContext);

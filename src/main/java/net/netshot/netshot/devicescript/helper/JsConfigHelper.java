@@ -47,13 +47,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.Cli;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.access.collector.Collector;
-import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SshServer.SessionLogBuffer;
+import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.TransferProtocol;
 import net.netshot.netshot.access.collector.UploadTicket;
-import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.Config;
@@ -268,6 +268,8 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 
 	/** The embedded SSH server, where the devices upload files (null if not running). */
 	private final SshServer sshServer;
+	/** The collector settings (the address the devices upload to). */
+	private final Collector.Settings collectorSettings;
 	private final DeviceDraft device;
 	private ConfigDraft config;
 	private Config lastConfig;
@@ -278,9 +280,10 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	private Map<Long, ConfigUploadTicket> uploadTickets = new HashMap<>();
 
 	public JsConfigHelper(DriverRegistry driverRegistry, DeviceDraft device, ConfigDraft config, Config lastConfig,
-		JsCliHelper defaultCliHelper, SshServer sshServer, TaskContext taskContext) {
+		JsCliHelper defaultCliHelper, SshServer sshServer, Collector.Settings collectorSettings, TaskContext taskContext) {
 		this.driverRegistry = driverRegistry;
 		this.sshServer = sshServer;
+		this.collectorSettings = collectorSettings;
 		this.device = device;
 		this.config = config;
 		this.lastConfig = lastConfig;
@@ -753,7 +756,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 
 		final NetworkAddress host;
 		try {
-			host = Collector.getCollectorAddress(this.device.getMgmtDomain());
+			host = Collector.getCollectorAddress(this.device.getMgmtDomain(), this.collectorSettings);
 		}
 		catch (Exception e) {
 			log.warn("Unable to retrieve SSH server IP address for domain {}", this.device.getMgmtDomain(), e);

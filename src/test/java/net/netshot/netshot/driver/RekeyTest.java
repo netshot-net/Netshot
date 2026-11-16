@@ -34,6 +34,7 @@ import org.testcontainers.junit.jupiter.Container;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.driver.protocol.SshConfig;
@@ -203,7 +204,7 @@ class RekeyTest {
 	@Test
 	@DisplayName("Tiny global rekey data limit alone forces a rekey (sanity check)")
 	void globalTinyLimitForcesRekey() throws Exception {
-		Ssh ssh = new Ssh(TestConnectors.sshClient(), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(Netshot.config().current()), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
 		int keyEstablishedCount = connectAndCountKeyEstablishedEvents(ssh);
 		Assertions.assertTrue(keyEstablishedCount >= 2,
 			"Expected at least one rekey (2+ KeyEstablished events) with the "
@@ -215,7 +216,7 @@ class RekeyTest {
 	@Test
 	@DisplayName("Driver-level rekey.dataLimit=0 override should disable the forced rekey")
 	void driverOverrideShouldDisableRekey() throws Exception {
-		Ssh ssh = new Ssh(TestConnectors.sshClient(), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(Netshot.config().current()), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
 		// Exactly what DeviceDriver.java does for a driver's `CLI.ssh.config.rekey.dataLimit: 0`
 		// (see Citrix_NetscalerSDX.js): only this one field is set, everything else stays
 		// unset/null so applySshConfig() leaves it alone.

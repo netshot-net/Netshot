@@ -57,12 +57,16 @@ public final class SshClientService implements Service {
 	/** The number of sessions currently open. */
 	private final AtomicInteger openSessions = new AtomicInteger();
 
+	/** The configuration store. */
+	private final ConfigStore config;
+
 	/**
 	 * Builds the client (not started).
 	 *
 	 * @param config the configuration store, whose changes are applied to the client
 	 */
 	public SshClientService(ConfigStore config) {
+		this.config = config;
 		this.client = SshClient.setUpDefaultClient();
 		this.client.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
 		this.client.setFilePasswordProvider(FilePasswordProvider.EMPTY);
@@ -117,7 +121,7 @@ public final class SshClientService implements Service {
 	 * Applies the settings to the client.
 	 */
 	private void applySettings() {
-		Ssh.Settings settings = Ssh.settings();
+		Ssh.Settings settings = Ssh.Settings.from(this.config.current());
 		CoreModuleProperties.NIO2_READ_TIMEOUT.set(this.client, Duration.ofMillis(settings.receiveTimeout()));
 		CoreModuleProperties.REKEY_TIME_LIMIT.set(this.client, Duration.ofMillis(settings.rekeyTimeLimit()));
 		CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.client, settings.rekeyDataLimit());

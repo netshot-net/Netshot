@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessManager.Resolution;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -90,7 +91,7 @@ class SshAuthenticationTest {
 	}
 
 	private static Ssh ssh(String username, String password) {
-		Ssh ssh = new Ssh(TestConnectors.sshClient(), "127.0.0.1", server.getPort(), username, password, new FakeTaskContext());
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(Netshot.config().current()), "127.0.0.1", server.getPort(), username, password, new FakeTaskContext());
 		ssh.setConnectionTimeout(TIMEOUT);
 		return ssh;
 	}

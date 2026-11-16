@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.platform.net.Network4Address;
@@ -53,15 +54,15 @@ class CollectorTest {
 	@Test
 	@DisplayName("Without override, the domain server address is used")
 	void noOverride() throws UnknownHostException {
-		Assertions.assertEquals("10.0.0.1", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.1"))).getIp());
+		Assertions.assertEquals("10.0.0.1", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.1")), Collector.Settings.from(Netshot.config().current())).getIp());
 	}
 
 	@Test
 	@DisplayName("The override of the domain server address is used")
 	void override() throws UnknownHostException {
 		overrides("10.0.0.9|192.168.0.9 10.0.0.1|192.168.0.1");
-		Assertions.assertEquals("192.168.0.1", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.1"))).getIp());
-		Assertions.assertEquals("10.0.0.2", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.2"))).getIp());
+		Assertions.assertEquals("192.168.0.1", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.1")), Collector.Settings.from(Netshot.config().current())).getIp());
+		Assertions.assertEquals("10.0.0.2", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.2")), Collector.Settings.from(Netshot.config().current())).getIp());
 	}
 
 	@Test
@@ -69,12 +70,12 @@ class CollectorTest {
 	void overrideIgnoresPrefixLength() throws UnknownHostException {
 		overrides("10.0.0.1|192.168.0.1");
 		// As a domain created before 0.24 was stored (prefix length 0)
-		Assertions.assertEquals("192.168.0.1", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.1", 0))).getIp());
+		Assertions.assertEquals("192.168.0.1", Collector.getCollectorAddress(domain(new Network4Address("10.0.0.1", 0)), Collector.Settings.from(Netshot.config().current())).getIp());
 	}
 
 	@Test
 	@DisplayName("A domain without server address is refused")
 	void noServerAddress() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> Collector.getCollectorAddress(domain(null)));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> Collector.getCollectorAddress(domain(null), Collector.Settings.from(Netshot.config().current())));
 	}
 }

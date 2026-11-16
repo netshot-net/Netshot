@@ -152,6 +152,15 @@ public class AccessManager {
 	}
 
 	/**
+	 * Gets the settings of the accesses (SSH, Telnet, HTTP).
+	 *
+	 * @return the settings
+	 */
+	public AccessSettings settings() {
+		return this.connectors.settings();
+	}
+
+	/**
 	 * Builds a new access manager for one task attempt against a device, resolving
 	 * (and caching, in {@link DeviceDraft#setCachedIpAddress}) its default
 	 * management address along the way - the one entry point production code

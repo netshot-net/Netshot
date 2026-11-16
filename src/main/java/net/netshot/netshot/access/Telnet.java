@@ -26,11 +26,9 @@ import org.apache.commons.net.telnet.TelnetClient;
 import org.apache.commons.net.telnet.WindowSizeOptionHandler;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 
@@ -69,22 +67,11 @@ public class Telnet extends Cli {
 		 * @param config the configuration
 		 * @return the settings
 		 */
-		static Settings from(Config config) {
+		public static Settings from(Config config) {
 			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT), config.get(COMMAND_TIMEOUT));
 			log.debug("The default Telnet settings are {}", settings);
 			return settings;
 		}
-	}
-
-	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
-
-	/**
-	 * Gets the settings of the Telnet client.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		return SETTINGS.get();
 	}
 
 	/** The port. */
@@ -111,14 +98,15 @@ public class Telnet extends Cli {
 	 *
 	 * @param host the host
 	 * @param port the port
+	 * @param settings the Telnet settings (timeouts)
 	 * @param taskContext the current task context
 	 */
-	public Telnet(String host, int port, TaskContext taskContext) {
+	public Telnet(String host, int port, Settings settings, TaskContext taskContext) {
 		this(host, taskContext);
 		this.port = port;
-		this.connectionTimeout = Telnet.settings().connectionTimeout();
-		this.commandTimeout = Telnet.settings().commandTimeout();
-		this.receiveTimeout = Telnet.settings().receiveTimeout();
+		this.connectionTimeout = settings.connectionTimeout();
+		this.commandTimeout = settings.commandTimeout();
+		this.receiveTimeout = settings.receiveTimeout();
 	}
 
 	/*(non-Javadoc)
