@@ -112,7 +112,7 @@ class VaultTest {
 				.appRoleId(ROLE_ID)
 				.appRoleSecretId(Secret.local(SECRET_ID))
 				.build();
-			vaultInstanceId = TestWiring.get().transactions().write(dsl -> new VaultInstanceRepository().add(dsl, vaultInstance)).id();
+			vaultInstanceId = TestWiring.get().transactions().write(dsl -> TestRepositories.VAULT_INSTANCE.add(dsl, vaultInstance)).id();
 
 			DeviceSshAccount account = DeviceSshAccount.builder().superPassword(Secret.local(LOCAL_SUPER_PASSWORD)).name("vault-test-account")
 				.username(Secret.vault(vaultInstanceId, SECRET_PATH + "/username"))
@@ -165,7 +165,7 @@ class VaultTest {
 				.appRoleId(ROLE_ID)
 				.appRoleSecretId(Secret.local("not-the-right-secret-id"))
 				.build();
-			long wrongInstanceId = TestWiring.get().transactions().write(dsl -> new VaultInstanceRepository().add(dsl, wrongInstance)).id();
+			long wrongInstanceId = TestWiring.get().transactions().write(dsl -> TestRepositories.VAULT_INSTANCE.add(dsl, wrongInstance)).id();
 
 			Secret secret = Secret.vault(wrongInstanceId, SECRET_PATH + "/username");
 

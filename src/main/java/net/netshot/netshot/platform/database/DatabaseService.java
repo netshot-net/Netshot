@@ -42,7 +42,7 @@ public final class DatabaseService implements Service {
 	/**
 	 * Creates the database access.
 	 *
-	 * @param config the configuration store (the database, the encryption password and the sizes of the pools)
+	 * @param config the configuration store (the database and the sizes of the pools)
 	 */
 	public DatabaseService(ConfigStore config) {
 		this.config = config;
@@ -62,7 +62,6 @@ public final class DatabaseService implements Service {
 	public synchronized void start() {
 		if (this.pools == null) {
 			Config current = this.config.current();
-			LocalSecretConverter.init(Database.getEncryptionPassword(current));
 			this.pools = new ConnectionPools(current, Database.getDriverClass(current), Database.getUrl(current),
 				Database.getReadUrl(current), Database.getUsername(current), Database.getPassword(current));
 		}

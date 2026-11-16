@@ -33,6 +33,8 @@ import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.LocalSecretConverter;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.vault.VaultInstanceRepository;
@@ -45,7 +47,9 @@ public final class TestRepositories {
 
 	public static final ConfigRepository CONFIG = new ConfigRepository();
 	public static final DiagnosticResultRepository DIAGNOSTIC_RESULT = new DiagnosticResultRepository();
-	public static final CredentialSetRepository CREDENTIAL_SET = new CredentialSetRepository();
+	/** The converter of the encrypted columns, with the encryption password of the configuration of the tests. */
+	public static final LocalSecretConverter SECRET_CONVERTER = new LocalSecretConverter(Database.getEncryptionPassword(Netshot.config().current()));
+	public static final CredentialSetRepository CREDENTIAL_SET = new CredentialSetRepository(SECRET_CONVERTER);
 	public static final DeviceRepository DEVICE = new DeviceRepository(CONFIG, DIAGNOSTIC_RESULT, CREDENTIAL_SET);
 	public static final DomainRepository DOMAIN = new DomainRepository();
 	public static final GroupRepository GROUP = new GroupRepository();
@@ -55,7 +59,7 @@ public final class TestRepositories {
 	public static final HardwareRuleRepository HARDWARE_RULE = new HardwareRuleRepository();
 	public static final TaskRepository TASK = new TaskRepository();
 	public static final DiagnosticRepository DIAGNOSTIC = new DiagnosticRepository();
-	public static final VaultInstanceRepository VAULT_INSTANCE = new VaultInstanceRepository();
+	public static final VaultInstanceRepository VAULT_INSTANCE = new VaultInstanceRepository(SECRET_CONVERTER);
 	public static final CredentialSetAssembler CREDENTIAL_SET_ASSEMBLER = new CredentialSetAssembler(VAULT_INSTANCE);
 	/** The storage of the binary file attributes, bound to the configuration of the tests. */
 	public static final BinaryFileStorage BINARY_FILES = new BinaryFileStorage(Netshot.config());

@@ -25,52 +25,38 @@ import net.netshot.netshot.platform.crypto.Sha2AesPasswordBasedEncryptor;
 import net.netshot.netshot.platform.secret.LocalSecret;
 
 /**
- * jOOQ converter of the encrypted columns (secrets of the credential sets and Vault instances):
- * the database holds the value encrypted with the DB encryption password (the format
- * written by the former Hibernate converter, so the existing values are read).
+ * Converter of the encrypted columns (secrets of the credential sets and Vault instances): the database holds the
+ * value encrypted with the DB encryption password (the format written by the former Hibernate converter, so the
+ * existing values are read). The repositories of these columns convert their values with it (the generated table
+ * classes hold the stored text).
  *
  * <p>A value is read without being decrypted: the {@link LocalSecret} decrypts it when it is revealed, at the
  * moment it is used. A value which was read is written back as it was read (it isn't encrypted again).</p>
- *
- * <p>The password is given by the database access when it starts ({@link #init(String)}), not read when the
- * generated table classes are loaded (which may happen before the configuration is).</p>
  */
 public class LocalSecretConverter extends AbstractConverter<String, LocalSecret> {
 
 	private static final long serialVersionUID = 1L;
 
-	public LocalSecretConverter() {
-		super(String.class, LocalSecret.class);
-	}
-
-	/** The encryptor (set by {@link #init(String)} when the database access starts). */
-	private static volatile PasswordBasedEncryptor encryptor;
+	/** The encryptor. */
+	private final transient PasswordBasedEncryptor encryptor;
 
 	/**
-	 * Sets the password of the encryption, when the database access starts (the generated table classes build the
-	 * converter themselves: it can't receive it otherwise).
+	 * Creates the converter.
 	 *
-	 * @param password the encryption password
+	 * @param password the encryption password ({@code netshot.db.encryptionpassword})
 	 */
-	public static synchronized void init(String password) {
-		encryptor = new Sha2AesPasswordBasedEncryptor(password);
-	}
-
-	private static PasswordBasedEncryptor encryptor() {
-		PasswordBasedEncryptor current = encryptor;
-		if (current == null) {
-			throw new IllegalStateException("The encryption of the secrets is not initialized");
-		}
-		return current;
+	public LocalSecretConverter(String password) {
+		super(String.class, LocalSecret.class);
+		this.encryptor = new Sha2AesPasswordBasedEncryptor(password);
 	}
 
 	@Override
 	public LocalSecret from(String databaseObject) {
-		return databaseObject == null ? null : LocalSecret.encrypted(databaseObject, encryptor());
+		return databaseObject == null ? null : LocalSecret.encrypted(databaseObject, this.encryptor);
 	}
 
 	@Override
 	public String to(LocalSecret userObject) {
-		return userObject == null ? null : userObject.encrypt(encryptor());
+		return userObject == null ? null : userObject.encrypt(this.encryptor);
 	}
 }

@@ -41,6 +41,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
+import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the Vault instance use cases, against a real database: error codes and their order,
@@ -62,7 +63,7 @@ class VaultInstanceServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
+		this.service = new VaultInstanceService(this.transactions, TestRepositories.VAULT_INSTANCE,
 			this.notified::add,
 			instance -> {
 				this.tested.add(instance);
@@ -97,7 +98,7 @@ class VaultInstanceServiceTest {
 	}
 
 	private HashicorpVaultKv2Instance stored(long id) {
-		return (HashicorpVaultKv2Instance) this.transactions.read(dsl -> new VaultInstanceRepository().find(dsl, id));
+		return (HashicorpVaultKv2Instance) this.transactions.read(dsl -> TestRepositories.VAULT_INSTANCE.find(dsl, id));
 	}
 
 	private HashicorpVaultKv2Instance createInstance() {

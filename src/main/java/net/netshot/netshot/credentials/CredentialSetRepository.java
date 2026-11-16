@@ -39,6 +39,7 @@ import org.jooq.impl.DSL;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
 import net.netshot.netshot.domain.DomainRepository;
+import net.netshot.netshot.platform.database.LocalSecretConverter;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
@@ -62,6 +63,18 @@ public class CredentialSetRepository {
 		DeviceSnmpv1Community.class.getSimpleName(),
 		DeviceSnmpv2cCommunity.class.getSimpleName(),
 		DeviceSnmpv3Community.class.getSimpleName());
+
+	/** The converter of the encrypted columns. */
+	private final LocalSecretConverter secrets;
+
+	/**
+	 * Creates the repository.
+	 *
+	 * @param secrets the converter of the encrypted columns
+	 */
+	public CredentialSetRepository(LocalSecretConverter secrets) {
+		this.secrets = secrets;
+	}
 
 	/**
 	 * The fields to select to build credential sets from (possibly aliased) tables.
@@ -98,8 +111,8 @@ public class CredentialSetRepository {
 	 * @param vaultPath the column of the Vault path
 	 * @return the field, or null if it is not set
 	 */
-	private static Secret encrypted(Record r, Field<LocalSecret> value, Field<Long> vaultInstanceId, Field<String> vaultPath) {
-		return Secret.of(r.get(value), r.get(vaultInstanceId), r.get(vaultPath));
+	private Secret encrypted(Record r, Field<String> value, Field<Long> vaultInstanceId, Field<String> vaultPath) {
+		return Secret.of(this.secrets.from(r.get(value)), r.get(vaultInstanceId), r.get(vaultPath));
 	}
 
 	/**
@@ -111,7 +124,7 @@ public class CredentialSetRepository {
 	 * @return the credential set, or null if the record has none (outer join)
 	 * @throws IllegalStateException if the type of the credential set is unknown
 	 */
-	public static DeviceCredentialSet toCredentialSet(Record r,
+	public DeviceCredentialSet toCredentialSet(Record r,
 			net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet cs, Domain d) {
 		Long id = r.get(cs.ID);
 		if (id == null) {
@@ -126,36 +139,36 @@ public class CredentialSetRepository {
 		return switch (type) {
 			case "DeviceSshAccount" -> new DeviceSshAccount(id, version, changeDate, name, domain, deviceSpecific,
 				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
-				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
-				encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH));
+				this.encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
+				this.encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH));
 			case "DeviceSshKeyAccount" -> new DeviceSshKeyAccount(id, version, changeDate, name, domain, deviceSpecific,
 				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
-				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
-				encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH),
-				encrypted(r, cs.PRIVATE_KEY, cs.PRIVATE_KEY_VAULT_INSTANCE_ID, cs.PRIVATE_KEY_VAULT_PATH));
+				this.encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
+				this.encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH),
+				this.encrypted(r, cs.PRIVATE_KEY, cs.PRIVATE_KEY_VAULT_INSTANCE_ID, cs.PRIVATE_KEY_VAULT_PATH));
 			case "DeviceTelnetAccount" -> new DeviceTelnetAccount(id, version, changeDate, name, domain, deviceSpecific,
 				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
-				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
-				encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH));
+				this.encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
+				this.encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH));
 			case "DeviceHttpAccount" -> new DeviceHttpAccount(id, version, changeDate, name, domain, deviceSpecific,
 				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
-				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH));
+				this.encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH));
 			case "DeviceSnmpv1Community" -> new DeviceSnmpv1Community(id, version, changeDate, name, domain, deviceSpecific,
-				encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH));
+				this.encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH));
 			case "DeviceSnmpv2cCommunity" -> new DeviceSnmpv2cCommunity(id, version, changeDate, name, domain, deviceSpecific,
-				encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH));
+				this.encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH));
 			case "DeviceSnmpv3Community" -> new DeviceSnmpv3Community(id, version, changeDate, name, domain, deviceSpecific,
-				encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH),
+				this.encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH),
 				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
 				r.get(cs.AUTH_TYPE) == null ? null : AuthProtocol.valueOf(r.get(cs.AUTH_TYPE)),
-				encrypted(r, cs.AUTH_KEY, cs.AUTH_KEY_VAULT_INSTANCE_ID, cs.AUTH_KEY_VAULT_PATH),
+				this.encrypted(r, cs.AUTH_KEY, cs.AUTH_KEY_VAULT_INSTANCE_ID, cs.AUTH_KEY_VAULT_PATH),
 				r.get(cs.PRIV_TYPE) == null ? null : PrivProtocol.valueOf(r.get(cs.PRIV_TYPE)),
-				encrypted(r, cs.PRIV_KEY, cs.PRIV_KEY_VAULT_INSTANCE_ID, cs.PRIV_KEY_VAULT_PATH));
+				this.encrypted(r, cs.PRIV_KEY, cs.PRIV_KEY_VAULT_INSTANCE_ID, cs.PRIV_KEY_VAULT_PATH));
 			default -> throw new IllegalStateException("Unknown type of credential set '%s'".formatted(type));
 		};
 	}
 
-	private static DeviceCredentialSet toCredentialSet(Record r) {
+	private DeviceCredentialSet toCredentialSet(Record r) {
 		return toCredentialSet(r, CS, DOMAIN);
 	}
 
@@ -194,9 +207,9 @@ public class CredentialSetRepository {
 	 * @param vaultPath the column of the Vault path
 	 * @param secret the field
 	 */
-	private static void putEncrypted(Map<Field<?>, Object> values, Field<LocalSecret> value, Field<Long> vaultInstanceId,
+	private void putEncrypted(Map<Field<?>, Object> values, Field<String> value, Field<Long> vaultInstanceId,
 			Field<String> vaultPath, Secret secret) {
-		values.put(value, Secret.localValue(secret));
+		values.put(value, this.secrets.to(Secret.localValue(secret)));
 		values.put(vaultInstanceId, Secret.vaultInstanceId(secret));
 		values.put(vaultPath, Secret.vaultPath(secret));
 	}
@@ -208,7 +221,7 @@ public class CredentialSetRepository {
 	 * @param credentialSet the credential set
 	 * @return the values, by column
 	 */
-	private static Map<Field<?>, Object> values(DeviceCredentialSet credentialSet) {
+	private Map<Field<?>, Object> values(DeviceCredentialSet credentialSet) {
 		Map<Field<?>, Object> values = new LinkedHashMap<>();
 		for (Field<?> field : CS.fields()) {
 			values.put(field, null);
@@ -222,25 +235,25 @@ public class CredentialSetRepository {
 		values.put(CS.DEVICE_SPECIFIC, credentialSet.deviceSpecific());
 		if (credentialSet instanceof DeviceCliAccount cli) {
 			putClear(values, CS.USERNAME, CS.USERNAME_VAULT_INSTANCE_ID, CS.USERNAME_VAULT_PATH, cli.username());
-			putEncrypted(values, CS.PASSWORD, CS.PASSWORD_VAULT_INSTANCE_ID, CS.PASSWORD_VAULT_PATH, cli.password());
-			putEncrypted(values, CS.SUPER_PASSWORD, CS.SUPER_PASSWORD_VAULT_INSTANCE_ID, CS.SUPER_PASSWORD_VAULT_PATH, cli.superPassword());
+			this.putEncrypted(values, CS.PASSWORD, CS.PASSWORD_VAULT_INSTANCE_ID, CS.PASSWORD_VAULT_PATH, cli.password());
+			this.putEncrypted(values, CS.SUPER_PASSWORD, CS.SUPER_PASSWORD_VAULT_INSTANCE_ID, CS.SUPER_PASSWORD_VAULT_PATH, cli.superPassword());
 		}
 		if (credentialSet instanceof DeviceSshKeyAccount key) {
-			putEncrypted(values, CS.PRIVATE_KEY, CS.PRIVATE_KEY_VAULT_INSTANCE_ID, CS.PRIVATE_KEY_VAULT_PATH, key.privateKey());
+			this.putEncrypted(values, CS.PRIVATE_KEY, CS.PRIVATE_KEY_VAULT_INSTANCE_ID, CS.PRIVATE_KEY_VAULT_PATH, key.privateKey());
 		}
 		if (credentialSet instanceof DeviceHttpAccount http) {
 			putClear(values, CS.USERNAME, CS.USERNAME_VAULT_INSTANCE_ID, CS.USERNAME_VAULT_PATH, http.username());
-			putEncrypted(values, CS.PASSWORD, CS.PASSWORD_VAULT_INSTANCE_ID, CS.PASSWORD_VAULT_PATH, http.password());
+			this.putEncrypted(values, CS.PASSWORD, CS.PASSWORD_VAULT_INSTANCE_ID, CS.PASSWORD_VAULT_PATH, http.password());
 		}
 		if (credentialSet instanceof DeviceSnmpCommunity snmp) {
-			putEncrypted(values, CS.COMMUNITY, CS.COMMUNITY_VAULT_INSTANCE_ID, CS.COMMUNITY_VAULT_PATH, snmp.community());
+			this.putEncrypted(values, CS.COMMUNITY, CS.COMMUNITY_VAULT_INSTANCE_ID, CS.COMMUNITY_VAULT_PATH, snmp.community());
 		}
 		if (credentialSet instanceof DeviceSnmpv3Community v3) {
 			putClear(values, CS.USERNAME, CS.USERNAME_VAULT_INSTANCE_ID, CS.USERNAME_VAULT_PATH, v3.username());
 			values.put(CS.AUTH_TYPE, v3.authType() == null ? null : v3.authType().name());
-			putEncrypted(values, CS.AUTH_KEY, CS.AUTH_KEY_VAULT_INSTANCE_ID, CS.AUTH_KEY_VAULT_PATH, v3.authKey());
+			this.putEncrypted(values, CS.AUTH_KEY, CS.AUTH_KEY_VAULT_INSTANCE_ID, CS.AUTH_KEY_VAULT_PATH, v3.authKey());
 			values.put(CS.PRIV_TYPE, v3.privType() == null ? null : v3.privType().name());
-			putEncrypted(values, CS.PRIV_KEY, CS.PRIV_KEY_VAULT_INSTANCE_ID, CS.PRIV_KEY_VAULT_PATH, v3.privKey());
+			this.putEncrypted(values, CS.PRIV_KEY, CS.PRIV_KEY_VAULT_INSTANCE_ID, CS.PRIV_KEY_VAULT_PATH, v3.privKey());
 		}
 		return values;
 	}
@@ -248,7 +261,7 @@ public class CredentialSetRepository {
 	private List<DeviceCredentialSet> findWhere(DSLContext dsl, Condition condition, Page page) {
 		return page.apply(dsl.select(fields(CS, DOMAIN)).from(CS).leftJoin(DOMAIN).on(DOMAIN.ID.eq(CS.MGMT_DOMAIN))
 				.where(condition).orderBy(CS.ID.asc()))
-			.fetch(CredentialSetRepository::toCredentialSet);
+			.fetch(this::toCredentialSet);
 	}
 
 	/** The fields the credential set lists can be filtered and sorted on (the v1 name of the type is exposed). */
@@ -288,7 +301,7 @@ public class CredentialSetRepository {
 	public List<DeviceCredentialSet> findAll(DSLContext dsl, ListQuery query) {
 		return query.page().apply(dsl.select(fields(CS, DOMAIN)).from(CS).leftJoin(DOMAIN).on(DOMAIN.ID.eq(CS.MGMT_DOMAIN))
 				.where(listCondition(query)).orderBy(LIST.orderBy(query)))
-			.fetch(CredentialSetRepository::toCredentialSet);
+			.fetch(this::toCredentialSet);
 	}
 
 	/**
@@ -376,7 +389,7 @@ public class CredentialSetRepository {
 	 */
 	public DeviceCredentialSet add(DSLContext dsl, DeviceCredentialSet credentialSet) {
 		long id = dsl.insertInto(CS)
-			.set(values(credentialSet))
+			.set(this.values(credentialSet))
 			.set(CS.VERSION, 0)
 			.set(CS.CHANGE_DATE, now())
 			.returning(CS.ID)
@@ -404,7 +417,7 @@ public class CredentialSetRepository {
 	 */
 	public DeviceCredentialSet save(DSLContext dsl, DeviceCredentialSet credentialSet) {
 		int updated = dsl.update(CS)
-			.set(values(credentialSet))
+			.set(this.values(credentialSet))
 			.set(CS.VERSION, CS.VERSION.plus(1))
 			.set(CS.CHANGE_DATE, now())
 			.where(CS.ID.eq(credentialSet.id()), CS.DTYPE.eq(credentialSet.typeName()))

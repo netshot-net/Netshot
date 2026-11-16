@@ -71,6 +71,7 @@ import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.platform.database.LocalSecretConverter;
 
 @Slf4j
 public class DemoDataCreator {
@@ -80,6 +81,9 @@ public class DemoDataCreator {
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
+
+	/** The converter of the encrypted columns. */
+	private final LocalSecretConverter secretConverter;
 
 	private long domainCount = 3;
 	private List<Domain> testDomains = new ArrayList<>();
@@ -94,10 +98,12 @@ public class DemoDataCreator {
 	 *
 	 * @param transactions the transaction support
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param secretConverter the converter of the encrypted columns
 	 */
-	public DemoDataCreator(Transactions transactions, DynamicGroups dynamicGroups) {
+	public DemoDataCreator(Transactions transactions, DynamicGroups dynamicGroups, LocalSecretConverter secretConverter) {
 		this.transactions = transactions;
 		this.dynamicGroups = dynamicGroups;
+		this.secretConverter = secretConverter;
 	}
 
 	/**
@@ -801,7 +807,7 @@ public class DemoDataCreator {
 	}
 
 	private Device store(DSLContext dsl, FakeDevice fake) {
-		CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+		CredentialSetRepository credentialSetRepository = new CredentialSetRepository(this.secretConverter);
 		List<DeviceAccess> accesses = new ArrayList<>();
 		for (DeviceAccess access : fake.device().accesses()) {
 			if (access.specificCredentialSet() != null) {
@@ -848,7 +854,7 @@ public class DemoDataCreator {
 			System.exit(-1);
 		}
 
-		DemoDataCreator creator = new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups());
+		DemoDataCreator creator = new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups(), wiring.secretConverter());
 		creator.createData();
 	}
 
