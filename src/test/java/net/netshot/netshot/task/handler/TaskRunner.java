@@ -39,6 +39,7 @@ import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestRepositories;
+import net.netshot.netshot.Netshot;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -75,7 +76,7 @@ final class TaskRunner {
 		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(TestWiring.get().transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
-		}, TestRepositories.TASK);
+		}, TestRepositories.TASK, Netshot.config());
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
 		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), TestRepositories.deviceReads(wiring.transactions()));
 		TaskHandlers handlers = new TaskHandlers(List.of(
@@ -98,8 +99,8 @@ final class TaskRunner {
 			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.CREDENTIAL_SET),
 			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.DEVICE, TestRepositories.GROUP),
 			new TakeSnapshotHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
-				connectors, TestRepositories.DEVICE)));
-		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), TestRepositories.TASK);
+				connectors, TestRepositories.DEVICE, Netshot.config())));
+		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), TestRepositories.TASK, Netshot.config());
 	}
 
 	/**

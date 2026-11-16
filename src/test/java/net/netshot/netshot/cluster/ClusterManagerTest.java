@@ -51,6 +51,7 @@ import net.netshot.netshot.task.engine.TaskManager.Mode;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDatabase;
+import net.netshot.netshot.Netshot;
 
 /**
  * Tests of the cluster manager: a real cluster manager, with short timers and a recording local node, talks to
@@ -132,7 +133,7 @@ class ClusterManagerTest {
 		config.setProperty("netshot.cluster.id", id);
 		config.setProperty("netshot.cluster.master.priority", Integer.toString(masterPriority));
 		TestConfig.init(config);
-		ClusterManager manager = new ClusterManager(node, TIMERS);
+		ClusterManager manager = new ClusterManager(node, Netshot.config(), TIMERS);
 		manager.start();
 		this.managers.add(manager);
 		return manager;

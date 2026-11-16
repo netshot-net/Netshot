@@ -36,7 +36,7 @@ import java.util.jar.JarFile;
 import org.apache.commons.codec.binary.Hex;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 
 /**
@@ -58,6 +58,18 @@ public class DriverLoader {
 	public record LoadedDrivers(Map<String, DeviceDriver> drivers, String hash) {
 	}
 
+	/** The configuration store (the folder of the additional drivers). */
+	private final ConfigStore config;
+
+	/**
+	 * Creates the loader.
+	 *
+	 * @param config the configuration store
+	 */
+	public DriverLoader(ConfigStore config) {
+		this.config = config;
+	}
+
 	/**
 	 * Reads all the drivers from their sources.
 	 *
@@ -68,7 +80,7 @@ public class DriverLoader {
 	public LoadedDrivers load() throws Exception {
 		Map<String, DeviceDriver> newDrivers = new HashMap<>();
 
-		final String addPath = Netshot.config().current().get(DRIVERS_PATH);
+		final String addPath = this.config.current().get(DRIVERS_PATH);
 		if (addPath != null) {
 			final File folder = new File(addPath);
 			if (folder.isDirectory()) {

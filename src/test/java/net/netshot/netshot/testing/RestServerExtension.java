@@ -28,6 +28,7 @@ import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.platform.database.schema.Tables;
+import net.netshot.netshot.Netshot;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -69,7 +70,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			scheduler.standby();
 			scheduler.clear();
 		}
-		RestServer restServer = new RestServer(TestWiring.get().binder());
+		RestServer restServer = new RestServer(TestWiring.get().binder(), Netshot.config());
 		restServer.start();
 		context.getStore(Kinds.NAMESPACE).put(RestServer.class, restServer);
 		waitUntilListening(TestServer.of(context).apiUri());

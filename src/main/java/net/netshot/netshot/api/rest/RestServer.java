@@ -59,6 +59,7 @@ import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * The web server of Netshot: a thread which starts Undertow, serving the Web UI (static files) and the
@@ -120,6 +121,7 @@ public final class RestServer implements Service {
 
 	/** The dependency injection binder for the web application. */
 	private final AbstractBinder binder;
+	private final ConfigStore config;
 
 	/** The number of handled requests. */
 	private final AtomicLong requests = new AtomicLong();
@@ -141,9 +143,11 @@ public final class RestServer implements Service {
 	 *
 	 * @param binder the dependency injection binder exposing the services to the REST resources
 	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
+	 * @param config the configuration store
 	 */
-	public RestServer(AbstractBinder binder) {
+	public RestServer(AbstractBinder binder, ConfigStore config) {
 		this.binder = binder;
+		this.config = config;
 	}
 
 	@Override
@@ -158,12 +162,13 @@ public final class RestServer implements Service {
 
 	@Override
 	public synchronized void start() throws Exception {
-		HttpServerAddress address = HttpServerAddress.fromConfig();
+		Config current = this.config.current();
+		HttpServerAddress address = HttpServerAddress.fromConfig(current);
 		this.httpBaseUri = address.baseUri();
 		httpUseSsl = address.useSsl();
 		if (httpUseSsl) {
-			httpSslKeystoreFile = Netshot.config().current().get(KEYSTORE_FILE);
-			httpSslKeystorePass = Netshot.config().current().get(KEYSTORE_PASS);
+			httpSslKeystoreFile = current.get(KEYSTORE_FILE);
+			httpSslKeystorePass = current.get(KEYSTORE_PASS);
 		}
 		Undertow.Builder builder = Undertow.builder()
 			.setServerOption(UndertowOptions.ENABLE_HTTP2, true);
@@ -192,12 +197,11 @@ public final class RestServer implements Service {
 
 		// === Session cookie ===
 		// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
-		Config config = Netshot.config().current();
-		boolean behindProxy = config.get(LoggerFilter.TRUST_X_FORWARDED_FOR);
-		Boolean configuredSecureCookie = config.get(SECURE_COOKIE);
+		boolean behindProxy = current.get(LoggerFilter.TRUST_X_FORWARDED_FOR);
+		Boolean configuredSecureCookie = current.get(SECURE_COOKIE);
 		boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
-		String apiPath = config.get(API_PATH);
-		String staticPath = config.get(STATIC_PATH);
+		String apiPath = current.get(API_PATH);
+		String staticPath = current.get(STATIC_PATH);
 		if (!secureCookie) {
 			log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
 				+ "via a reverse proxy, set netshot.http.securecookie to true.");
@@ -216,7 +220,7 @@ public final class RestServer implements Service {
 					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.binder))))
 				.setLoadOnStartup(1)
 				.addMapping(V1Links.VERSION_PATH + "/*"));
-		if (config.get(V0_ENABLED)) {
+		if (current.get(V0_ENABLED)) {
 			ServletInfo v0 = Servlets.servlet("Jersey", ServletContainer.class,
 					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.binder))))
 				.setLoadOnStartup(1)
@@ -228,7 +232,7 @@ public final class RestServer implements Service {
 		}
 		deployment
 			.setServletSessionConfig(new ServletSessionConfig()
-				.setName(config.get(SESSION_COOKIE_NAME))
+				.setName(current.get(SESSION_COOKIE_NAME))
 				.setHttpOnly(true)
 				.setSecure(secureCookie)
 				.setAttribute("SameSite", "Strict")

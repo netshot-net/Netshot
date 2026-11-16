@@ -43,6 +43,7 @@ import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * Takes the snapshot of a device.
@@ -67,6 +68,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	/** The secret resolver and the SSH client of the device accesses. */
 	private final Connectors connectors;
+	private final ConfigStore config;
 
 	/**
 	 * Creates the handler.
@@ -78,9 +80,10 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param deviceRepository the device repository
+	 * @param config the configuration store (the dump folder of the configurations)
 	 */
 	public TakeSnapshotHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
-		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors, DeviceRepository deviceRepository) {
+		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors, DeviceRepository deviceRepository, ConfigStore config) {
 		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
@@ -89,6 +92,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		this.taskSubmitter = taskSubmitter;
 		this.autoSnapshots = autoSnapshots;
 		this.deviceRepository = deviceRepository;
+		this.config = config;
 	}
 
 	@Override
@@ -124,7 +128,8 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger,
+			this.config.current().get(SnapshotDeviceScript.DUMP_PATH));
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
