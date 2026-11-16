@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v1;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import net.netshot.netshot.api.rest.RestServer;
 
 /**
  * The paths of the objects of the v1 API ({@code /api/v1/domains/3}), as written in the {@code url} property of
@@ -33,7 +32,20 @@ public final class V1Links {
 	/** The path of the v1 API under the API path. */
 	public static final String VERSION_PATH = "/v1";
 
+	/** The path the REST API is served on (set by the REST server when it starts: the mappers are static). */
+	private static volatile String apiPath = "/api";
+
 	private V1Links() {
+	}
+
+	/**
+	 * Sets the path the REST API is served on, when the REST server starts ({@code netshot.http.apipath}, read at
+	 * start).
+	 *
+	 * @param path the path, e.g. {@code /api}
+	 */
+	public static void init(String path) {
+		apiPath = path;
 	}
 
 	/**
@@ -42,8 +54,8 @@ public final class V1Links {
 	 * @return the path, e.g. {@code /api/v1}
 	 */
 	public static String base() {
-		String apiPath = RestServer.apiPath();
-		return (apiPath.endsWith("/") ? apiPath.substring(0, apiPath.length() - 1) : apiPath) + VERSION_PATH;
+		String path = apiPath;
+		return (path.endsWith("/") ? path.substring(0, path.length() - 1) : path) + VERSION_PATH;
 	}
 
 	/**

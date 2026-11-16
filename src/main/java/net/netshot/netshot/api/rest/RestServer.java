@@ -99,19 +99,21 @@ public final class RestServer implements Service {
 	/**
 	 * Gets the path the REST API is served on.
 	 *
+	 * @param config the configuration
 	 * @return the path, e.g. {@code /api}
 	 */
-	public static String apiPath() {
-		return Netshot.config().current().get(API_PATH);
+	public static String apiPath(Config config) {
+		return config.get(API_PATH);
 	}
 
 	/**
 	 * Gets the name of the session cookie.
 	 *
+	 * @param config the configuration
 	 * @return the name of the cookie
 	 */
-	public static String sessionCookieName() {
-		return Netshot.config().current().get(SESSION_COOKIE_NAME);
+	public static String sessionCookieName(Config config) {
+		return config.get(SESSION_COOKIE_NAME);
 	}
 
 	private URI httpBaseUri;
@@ -201,6 +203,7 @@ public final class RestServer implements Service {
 		Boolean configuredSecureCookie = current.get(SECURE_COOKIE);
 		boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
 		String apiPath = current.get(API_PATH);
+		V1Links.init(apiPath);
 		String staticPath = current.get(STATIC_PATH);
 		if (!secureCookie) {
 			log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "

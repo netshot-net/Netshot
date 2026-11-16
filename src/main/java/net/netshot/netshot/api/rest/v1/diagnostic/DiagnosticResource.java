@@ -79,6 +79,7 @@ public class DiagnosticResource {
 	private final DiagnosticService diagnosticService;
 	private final GroupService groupService;
 	private final DriverRegistry driverRegistry;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -95,12 +96,15 @@ public class DiagnosticResource {
 	 * @param diagnosticService the diagnostic use cases
 	 * @param groupService the group use cases
 	 * @param driverRegistry the loaded device drivers
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public DiagnosticResource(DiagnosticService diagnosticService, GroupService groupService, DriverRegistry driverRegistry) {
+	public DiagnosticResource(DiagnosticService diagnosticService, GroupService groupService, DriverRegistry driverRegistry,
+		ListParams lists) {
 		this.diagnosticService = diagnosticService;
 		this.groupService = groupService;
 		this.driverRegistry = driverRegistry;
+		this.lists = lists;
 	}
 
 	/**
@@ -132,7 +136,7 @@ public class DiagnosticResource {
 	@Operation(summary = "List the diagnostics", description = "Lists the diagnostics, in their brief view by default.")
 	@ListFilters(ListSchema.DIAGNOSTICS)
 	public ListResponse<DiagnosticDto> listDiagnostics() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DIAGNOSTICS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DIAGNOSTICS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), DiagnosticDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DiagnosticDto.class);
 		ListResult<Diagnostic> result = this.diagnosticService.list(query);

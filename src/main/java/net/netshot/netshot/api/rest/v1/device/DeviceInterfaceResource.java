@@ -51,6 +51,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class DeviceInterfaceResource {
 
 	private final DeviceCatalogService catalogService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -62,10 +63,12 @@ public class DeviceInterfaceResource {
 	 * Instantiates the resource.
 	 *
 	 * @param catalogService the device sub-resource use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public DeviceInterfaceResource(DeviceCatalogService catalogService) {
+	public DeviceInterfaceResource(DeviceCatalogService catalogService, ListParams lists) {
 		this.catalogService = catalogService;
+		this.lists = lists;
 	}
 
 	/**
@@ -83,7 +86,7 @@ public class DeviceInterfaceResource {
 	@ListFilters(ListSchema.DEVICE_INTERFACES)
 	public ListResponse<DeviceInterfaceDto> listDeviceInterfaces(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_INTERFACES.schema());
+		ListQuery query = this.lists.parse(params, ListSchema.DEVICE_INTERFACES.schema());
 		Selection selection = Selection.of(params, DeviceInterfaceDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceInterfaceDto.class);
 		return ListResponse.of(this.uriInfo, query, this.catalogService.listInterfaces(id, query), DeviceInventoryMapper::toDto);

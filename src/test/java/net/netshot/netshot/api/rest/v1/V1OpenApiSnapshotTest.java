@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import io.swagger.v3.core.util.Json;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.Netshot;
 
 /**
  * Keeps the snapshot of the OpenAPI document of the v1 API, which the web UI generates its API types from
@@ -52,7 +53,7 @@ class V1OpenApiSnapshotTest {
 				// No service: the document is built from the resource classes only
 			}
 		});
-		String document = Json.pretty().writeValueAsString(V1OpenApiResource.build(application)) + "\n";
+		String document = Json.pretty().writeValueAsString(V1OpenApiResource.build(application, Netshot.config().current())) + "\n";
 		if (Golden.isUpdateMode()) {
 			Files.createDirectories(SNAPSHOT.getParent());
 			Files.writeString(SNAPSHOT, document, StandardCharsets.UTF_8);

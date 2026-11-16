@@ -80,6 +80,7 @@ public class CredentialSetResource {
 
 	private final CredentialSetService credentialSetService;
 	private final VaultInstanceService vaultInstanceService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -95,11 +96,13 @@ public class CredentialSetResource {
 	 *
 	 * @param credentialSetService the credential set use cases
 	 * @param vaultInstanceService the Vault instance use cases (to name the instances credentials refer to)
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public CredentialSetResource(CredentialSetService credentialSetService, VaultInstanceService vaultInstanceService) {
+	public CredentialSetResource(CredentialSetService credentialSetService, VaultInstanceService vaultInstanceService, ListParams lists) {
 		this.credentialSetService = credentialSetService;
 		this.vaultInstanceService = vaultInstanceService;
+		this.lists = lists;
 	}
 
 	/**
@@ -115,7 +118,7 @@ public class CredentialSetResource {
 		+ "(deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned.")
 	@ListFilters(ListSchema.CREDENTIAL_SETS)
 	public ListResponse<CredentialSetDto> listCredentialSets() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.CREDENTIAL_SETS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.CREDENTIAL_SETS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, CredentialSetDto.class);
 		var result = this.credentialSetService.list(query);

@@ -45,6 +45,7 @@ import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.task.TaskService;
+import net.netshot.netshot.api.rest.v1.ListParams;
 
 /**
  * The tasks of a device (v1).
@@ -56,6 +57,7 @@ public class DeviceTaskResource {
 	private final DeviceCatalogService deviceCatalogService;
 	private final TaskService taskService;
 	private final TaskResponses responses;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -70,13 +72,15 @@ public class DeviceTaskResource {
 	 * @param taskService the task use cases
 	 * @param groupService the group use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
 	public DeviceTaskResource(DeviceCatalogService deviceCatalogService, TaskService taskService, GroupService groupService,
-		DeviceRefs deviceRefs) {
+		DeviceRefs deviceRefs, ListParams lists) {
 		this.deviceCatalogService = deviceCatalogService;
 		this.taskService = taskService;
 		this.responses = new TaskResponses(taskService, groupService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -93,7 +97,7 @@ public class DeviceTaskResource {
 	@ListFilters(ListSchema.TASKS)
 	public ListResponse<TaskDto> listDeviceTasks(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
-		return TaskResource.list(this.taskService, this.responses, this.request, this.uriInfo,
+		return TaskResource.list(this.lists, this.taskService, this.responses, this.request, this.uriInfo,
 			new Criterion("device", Lookup.EXACT, List.of(id)));
 	}
 }

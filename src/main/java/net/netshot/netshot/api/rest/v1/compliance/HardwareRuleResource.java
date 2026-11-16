@@ -70,6 +70,7 @@ public class HardwareRuleResource {
 
 	private final HardwareRuleService hardwareRuleService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -88,12 +89,14 @@ public class HardwareRuleResource {
 	 * @param policyService the policy use cases
 	 * @param ruleService the rule use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
 	public HardwareRuleResource(HardwareRuleService hardwareRuleService, GroupService groupService, PolicyService policyService,
-		RuleService ruleService, DeviceRefs deviceRefs) {
+		RuleService ruleService, DeviceRefs deviceRefs, ListParams lists) {
 		this.hardwareRuleService = hardwareRuleService;
 		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -107,7 +110,7 @@ public class HardwareRuleResource {
 	@Operation(summary = "List the hardware rules", description = "Lists the hardware compliance rules, in their brief view by default.")
 	@ListFilters(ListSchema.HARDWARE_RULES)
 	public ListResponse<HardwareRuleDto> listHardwareRules() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.HARDWARE_RULES.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.HARDWARE_RULES.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), HardwareRuleDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, HardwareRuleDto.class);
 		ListResult<HardwareRule> rules = this.hardwareRuleService.list(query);

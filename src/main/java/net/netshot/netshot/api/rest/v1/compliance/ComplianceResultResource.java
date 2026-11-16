@@ -68,6 +68,7 @@ public class ComplianceResultResource {
 	private final SearchService searchService;
 	private final DomainService domainService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -84,16 +85,18 @@ public class ComplianceResultResource {
 	 * @param searchService the device search use cases
 	 * @param domainService the domain use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
 	public ComplianceResultResource(RuleService ruleService, PolicyService policyService, GroupService groupService,
-		SearchService searchService, DomainService domainService, DeviceRefs deviceRefs) {
+		SearchService searchService, DomainService domainService, DeviceRefs deviceRefs, ListParams lists) {
 		this.ruleService = ruleService;
 		this.policyService = policyService;
 		this.groupService = groupService;
 		this.searchService = searchService;
 		this.domainService = domainService;
 		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -133,7 +136,7 @@ public class ComplianceResultResource {
 		+ "exemptionExpirationDate; q searches the device, rule and policy names.")
 	@ListFilters(ListSchema.COMPLIANCE_RESULTS)
 	public ListResponse<DeviceComplianceResultDto> listResults() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.COMPLIANCE_RESULTS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.COMPLIANCE_RESULTS.schema());
 		return respond(this.refs, this.request, this.uriInfo, query, this.ruleService.listResults(query));
 	}
 
@@ -151,7 +154,7 @@ public class ComplianceResultResource {
 		+ "(interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device.")
 	@ListFilters(ListSchema.COMPLIANCE_RESULTS)
 	public StatsResponse getResultStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.COMPLIANCE_RESULTS.schema(), "checkDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.COMPLIANCE_RESULTS.schema(), "checkDate");
 		ListResult<StatsRow> rows = this.ruleService.resultStats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
 			"device", DeviceMapper.resolver(this.searchService),

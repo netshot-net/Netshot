@@ -127,6 +127,7 @@ public class DeviceResource {
 	private final ScriptService scriptService;
 	private final ReportService reportService;
 	private final TaskResponses taskResponses;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -152,11 +153,12 @@ public class DeviceResource {
 	 * @param scriptService the saved script use cases
 	 * @param domainService the domain use cases
 	 * @param reportService the report use cases (the export of the devices as a workbook)
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
 	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, SearchService searchService,
 		DeviceRefs deviceRefs, TaskService taskService, GroupService groupService, ScriptService scriptService,
-		DomainService domainService, ReportService reportService) {
+		DomainService domainService, ReportService reportService, ListParams lists) {
 		this.deviceService = deviceService;
 		this.reportService = reportService;
 		this.groupService = groupService;
@@ -166,6 +168,7 @@ public class DeviceResource {
 		this.deviceRefs = deviceRefs;
 		this.scriptService = scriptService;
 		this.taskResponses = new TaskResponses(taskService, groupService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -192,7 +195,7 @@ public class DeviceResource {
 		if (this.uriInfo.getQueryParameters().containsKey(INCLUDE)) {
 			return this.exportWorkbook(query);
 		}
-		return list(this.searchService, this.deviceRefs, this.request, this.uriInfo, query, null);
+		return list(this.lists, this.searchService, this.deviceRefs, this.request, this.uriInfo, query, null);
 	}
 
 	/**
@@ -222,11 +225,11 @@ public class DeviceResource {
 				include.add(name);
 			}
 		}
-		ListQuery listQuery = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(), QUERY, INCLUDE);
+		ListQuery listQuery = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(), QUERY, INCLUDE);
 		ListResult<DeviceSummary> devices = this.searchService.listDeviceSummaries(listQuery, query);
-		if (devices.items().size() > ListParams.exportMaxRows()) {
+		if (devices.items().size() > this.lists.exportMaxRows()) {
 			throw NetshotException.invalidParameter(ListParams.LIMIT,
-				"The export can't have more than %d devices: filter the list or use limit and offset".formatted(ListParams.exportMaxRows()));
+				"The export can't have more than %d devices: filter the list or use limit and offset".formatted(this.lists.exportMaxRows()));
 		}
 		Set<Long> ids = new HashSet<>();
 		devices.items().forEach(device -> ids.add(device.id()));
@@ -265,7 +268,7 @@ public class DeviceResource {
 	@ListFilters(ListSchema.DEVICES)
 	public StatsResponse getDeviceStats(
 		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query) {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(),
+		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(),
 			"createdDate", QUERY);
 		ListResult<StatsRow> rows = this.searchService.deviceStats(parsed.query(), parsed.stats(), query);
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
@@ -276,6 +279,7 @@ public class DeviceResource {
 	/**
 	 * Answers a page of devices (of the device list, or of a list of devices of another object).
 	 *
+	 * @param lists the reader of the list parameters
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
 	 * @param request the current request
@@ -285,10 +289,10 @@ public class DeviceResource {
 	 * @return the page of devices
 	 * @throws NetshotException if a parameter is invalid
 	 */
-	public static ListResponse<DeviceDto> list(SearchService searchService, DeviceRefs deviceRefs,
+	public static ListResponse<DeviceDto> list(ListParams lists, SearchService searchService, DeviceRefs deviceRefs,
 		HttpServletRequest request, UriInfo uriInfo, String query, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, ListSchema.DEVICES.schema(), QUERY);
+		ListQuery listQuery = lists.parse(params, ListSchema.DEVICES.schema(), QUERY);
 		Selection selection = Selection.of(params, DeviceDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, DeviceDto.class);
 		ListQuery scoped = scope == null ? listQuery : listQuery.and(scope);

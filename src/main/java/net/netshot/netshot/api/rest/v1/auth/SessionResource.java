@@ -53,6 +53,7 @@ import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * The session of a user: log in (creates the session, identified by the session cookie), get the current session,
@@ -71,6 +72,7 @@ public class SessionResource {
 
 	private final LoginService loginService;
 	private final Oidc oidc;
+	private final ConfigStore config;
 
 	@Context
 	private HttpServletRequest request;
@@ -86,11 +88,13 @@ public class SessionResource {
 	 *
 	 * @param loginService the login use case
 	 * @param oidc the OIDC authentication (for the end session endpoint)
+	 * @param config the configuration store
 	 */
 	@Inject
-	public SessionResource(LoginService loginService, Oidc oidc) {
+	public SessionResource(LoginService loginService, Oidc oidc, ConfigStore config) {
 		this.loginService = loginService;
 		this.oidc = oidc;
+		this.config = config;
 	}
 
 	/**
@@ -110,7 +114,7 @@ public class SessionResource {
 		+ "comply with the password policy is a 400. Useless when using API tokens.")
 	public SessionDto login(SessionRequest credentials) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		LoginAttempt attempt = toAttempt(credentials, LoggerFilter.getClientAddress(this.request));
+		LoginAttempt attempt = toAttempt(credentials, LoggerFilter.getClientAddress(this.request, this.config.current()));
 		V1Response.noStore(this.request);
 		// Any exception thrown by the service (expired password...) leaves the existing session untouched
 		UiUser user = this.loginService.authenticate(attempt);

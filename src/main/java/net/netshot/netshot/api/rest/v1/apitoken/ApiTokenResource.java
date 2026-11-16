@@ -58,6 +58,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class ApiTokenResource {
 
 	private final ApiTokenService apiTokenService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -69,10 +70,12 @@ public class ApiTokenResource {
 	 * Instantiates the resource.
 	 *
 	 * @param apiTokenService the API token use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public ApiTokenResource(ApiTokenService apiTokenService) {
+	public ApiTokenResource(ApiTokenService apiTokenService, ListParams lists) {
 		this.apiTokenService = apiTokenService;
+		this.lists = lists;
 	}
 
 	/**
@@ -87,7 +90,7 @@ public class ApiTokenResource {
 		+ "view by default.")
 	@ListFilters(ListSchema.API_TOKENS)
 	public ListResponse<ApiTokenDto> listApiTokens() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.API_TOKENS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.API_TOKENS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ApiTokenDto.class, Selection.View.BRIEF),
 			ApiTokenDto.class);
 		return ListResponse.of(this.uriInfo, query, this.apiTokenService.list(query), ApiTokenMapper::toDto);

@@ -49,6 +49,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class SoftwareVersionResource {
 
 	private final DeviceCatalogService catalogService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -60,10 +61,12 @@ public class SoftwareVersionResource {
 	 * Instantiates the resource.
 	 *
 	 * @param catalogService the device reference list use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public SoftwareVersionResource(DeviceCatalogService catalogService) {
+	public SoftwareVersionResource(DeviceCatalogService catalogService, ListParams lists) {
 		this.catalogService = catalogService;
+		this.lists = lists;
 	}
 
 	/**
@@ -79,7 +82,7 @@ public class SoftwareVersionResource {
 	@ListFilters(ListSchema.SOFTWARE_VERSIONS)
 	public ListResponse<SoftwareVersionDto> listSoftwareVersions() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, ListSchema.SOFTWARE_VERSIONS.schema());
+		ListQuery query = this.lists.parse(params, ListSchema.SOFTWARE_VERSIONS.schema());
 		Selection selection = Selection.of(params, SoftwareVersionDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, SoftwareVersionDto.class);
 		return ListResponse.of(this.uriInfo, query, this.catalogService.listSoftwareVersions(query), DeviceInventoryMapper::toDto);

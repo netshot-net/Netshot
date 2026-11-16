@@ -35,6 +35,7 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -47,6 +48,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.api.rest.ApiTokenAuthenticator;
 import net.netshot.netshot.api.rest.RestServer;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * The OpenAPI document of the legacy (v0) API ({@code /api/openapi.json} and {@code .yaml}, or
@@ -67,13 +70,26 @@ public class V0OpenApiResource {
 	@Context
 	private Application application;
 
+	/** The configuration store. */
+	private final ConfigStore config;
+
+	/**
+	 * Creates the resource.
+	 *
+	 * @param config the configuration store (the API path, the name of the session cookie)
+	 */
+	@Inject
+	public V0OpenApiResource(ConfigStore config) {
+		this.config = config;
+	}
+
 	private OpenAPI document() {
 		OpenAPI current = this.document;
 		if (current == null) {
 			synchronized (this) {
 				current = this.document;
 				if (current == null) {
-					current = build(this.application);
+					current = build(this.application, this.config.current());
 					this.document = current;
 				}
 			}
@@ -85,9 +101,10 @@ public class V0OpenApiResource {
 	 * Builds the document.
 	 *
 	 * @param application the v0 application
+	 * @param config the configuration (the API path, the name of the session cookie)
 	 * @return the document
 	 */
-	static OpenAPI build(Application application) {
+	static OpenAPI build(Application application, Config config) {
 		OpenAPI base = new OpenAPI()
 			.info(new Info()
 				.title("Netshot API")
@@ -95,7 +112,7 @@ public class V0OpenApiResource {
 				.description("Network Infrastructure Configuration and Compliance Management Software")
 				.contact(new Contact().email("contact@netshot.net"))
 				.license(new License().name("GPLv3").url("https://www.gnu.org/licenses/gpl-3.0.txt")))
-			.servers(List.of(new Server().url(RestServer.apiPath())))
+			.servers(List.of(new Server().url(RestServer.apiPath(config))))
 			.components(new Components()
 				.addSecuritySchemes("ApiTokenAuth", new SecurityScheme()
 					.name(ApiTokenAuthenticator.HTTP_API_TOKEN_HEADER)
@@ -103,7 +120,7 @@ public class V0OpenApiResource {
 				.addSecuritySchemes("BearerAuth", new SecurityScheme()
 					.type(SecurityScheme.Type.HTTP).scheme("bearer"))
 				.addSecuritySchemes("CookieAuth", new SecurityScheme()
-					.name(RestServer.sessionCookieName())
+					.name(RestServer.sessionCookieName(config))
 					.type(SecurityScheme.Type.APIKEY).in(SecurityScheme.In.COOKIE)))
 			.addSecurityItem(new SecurityRequirement().addList("ApiTokenAuth"))
 			.addSecurityItem(new SecurityRequirement().addList("BearerAuth"))

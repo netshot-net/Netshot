@@ -69,6 +69,7 @@ public class ScriptResource {
 
 	private final ScriptService scriptService;
 	private final DriverRegistry driverRegistry;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -87,11 +88,13 @@ public class ScriptResource {
 	 *
 	 * @param scriptService the script use cases
 	 * @param driverRegistry the loaded device drivers
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public ScriptResource(ScriptService scriptService, DriverRegistry driverRegistry) {
+	public ScriptResource(ScriptService scriptService, DriverRegistry driverRegistry, ListParams lists) {
 		this.scriptService = scriptService;
 		this.driverRegistry = driverRegistry;
+		this.lists = lists;
 	}
 
 	/**
@@ -106,7 +109,7 @@ public class ScriptResource {
 		+ "(without the code). The user inputs are only extracted (by evaluating the scripts) when they are asked for.")
 	@ListFilters(ListSchema.SCRIPTS)
 	public ListResponse<ScriptDto> listScripts() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.SCRIPTS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.SCRIPTS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), ScriptDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, ScriptDto.class);
 		boolean inputs = selection.includes("userInputDefinitions");

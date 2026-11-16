@@ -49,6 +49,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class PartNumberResource {
 
 	private final DeviceCatalogService catalogService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -60,10 +61,12 @@ public class PartNumberResource {
 	 * Instantiates the resource.
 	 *
 	 * @param catalogService the device reference list use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public PartNumberResource(DeviceCatalogService catalogService) {
+	public PartNumberResource(DeviceCatalogService catalogService, ListParams lists) {
 		this.catalogService = catalogService;
+		this.lists = lists;
 	}
 
 	/**
@@ -79,7 +82,7 @@ public class PartNumberResource {
 	@ListFilters(ListSchema.PART_NUMBERS)
 	public ListResponse<PartNumberDto> listPartNumbers() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, ListSchema.PART_NUMBERS.schema());
+		ListQuery query = this.lists.parse(params, ListSchema.PART_NUMBERS.schema());
 		Selection selection = Selection.of(params, PartNumberDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, PartNumberDto.class);
 		return ListResponse.of(this.uriInfo, query, this.catalogService.listPartNumbers(query), DeviceInventoryMapper::toDto);
