@@ -18,46 +18,57 @@
  */
 package net.netshot.netshot.testing;
 
+import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Wiring;
 
 /**
- * The wiring built for the database tests (by {@link DatabaseExtension}), for the tests which use the
- * objects it holds. The main code has no such lookup: it receives its dependencies from the wiring.
+ * The application built for the database tests (by {@link DatabaseExtension}), for the tests which use the
+ * objects of its wiring. The main code has no such lookup: it receives its dependencies from the wiring.
  */
 public final class TestWiring {
 
-	private static volatile Wiring current;
+	private static volatile Application current;
 
 	private TestWiring() {
 	}
 
 	/**
-	 * Sets the wiring of the tests, stopping the database access of the previous one (its connection pools
+	 * Sets the application of the tests, closing the previous one (its services, e.g. the connection pools,
 	 * point to the database of a previous test class).
 	 *
-	 * @param wiring the wiring
-	 * @return the wiring
+	 * @param application the application
+	 * @return the application
 	 */
-	public static synchronized Wiring set(Wiring wiring) {
-		Wiring previous = current;
-		if (previous != null && previous != wiring) {
-			previous.database().stop();
+	public static synchronized Application set(Application application) {
+		Application previous = current;
+		if (previous != null && previous != application) {
+			previous.close();
 		}
-		current = wiring;
-		return wiring;
+		current = application;
+		return application;
 	}
 
 	/**
-	 * Gets the wiring of the tests.
+	 * Gets the application of the tests.
+	 *
+	 * @return the application
+	 * @throws IllegalStateException if no application has been built
+	 */
+	public static Application application() {
+		Application application = current;
+		if (application == null) {
+			throw new IllegalStateException("The application has not been initialized");
+		}
+		return application;
+	}
+
+	/**
+	 * Gets the wiring of the application of the tests.
 	 *
 	 * @return the wiring
-	 * @throws IllegalStateException if no wiring has been built
+	 * @throws IllegalStateException if no application has been built
 	 */
 	public static Wiring get() {
-		Wiring wiring = current;
-		if (wiring == null) {
-			throw new IllegalStateException("The wiring has not been initialized");
-		}
-		return wiring;
+		return application().wiring();
 	}
 }
