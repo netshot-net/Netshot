@@ -82,7 +82,7 @@ final class HookTaskSeed {
 			String[] parts = entry.split("=");
 			taskIds.put(parts[0], seed.id(parts[1]));
 		}
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			DeviceGroup group = new GroupRepository().find(dsl, seed.id("group.static"));
 			long created = ContractSeed.D2022 + 10000;
 

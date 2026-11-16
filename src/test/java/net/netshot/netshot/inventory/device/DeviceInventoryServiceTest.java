@@ -67,14 +67,14 @@ class DeviceInventoryServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
-		DeviceRepository repository = TestWiring.get().repositories().device();
-		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(),
-			TestDrivers.registry(), TestWiring.get().repositories().group()),
-			TestWiring.get().repositories().domain(), TestWiring.get().repositories().credentialSet(),
-				TestWiring.get().repositories().credentialSetAssembler(), TestWiring.get().repositories().binaryFiles());
+		this.transactions = TestWiring.get().core().transactions();
+		DeviceRepository repository = TestWiring.get().core().repositories().device();
+		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().core().transactions(),
+			TestDrivers.registry(), TestWiring.get().core().repositories().group()),
+			TestWiring.get().core().repositories().domain(), TestWiring.get().core().repositories().credentialSet(),
+				TestWiring.get().core().repositories().credentialSetAssembler(), TestWiring.get().core().repositories().binaryFiles());
 		this.catalogService = new DeviceCatalogService(this.transactions, new DeviceInventoryRepository());
-		this.searchService = new SearchService(this.transactions, TestWiring.get().repositories().device(), TestDrivers.registry());
+		this.searchService = new SearchService(this.transactions, TestWiring.get().core().repositories().device(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		Set<Network4Address> ip4 = new LinkedHashSet<>();
 		Set<Network6Address> ip6 = new LinkedHashSet<>();

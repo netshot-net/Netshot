@@ -238,7 +238,7 @@ class TakeSnapshotHandlerTest {
 		private DeviceAccess setAccess(Device device, SshHostKeyVerification mode, String trustedKeys) {
 			DeviceAccess ssh = reload(device).getDeviceAccess("ssh").toBuilder()
 				.sshHostKeyVerification(mode).sshTrustedHostKeys(trustedKeys).build();
-			TestWiring.get().deviceService().update(device.id(), d -> TestDevices.change(d, b -> b.accesses(List.of(ssh))), null);
+			TestWiring.get().inventory().deviceService().update(device.id(), d -> TestDevices.change(d, b -> b.accesses(List.of(ssh))), null);
 			return reload(device).getDeviceAccess("ssh");
 		}
 

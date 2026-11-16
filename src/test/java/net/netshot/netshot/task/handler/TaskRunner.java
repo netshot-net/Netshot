@@ -70,40 +70,40 @@ final class TaskRunner {
 	 */
 	TaskRunner() {
 		Wiring wiring = TestWiring.get();
-		Repositories r = wiring.repositories();
+		Repositories r = wiring.core().repositories();
 		TaskSubmitter submitter = task -> {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(wiring.transactions(), child -> {
+		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(wiring.core().transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
 		}, r.task(), TestConfig.store());
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
-		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), r.deviceReads(),
-			new AccessSettings(wiring.config()));
+		Connectors connectors = new Connectors(wiring.core().vaultManager(), TestConnectors.sshClient(), r.deviceReads(),
+			new AccessSettings(wiring.core().config()));
 		TaskHandlers handlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(wiring.transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
+			new CheckComplianceHandler(wiring.core().transactions(), wiring.compliance().complianceChecker(), wiring.core().dynamicGroups(),
 				r.policy(), r.rule(), r.softwareRule(), r.hardwareRule(), r.device(),
 				r.config(), r.group()),
-			new CheckGroupComplianceHandler(wiring.transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
+			new CheckGroupComplianceHandler(wiring.core().transactions(), wiring.compliance().complianceChecker(), wiring.core().dynamicGroups(),
 				r.policy(), r.rule(), r.softwareRule(), r.hardwareRule(), r.device(),
 				r.config(), r.group()),
-			new CheckGroupSoftwareHandler(wiring.transactions(), r.softwareRule(), r.hardwareRule(), r.device(), r.group()),
-			new DiscoverDeviceTypeHandler(wiring.transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager(),
+			new CheckGroupSoftwareHandler(wiring.core().transactions(), r.softwareRule(), r.hardwareRule(), r.device(), r.group()),
+			new DiscoverDeviceTypeHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, wiring.core().dynamicGroups(), wiring.core().vaultManager(),
 				r.task(), r.credentialSet(), r.domain(), r.device()),
-			new PurgeDatabaseHandler(wiring.transactions(), r.task(), r.binaryFiles()),
-			new RunDeviceGroupScriptHandler(wiring.transactions(), orchestrator, TestDrivers.registry(), r.device(), r.group()),
-			new RunDeviceScriptHandler(wiring.transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors,
+			new PurgeDatabaseHandler(wiring.core().transactions(), r.task(), r.binaryFiles()),
+			new RunDeviceGroupScriptHandler(wiring.core().transactions(), orchestrator, TestDrivers.registry(), r.device(), r.group()),
+			new RunDeviceScriptHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, wiring.core().dynamicGroups(), connectors,
 				r.device()),
-			new RunDiagnosticsHandler(wiring.transactions(), TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors,
+			new RunDiagnosticsHandler(wiring.core().transactions(), TestDrivers.registry(), wiring.tasks().diagnosticAdapters(), submitter, wiring.core().dynamicGroups(), connectors,
 				r.device(), r.diagnostic()),
-			new RunGroupDiagnosticsHandler(wiring.transactions(), orchestrator, r.device(), r.group()),
-			new ScanSubnetsHandler(wiring.transactions(), orchestrator, r.credentialSet()),
-			new TakeGroupSnapshotHandler(wiring.transactions(), orchestrator, r.device(), r.group()),
-			new TakeSnapshotHandler(wiring.transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
+			new RunGroupDiagnosticsHandler(wiring.core().transactions(), orchestrator, r.device(), r.group()),
+			new ScanSubnetsHandler(wiring.core().transactions(), orchestrator, r.credentialSet()),
+			new TakeGroupSnapshotHandler(wiring.core().transactions(), orchestrator, r.device(), r.group()),
+			new TakeSnapshotHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.core().dynamicGroups(),
 				connectors, r.device(), TestConfig.store(), r.binaryFiles())));
-		this.taskJob = new TaskJob(wiring.transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), r.task(), TestConfig.store());
+		this.taskJob = new TaskJob(wiring.core().transactions(), handlers, wiring.core().domainEvents(), wiring.tasks().taskManager(), r.task(), TestConfig.store());
 	}
 
 	/**
@@ -170,7 +170,7 @@ final class TaskRunner {
 	 * Empties every table of the schema of the test class (except the bookkeeping tables of Liquibase).
 	 */
 	static void cleanDatabase() {
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			List<String> tables = new ArrayList<>();
 			for (org.jooq.Record row : dsl.fetch("select tablename from pg_tables where schemaname = current_schema() "
 					+ "and tablename not like 'databasechangelog%'")) {

@@ -72,7 +72,7 @@ class V1PolicyResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.admin = new V1Client(server, UiUser.LEVEL_ADMIN);
 		this.reader = new V1Client(server, UiUser.LEVEL_READONLY);
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.RULE).execute();
 			dsl.deleteFrom(Tables.POLICY).execute();
 		});

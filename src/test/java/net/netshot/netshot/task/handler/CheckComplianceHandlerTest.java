@@ -97,7 +97,7 @@ class CheckComplianceHandlerTest {
 	}
 
 	private Map<String, ResultOption> results() {
-		return TestWiring.get().transactions().read(dsl -> dsl.select(Tables.RULE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
+		return TestWiring.get().core().transactions().read(dsl -> dsl.select(Tables.RULE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
 			.join(Tables.RULE).on(Tables.RULE.ID.eq(Tables.CHECK_RESULT.RULE))
 			.where(Tables.CHECK_RESULT.DEVICE.eq(this.device.id()))
 			.fetch()

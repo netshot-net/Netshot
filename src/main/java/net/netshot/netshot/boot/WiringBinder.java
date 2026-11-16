@@ -68,45 +68,45 @@ final class WiringBinder extends AbstractBinder {
 
 	@Override
 	protected void configure() {
-		this.bind(this.wiring.config()).to(ConfigStore.class);
-		this.bind(this.wiring.transactions()).to(Transactions.class);
-		this.bind(this.wiring.driverRegistry()).to(DriverRegistry.class);
-		this.bind(this.wiring.deviceService()).to(DeviceService.class);
-		this.bind(this.wiring.deviceCreationService()).to(DeviceCreationService.class);
+		this.bind(this.wiring.core().config()).to(ConfigStore.class);
+		this.bind(this.wiring.core().transactions()).to(Transactions.class);
+		this.bind(this.wiring.core().driverRegistry()).to(DriverRegistry.class);
+		this.bind(this.wiring.inventory().deviceService()).to(DeviceService.class);
+		this.bind(this.wiring.tasks().deviceCreationService()).to(DeviceCreationService.class);
 		// Compliance
-		this.bind(this.wiring.policyService()).to(PolicyService.class);
-		this.bind(this.wiring.ruleService()).to(RuleService.class);
-		this.bind(this.wiring.softwareRuleService()).to(SoftwareRuleService.class);
-		this.bind(this.wiring.hardwareRuleService()).to(HardwareRuleService.class);
+		this.bind(this.wiring.compliance().policyService()).to(PolicyService.class);
+		this.bind(this.wiring.compliance().ruleService()).to(RuleService.class);
+		this.bind(this.wiring.compliance().softwareRuleService()).to(SoftwareRuleService.class);
+		this.bind(this.wiring.compliance().hardwareRuleService()).to(HardwareRuleService.class);
 		// Tasks
-		this.bind(this.wiring.taskService()).to(TaskService.class);
+		this.bind(this.wiring.tasks().taskService()).to(TaskService.class);
 		// Inventory
-		this.bind(this.wiring.deviceCatalogService()).to(DeviceCatalogService.class);
-		this.bind(this.wiring.deviceDriverService()).to(DeviceDriverService.class);
-		this.bind(this.wiring.domainService()).to(DomainService.class);
-		this.bind(this.wiring.groupService()).to(GroupService.class);
-		this.bind(this.wiring.searchService()).to(SearchService.class);
-		this.bind(this.wiring.configService()).to(ConfigService.class);
+		this.bind(this.wiring.inventory().deviceCatalogService()).to(DeviceCatalogService.class);
+		this.bind(this.wiring.inventory().deviceDriverService()).to(DeviceDriverService.class);
+		this.bind(this.wiring.inventory().domainService()).to(DomainService.class);
+		this.bind(this.wiring.inventory().groupService()).to(GroupService.class);
+		this.bind(this.wiring.inventory().searchService()).to(SearchService.class);
+		this.bind(this.wiring.inventory().configService()).to(ConfigService.class);
 		// AAA and system
-		this.bind(this.wiring.userService()).to(UserService.class);
-		this.bind(this.wiring.apiTokenService()).to(ApiTokenService.class);
-		this.bind(this.wiring.loginService()).to(LoginService.class);
-		this.bind(this.wiring.oidc()).to(Oidc.class);
-		this.bind(this.wiring.tacacs()).to(Tacacs.class);
-		this.bind(this.wiring.clusterService()).to(ClusterService.class);
-		this.bind(this.wiring.serverInfoService()).to(ServerInfoService.class);
-		this.bind(this.wiring.serviceHealthService()).to(ServiceHealthService.class);
+		this.bind(this.wiring.aaa().userService()).to(UserService.class);
+		this.bind(this.wiring.aaa().apiTokenService()).to(ApiTokenService.class);
+		this.bind(this.wiring.aaa().loginService()).to(LoginService.class);
+		this.bind(this.wiring.aaa().oidc()).to(Oidc.class);
+		this.bind(this.wiring.aaa().tacacs()).to(Tacacs.class);
+		this.bind(this.wiring.system().clusterService()).to(ClusterService.class);
+		this.bind(this.wiring.system().serverInfoService()).to(ServerInfoService.class);
+		this.bind(this.wiring.system().serviceHealthService()).to(ServiceHealthService.class);
 		// Diagnostics
-		this.bind(this.wiring.diagnosticService()).to(DiagnosticService.class);
+		this.bind(this.wiring.inventory().diagnosticService()).to(DiagnosticService.class);
 		// Scripts
-		this.bind(this.wiring.scriptService()).to(ScriptService.class);
+		this.bind(this.wiring.inventory().scriptService()).to(ScriptService.class);
 		// Reports
-		this.bind(this.wiring.reportService()).to(ReportService.class);
+		this.bind(this.wiring.inventory().reportService()).to(ReportService.class);
 		// Credentials
-		this.bind(this.wiring.credentialSetService()).to(CredentialSetService.class);
+		this.bind(this.wiring.credentials().credentialSetService()).to(CredentialSetService.class);
 		// Vault
-		this.bind(this.wiring.vaultInstanceService()).to(VaultInstanceService.class);
+		this.bind(this.wiring.credentials().vaultInstanceService()).to(VaultInstanceService.class);
 		// Hooks
-		this.bind(this.wiring.hookService()).to(HookService.class);
+		this.bind(this.wiring.api().hookService()).to(HookService.class);
 	}
 }

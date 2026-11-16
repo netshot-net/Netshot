@@ -56,7 +56,7 @@ class HookServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new HookService(this.transactions, new HookRepository());
 	}
 

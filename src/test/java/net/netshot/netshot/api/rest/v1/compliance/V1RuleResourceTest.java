@@ -87,7 +87,7 @@ class V1RuleResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.admin = new V1Client(server, UiUser.LEVEL_ADMIN);
 		this.reader = new V1Client(server, UiUser.LEVEL_READONLY);
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.RULE).execute();
 			dsl.deleteFrom(Tables.POLICY).execute();
 		});
@@ -283,7 +283,7 @@ class V1RuleResourceTest {
 		Assertions.assertEquals(400, this.admin.post("/compliance/rules/test", "{\"rule\": {\"type\": \"NOPE\", \"name\": \"t\"}, \"device\": 1}")
 			.status());
 		Assertions.assertEquals(403, this.reader.post("/compliance/rules/test", conforming).status());
-		int stored = TestWiring.get().transactions().read(dsl -> dsl.fetchCount(Tables.RULE));
+		int stored = TestWiring.get().core().transactions().read(dsl -> dsl.fetchCount(Tables.RULE));
 		Assertions.assertEquals(0, stored, "A tested rule isn't stored");
 	}
 }

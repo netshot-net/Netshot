@@ -63,7 +63,7 @@ class V1VaultInstanceResourceTest {
 	void setUp(TestServer testServer) {
 		this.server = testServer;
 		this.admin = new V1Client(testServer, UiUser.LEVEL_ADMIN);
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.DEVICE_CREDENTIAL_SET).execute();
 			dsl.deleteFrom(Tables.VAULT_INSTANCE).execute();
 		});
@@ -87,7 +87,7 @@ class V1VaultInstanceResourceTest {
 	}
 
 	private static HashicorpVaultKv2Instance stored(long id) {
-		return (HashicorpVaultKv2Instance) TestWiring.get().transactions().read(dsl -> TestWiring.get().repositories().vaultInstance().find(dsl, id));
+		return (HashicorpVaultKv2Instance) TestWiring.get().core().transactions().read(dsl -> TestWiring.get().core().repositories().vaultInstance().find(dsl, id));
 	}
 
 	private static Set<String> names(JsonNode object) {

@@ -98,7 +98,7 @@ class ReportServiceTest {
 	void initDb() throws Exception {
 		this.previousTimeZone = TimeZone.getDefault();
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new ReportService(this.transactions, new ReportRepository(), TestDrivers.registry());
 		this.seed();
 	}
@@ -137,12 +137,12 @@ class ReportServiceTest {
 		this.dev3 = d3.id();
 		this.group1 = TestDevices.addStaticGroup("Report group", d1, d2, d3).id();
 		StaticDeviceGroup hidden = TestDevices.addStaticGroup("Report hidden group", d4);
-		TestWiring.get().transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
+		TestWiring.get().core().transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
 		TestDevices.addStaticGroup("Report empty group");
-		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository(), TestWiring.get().repositories().group());
+		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository(), TestWiring.get().core().repositories().group());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
 			RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(),
-				TestWiring.get().repositories().deviceReads()), TestWiring.get().repositories().device());
+				TestWiring.get().core().repositories().deviceReads()), TestWiring.get().core().repositories().device());
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).id();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
 		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();
@@ -166,7 +166,7 @@ class ReportServiceTest {
 
 	private void snapshot(DSLContext dsl, long deviceId, Task.Status status, long date) {
 		Instant when = Instant.ofEpochMilli(date);
-		new TaskRepository().add(dsl, TakeSnapshotTask.of(TestWiring.get().repositories().device().find(dsl, deviceId), "snapshot", "tester", true, false, false)
+		new TaskRepository().add(dsl, TakeSnapshotTask.of(TestWiring.get().core().repositories().device().find(dsl, deviceId), "snapshot", "tester", true, false, false)
 			.toBuilder()
 			.status(status)
 			.creationDate(when)

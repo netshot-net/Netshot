@@ -53,7 +53,7 @@ class ApiTokenServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new ApiTokenService(this.transactions, this.repository);
 	}
 

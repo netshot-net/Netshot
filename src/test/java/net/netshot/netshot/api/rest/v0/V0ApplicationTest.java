@@ -45,7 +45,7 @@ class V0ApplicationTest {
 	void injection() {
 		ApplicationHandler handler = new ApplicationHandler(new V0Application(TestWiring.get().binder()));
 		Transactions injected = handler.getInjectionManager().getInstance(Transactions.class);
-		Assertions.assertSame(TestWiring.get().transactions(), injected);
+		Assertions.assertSame(TestWiring.get().core().transactions(), injected);
 	}
 
 	@Test

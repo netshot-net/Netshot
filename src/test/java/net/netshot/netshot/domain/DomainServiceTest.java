@@ -54,7 +54,7 @@ class DomainServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new DomainService(this.transactions, new DomainRepository());
 	}
 

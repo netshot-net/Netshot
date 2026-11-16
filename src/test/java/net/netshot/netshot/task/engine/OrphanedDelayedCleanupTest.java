@@ -75,7 +75,7 @@ class OrphanedDelayedCleanupTest {
 			null, "test", "tester"));
 		long childId = this.persistDelayed(parent.id());
 
-		TestWiring.get().taskManager().cancelOrphanedDelayedTasks();
+		TestWiring.get().tasks().taskManager().cancelOrphanedDelayedTasks();
 
 		Assertions.assertEquals(Status.CANCELLED, TestTasks.find(orphanId).status(),
 			"Parentless DELAYED task should be cancelled");

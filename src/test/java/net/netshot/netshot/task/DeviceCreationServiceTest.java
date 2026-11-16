@@ -85,7 +85,7 @@ class DeviceCreationServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
 				throw this.schedulerFailure;
@@ -93,12 +93,13 @@ class DeviceCreationServiceTest {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestWiring.get().repositories().group());
-		this.service = new DeviceService(this.transactions, TestWiring.get().repositories().device(), TestDrivers.registry(), dynamicGroups, TestWiring.get().repositories().domain(),
-			TestWiring.get().repositories().credentialSet(), TestWiring.get().repositories().credentialSetAssembler(), TestWiring.get().repositories().binaryFiles());
-		this.creationService = new DeviceCreationService(this.transactions, TestWiring.get().repositories().device(), submitter, TestDrivers.registry(), dynamicGroups,
-			TestWiring.get().repositories().domain(), TestWiring.get().repositories().credentialSet(), TestWiring.get().repositories().task(),
-				TestWiring.get().repositories().credentialSetAssembler());
+		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().core().transactions(), TestDrivers.registry(), TestWiring.get().core().repositories().group());
+		this.service = new DeviceService(this.transactions, TestWiring.get().core().repositories().device(), TestDrivers.registry(),
+			dynamicGroups, TestWiring.get().core().repositories().domain(),
+			TestWiring.get().core().repositories().credentialSet(), TestWiring.get().core().repositories().credentialSetAssembler(), TestWiring.get().core().repositories().binaryFiles());
+		this.creationService = new DeviceCreationService(this.transactions, TestWiring.get().core().repositories().device(), submitter, TestDrivers.registry(), dynamicGroups,
+			TestWiring.get().core().repositories().domain(), TestWiring.get().core().repositories().credentialSet(), TestWiring.get().core().repositories().task(),
+				TestWiring.get().core().repositories().credentialSetAssembler());
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
 		this.sshAccountId = TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("secret")).superPassword(Secret.local("enable"))

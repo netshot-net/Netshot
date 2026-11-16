@@ -216,7 +216,7 @@ public final class ContractSeed {
 
 	private void seedAuth() {
 		ApiTokenRepository repository = new ApiTokenRepository();
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			// Remove default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			Object[][] tokens = {
@@ -234,13 +234,13 @@ public final class ContractSeed {
 	}
 
 	private void seedDomains() {
-		DomainService domains = TestWiring.get().domainService();
+		DomainService domains = TestWiring.get().inventory().domainService();
 		this.created("domain.paris", domains.create(new DomainDefinition("Paris DC", "Paris data center", "10.255.0.1")).id());
 		this.created("domain.lyon", domains.create(new DomainDefinition("Lyon DC", "Lyon data center", "10.255.1.1")).id());
 	}
 
 	private void seedVault() {
-		VaultInstanceService vaults = TestWiring.get().vaultInstanceService();
+		VaultInstanceService vaults = TestWiring.get().credentials().vaultInstanceService();
 		this.created("vault.main", vaults.create(new VaultInstanceDefinition("Main vault", "https://vault.example.net:8200", "netshot",
 			null, null, "kv", AuthMethod.APPROLE, "approle", "role-1234", local("secret-5678"), null, null, null,
 			SecretChange.UNCHANGED, null, null)).id());
@@ -250,7 +250,7 @@ public final class ContractSeed {
 	}
 
 	private void seedCredentialSets() {
-		CredentialSetService credentialSets = TestWiring.get().credentialSetService();
+		CredentialSetService credentialSets = TestWiring.get().credentials().credentialSetService();
 		long paris = this.id("domain.paris");
 		long lyon = this.id("domain.lyon");
 		this.created("cred.snmp1", credentialSets.create(new CredentialSetDefinition(Kind.SNMP_V1, "SNMP v1 community", null,
@@ -359,17 +359,17 @@ public final class ContractSeed {
 		for (Config config : configs) {
 			ids.add(configRepository.add(dsl, config.toBuilder().deviceId(device.id()).build()));
 		}
-		DeviceRepository deviceRepository = TestWiring.get().repositories().device();
+		DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 		Device stored = deviceRepository.find(dsl, device.id());
 		deviceRepository.save(dsl, stored, stored.toBuilder().lastConfigId(ids.get(ids.size() - 1)).build());
 		return ids;
 	}
 
 	private void seedDevices() {
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			DomainRepository domainRepository = new DomainRepository();
-			CredentialSetRepository credentialSetRepository = TestWiring.get().repositories().credentialSet();
-			DeviceRepository deviceRepository = TestWiring.get().repositories().device();
+			CredentialSetRepository credentialSetRepository = TestWiring.get().core().repositories().credentialSet();
+			DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 			Domain paris = domainRepository.find(dsl, this.id("domain.paris"));
 			Domain lyon = domainRepository.find(dsl, this.id("domain.lyon"));
 
@@ -460,7 +460,7 @@ public final class ContractSeed {
 	 */
 	private void writeBinaryFiles(long deviceId) {
 		Path folder = ConfigBinaryFileAttribute.Settings.from(TestConfig.store().current()).storageFolderPath();
-		List<Config> configs = TestWiring.get().transactions().read(dsl -> new ConfigRepository().findAll(dsl,
+		List<Config> configs = TestWiring.get().core().transactions().read(dsl -> new ConfigRepository().findAll(dsl,
 			new ListQuery(List.of(new Criterion("device", Lookup.EXACT, List.of(deviceId))), null, List.of(), Page.ALL, false), true));
 		for (Config config : configs) {
 			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.attributes()) {
@@ -477,7 +477,7 @@ public final class ContractSeed {
 	}
 
 	private void seedGroups() {
-		GroupService groups = TestWiring.get().groupService();
+		GroupService groups = TestWiring.get().inventory().groupService();
 		this.created("group.static", groups.create(new GroupDefinition("StaticDeviceGroup", "Core routers",
 			List.of(this.id("device.router1"), this.id("device.router2")), null, "Production/Core", false)).id());
 		this.created("group.dynamic", groups.create(new GroupDefinition("DynamicDeviceGroup", "All Cisco devices",
@@ -489,14 +489,14 @@ public final class ContractSeed {
 	}
 
 	private void seedPolicies() {
-		PolicyService policies = TestWiring.get().policyService();
+		PolicyService policies = TestWiring.get().compliance().policyService();
 		this.created("policy.security", policies.create(new PolicyDefinition("Security baseline",
 			Set.of(this.id("group.dynamic")))).id());
 		this.created("policy.routing", policies.create(new PolicyDefinition("Routing policy",
 			new LinkedHashSet<>(List.of(this.id("group.static"), this.id("group.dynamic"))))).id());
 		this.created("policy.empty", policies.create(new PolicyDefinition("Empty policy", Set.of())).id());
 
-		RuleService rules = TestWiring.get().ruleService();
+		RuleService rules = TestWiring.get().compliance().ruleService();
 		this.created("rule.text", rules.create(TextRule.builder("No telnet", this.id("policy.security"))
 			.text("transport input telnet").regExp(false).context("line vty").deviceDriver("CiscoIOS12").field("runningConfig")
 			.anyBlock(false).matchAll(false).invert(true).normalize(true).build()).id());
@@ -508,12 +508,12 @@ public final class ContractSeed {
 		this.created("rule.python", rules.create(new PythonRule(0, 0, null, "Python check", false, this.id("policy.routing"),
 			"def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}")).id());
 
-		SoftwareRuleService softwareRules = TestWiring.get().softwareRuleService();
+		SoftwareRuleService softwareRules = TestWiring.get().compliance().softwareRuleService();
 		this.created("rule.software.gold", softwareRules.create(new SoftwareRule(0, 0, null, 0, this.id("group.dynamic"),
 			"CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.GOLD), null).rule().id());
 		this.created("rule.software.silver", softwareRules.create(new SoftwareRule(0, 0, null, 0, null,
 			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER), null).rule().id());
-		HardwareRuleService hardwareRules = TestWiring.get().hardwareRuleService();
+		HardwareRuleService hardwareRules = TestWiring.get().compliance().hardwareRuleService();
 		this.created("rule.hardware.1", hardwareRules.create(new HardwareRule(0, 0, null, "CiscoIOS12", this.id("group.dynamic"),
 			"", false, "CISCO2911/K9", false, Instant.ofEpochMilli(D2040), Instant.ofEpochMilli(D2040 + 365L * 24 * 3600 * 1000))).id());
 		this.created("rule.hardware.2", hardwareRules.create(new HardwareRule(0, 0, null, null, null,
@@ -521,7 +521,7 @@ public final class ContractSeed {
 	}
 
 	private void seedDiagnostics() {
-		DiagnosticService diagnostics = TestWiring.get().diagnosticService();
+		DiagnosticService diagnostics = TestWiring.get().inventory().diagnosticService();
 		this.created("diag.simple.text", diagnostics.create(new DiagnosticDefinition("SimpleDiagnostic", "Reload reason",
 			this.id("group.dynamic"), true, "TEXT", null, "CiscoIOS12", "enable", "show version | include reason",
 			"(?s).*reason: (.+?)\\n.*", "$1")).id());
@@ -536,7 +536,7 @@ public final class ContractSeed {
 	}
 
 	private void seedHooks() {
-		HookService hooks = TestWiring.get().hookService();
+		HookService hooks = TestWiring.get().api().hookService();
 		Set<HookTrigger> triggers = new LinkedHashSet<>(List.of(new HookTrigger(TriggerType.POST_TASK, "TakeSnapshotTask"),
 			new HookTrigger(TriggerType.POST_TASK, "CheckComplianceTask")));
 		this.created("hook.web1", hooks.create(new WebHook(0, 0, null, "Notify on tasks", true, triggers, Action.POST_JSON,
@@ -546,7 +546,7 @@ public final class ContractSeed {
 	}
 
 	private void seedScripts() {
-		ScriptService scripts = TestWiring.get().scriptService();
+		ScriptService scripts = TestWiring.get().inventory().scriptService();
 		this.created("script.1", scripts.create(new ScriptDefinition("Show version", "CiscoIOS12",
 			"function run(cli, device) {\n  cli.macro(\"enable\");\n  cli.command(\"show version\");\n}", SCRIPT_AUTHOR,
 			"Maintenance")).id());
@@ -555,7 +555,7 @@ public final class ContractSeed {
 	}
 
 	private void seedUsers() {
-		UserService users = TestWiring.get().userService();
+		UserService users = TestWiring.get().aaa().userService();
 		this.created("user.readonly", users.create(new UserDefinition("reader", true, USER_PASSWORD, UiUser.LEVEL_READONLY)).id());
 		this.created("user.rw", users.create(new UserDefinition("writer", true, USER_PASSWORD, UiUser.LEVEL_READWRITE)).id());
 		this.created("user.admin", users.create(new UserDefinition("boss", true, USER_PASSWORD, UiUser.LEVEL_ADMIN)).id());
@@ -568,10 +568,10 @@ public final class ContractSeed {
 
 	private void seedComplianceAndDiagnosticResults() {
 		// Exemption, through the service
-		TestWiring.get().ruleService().update(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
+		TestWiring.get().compliance().ruleService().update(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
 			Map.of(this.id("device.router2"), Instant.ofEpochMilli(D2040))), null);
-		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = TestWiring.get().repositories().device();
+		TestWiring.get().core().transactions().run(dsl -> {
+			DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			Device proxy = deviceRepository.find(dsl, this.id("device.proxy"));
@@ -639,8 +639,8 @@ public final class ContractSeed {
 	}
 
 	private void seedTasks() {
-		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = TestWiring.get().repositories().device();
+		TestWiring.get().core().transactions().run(dsl -> {
+			DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			long paris = this.id("domain.paris");

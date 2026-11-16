@@ -55,7 +55,7 @@ class ScriptServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new ScriptService(this.transactions, new ScriptRepository(), TestDrivers.registry());
 	}
 
