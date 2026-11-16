@@ -52,13 +52,9 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
-import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RankedSoftwareRule;
-import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
-import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
@@ -73,6 +69,8 @@ public class SoftwareRuleResource {
 	private final SoftwareRuleService softwareRuleService;
 	private final ComplianceRefs refs;
 	private final ListParams lists;
+	private final V1Links links;
+	private final SoftwareRuleMapper softwareRuleMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -87,18 +85,19 @@ public class SoftwareRuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param softwareRuleService the software rule use cases
-	 * @param groupService the group use cases
-	 * @param policyService the policy use cases
-	 * @param ruleService the rule use cases
-	 * @param deviceRefs writes the devices
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param softwareRuleMapper maps the software rule objects
+	 * @param refs resolves the references of the compliance objects
 	 */
 	@Inject
-	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, GroupService groupService, PolicyService policyService,
-		RuleService ruleService, DeviceRefs deviceRefs, ListParams lists) {
+	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, ListParams lists, V1Links links,
+		SoftwareRuleMapper softwareRuleMapper, ComplianceRefs refs) {
 		this.softwareRuleService = softwareRuleService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.refs = refs;
 		this.lists = lists;
+		this.links = links;
+		this.softwareRuleMapper = softwareRuleMapper;
 	}
 
 	/**
@@ -118,7 +117,7 @@ public class SoftwareRuleResource {
 		V1Response.select(this.request, selection, SoftwareRuleDto.class);
 		ListResult<RankedSoftwareRule> rules = this.softwareRuleService.list(query);
 		var groups = this.refs.groups(selection, "group", rules.items().stream().map(r -> r.rule().targetGroupId()).toList());
-		return ListResponse.of(this.uriInfo, query, rules, r -> SoftwareRuleMapper.toDto(r, groups));
+		return ListResponse.of(this.uriInfo, query, rules, r -> this.softwareRuleMapper.toDto(r, groups));
 	}
 
 	/**
@@ -151,8 +150,8 @@ public class SoftwareRuleResource {
 		+ "or as the last one.")
 	public SoftwareRuleDto createSoftwareRule(SoftwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		RankedSoftwareRule rule = this.softwareRuleService.create(SoftwareRuleMapper.toRule(ruleRequest), position(ruleRequest));
-		V1Response.created(this.request, V1Links.of(SoftwareRuleMapper.PATH, rule.rule().id()));
+		RankedSoftwareRule rule = this.softwareRuleService.create(this.softwareRuleMapper.toRule(ruleRequest), position(ruleRequest));
+		V1Response.created(this.request, this.links.of(SoftwareRuleMapper.PATH, rule.rule().id()));
 		return this.respond(rule);
 	}
 
@@ -196,7 +195,7 @@ public class SoftwareRuleResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.softwareRuleService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
-			SoftwareRuleRequest.class, SoftwareRuleMapper::toRequest, SoftwareRuleResource::replacement), V1Response.ifMatch(this.headers)));
+			SoftwareRuleRequest.class, this.softwareRuleMapper::toRequest, this::replacement), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -222,15 +221,15 @@ public class SoftwareRuleResource {
 		return ruleRequest.priority();
 	}
 
-	private static Replacement replacement(SoftwareRuleRequest ruleRequest) {
-		return new Replacement(SoftwareRuleMapper.toRule(ruleRequest), position(ruleRequest));
+	private Replacement replacement(SoftwareRuleRequest ruleRequest) {
+		return new Replacement(this.softwareRuleMapper.toRule(ruleRequest), position(ruleRequest));
 	}
 
 	private SoftwareRuleDto respond(RankedSoftwareRule rule) {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), SoftwareRuleDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, SoftwareRuleDto.class);
 		V1Response.etag(this.request, rule.rule().version());
-		return SoftwareRuleMapper.toDto(rule, this.refs.groups(selection, "group",
+		return this.softwareRuleMapper.toDto(rule, this.refs.groups(selection, "group",
 			rule.rule().targetGroupId() == null ? List.of() : List.of(rule.rule().targetGroupId())));
 	}
 }

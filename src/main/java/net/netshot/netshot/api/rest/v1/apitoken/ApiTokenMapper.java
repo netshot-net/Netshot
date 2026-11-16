@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1.apitoken;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.auth.ApiTokenNames;
@@ -26,9 +28,24 @@ import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
 /**
  * Maps the API tokens to their v1 representation.
  */
-public final class ApiTokenMapper {
+public class ApiTokenMapper {
 
-	private ApiTokenMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/** Maps the auth objects. */
+	private final AuthMapper authMapper;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 * @param authMapper maps the auth objects
+	 */
+	@Inject
+	public ApiTokenMapper(V1Links links, AuthMapper authMapper) {
+		this.links = links;
+		this.authMapper = authMapper;
 	}
 
 	/**
@@ -37,12 +54,12 @@ public final class ApiTokenMapper {
 	 * @param token the API token (null gives null)
 	 * @return the representation
 	 */
-	public static ApiTokenDto toDto(ApiToken token) {
+	public ApiTokenDto toDto(ApiToken token) {
 		if (token == null) {
 			return null;
 		}
-		return new ApiTokenDto(token.id(), V1Links.of(AuthMapper.API_TOKENS_PATH, token.id()), ApiTokenNames.display(token),
-			token.changeDate(), token.description(), token.level(), AuthMapper.roleOf(token.level()));
+		return new ApiTokenDto(token.id(), this.links.of(AuthMapper.API_TOKENS_PATH, token.id()), ApiTokenNames.display(token),
+			token.changeDate(), token.description(), token.level(), this.authMapper.roleOf(token.level()));
 	}
 
 	/**
@@ -52,8 +69,8 @@ public final class ApiTokenMapper {
 	 * @param value the clear token value
 	 * @return the representation
 	 */
-	public static ApiTokenCreatedDto toCreatedDto(ApiToken token, String value) {
-		return new ApiTokenCreatedDto(token.id(), V1Links.of(AuthMapper.API_TOKENS_PATH, token.id()), ApiTokenNames.display(token),
-			token.changeDate(), token.description(), token.level(), AuthMapper.roleOf(token.level()), value);
+	public ApiTokenCreatedDto toCreatedDto(ApiToken token, String value) {
+		return new ApiTokenCreatedDto(token.id(), this.links.of(AuthMapper.API_TOKENS_PATH, token.id()), ApiTokenNames.display(token),
+			token.changeDate(), token.description(), token.level(), this.authMapper.roleOf(token.level()), value);
 	}
 }

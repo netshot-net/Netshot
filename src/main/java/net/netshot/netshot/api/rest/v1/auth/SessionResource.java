@@ -51,9 +51,9 @@ import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
-import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * The session of a user: log in (creates the session, identified by the session cookie), get the current session,
@@ -73,6 +73,8 @@ public class SessionResource {
 	private final LoginService loginService;
 	private final Oidc oidc;
 	private final ConfigStore config;
+	private final V1Links links;
+	private final AuthMapper authMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -89,12 +91,16 @@ public class SessionResource {
 	 * @param loginService the login use case
 	 * @param oidc the OIDC authentication (for the end session endpoint)
 	 * @param config the configuration store
+	 * @param links the paths of the v1 objects
+	 * @param authMapper maps the auth objects
 	 */
 	@Inject
-	public SessionResource(LoginService loginService, Oidc oidc, ConfigStore config) {
+	public SessionResource(LoginService loginService, Oidc oidc, ConfigStore config, V1Links links, AuthMapper authMapper) {
 		this.loginService = loginService;
 		this.oidc = oidc;
 		this.config = config;
+		this.links = links;
+		this.authMapper = authMapper;
 	}
 
 	/**
@@ -132,8 +138,8 @@ public class SessionResource {
 		int maxIdleTime = UiUser.Settings.from(this.config.current()).maxIdleTime();
 		httpSession.setMaxInactiveInterval(maxIdleTime);
 		httpSession.setAttribute(SessionAuthenticator.USER_ATTRIBUTE, user);
-		V1Response.created(this.request, V1Links.of(AuthMapper.AUTH_PATH, "session"));
-		return AuthMapper.toSessionDto(user, httpSession.getCreationTime(), maxIdleTime);
+		V1Response.created(this.request, this.links.of(AuthMapper.AUTH_PATH, "session"));
+		return this.authMapper.toSessionDto(user, httpSession.getCreationTime(), maxIdleTime);
 	}
 
 	/**
@@ -155,7 +161,7 @@ public class SessionResource {
 			|| !(httpSession.getAttribute(SessionAuthenticator.USER_ATTRIBUTE) instanceof UiUser user)) {
 			throw new NetshotException(ErrorCode.NETSHOT_SESSION_NOT_FOUND, "The request is not made in a session.");
 		}
-		return AuthMapper.toSessionDto(user, httpSession.getCreationTime(), httpSession.getMaxInactiveInterval());
+		return this.authMapper.toSessionDto(user, httpSession.getCreationTime(), httpSession.getMaxInactiveInterval());
 	}
 
 	/**

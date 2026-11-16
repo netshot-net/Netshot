@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.Secret;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -40,7 +42,7 @@ import net.netshot.netshot.vault.VaultInstanceService;
  * Maps the Vault instances between the domain records and their v1 representation. The representation never
  * holds a secret, only whether it is set.
  */
-public final class VaultInstanceMapper {
+public class VaultInstanceMapper {
 
 	/** The path of the Vault instances. */
 	public static final String PATH = "vault-instances";
@@ -48,7 +50,17 @@ public final class VaultInstanceMapper {
 	/** The type name of the HashiCorp Vault KV v2 instances. */
 	public static final String TYPE_HASHICORP_KV2 = "HASHICORP_KV2";
 
-	private VaultInstanceMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public VaultInstanceMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -57,8 +69,8 @@ public final class VaultInstanceMapper {
 	 * @param id the ID of the Vault instance
 	 * @return the representation
 	 */
-	public static VaultInstanceDto byId(long id) {
-		return new VaultInstanceDto(id, V1Links.of(PATH, id), null, 0, null, null, null, null, null, null, null, null,
+	public VaultInstanceDto byId(long id) {
+		return new VaultInstanceDto(id, this.links.of(PATH, id), null, 0, null, null, null, null, null, null, null, null,
 			null, null, null, false, null, null, null, false, null, null);
 	}
 
@@ -69,7 +81,7 @@ public final class VaultInstanceMapper {
 	 * @param ids the IDs of the Vault instances (possibly repeated; none, no query)
 	 * @return the Vault instances by ID (the ones not found, by ID only)
 	 */
-	public static LongFunction<VaultInstanceDto> resolver(VaultInstanceService vaultInstanceService, Collection<Long> ids) {
+	public LongFunction<VaultInstanceDto> resolver(VaultInstanceService vaultInstanceService, Collection<Long> ids) {
 		Set<Long> wanted = new HashSet<>(ids);
 		Map<Long, VaultInstanceDto> loaded = new HashMap<>();
 		if (!wanted.isEmpty()) {
@@ -87,12 +99,12 @@ public final class VaultInstanceMapper {
 	 * @param vaultInstance the Vault instance (null gives null)
 	 * @return the representation
 	 */
-	public static VaultInstanceDto toDto(VaultInstance vaultInstance) {
+	public VaultInstanceDto toDto(VaultInstance vaultInstance) {
 		if (vaultInstance == null) {
 			return null;
 		}
 		return switch (vaultInstance) {
-			case HashicorpVaultKv2Instance hc -> new VaultInstanceDto(hc.id(), V1Links.of(PATH, hc.id()), hc.name(), hc.version(),
+			case HashicorpVaultKv2Instance hc -> new VaultInstanceDto(hc.id(), this.links.of(PATH, hc.id()), hc.name(), hc.version(),
 				hc.changeDate(), hc.name(), TYPE_HASHICORP_KV2, hc.baseUrl(), hc.namespace(), hc.httpsCaTrustMode(),
 				hc.httpsCustomCaCertificate(), hc.kvMountPath(), hc.authMethod(), hc.appRoleMountPath(), hc.appRoleId(),
 				hc.appRoleSecretId() != null, hc.jwtMountPath(), hc.jwtIdpTokenEndpoint(), hc.jwtClientId(),
@@ -107,7 +119,7 @@ public final class VaultInstanceMapper {
 	 * @param vaultInstance the Vault instance
 	 * @return the request
 	 */
-	public static VaultInstanceRequest toRequest(VaultInstance vaultInstance) {
+	public VaultInstanceRequest toRequest(VaultInstance vaultInstance) {
 		return switch (vaultInstance) {
 			case HashicorpVaultKv2Instance hc -> new VaultInstanceRequest(hc.name(), TYPE_HASHICORP_KV2, hc.baseUrl(), hc.namespace(),
 				hc.httpsCaTrustMode(), hc.httpsCustomCaCertificate(), hc.kvMountPath(), hc.authMethod(), hc.appRoleMountPath(),
@@ -116,7 +128,7 @@ public final class VaultInstanceMapper {
 		};
 	}
 
-	private static SecretChange change(Secret secret) {
+	private SecretChange change(Secret secret) {
 		if (secret == null) {
 			return SecretChange.UNCHANGED;
 		}
@@ -130,7 +142,7 @@ public final class VaultInstanceMapper {
 	 * @return the definition
 	 * @throws NetshotException if the type is unknown
 	 */
-	public static VaultInstanceDefinition toDefinition(VaultInstanceRequest request) {
+	public VaultInstanceDefinition toDefinition(VaultInstanceRequest request) {
 		if (!TYPE_HASHICORP_KV2.equals(request.type())) {
 			throw NetshotException.invalidParameter("type", "Unknown type of Vault instance '%s': %s is expected".formatted(
 				request.type(), TYPE_HASHICORP_KV2));
@@ -147,7 +159,7 @@ public final class VaultInstanceMapper {
 	 * @param result the outcome
 	 * @return the representation
 	 */
-	public static VaultConnectionTestDto toDto(VaultConnectionTestResult result) {
+	public VaultConnectionTestDto toDto(VaultConnectionTestResult result) {
 		return new VaultConnectionTestDto(result.success(), result.message());
 	}
 }

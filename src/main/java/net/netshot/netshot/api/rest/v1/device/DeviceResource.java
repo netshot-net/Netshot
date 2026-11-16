@@ -55,43 +55,42 @@ import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListFilters;
-import net.netshot.netshot.api.rest.v1.ListSchema;
-import net.netshot.netshot.api.rest.v1.export.ExportFormat;
-import net.netshot.netshot.api.rest.v1.export.ListExport;
-import net.netshot.netshot.inventory.device.DeviceSummary;
-import net.netshot.netshot.report.ReportExportSelection;
-import net.netshot.netshot.report.ReportService;
-import net.netshot.netshot.report.XlsxReportWriter;
 import net.netshot.netshot.api.rest.v1.ListParams;
-import net.netshot.netshot.platform.query.StatsRow;
-import net.netshot.netshot.platform.query.ListResult;
-import net.netshot.netshot.domain.DomainService;
-import net.netshot.netshot.api.rest.v1.group.GroupMapper;
-import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
-import net.netshot.netshot.api.rest.v1.StatsResponse;
-import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.Selection;
+import net.netshot.netshot.api.rest.v1.StatsParams;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
+import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
+import net.netshot.netshot.api.rest.v1.export.ExportFormat;
+import net.netshot.netshot.api.rest.v1.export.ListExport;
+import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.api.rest.v1.task.TaskDto;
 import net.netshot.netshot.api.rest.v1.task.TaskRequest;
 import net.netshot.netshot.api.rest.v1.task.TaskResponses;
 import net.netshot.netshot.api.rest.v1.task.TaskScheduling;
+import net.netshot.netshot.domain.DomainService;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.StatsRow;
+import net.netshot.netshot.report.ReportExportSelection;
+import net.netshot.netshot.report.ReportService;
+import net.netshot.netshot.report.XlsxReportWriter;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
 
@@ -128,6 +127,9 @@ public class DeviceResource {
 	private final ReportService reportService;
 	private final TaskResponses taskResponses;
 	private final ListParams lists;
+	private final DeviceMapper deviceMapper;
+	private final DomainMapper domainMapper;
+	private final GroupMapper groupMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -148,17 +150,21 @@ public class DeviceResource {
 	 * @param deviceCreationService the use case which adds a device
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
-	 * @param taskService the task use cases
 	 * @param groupService the group use cases
 	 * @param scriptService the saved script use cases
 	 * @param domainService the domain use cases
 	 * @param reportService the report use cases (the export of the devices as a workbook)
 	 * @param lists the reader of the list parameters
+	 * @param deviceMapper maps the device objects
+	 * @param domainMapper maps the domain objects
+	 * @param groupMapper maps the group objects
+	 * @param taskResponses builds the task responses
 	 */
 	@Inject
 	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, SearchService searchService,
-		DeviceRefs deviceRefs, TaskService taskService, GroupService groupService, ScriptService scriptService,
-		DomainService domainService, ReportService reportService, ListParams lists) {
+		DeviceRefs deviceRefs, GroupService groupService, ScriptService scriptService, DomainService domainService,
+		ReportService reportService, ListParams lists, DeviceMapper deviceMapper, DomainMapper domainMapper, GroupMapper groupMapper,
+		TaskResponses taskResponses) {
 		this.deviceService = deviceService;
 		this.reportService = reportService;
 		this.groupService = groupService;
@@ -167,8 +173,11 @@ public class DeviceResource {
 		this.searchService = searchService;
 		this.deviceRefs = deviceRefs;
 		this.scriptService = scriptService;
-		this.taskResponses = new TaskResponses(taskService, groupService, deviceRefs);
+		this.taskResponses = taskResponses;
 		this.lists = lists;
+		this.deviceMapper = deviceMapper;
+		this.domainMapper = domainMapper;
+		this.groupMapper = groupMapper;
 	}
 
 	/**
@@ -272,8 +281,8 @@ public class DeviceResource {
 			"createdDate", QUERY);
 		ListResult<StatsRow> rows = this.searchService.deviceStats(parsed.query(), parsed.stats(), query);
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
-			"mgmtDomain", DomainMapper.resolver(this.domainService),
-			"group", GroupMapper.resolver(this.groupService)));
+			"mgmtDomain", this.domainMapper.resolver(this.domainService),
+			"group", this.groupMapper.resolver(this.groupService)));
 	}
 
 	/**
@@ -345,7 +354,7 @@ public class DeviceResource {
 	public TaskDto addDevice(DeviceCreationRequest deviceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		User user = (User) this.securityContext.getUserPrincipal();
-		Task task = this.deviceCreationService.create(DeviceMapper.toCreation(deviceRequest, user.username()));
+		Task task = this.deviceCreationService.create(this.deviceMapper.toCreation(deviceRequest, user.username()));
 		return this.taskResponses.accepted(this.request, this.uriInfo, task);
 	}
 
@@ -367,7 +376,7 @@ public class DeviceResource {
 		+ "With If-Match, the device must still be at the given version (ETag).")
 	public DeviceDto replaceDevice(@PathParam("id") @Parameter(description = "Device ID") long id, DeviceRequest deviceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DeviceChange change = DeviceMapper.toChange(deviceRequest);
+		DeviceChange change = this.deviceMapper.toChange(deviceRequest);
 		Device device = this.deviceService.update(id, _ -> change, V1Response.ifMatch(this.headers));
 		return this.respond(device, Selection.of(this.uriInfo.getQueryParameters(), DeviceDto.class, Selection.View.FULL));
 	}
@@ -391,7 +400,7 @@ public class DeviceResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		Device device = this.deviceService.update(id, MergePatch.of(patch, this.headers.getMediaType(), DeviceRequest.class,
-			DeviceMapper::toRequest, DeviceMapper::toChange), V1Response.ifMatch(this.headers));
+			this.deviceMapper::toRequest, this.deviceMapper::toChange), V1Response.ifMatch(this.headers));
 		return this.respond(device, Selection.of(this.uriInfo.getQueryParameters(), DeviceDto.class, Selection.View.FULL));
 	}
 

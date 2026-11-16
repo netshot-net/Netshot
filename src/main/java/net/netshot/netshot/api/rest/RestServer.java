@@ -50,16 +50,16 @@ import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSessionConfig;
 import io.undertow.servlet.util.ImmediateInstanceFactory;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.Netshot;
+import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.api.rest.v0.V0Application;
 import net.netshot.netshot.api.rest.v1.V1Application;
 import net.netshot.netshot.api.rest.v1.V1Links;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * The web server of Netshot: a thread which starts Undertow, serving the Web UI (static files) and the
@@ -203,7 +203,6 @@ public final class RestServer implements Service {
 		Boolean configuredSecureCookie = current.get(SECURE_COOKIE);
 		boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
 		String apiPath = current.get(API_PATH);
-		V1Links.init(apiPath);
 		String staticPath = current.get(STATIC_PATH);
 		if (!secureCookie) {
 			log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
@@ -220,7 +219,7 @@ public final class RestServer implements Service {
 			.setContextPath(apiPath) // same as Grizzly context path
 			.setDeploymentName("NetshotREST")
 			.addServlet(Servlets.servlet("JerseyV1", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.binder))))
+					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.binder, new V1Links(apiPath)))))
 				.setLoadOnStartup(1)
 				.addMapping(V1Links.VERSION_PATH + "/*"));
 		if (current.get(V0_ENABLED)) {

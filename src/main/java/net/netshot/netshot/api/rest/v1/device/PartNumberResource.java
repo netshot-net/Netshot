@@ -50,6 +50,7 @@ public class PartNumberResource {
 
 	private final DeviceCatalogService catalogService;
 	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -62,11 +63,13 @@ public class PartNumberResource {
 	 *
 	 * @param catalogService the device reference list use cases
 	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public PartNumberResource(DeviceCatalogService catalogService, ListParams lists) {
+	public PartNumberResource(DeviceCatalogService catalogService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.catalogService = catalogService;
 		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -85,6 +88,6 @@ public class PartNumberResource {
 		ListQuery query = this.lists.parse(params, ListSchema.PART_NUMBERS.schema());
 		Selection selection = Selection.of(params, PartNumberDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, PartNumberDto.class);
-		return ListResponse.of(this.uriInfo, query, this.catalogService.listPartNumbers(query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.catalogService.listPartNumbers(query), this.deviceInventoryMapper::toDto);
 	}
 }

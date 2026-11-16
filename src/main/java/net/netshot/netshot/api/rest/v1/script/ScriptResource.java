@@ -70,6 +70,8 @@ public class ScriptResource {
 	private final ScriptService scriptService;
 	private final DriverRegistry driverRegistry;
 	private final ListParams lists;
+	private final V1Links links;
+	private final ScriptMapper scriptMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -89,12 +91,17 @@ public class ScriptResource {
 	 * @param scriptService the script use cases
 	 * @param driverRegistry the loaded device drivers
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param scriptMapper maps the script objects
 	 */
 	@Inject
-	public ScriptResource(ScriptService scriptService, DriverRegistry driverRegistry, ListParams lists) {
+	public ScriptResource(ScriptService scriptService, DriverRegistry driverRegistry, ListParams lists, V1Links links,
+		ScriptMapper scriptMapper) {
 		this.scriptService = scriptService;
 		this.driverRegistry = driverRegistry;
 		this.lists = lists;
+		this.links = links;
+		this.scriptMapper = scriptMapper;
 	}
 
 	/**
@@ -114,7 +121,7 @@ public class ScriptResource {
 		V1Response.select(this.request, selection, ScriptDto.class);
 		boolean inputs = selection.includes("userInputDefinitions");
 		return ListResponse.of(this.uriInfo, query, this.scriptService.list(query),
-			s -> ScriptMapper.toDto(this.driverRegistry, inputs ? this.withInputs(s) : s));
+			s -> this.scriptMapper.toDto(this.driverRegistry, inputs ? this.withInputs(s) : s));
 	}
 
 	/**
@@ -147,8 +154,8 @@ public class ScriptResource {
 	@Operation(summary = "Create a script", description = "Validates and creates a command script, the author being the user.")
 	public ScriptDto createScript(ScriptRequest scriptRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DeviceJsScript script = this.scriptService.create(ScriptMapper.toDefinition(scriptRequest, this.author()));
-		V1Response.created(this.request, V1Links.of(ScriptMapper.PATH, script.id()));
+		DeviceJsScript script = this.scriptService.create(this.scriptMapper.toDefinition(scriptRequest, this.author()));
+		V1Response.created(this.request, this.links.of(ScriptMapper.PATH, script.id()));
 		return this.respond(script);
 	}
 
@@ -167,7 +174,7 @@ public class ScriptResource {
 		+ "(by evaluating it) without saving it: 200 with the script and its user inputs, 400 with the problem otherwise.")
 	public ScriptDto validateScript(ScriptRequest scriptRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.scriptService.validate(ScriptMapper.toDefinition(scriptRequest, this.author())));
+		return this.respond(this.scriptService.validate(this.scriptMapper.toDefinition(scriptRequest, this.author())));
 	}
 
 	/**
@@ -186,7 +193,7 @@ public class ScriptResource {
 		+ "author is kept). With If-Match, the script must still be at the given version (ETag).")
 	public ScriptDto replaceScript(@PathParam("id") @Parameter(description = "Script ID") long id, ScriptRequest scriptRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		ScriptDefinition definition = ScriptMapper.toDefinition(scriptRequest, null);
+		ScriptDefinition definition = this.scriptMapper.toDefinition(scriptRequest, null);
 		return this.respond(this.scriptService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
@@ -209,7 +216,7 @@ public class ScriptResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.scriptService.update(id, MergePatch.of(patch, this.headers.getMediaType(), ScriptRequest.class,
-			ScriptMapper::toRequest, r -> ScriptMapper.toDefinition(r, null)), V1Response.ifMatch(this.headers)));
+			this.scriptMapper::toRequest, r -> this.scriptMapper.toDefinition(r, null)), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -249,6 +256,6 @@ public class ScriptResource {
 		if (script.id() != 0) {
 			V1Response.etag(this.request, script.version());
 		}
-		return ScriptMapper.toDto(this.driverRegistry, script);
+		return this.scriptMapper.toDto(this.driverRegistry, script);
 	}
 }

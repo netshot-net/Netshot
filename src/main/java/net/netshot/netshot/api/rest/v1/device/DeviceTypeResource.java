@@ -52,6 +52,7 @@ public class DeviceTypeResource {
 
 	private final DeviceDriverService driverService;
 	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -64,11 +65,13 @@ public class DeviceTypeResource {
 	 *
 	 * @param driverService the device driver use cases
 	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public DeviceTypeResource(DeviceDriverService driverService, ListParams lists) {
+	public DeviceTypeResource(DeviceDriverService driverService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.driverService = driverService;
 		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -88,7 +91,7 @@ public class DeviceTypeResource {
 		ListQuery query = this.lists.parse(params, ListSchema.DEVICE_TYPES.schema());
 		Selection selection = Selection.of(params, DeviceTypeDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceTypeDto.class);
-		return ListResponse.of(this.uriInfo, query, this.driverService.list(query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.driverService.list(query), this.deviceInventoryMapper::toDto);
 	}
 
 	/**

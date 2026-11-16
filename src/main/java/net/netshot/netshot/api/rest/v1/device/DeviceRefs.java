@@ -50,6 +50,8 @@ public class DeviceRefs {
 	private final SearchService searchService;
 	private final DriverRegistry driverRegistry;
 	private final VaultInstanceService vaultInstanceService;
+	private final DeviceMapper deviceMapper;
+	private final VaultInstanceMapper vaultInstanceMapper;
 
 	/**
 	 * Instantiates the device writer.
@@ -57,12 +59,17 @@ public class DeviceRefs {
 	 * @param searchService the device search use cases
 	 * @param driverRegistry the loaded device drivers
 	 * @param vaultInstanceService the Vault instance use cases (to name the instances credentials refer to)
+	 * @param deviceMapper maps the device objects
+	 * @param vaultInstanceMapper maps the vault instance objects
 	 */
 	@Inject
-	public DeviceRefs(SearchService searchService, DriverRegistry driverRegistry, VaultInstanceService vaultInstanceService) {
+	public DeviceRefs(SearchService searchService, DriverRegistry driverRegistry, VaultInstanceService vaultInstanceService,
+		DeviceMapper deviceMapper, VaultInstanceMapper vaultInstanceMapper) {
 		this.searchService = searchService;
 		this.driverRegistry = driverRegistry;
 		this.vaultInstanceService = vaultInstanceService;
+		this.deviceMapper = deviceMapper;
+		this.vaultInstanceMapper = vaultInstanceMapper;
 	}
 
 	/**
@@ -73,9 +80,9 @@ public class DeviceRefs {
 	 */
 	public Function<Device, DeviceDto> mapper(Collection<Device> devices) {
 		List<Long> vaultIds = new ArrayList<>();
-		devices.forEach(d -> vaultIds.addAll(DeviceMapper.vaultInstanceIds(d)));
-		LongFunction<VaultInstanceDto> vaults = VaultInstanceMapper.resolver(this.vaultInstanceService, vaultIds);
-		return d -> DeviceMapper.toDto(this.driverRegistry, d, vaults);
+		devices.forEach(d -> vaultIds.addAll(this.deviceMapper.vaultInstanceIds(d)));
+		LongFunction<VaultInstanceDto> vaults = this.vaultInstanceMapper.resolver(this.vaultInstanceService, vaultIds);
+		return d -> this.deviceMapper.toDto(this.driverRegistry, d, vaults);
 	}
 
 	/**
@@ -95,7 +102,7 @@ public class DeviceRefs {
 	 * @return the representation (the properties a summary doesn't hold are null)
 	 */
 	public DeviceDto toDto(DeviceSummary device) {
-		return DeviceMapper.toDto(this.driverRegistry, device);
+		return this.deviceMapper.toDto(this.driverRegistry, device);
 	}
 
 	/**
@@ -124,7 +131,7 @@ public class DeviceRefs {
 		}
 		return id -> {
 			DeviceDto found = devices.get(id);
-			return found != null ? found : DeviceMapper.byId(id);
+			return found != null ? found : this.deviceMapper.byId(id);
 		};
 	}
 }

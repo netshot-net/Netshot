@@ -52,12 +52,10 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
@@ -73,6 +71,9 @@ public class PolicyResource {
 	private final RuleService ruleService;
 	private final ComplianceRefs refs;
 	private final ListParams lists;
+	private final V1Links links;
+	private final PolicyMapper policyMapper;
+	private final RuleMapper ruleMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -88,17 +89,22 @@ public class PolicyResource {
 	 *
 	 * @param policyService the policy use cases
 	 * @param ruleService the rule use cases
-	 * @param groupService the group use cases
-	 * @param deviceRefs writes the devices
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param policyMapper maps the policy objects
+	 * @param refs resolves the references of the compliance objects
+	 * @param ruleMapper maps the rule objects
 	 */
 	@Inject
-	public PolicyResource(PolicyService policyService, RuleService ruleService, GroupService groupService, DeviceRefs deviceRefs,
-		ListParams lists) {
+	public PolicyResource(PolicyService policyService, RuleService ruleService, ListParams lists, V1Links links,
+		PolicyMapper policyMapper, ComplianceRefs refs, RuleMapper ruleMapper) {
 		this.policyService = policyService;
 		this.ruleService = ruleService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.refs = refs;
 		this.lists = lists;
+		this.links = links;
+		this.policyMapper = policyMapper;
+		this.ruleMapper = ruleMapper;
 	}
 
 	/**
@@ -118,7 +124,7 @@ public class PolicyResource {
 		V1Response.select(this.request, selection, PolicyDto.class);
 		var policies = this.policyService.list(query);
 		var groups = this.refs.groups(selection, "targetGroups", policies.items().stream().flatMap(p -> p.targetGroupIds().stream()).toList());
-		return ListResponse.of(this.uriInfo, query, policies, p -> PolicyMapper.toDto(p, groups));
+		return ListResponse.of(this.uriInfo, query, policies, p -> this.policyMapper.toDto(p, groups));
 	}
 
 	/**
@@ -152,7 +158,7 @@ public class PolicyResource {
 	@ListFilters(ListSchema.RULES)
 	public ListResponse<RuleDto> listPolicyRules(@PathParam("id") @Parameter(description = "Policy ID") long id) {
 		this.policyService.get(id);
-		return RuleResource.list(this.lists, this.ruleService, this.refs, this.request, this.uriInfo, new Criterion("policy", Lookup.EXACT, List.of(id)));
+		return RuleResource.list(this.lists, this.ruleMapper, this.ruleService, this.refs, this.request, this.uriInfo, new Criterion("policy", Lookup.EXACT, List.of(id)));
 	}
 
 	/**
@@ -168,8 +174,8 @@ public class PolicyResource {
 	@Operation(summary = "Create a compliance policy", description = "Creates a compliance policy, without rules.")
 	public PolicyDto createPolicy(PolicyRequest policyRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Policy policy = this.policyService.create(PolicyMapper.toDefinition(policyRequest));
-		V1Response.created(this.request, V1Links.of(PolicyMapper.PATH, policy.id()));
+		Policy policy = this.policyService.create(this.policyMapper.toDefinition(policyRequest));
+		V1Response.created(this.request, this.links.of(PolicyMapper.PATH, policy.id()));
 		return this.respond(policy);
 	}
 
@@ -190,7 +196,7 @@ public class PolicyResource {
 		+ "still be at the given version (ETag).")
 	public PolicyDto replacePolicy(@PathParam("id") @Parameter(description = "Policy ID") long id, PolicyRequest policyRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		PolicyDefinition definition = PolicyMapper.toDefinition(policyRequest);
+		PolicyDefinition definition = this.policyMapper.toDefinition(policyRequest);
 		return this.respond(this.policyService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
@@ -212,7 +218,7 @@ public class PolicyResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.policyService.update(id, MergePatch.of(patch, this.headers.getMediaType(), PolicyRequest.class,
-			PolicyMapper::toRequest, PolicyMapper::toDefinition), V1Response.ifMatch(this.headers)));
+			this.policyMapper::toRequest, this.policyMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -235,6 +241,6 @@ public class PolicyResource {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), PolicyDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, PolicyDto.class);
 		V1Response.etag(this.request, policy.version());
-		return PolicyMapper.toDto(policy, this.refs.groups(selection, "targetGroups", policy.targetGroupIds()));
+		return this.policyMapper.toDto(policy, this.refs.groups(selection, "targetGroups", policy.targetGroupIds()));
 	}
 }

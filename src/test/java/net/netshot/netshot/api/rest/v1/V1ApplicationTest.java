@@ -18,11 +18,18 @@
  */
 package net.netshot.netshot.api.rest.v1;
 
+import java.util.List;
+
+import org.glassfish.jersey.internal.inject.InjectionManager;
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import net.netshot.netshot.api.rest.v1.compliance.ComplianceRefs;
+import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v1.task.TaskMapper;
+import net.netshot.netshot.api.rest.v1.task.TaskResponses;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestWiring;
@@ -34,8 +41,22 @@ class V1ApplicationTest {
 	@Test
 	@DisplayName("Makes the wiring injectable into the resources")
 	void injection() {
-		ApplicationHandler handler = new ApplicationHandler(new V1Application(TestWiring.get().binder()));
+		ApplicationHandler handler = new ApplicationHandler(new V1Application(TestWiring.get().binder(), new V1Links("/api")));
 		Transactions injected = handler.getInjectionManager().getInstance(Transactions.class);
 		Assertions.assertSame(TestWiring.get().transactions(), injected);
+	}
+
+	@Test
+	@DisplayName("Injects the links, the mappers and the response helpers, one of each")
+	void mappers() {
+		V1Links links = new V1Links("/api");
+		InjectionManager injection = new ApplicationHandler(new V1Application(TestWiring.get().binder(), links)).getInjectionManager();
+		Assertions.assertSame(links, injection.getInstance(V1Links.class));
+		for (Class<?> type : List.of(DeviceMapper.class, TaskMapper.class, ComplianceRefs.class, TaskResponses.class)) {
+			Object instance = injection.getInstance(type);
+			Assertions.assertNotNull(instance, type.getSimpleName());
+			Assertions.assertSame(instance, injection.getInstance(type), type.getSimpleName());
+		}
+		Assertions.assertEquals("/api/v1/devices/3", injection.getInstance(DeviceMapper.class).byId(3).url());
 	}
 }

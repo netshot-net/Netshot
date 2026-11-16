@@ -63,6 +63,8 @@ public class HookResource {
 
 	private final HookService hookService;
 	private final ListParams lists;
+	private final V1Links links;
+	private final HookMapper hookMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -78,11 +80,15 @@ public class HookResource {
 	 *
 	 * @param hookService the hook use cases
 	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param hookMapper maps the hook objects
 	 */
 	@Inject
-	public HookResource(HookService hookService, ListParams lists) {
+	public HookResource(HookService hookService, ListParams lists, V1Links links, HookMapper hookMapper) {
 		this.hookService = hookService;
 		this.lists = lists;
+		this.links = links;
+		this.hookMapper = hookMapper;
 	}
 
 	/**
@@ -99,7 +105,7 @@ public class HookResource {
 		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.HOOKS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), HookDto.class, Selection.View.BRIEF),
 			HookDto.class);
-		return ListResponse.of(this.uriInfo, query, this.hookService.list(query), HookMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.hookService.list(query), this.hookMapper::toDto);
 	}
 
 	/**
@@ -132,8 +138,8 @@ public class HookResource {
 		+ "occurs (a Web hook posts the event to a URL).")
 	public HookDto createHook(HookRequest hookRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Hook hook = this.hookService.create(HookMapper.toHook(hookRequest));
-		V1Response.created(this.request, V1Links.of(HookMapper.PATH, hook.id()));
+		Hook hook = this.hookService.create(this.hookMapper.toHook(hookRequest));
+		V1Response.created(this.request, this.links.of(HookMapper.PATH, hook.id()));
 		return this.respond(hook);
 	}
 
@@ -153,7 +159,7 @@ public class HookResource {
 		+ "With If-Match, the hook must still be at the given version (ETag).")
 	public HookDto replaceHook(@PathParam("id") @Parameter(description = "Hook ID") long id, HookRequest hookRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Hook hook = HookMapper.toHook(hookRequest);
+		Hook hook = this.hookMapper.toHook(hookRequest);
 		return this.respond(this.hookService.update(id, _ -> hook, V1Response.ifMatch(this.headers)));
 	}
 
@@ -175,7 +181,7 @@ public class HookResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.hookService.update(id, MergePatch.of(patch, this.headers.getMediaType(), HookRequest.class,
-			HookMapper::toRequest, HookMapper::toHook), V1Response.ifMatch(this.headers)));
+			this.hookMapper::toRequest, this.hookMapper::toHook), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -198,6 +204,6 @@ public class HookResource {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), HookDto.class, Selection.View.FULL),
 			HookDto.class);
 		V1Response.etag(this.request, hook.version());
-		return HookMapper.toDto(hook);
+		return this.hookMapper.toDto(hook);
 	}
 }

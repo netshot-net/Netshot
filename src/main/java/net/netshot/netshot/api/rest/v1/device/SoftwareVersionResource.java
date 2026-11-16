@@ -50,6 +50,7 @@ public class SoftwareVersionResource {
 
 	private final DeviceCatalogService catalogService;
 	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -62,11 +63,13 @@ public class SoftwareVersionResource {
 	 *
 	 * @param catalogService the device reference list use cases
 	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public SoftwareVersionResource(DeviceCatalogService catalogService, ListParams lists) {
+	public SoftwareVersionResource(DeviceCatalogService catalogService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.catalogService = catalogService;
 		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -85,6 +88,6 @@ public class SoftwareVersionResource {
 		ListQuery query = this.lists.parse(params, ListSchema.SOFTWARE_VERSIONS.schema());
 		Selection selection = Selection.of(params, SoftwareVersionDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, SoftwareVersionDto.class);
-		return ListResponse.of(this.uriInfo, query, this.catalogService.listSoftwareVersions(query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.catalogService.listSoftwareVersions(query), this.deviceInventoryMapper::toDto);
 	}
 }

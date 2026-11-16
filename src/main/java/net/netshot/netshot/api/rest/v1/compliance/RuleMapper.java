@@ -21,6 +21,8 @@ package net.netshot.netshot.api.rest.v1.compliance;
 import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.StatsResponse;
@@ -35,12 +37,22 @@ import net.netshot.netshot.platform.query.ListQuery;
 /**
  * Maps the compliance rules to their v1 representation, and the requests to the rules the service takes.
  */
-public final class RuleMapper {
+public class RuleMapper {
 
 	/** The path of the rules. */
 	public static final String PATH = "compliance/rules";
 
-	private RuleMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public RuleMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -50,15 +62,15 @@ public final class RuleMapper {
 	 * @param policies the policies, already mapped, by ID
 	 * @return the representation
 	 */
-	public static RuleDto toDto(Rule rule, LongFunction<PolicyDto> policies) {
+	public RuleDto toDto(Rule rule, LongFunction<PolicyDto> policies) {
 		return switch (rule) {
 			case null -> null;
-			case TextRule r -> new TextRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "TEXT", r.name(), r.enabled(),
+			case TextRule r -> new TextRuleDto(r.id(), this.links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "TEXT", r.name(), r.enabled(),
 				policies.apply(r.policyId()), r.field(), r.context(), r.text(), r.regExp(), r.invert(), r.anyBlock(), r.matchAll(),
 				r.normalize(), r.deviceDriver());
-			case JavaScriptRule r -> new JavaScriptRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "JAVASCRIPT", r.name(), r.enabled(),
+			case JavaScriptRule r -> new JavaScriptRuleDto(r.id(), this.links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "JAVASCRIPT", r.name(), r.enabled(),
 				policies.apply(r.policyId()), r.script());
-			case PythonRule r -> new PythonRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "PYTHON", r.name(), r.enabled(),
+			case PythonRule r -> new PythonRuleDto(r.id(), this.links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "PYTHON", r.name(), r.enabled(),
 				policies.apply(r.policyId()), r.script());
 		};
 	}
@@ -69,7 +81,7 @@ public final class RuleMapper {
 	 * @param rule the rule
 	 * @return the request
 	 */
-	public static RuleRequest toRequest(Rule rule) {
+	public RuleRequest toRequest(Rule rule) {
 		return switch (rule) {
 			case TextRule r -> new TextRuleRequest(r.name(), r.enabled(), new RefId(r.policyId()), r.field(), r.context(), r.text(), r.regExp(),
 				r.invert(), r.anyBlock(), r.matchAll(), r.normalize(), r.deviceDriver());
@@ -84,7 +96,7 @@ public final class RuleMapper {
 	 * @param request the request
 	 * @return the rule
 	 */
-	public static Rule toRule(RuleRequest request) {
+	public Rule toRule(RuleRequest request) {
 		return toRule(request, request.enabled());
 	}
 
@@ -95,7 +107,7 @@ public final class RuleMapper {
 	 * @param enabled whether the rule is enabled
 	 * @return the rule
 	 */
-	public static Rule toRule(RuleRequest request, boolean enabled) {
+	public Rule toRule(RuleRequest request, boolean enabled) {
 		long policyId = request.policy() == null ? 0 : request.policy().id();
 		String name = request.name().trim();
 		return switch (request) {
@@ -124,8 +136,8 @@ public final class RuleMapper {
 	 * @param service the rule use cases
 	 * @return the resolver
 	 */
-	public static StatsResponse.Resolver resolver(RuleService service) {
+	public StatsResponse.Resolver resolver(RuleService service) {
 		return ids -> service.list(ListQuery.byIds(ids)).items().stream()
-			.collect(Collectors.toMap(Rule::id, o -> new RefDto(o.id(), V1Links.of(PATH, o.id()), o.name())));
+			.collect(Collectors.toMap(Rule::id, o -> new RefDto(o.id(), this.links.of(PATH, o.id()), o.name())));
 	}
 }

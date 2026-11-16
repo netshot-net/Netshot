@@ -48,6 +48,7 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
+import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -71,6 +72,8 @@ public class DiagnosticResultResource {
 	private final GroupService groupService;
 	private final DriverRegistry driverRegistry;
 	private final ListParams lists;
+	private final DiagnosticMapper diagnosticMapper;
+	private final GroupMapper groupMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -86,15 +89,19 @@ public class DiagnosticResultResource {
 	 * @param groupService the group use cases
 	 * @param driverRegistry the loaded device drivers
 	 * @param lists the reader of the list parameters
+	 * @param diagnosticMapper maps the diagnostic objects
+	 * @param groupMapper maps the group objects
 	 */
 	@Inject
 	public DiagnosticResultResource(DiagnosticService diagnosticService, DeviceService deviceService, GroupService groupService,
-		DriverRegistry driverRegistry, ListParams lists) {
+		DriverRegistry driverRegistry, ListParams lists, DiagnosticMapper diagnosticMapper, GroupMapper groupMapper) {
 		this.diagnosticService = diagnosticService;
 		this.deviceService = deviceService;
 		this.groupService = groupService;
 		this.driverRegistry = driverRegistry;
 		this.lists = lists;
+		this.diagnosticMapper = diagnosticMapper;
+		this.groupMapper = groupMapper;
 	}
 
 	/**
@@ -119,10 +126,10 @@ public class DiagnosticResultResource {
 		Map<Long, DiagnosticDto> diagnostics = new HashMap<>();
 		if (!ids.isEmpty() && selection.includes("diagnostic")) {
 			List<Diagnostic> loaded = this.diagnosticService.list(ListQuery.byIds(ids)).items();
-			LongFunction<GroupDto> groups = DiagnosticResource.groups(this.groupService, selection.expands("diagnostic"), loaded);
-			loaded.forEach(d -> diagnostics.put(d.id(), DiagnosticMapper.toDto(this.driverRegistry, d, groups)));
+			LongFunction<GroupDto> groups = DiagnosticResource.groups(this.groupService, this.groupMapper, this.diagnosticMapper, selection.expands("diagnostic"), loaded);
+			loaded.forEach(d -> diagnostics.put(d.id(), this.diagnosticMapper.toDto(this.driverRegistry, d, groups)));
 		}
 		return ListResponse.of(this.uriInfo, query, results,
-			r -> DiagnosticMapper.toDto(r, diagnosticId -> diagnostics.get(diagnosticId)));
+			r -> this.diagnosticMapper.toDto(r, diagnosticId -> diagnostics.get(diagnosticId)));
 	}
 }

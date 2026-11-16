@@ -50,6 +50,7 @@ public class DeviceTagResource {
 
 	private final DeviceCatalogService catalogService;
 	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -62,11 +63,13 @@ public class DeviceTagResource {
 	 *
 	 * @param catalogService the device reference list use cases
 	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public DeviceTagResource(DeviceCatalogService catalogService, ListParams lists) {
+	public DeviceTagResource(DeviceCatalogService catalogService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.catalogService = catalogService;
 		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -85,6 +88,6 @@ public class DeviceTagResource {
 		ListQuery query = this.lists.parse(params, ListSchema.DEVICE_TAGS.schema());
 		Selection selection = Selection.of(params, DeviceTagDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceTagDto.class);
-		return ListResponse.of(this.uriInfo, query, this.catalogService.listTags(query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.catalogService.listTags(query), this.deviceInventoryMapper::toDto);
 	}
 }

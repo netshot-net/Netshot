@@ -28,9 +28,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.swagger.v3.core.util.Json;
+import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.Golden;
-import net.netshot.netshot.Netshot;
 
 /**
  * Keeps the snapshot of the OpenAPI document of the v1 API, which the web UI generates its API types from
@@ -47,13 +48,16 @@ class V1OpenApiSnapshotTest {
 	@Test
 	@DisplayName("The snapshot used by the web UI is the current OpenAPI document")
 	void snapshotIsCurrent() throws Exception {
+		Config config = Netshot.config().current();
+		// The default path of the API (netshot.http.apipath)
+		V1Links links = new V1Links("/api");
 		V1Application application = new V1Application(new AbstractBinder() {
 			@Override
 			protected void configure() {
 				// No service: the document is built from the resource classes only
 			}
-		});
-		String document = Json.pretty().writeValueAsString(V1OpenApiResource.build(application, Netshot.config().current())) + "\n";
+		}, links);
+		String document = Json.pretty().writeValueAsString(V1OpenApiResource.build(application, config, links)) + "\n";
 		if (Golden.isUpdateMode()) {
 			Files.createDirectories(SNAPSHOT.getParent());
 			Files.writeString(SNAPSHOT, document, StandardCharsets.UTF_8);

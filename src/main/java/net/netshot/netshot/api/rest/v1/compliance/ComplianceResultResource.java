@@ -42,7 +42,6 @@ import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.compliance.DeviceCheckResult;
@@ -69,6 +68,11 @@ public class ComplianceResultResource {
 	private final DomainService domainService;
 	private final ComplianceRefs refs;
 	private final ListParams lists;
+	private final DeviceMapper deviceMapper;
+	private final DomainMapper domainMapper;
+	private final GroupMapper groupMapper;
+	private final PolicyMapper policyMapper;
+	private final RuleMapper ruleMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -84,19 +88,30 @@ public class ComplianceResultResource {
 	 * @param groupService the group use cases
 	 * @param searchService the device search use cases
 	 * @param domainService the domain use cases
-	 * @param deviceRefs writes the devices
 	 * @param lists the reader of the list parameters
+	 * @param deviceMapper maps the device objects
+	 * @param domainMapper maps the domain objects
+	 * @param groupMapper maps the group objects
+	 * @param policyMapper maps the policy objects
+	 * @param ruleMapper maps the rule objects
+	 * @param refs resolves the references of the compliance objects
 	 */
 	@Inject
 	public ComplianceResultResource(RuleService ruleService, PolicyService policyService, GroupService groupService,
-		SearchService searchService, DomainService domainService, DeviceRefs deviceRefs, ListParams lists) {
+		SearchService searchService, DomainService domainService, ListParams lists, DeviceMapper deviceMapper, DomainMapper domainMapper,
+		GroupMapper groupMapper, PolicyMapper policyMapper, RuleMapper ruleMapper, ComplianceRefs refs) {
 		this.ruleService = ruleService;
 		this.policyService = policyService;
 		this.groupService = groupService;
 		this.searchService = searchService;
 		this.domainService = domainService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.refs = refs;
 		this.lists = lists;
+		this.deviceMapper = deviceMapper;
+		this.domainMapper = domainMapper;
+		this.groupMapper = groupMapper;
+		this.policyMapper = policyMapper;
+		this.ruleMapper = ruleMapper;
 	}
 
 	/**
@@ -117,7 +132,7 @@ public class ComplianceResultResource {
 		// The policies of the results are those of their rules: loaded once for both
 		var loadedPolicies = refs.loadedPolicies(selection, "policy", results.items().stream().map(DeviceCheckResult::policyId).toList());
 		var rules = refs.rules(selection, "rule", results.items().stream().map(DeviceCheckResult::ruleId).toList(), loadedPolicies);
-		var policies = ComplianceRefs.policies(loadedPolicies);
+		var policies = refs.policies(loadedPolicies);
 		return ListResponse.of(uriInfo, query, results, r -> new DeviceComplianceResultDto(devices.apply(r.deviceId()),
 			rules.apply(r.ruleId()), policies.apply(r.policyId()), r.result(), r.comment(), r.checkDate(), r.exemptionExpirationDate()));
 	}
@@ -157,10 +172,10 @@ public class ComplianceResultResource {
 		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.COMPLIANCE_RESULTS.schema(), "checkDate");
 		ListResult<StatsRow> rows = this.ruleService.resultStats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
-			"device", DeviceMapper.resolver(this.searchService),
-			"group", GroupMapper.resolver(this.groupService),
-			"domain", DomainMapper.resolver(this.domainService),
-			"policy", PolicyMapper.resolver(this.policyService),
-			"rule", RuleMapper.resolver(this.ruleService)));
+			"device", this.deviceMapper.resolver(this.searchService),
+			"group", this.groupMapper.resolver(this.groupService),
+			"domain", this.domainMapper.resolver(this.domainService),
+			"policy", this.policyMapper.resolver(this.policyService),
+			"rule", this.ruleMapper.resolver(this.ruleService)));
 	}
 }

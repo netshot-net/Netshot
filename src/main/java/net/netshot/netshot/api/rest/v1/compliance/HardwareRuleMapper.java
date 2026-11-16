@@ -20,6 +20,8 @@ package net.netshot.netshot.api.rest.v1.compliance;
 
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
@@ -28,12 +30,22 @@ import net.netshot.netshot.compliance.HardwareRule;
 /**
  * Maps the hardware rules to their v1 representation, and the requests to the rules the service takes.
  */
-public final class HardwareRuleMapper {
+public class HardwareRuleMapper {
 
 	/** The path of the hardware rules. */
 	public static final String PATH = "compliance/hardware-rules";
 
-	private HardwareRuleMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public HardwareRuleMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -43,7 +55,7 @@ public final class HardwareRuleMapper {
 	 * @param groups the groups, already mapped, by ID
 	 * @return the representation
 	 */
-	public static HardwareRuleDto toDto(HardwareRule rule, LongFunction<GroupDto> groups) {
+	public HardwareRuleDto toDto(HardwareRule rule, LongFunction<GroupDto> groups) {
 		if (rule == null) {
 			return null;
 		}
@@ -53,7 +65,7 @@ public final class HardwareRuleMapper {
 				display.append(' ').append(part);
 			}
 		}
-		return new HardwareRuleDto(rule.id(), V1Links.of(PATH, rule.id()), display.toString(), rule.version(), rule.changeDate(),
+		return new HardwareRuleDto(rule.id(), this.links.of(PATH, rule.id()), display.toString(), rule.version(), rule.changeDate(),
 			rule.partNumber(), rule.endOfSale(),
 			rule.endOfLife(), rule.targetGroupId() == null ? null : groups.apply(rule.targetGroupId()), rule.driver(), rule.family(),
 			rule.familyRegExp(), rule.partNumberRegExp());
@@ -65,12 +77,12 @@ public final class HardwareRuleMapper {
 	 * @param rule the rule
 	 * @return the request
 	 */
-	public static HardwareRuleRequest toRequest(HardwareRule rule) {
+	public HardwareRuleRequest toRequest(HardwareRule rule) {
 		return new HardwareRuleRequest(rule.partNumber(), rule.endOfSale(), rule.endOfLife(), rule.targetGroupId() == null ? null : new RefId(rule.targetGroupId()), rule.driver(),
 			rule.family(), rule.familyRegExp(), rule.partNumberRegExp());
 	}
 
-	private static String orEmpty(String value) {
+	private String orEmpty(String value) {
 		return value == null ? "" : value;
 	}
 
@@ -80,7 +92,7 @@ public final class HardwareRuleMapper {
 	 * @param request the request
 	 * @return the rule
 	 */
-	public static HardwareRule toRule(HardwareRuleRequest request) {
+	public HardwareRule toRule(HardwareRuleRequest request) {
 		return HardwareRule.builder()
 			.targetGroupId(request.group() == null ? null : request.group().id())
 			.driver(request.driver() == null || request.driver().isEmpty() ? null : request.driver())

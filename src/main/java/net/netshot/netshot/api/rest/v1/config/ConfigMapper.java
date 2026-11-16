@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
 import net.netshot.netshot.inventory.config.Config;
@@ -44,15 +46,25 @@ import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 /**
  * Maps the configurations to their v1 representation.
  */
-public final class ConfigMapper {
+public class ConfigMapper {
 
 	/** The path of the configurations. */
 	public static final String PATH = "configs";
 
-	private ConfigMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public ConfigMapper(V1Links links) {
+		this.links = links;
 	}
 
-	private static String display(Config config) {
+	private String display(Config config) {
 		return config.changeDate() == null ? "Configuration %d".formatted(config.id())
 			: "Configuration %d (%s)".formatted(config.id(), config.changeDate());
 	}
@@ -64,8 +76,8 @@ public final class ConfigMapper {
 	 * @param item the name of the item
 	 * @return the path
 	 */
-	public static String itemUrl(long configId, String item) {
-		return V1Links.of(PATH, configId, "items", URLEncoder.encode(item, StandardCharsets.UTF_8).replace("+", "%20"));
+	public String itemUrl(long configId, String item) {
+		return this.links.of(PATH, configId, "items", URLEncoder.encode(item, StandardCharsets.UTF_8).replace("+", "%20"));
 	}
 
 	/**
@@ -76,18 +88,18 @@ public final class ConfigMapper {
 	 * @param withAttributes whether the configuration holds its attributes (it doesn't when listed without them)
 	 * @return the representation
 	 */
-	public static ConfigDto toDto(Config config, LongFunction<DeviceDto> devices, boolean withAttributes) {
+	public ConfigDto toDto(Config config, LongFunction<DeviceDto> devices, boolean withAttributes) {
 		List<ConfigAttributeDto> attributes = null;
 		if (withAttributes) {
 			// The attributes are a set: they are listed by name
 			attributes = config.attributes().stream().sorted(Comparator.comparing(ConfigAttribute::name))
 				.map(attribute -> toDto(config.id(), attribute)).toList();
 		}
-		return new ConfigDto(config.id(), V1Links.of(PATH, config.id()), display(config), (long) config.version(),
+		return new ConfigDto(config.id(), this.links.of(PATH, config.id()), display(config), (long) config.version(),
 			devices.apply(config.deviceId()), config.changeDate(), config.author(), config.customHash(), attributes);
 	}
 
-	private static ConfigAttributeDto toDto(long configId, ConfigAttribute attribute) {
+	private ConfigAttributeDto toDto(long configId, ConfigAttribute attribute) {
 		return switch (attribute) {
 			case ConfigTextAttribute a -> new ConfigAttributeDto.Text(a.name(), a.text());
 			case ConfigNumericAttribute a -> new ConfigAttributeDto.Numeric(a.name(), a.number());
@@ -98,7 +110,7 @@ public final class ConfigMapper {
 		};
 	}
 
-	private static Instant instant(Date date) {
+	private Instant instant(Date date) {
 		return date == null ? null : date.toInstant();
 	}
 
@@ -110,7 +122,7 @@ public final class ConfigMapper {
 	 * @param revised the revised configuration
 	 * @return the representation
 	 */
-	public static ConfigDiffDto toDto(ConfigDiff diff, ConfigDto original, ConfigDto revised) {
+	public ConfigDiffDto toDto(ConfigDiff diff, ConfigDto original, ConfigDto revised) {
 		Map<String, List<ConfigDiffDto.Delta>> deltas = null;
 		if (diff.deltas() != null) {
 			deltas = new LinkedHashMap<>();
@@ -123,7 +135,7 @@ public final class ConfigMapper {
 		return new ConfigDiffDto(original, revised, instant(diff.originalDate()), instant(diff.revisedDate()), deltas);
 	}
 
-	private static ConfigDiffDto.Delta toDto(ConfigDelta delta) {
+	private ConfigDiffDto.Delta toDto(ConfigDelta delta) {
 		return new ConfigDiffDto.Delta(delta.type(), delta.originalPosition(), delta.revisedPosition(), delta.originalLines(),
 			delta.revisedLines(), delta.preContext(), delta.postContext(),
 			delta.hierarchy().stream().map(line -> new ConfigDiffDto.LineWithPosition(line.line(), line.position())).toList());

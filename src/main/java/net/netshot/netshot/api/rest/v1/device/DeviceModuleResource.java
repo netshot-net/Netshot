@@ -60,6 +60,7 @@ public class DeviceModuleResource {
 
 	private final DeviceCatalogService catalogService;
 	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -72,11 +73,13 @@ public class DeviceModuleResource {
 	 *
 	 * @param catalogService the device sub-resource use cases
 	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public DeviceModuleResource(DeviceCatalogService catalogService, ListParams lists) {
+	public DeviceModuleResource(DeviceCatalogService catalogService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.catalogService = catalogService;
 		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -104,6 +107,6 @@ public class DeviceModuleResource {
 		}
 		Selection selection = Selection.of(params, DeviceModuleDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceModuleDto.class);
-		return ListResponse.of(this.uriInfo, query, this.catalogService.listModules(id, query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.catalogService.listModules(id, query), this.deviceInventoryMapper::toDto);
 	}
 }
