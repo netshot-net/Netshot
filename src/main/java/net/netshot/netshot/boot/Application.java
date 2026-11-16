@@ -43,8 +43,7 @@ public final class Application implements AutoCloseable {
 	private Application(ConfigStore config, Wiring wiring) {
 		this.config = config;
 		this.wiring = wiring;
-		this.services = new ServiceManager(wiring.services());
-		wiring.serviceHealthService().attach(this.services);
+		this.services = wiring.services();
 	}
 
 	/**

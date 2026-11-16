@@ -18,12 +18,9 @@
  */
 package net.netshot.netshot.api.rest.v1.system;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,8 +30,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
@@ -59,65 +54,11 @@ class V1SystemResourceTest {
 	private V1Client admin;
 	private V1Client anonymous;
 
-	/** A service with a health and statistics. */
-	private static final class TestService implements Service {
-		private final String id;
-		private final String name;
-		private final boolean healthy;
-
-		TestService(String id, String name, boolean healthy) {
-			this.id = id;
-			this.name = name;
-			this.healthy = healthy;
-		}
-
-		@Override
-		public String id() {
-			return this.id;
-		}
-
-		@Override
-		public String name() {
-			return this.name;
-		}
-
-		@Override
-		public void start() {
-			// Nothing to start
-		}
-
-		@Override
-		public void stop() {
-			// Nothing to stop
-		}
-
-		@Override
-		public boolean isHealthy() {
-			return this.healthy;
-		}
-
-		@Override
-		public Map<String, Object> stats() {
-			return Map.of("received", 12, "listening", true);
-		}
-	}
-
 	@BeforeEach
 	void setUp(TestServer testServer) {
 		this.server = testServer;
 		this.admin = new V1Client(testServer, UiUser.LEVEL_ADMIN);
 		this.anonymous = new V1Client(testServer, null);
-	}
-
-	@AfterEach
-	void detach() {
-		TestWiring.get().serviceHealthService().attach(new ServiceManager(List.of()));
-	}
-
-	private static void attach(Service... services) throws Exception {
-		ServiceManager manager = new ServiceManager(List.of(services));
-		manager.start();
-		TestWiring.get().serviceHealthService().attach(manager);
 	}
 
 	private static Set<String> names(JsonNode object) {
@@ -165,55 +106,47 @@ class V1SystemResourceTest {
 	}
 
 	@Test
-	@DisplayName("Services: state, health and statistics, admin only")
+	@DisplayName("Services: the state, health and statistics of the services of the server, admin only")
 	void services() throws Exception {
-		attach(new TestService("alpha", "Alpha service", true), new TestService("beta", "Beta service", false));
 		Answer answer = this.admin.get("/system/services");
 		Assertions.assertEquals(200, answer.status(), answer.toString());
 		JsonNode page = answer.json();
-		Assertions.assertEquals(2, page.get("count").asLong());
-		JsonNode alpha = page.get("results").get(0);
-		Assertions.assertEquals(Set.of("display", "name", "state", "healthy", "error", "stats"), names(alpha));
-		Assertions.assertEquals("alpha", alpha.get("name").asText());
-		Assertions.assertEquals("Alpha service", alpha.get("display").asText());
-		Assertions.assertEquals("RUNNING", alpha.get("state").asText());
-		Assertions.assertTrue(alpha.get("healthy").asBoolean());
-		Assertions.assertTrue(alpha.get("error").isNull());
-		Assertions.assertEquals(12, alpha.get("stats").get("received").asInt());
-		Assertions.assertFalse(page.get("results").get(1).get("healthy").asBoolean());
+		Assertions.assertEquals(TestWiring.get().services().status().size(), page.get("count").asLong());
+		// The tests start the database access, the task manager and the REST server only
+		JsonNode database = page.get("results").get(0);
+		Assertions.assertEquals(Set.of("display", "name", "state", "healthy", "error", "stats"), names(database));
+		Assertions.assertEquals("database", database.get("name").asText());
+		Assertions.assertEquals("Database", database.get("display").asText());
+		Assertions.assertEquals("RUNNING", database.get("state").asText());
+		Assertions.assertTrue(database.get("healthy").asBoolean());
+		Assertions.assertTrue(database.get("error").isNull());
+		Assertions.assertTrue(database.get("stats").isObject());
+		JsonNode syslog = null;
+		for (JsonNode service : page.get("results")) {
+			if ("syslog-server".equals(service.get("name").asText())) {
+				syslog = service;
+			}
+		}
+		Assertions.assertNotNull(syslog);
+		Assertions.assertEquals("NEW", syslog.get("state").asText());
+		Assertions.assertFalse(syslog.get("healthy").asBoolean());
 
 		Assertions.assertEquals(403, new V1Client(this.server, UiUser.LEVEL_EXECUTEREADWRITE).get("/system/services").status());
 		Assertions.assertEquals(401, this.anonymous.get("/system/services").status());
 	}
 
 	@Test
-	@DisplayName("Health: 200 UP without authentication when all the services are healthy, nothing else in the answer")
-	void healthUp() throws Exception {
-		attach(new TestService("alpha", "Alpha service", true));
-		Answer answer = this.anonymous.get("/health");
-		Assertions.assertEquals(200, answer.status(), answer.toString());
-		Assertions.assertEquals(Set.of("status"), names(answer.json()));
-		Assertions.assertEquals("UP", answer.json().get("status").asText());
-		Assertions.assertFalse(answer.body().contains(BuildInfo.VERSION));
-		// Credentials are not needed, and invalid ones don't matter
-		Assertions.assertEquals(200, this.anonymous.get("/health", "X-Netshot-API-Token", "00000000000000000000000000000000").status());
-		Assertions.assertEquals(200, this.admin.get("/health").status());
-	}
-
-	@Test
-	@DisplayName("Health: 503 DOWN when a service is unhealthy or not started")
+	@DisplayName("Health: 503 DOWN without authentication when a service is not started, nothing else in the answer")
 	void healthDown() throws Exception {
-		attach(new TestService("alpha", "Alpha service", true), new TestService("beta", "Beta service", false));
-		Answer unhealthy = this.anonymous.get("/health");
-		Assertions.assertEquals(503, unhealthy.status(), unhealthy.toString());
-		Assertions.assertEquals("DOWN", unhealthy.json().get("status").asText());
-		Assertions.assertEquals(Set.of("status"), names(unhealthy.json()));
-		Assertions.assertFalse(unhealthy.body().contains("Beta"));
-
-		TestWiring.get().serviceHealthService().attach(new ServiceManager(List.of(new TestService("not-started", "Not started", true))));
-		Assertions.assertEquals(503, this.anonymous.get("/health").status());
-
-		TestWiring.get().serviceHealthService().attach(new ServiceManager(List.of()));
-		Assertions.assertEquals(200, this.anonymous.get("/health").status());
+		// Some services of the server are not started by the tests
+		Answer answer = this.anonymous.get("/health");
+		Assertions.assertEquals(503, answer.status(), answer.toString());
+		Assertions.assertEquals(Set.of("status"), names(answer.json()));
+		Assertions.assertEquals("DOWN", answer.json().get("status").asText());
+		Assertions.assertFalse(answer.body().contains(BuildInfo.VERSION));
+		Assertions.assertFalse(answer.body().contains("Syslog"));
+		// Credentials are not needed, and invalid ones don't matter
+		Assertions.assertEquals(503, this.anonymous.get("/health", "X-Netshot-API-Token", "00000000000000000000000000000000").status());
+		Assertions.assertEquals(503, this.admin.get("/health").status());
 	}
 }

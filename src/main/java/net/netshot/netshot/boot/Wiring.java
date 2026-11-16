@@ -70,6 +70,7 @@ import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.system.ServiceHealthService;
@@ -162,6 +163,7 @@ public final class Wiring {
 	private final ClusterService clusterService;
 	private final ServerInfoService serverInfoService;
 	private final ServiceHealthService serviceHealthService;
+	private final ServiceManager services;
 	// Diagnostics
 	private final DiagnosticService diagnosticService;
 	private final DiagnosticAdapters diagnosticAdapters;
@@ -265,7 +267,6 @@ public final class Wiring {
 			config);
 		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
 		this.serverInfoService = new ServerInfoService(config);
-		this.serviceHealthService = new ServiceHealthService();
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, r.diagnostic(), r.diagnosticResult(), r.group());
 		this.diagnosticAdapters = DiagnosticAdapters.standard();
@@ -318,6 +319,9 @@ public final class Wiring {
 		this.syslogServer = new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.snmpTrapReceiver = new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.restServer = config.current().get(RestServer.ENABLED) ? new RestServer(this.binder(), config) : null;
+		// The lifecycle of the services, and the report of their state
+		this.services = new ServiceManager(this.serviceList());
+		this.serviceHealthService = new ServiceHealthService(this.services);
 	}
 
 	/**
@@ -343,6 +347,15 @@ public final class Wiring {
 	}
 
 	/**
+	 * Gets the manager of the services of the server (started by {@link Application}).
+	 *
+	 * @return the service manager
+	 */
+	public ServiceManager services() {
+		return this.services;
+	}
+
+	/**
 	 * Gets the services of the server, in start order (they're stopped in the reverse order).
 	 * The services disabled by the configuration with a restart (the cluster manager, the SSH server, the REST server)
 	 * aren't part of the list; the Syslog server and the SNMP trap receiver, which apply their settings live, are
@@ -350,40 +363,40 @@ public final class Wiring {
 	 *
 	 * @return the services
 	 */
-	public List<Service> services() {
-		List<Service> services = new ArrayList<>();
-		services.add(this.database);
-		services.add(this.driverRegistry);
-		services.add(this.oidcDiscovery);
+	private List<Service> serviceList() {
+		List<Service> list = new ArrayList<>();
+		list.add(this.database);
+		list.add(this.driverRegistry);
+		list.add(this.oidcDiscovery);
 		// Before the clustering manager, which can start running tasks
-		services.add(this.lockManager);
+		list.add(this.lockManager);
 		if (this.clusterManager != null) {
-			services.add(this.clusterManager);
+			list.add(this.clusterManager);
 		}
 		else {
 			log.info("High Availability is not enabled.");
 		}
-		services.add(this.vaultTokenRefresher);
+		list.add(this.vaultTokenRefresher);
 		// Before the task manager, which runs the tasks connecting to the devices
-		services.add(this.sshClientService);
-		services.add(this.taskManager);
+		list.add(this.sshClientService);
+		list.add(this.taskManager);
 		// The receivers submit tasks: after the task manager
-		services.add(this.syslogServer);
-		services.add(this.snmpTrapReceiver);
+		list.add(this.syslogServer);
+		list.add(this.snmpTrapReceiver);
 		if (this.sshServer != null) {
-			services.add(this.sshServer);
+			list.add(this.sshServer);
 		}
 		else {
 			log.warn("The SSH server is disabled by configuration.");
 		}
 		// Last: the server is ready when it accepts the requests
 		if (this.restServer != null) {
-			services.add(this.restServer);
+			list.add(this.restServer);
 		}
 		else {
 			log.info("HTTP server is not enabled.");
 		}
-		return services;
+		return list;
 	}
 
 	/**
