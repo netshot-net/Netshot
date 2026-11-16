@@ -120,8 +120,9 @@ The embedded Syslog server listens for messages that indicate a device configura
 
 | Parameter | Description | Reload |
 |---|---|---|
-| `netshot.syslog.port` | UDP port to listen on. Default: `514` (requires root on Linux). | Restart |
-| `netshot.syslog.disabled` | Disables the embedded Syslog server. Enabled by default. | Restart |
+| `netshot.syslog.port` | UDP port to listen on. Default: `514` (requires root on Linux). | Yes |
+| `netshot.syslog.listenaddress` | IP address to bind to. Default: `0.0.0.0`. | Yes |
+| `netshot.syslog.disabled` | Disables the embedded Syslog server. Enabled by default. | Yes |
 
 To avoid running as root, listen on a high port (e.g. `1514`) and redirect with `iptables`, as described in the [installation guide](installation/linux.md).
 
