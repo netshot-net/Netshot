@@ -30,9 +30,16 @@ import java.util.Map;
 public interface Service {
 
 	/**
+	 * Gets the identifier of the service, stable, for the clients of the status (e.g. a monitoring system).
+	 *
+	 * @return the identifier, in kebab case, e.g. {@code syslog-server}
+	 */
+	String id();
+
+	/**
 	 * Gets the name of the service, for the logs and the status.
 	 *
-	 * @return the name, e.g. {@code Syslog server}
+	 * @return the name, in sentence case, e.g. {@code Syslog server}
 	 */
 	String name();
 
@@ -66,43 +73,5 @@ public interface Service {
 	 */
 	default Map<String, Object> stats() {
 		return Map.of();
-	}
-
-	/**
-	 * Creates a service from start and stop actions (e.g. a startup step without resources to release).
-	 *
-	 * @param name the name
-	 * @param start the start action
-	 * @param stop the stop action
-	 * @return the service
-	 */
-	static Service of(String name, Action start, Action stop) {
-		return new Service() {
-			@Override
-			public String name() {
-				return name;
-			}
-
-			@Override
-			public void start() throws Exception {
-				start.run();
-			}
-
-			@Override
-			public void stop() throws Exception {
-				stop.run();
-			}
-		};
-	}
-
-	/** An action which can fail. */
-	@FunctionalInterface
-	interface Action {
-		/**
-		 * Runs the action.
-		 *
-		 * @throws Exception if it fails
-		 */
-		void run() throws Exception;
 	}
 }

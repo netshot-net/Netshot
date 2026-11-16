@@ -78,6 +78,7 @@ class DriverRegistryTest {
 		Assertions.assertEquals("", this.registry.getAllDriverHash());
 		Assertions.assertEquals(0L, this.registry.stats().get("loads"));
 		Assertions.assertNull(this.registry.getDriverByName(BUNDLED_DRIVER));
+		Assertions.assertFalse(this.registry.isHealthy(), "Healthy without loaded drivers");
 	}
 
 	@Test
@@ -85,6 +86,7 @@ class DriverRegistryTest {
 	void lookups() throws Exception {
 		this.writeUserDriver("1.0");
 		this.registry.start();
+		Assertions.assertTrue(this.registry.isHealthy(), "Unhealthy with loaded drivers");
 		Assertions.assertEquals(1L, this.registry.stats().get("loads"));
 		Assertions.assertEquals(this.registry.getAllDrivers().size(), this.registry.stats().get("drivers"));
 		Assertions.assertNotNull(this.registry.stats().get("lastLoad"));

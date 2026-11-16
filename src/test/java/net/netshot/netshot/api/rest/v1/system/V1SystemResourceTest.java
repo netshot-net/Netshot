@@ -61,12 +61,19 @@ class V1SystemResourceTest {
 
 	/** A service with a health and statistics. */
 	private static final class TestService implements Service {
+		private final String id;
 		private final String name;
 		private final boolean healthy;
 
-		TestService(String name, boolean healthy) {
+		TestService(String id, String name, boolean healthy) {
+			this.id = id;
 			this.name = name;
 			this.healthy = healthy;
+		}
+
+		@Override
+		public String id() {
+			return this.id;
 		}
 
 		@Override
@@ -160,14 +167,15 @@ class V1SystemResourceTest {
 	@Test
 	@DisplayName("Services: state, health and statistics, admin only")
 	void services() throws Exception {
-		attach(new TestService("Alpha service", true), new TestService("Beta service", false));
+		attach(new TestService("alpha", "Alpha service", true), new TestService("beta", "Beta service", false));
 		Answer answer = this.admin.get("/system/services");
 		Assertions.assertEquals(200, answer.status(), answer.toString());
 		JsonNode page = answer.json();
 		Assertions.assertEquals(2, page.get("count").asLong());
 		JsonNode alpha = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("display", "name", "state", "healthy", "error", "stats"), names(alpha));
-		Assertions.assertEquals("Alpha service", alpha.get("name").asText());
+		Assertions.assertEquals("alpha", alpha.get("name").asText());
+		Assertions.assertEquals("Alpha service", alpha.get("display").asText());
 		Assertions.assertEquals("RUNNING", alpha.get("state").asText());
 		Assertions.assertTrue(alpha.get("healthy").asBoolean());
 		Assertions.assertTrue(alpha.get("error").isNull());
@@ -181,7 +189,7 @@ class V1SystemResourceTest {
 	@Test
 	@DisplayName("Health: 200 UP without authentication when all the services are healthy, nothing else in the answer")
 	void healthUp() throws Exception {
-		attach(new TestService("Alpha service", true));
+		attach(new TestService("alpha", "Alpha service", true));
 		Answer answer = this.anonymous.get("/health");
 		Assertions.assertEquals(200, answer.status(), answer.toString());
 		Assertions.assertEquals(Set.of("status"), names(answer.json()));
@@ -195,14 +203,14 @@ class V1SystemResourceTest {
 	@Test
 	@DisplayName("Health: 503 DOWN when a service is unhealthy or not started")
 	void healthDown() throws Exception {
-		attach(new TestService("Alpha service", true), new TestService("Beta service", false));
+		attach(new TestService("alpha", "Alpha service", true), new TestService("beta", "Beta service", false));
 		Answer unhealthy = this.anonymous.get("/health");
 		Assertions.assertEquals(503, unhealthy.status(), unhealthy.toString());
 		Assertions.assertEquals("DOWN", unhealthy.json().get("status").asText());
 		Assertions.assertEquals(Set.of("status"), names(unhealthy.json()));
 		Assertions.assertFalse(unhealthy.body().contains("Beta"));
 
-		TestWiring.get().serviceHealthService().attach(new ServiceManager(List.of(new TestService("Not started", true))));
+		TestWiring.get().serviceHealthService().attach(new ServiceManager(List.of(new TestService("not-started", "Not started", true))));
 		Assertions.assertEquals(503, this.anonymous.get("/health").status());
 
 		TestWiring.get().serviceHealthService().attach(new ServiceManager(List.of()));

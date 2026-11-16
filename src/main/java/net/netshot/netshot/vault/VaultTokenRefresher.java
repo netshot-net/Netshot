@@ -83,6 +83,11 @@ public final class VaultTokenRefresher implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "vault-token-refresher";
+	}
+
+	@Override
 	public String name() {
 		return "Vault token refresher";
 	}
@@ -97,6 +102,16 @@ public final class VaultTokenRefresher implements Service {
 	public synchronized void stop() throws InterruptedException {
 		this.executor.shutdownNow();
 		this.executor.awaitTermination(10, TimeUnit.SECONDS);
+	}
+
+	/**
+	 * Whether the refresher runs: its executor is not shut down.
+	 *
+	 * @return true if healthy
+	 */
+	@Override
+	public synchronized boolean isHealthy() {
+		return this.executor != null && !this.executor.isShutdown();
 	}
 
 	@Override

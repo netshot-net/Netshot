@@ -75,6 +75,6 @@ public final class SystemMapper {
 	 * @return the representation
 	 */
 	public static ServiceDto toDto(ServiceStatus status) {
-		return new ServiceDto(status.name(), status.name(), status.state().name(), status.healthy(), status.error(), status.stats());
+		return new ServiceDto(status.name(), status.id(), status.state().name(), status.healthy(), status.error(), status.stats());
 	}
 }

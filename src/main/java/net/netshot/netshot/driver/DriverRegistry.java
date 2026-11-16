@@ -176,8 +176,13 @@ public class DriverRegistry implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "device-drivers";
+	}
+
+	@Override
 	public String name() {
-		return "device drivers";
+		return "Device drivers";
 	}
 
 	/**
@@ -193,6 +198,16 @@ public class DriverRegistry implements Service {
 	@Override
 	public void stop() {
 		// Nothing to release
+	}
+
+	/**
+	 * Whether the drivers are loaded: a load succeeded (a failed reload keeps the drivers of the previous one).
+	 *
+	 * @return true if healthy
+	 */
+	@Override
+	public boolean isHealthy() {
+		return this.lastLoad != null;
 	}
 
 	@Override

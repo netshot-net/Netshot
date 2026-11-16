@@ -366,8 +366,13 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	}
 
 	@Override
+	public String id() {
+		return "cluster-manager";
+	}
+
+	@Override
 	public String name() {
-		return "cluster manager";
+		return "Cluster manager";
 	}
 
 	@Override
