@@ -52,7 +52,7 @@ class DatabaseJitTest {
 	@Test
 	@DisplayName("The pooled connections have JIT off")
 	void pooledConnection() {
-		Assertions.assertEquals("off", TestWiring.get().transactions().read(dsl -> dsl.fetchValue("show jit", String.class)));
+		Assertions.assertEquals("off", TestWiring.get().core().transactions().read(dsl -> dsl.fetchValue("show jit", String.class)));
 	}
 
 	@Test

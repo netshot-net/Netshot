@@ -74,7 +74,7 @@ class V1HardwareRuleResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.admin = new V1Client(server, UiUser.LEVEL_ADMIN);
 		this.reader = new V1Client(server, UiUser.LEVEL_READONLY);
-		TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.HARDWARE_RULE).execute());
+		TestWiring.get().core().transactions().run(dsl -> dsl.deleteFrom(Tables.HARDWARE_RULE).execute());
 		this.core = TestDevices.addStaticGroup("Core " + System.nanoTime());
 	}
 

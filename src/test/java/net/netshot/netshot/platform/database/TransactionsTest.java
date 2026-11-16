@@ -44,7 +44,7 @@ class TransactionsTest {
 	 * @return the transaction support
 	 */
 	private Transactions transactions() {
-		return TestWiring.get().transactions();
+		return TestWiring.get().core().transactions();
 	}
 
 	private long countDomains(String name) {

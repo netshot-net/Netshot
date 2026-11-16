@@ -84,7 +84,7 @@ class V1DeviceActionResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.admin = new V1Client(server, UiUser.LEVEL_ADMIN);
 		TestDevices.deleteAll();
-		TestWiring.get().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
+		TestWiring.get().core().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
 		Domain domain = TestDevices.addDomain("Paris-" + System.nanoTime(), "Paris DC");
 		this.router1 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1));
 	}
@@ -195,7 +195,7 @@ class V1DeviceActionResourceTest {
 		Assertions.assertTrue(spec.checkCompliance());
 		Assertions.assertEquals("CiscoIOS12", text.json().get("parameters").get("deviceDriver").asText());
 
-		ScriptService scripts = new ScriptService(TestWiring.get().transactions(), new ScriptRepository(), TestDrivers.registry());
+		ScriptService scripts = new ScriptService(TestWiring.get().core().transactions(), new ScriptRepository(), TestDrivers.registry());
 		DeviceJsScript saved = scripts.create(new ScriptDefinition("Clock-" + System.nanoTime(), "CiscoIOS12", SCRIPT, "tester", "Folder"));
 		Task fromSaved = this.accepted(this.admin.post(this.path("script-runs"), "{\"savedScript\": " + saved.id() + "}"), "RunDeviceScriptTask");
 		Assertions.assertEquals(SCRIPT, ((RunDeviceScriptTask) fromSaved.spec()).script());

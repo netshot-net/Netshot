@@ -114,7 +114,7 @@ class LoginServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.users = new UserService(this.transactions, this.repository, TestConfig.store());
 		this.service = new LoginService(this.transactions, this.repository, this.remote, TestConfig.store());
 	}

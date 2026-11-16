@@ -83,8 +83,8 @@ public final class DeviceListExtractor {
 			Wiring wiring = application.wiring();
 
 			log.info("Requesting data from the DB...");
-			DeviceRepository deviceRepository = wiring.repositories().device();
-			List<Device> devices = wiring.transactions().read(dsl -> deviceRepository.findAll(dsl,
+			DeviceRepository deviceRepository = wiring.core().repositories().device();
+			List<Device> devices = wiring.core().transactions().read(dsl -> deviceRepository.findAll(dsl,
 				dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())).fetch(DEVICE.ID)));
 			for (Device device : devices) {
 				DeviceCliAccount cliAccount = null;
@@ -134,7 +134,7 @@ public final class DeviceListExtractor {
 				fields.add("");							// Col. 6 = SysObjectID
 				fields.add("");							// Col. 7 = DCR Device Type
 				fields.add("");							// Col. 8 = MDF Type
-				fields.add(community == null ? "" : resolveSecret(community.community(), device, wiring.vaultManager()));			// Col. 9 = SNMP RO <<<
+				fields.add(community == null ? "" : resolveSecret(community.community(), device, wiring.core().vaultManager()));			// Col. 9 = SNMP RO <<<
 				fields.add("");							// Col. 10 = SNMP RW
 				fields.add("");							// Col. 11 = SNMPv3 User Name
 				fields.add("");							// Col. 12 = SNMPv3 Auth Pass 
@@ -142,9 +142,9 @@ public final class DeviceListExtractor {
 				fields.add("");							// Col. 14 = SNMPv3 Auth Algorithm
 				fields.add("");							// Col. 15 = RX Boot Mode User
 				fields.add("");							// Col. 16 = RX Boot Mode Pass
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.username(), device, wiring.vaultManager()));			// Col. 17 = Primary User <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.password(), device, wiring.vaultManager()));			// Col. 18 = Primary Pass <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPassword(), device, wiring.vaultManager()));	// Col. 19 = Primary Enable Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.username(), device, wiring.core().vaultManager()));			// Col. 17 = Primary User <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.password(), device, wiring.core().vaultManager()));			// Col. 18 = Primary Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPassword(), device, wiring.core().vaultManager()));	// Col. 19 = Primary Enable Pass <<<
 				fields.add("");							// Col. 20 = HTTP User
 				fields.add("");							// Col. 21 = HTTP Pass
 				fields.add("");							// Col. 22 = HTTP Mode

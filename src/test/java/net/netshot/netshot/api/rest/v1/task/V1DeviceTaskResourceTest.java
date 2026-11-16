@@ -73,7 +73,7 @@ class V1DeviceTaskResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.reader = new V1Client(server, UiUser.LEVEL_READONLY);
 		TestDevices.deleteAll();
-		TestWiring.get().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
+		TestWiring.get().core().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
 		Domain domain = TestDevices.addDomain("Paris-" + System.nanoTime(), "Paris DC");
 		this.router1 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1));
 		this.router2 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 2));

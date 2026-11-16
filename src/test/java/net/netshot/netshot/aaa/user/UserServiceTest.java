@@ -66,7 +66,7 @@ class UserServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new UserService(this.transactions, this.repository, TestConfig.store());
 	}
 

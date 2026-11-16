@@ -115,15 +115,15 @@ class WebHookContractTest {
 		this.receiver.start();
 
 		// Only the hooks of this test: the hooks of the seed point to the outside
-		for (Hook hook : TestWiring.get().hookService().list(ListQuery.ALL).items()) {
-			TestWiring.get().hookService().delete(hook.id(), null);
+		for (Hook hook : TestWiring.get().api().hookService().list(ListQuery.ALL).items()) {
+			TestWiring.get().api().hookService().delete(hook.id(), null);
 		}
 		for (WebHook.Action action : FORMATS.keySet()) {
 			Set<HookTrigger> triggers = new HashSet<>();
 			for (String type : this.taskIds.keySet().stream().map(HookTaskSeed::taskType).distinct().toList()) {
 				triggers.add(new HookTrigger(HookTrigger.TriggerType.POST_TASK, type));
 			}
-			TestWiring.get().hookService().create(new WebHook(0, 0, null, "test-" + action, true, triggers, action,
+			TestWiring.get().api().hookService().create(new WebHook(0, 0, null, "test-" + action, true, triggers, action,
 				"http://127.0.0.1:" + this.receiver.getAddress().getPort() + "/" + action, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null));
 		}
 	}
@@ -145,7 +145,7 @@ class WebHookContractTest {
 		synchronized (this.received) {
 			this.received.clear();
 		}
-		TestWiring.get().domainEvents().publish(new TaskFinished(taskId, HookTaskSeed.taskType(caseName)));
+		TestWiring.get().core().domainEvents().publish(new TaskFinished(taskId, HookTaskSeed.taskType(caseName)));
 		Map<Format, String> payloads = new LinkedHashMap<>();
 		synchronized (this.received) {
 			Assertions.assertEquals(FORMATS.size(), this.received.size(), "Number of hook requests for " + caseName);

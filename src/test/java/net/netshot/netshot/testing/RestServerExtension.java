@@ -85,7 +85,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			return;
 		}
 		ApiTokenRepository tokens = new ApiTokenRepository();
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			// Remove the default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			for (Map.Entry<Integer, String> entry : TestServer.API_TOKENS.entrySet()) {
@@ -100,7 +100,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!managesTokens(context)) {
 			return;
 		}
-		TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
+		TestWiring.get().core().transactions().run(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
 	}
 
 	@Override

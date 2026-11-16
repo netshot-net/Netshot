@@ -132,12 +132,12 @@ class V1AuthenticationTest {
 		@BeforeEach
 		void createUser() {
 			UiUser user = UiUser.withPassword(USERNAME, true, UiUser.LEVEL_ADMIN, PASSWORD);
-			TestWiring.get().transactions().run(dsl -> new UserRepository().add(dsl, user));
+			TestWiring.get().core().transactions().run(dsl -> new UserRepository().add(dsl, user));
 		}
 
 		@AfterEach
 		void deleteUser() {
-			TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
+			TestWiring.get().core().transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
 		}
 
 		private String logIn() throws Exception {
@@ -197,16 +197,16 @@ class V1AuthenticationTest {
 			this.idpServer.registerClient(CLIENT_ID, CLIENT_SECRET, java.net.URI.create(REDIRECT_URI));
 			this.idpServer.start();
 			this.setJwt(false, null);
-			this.oidcDiscovery = new OidcDiscovery(TestWiring.get().oidc(), TestConfig.store());
+			this.oidcDiscovery = new OidcDiscovery(TestWiring.get().aaa().oidc(), TestConfig.store());
 			this.oidcDiscovery.start();
 			// Wait for the discovery daemon to fetch the IdP metadata, instead of a fixed
 			// sleep: the daemon retries only every 30s (netshot.aaa.oidc.idp.retryinterval)
 			// after a failed attempt, so a short fixed sleep is flaky on loaded CI runners.
 			Instant deadline = Instant.now().plus(Duration.ofSeconds(35));
-			while (!TestWiring.get().oidc().isAvailable() && Instant.now().isBefore(deadline)) {
+			while (!TestWiring.get().aaa().oidc().isAvailable() && Instant.now().isBefore(deadline)) {
 				Thread.sleep(200);
 			}
-			Assertions.assertTrue(TestWiring.get().oidc().isAvailable(), "OIDC IdP metadata was not discovered in time");
+			Assertions.assertTrue(TestWiring.get().aaa().oidc().isAvailable(), "OIDC IdP metadata was not discovered in time");
 		}
 
 		@AfterAll

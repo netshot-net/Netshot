@@ -82,7 +82,7 @@ class V1TaskCreationResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.admin = new V1Client(server, UiUser.LEVEL_ADMIN);
 		TestDevices.deleteAll();
-		TestWiring.get().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
+		TestWiring.get().core().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
 		this.domain = TestDevices.addDomain("Paris-" + System.nanoTime(), "Paris DC");
 		this.router1 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(this.domain, null, 1));
 		this.router2 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(this.domain, null, 2));

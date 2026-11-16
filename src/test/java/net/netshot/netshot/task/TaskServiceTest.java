@@ -88,7 +88,7 @@ class TaskServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
 				throw this.schedulerFailure;
@@ -119,7 +119,7 @@ class TaskServiceTest {
 			}
 		};
 		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, TestDrivers.registry(),
-			TestWiring.get().repositories().device(), TestWiring.get().repositories().domain(), TestWiring.get().repositories().group());
+			TestWiring.get().core().repositories().device(), TestWiring.get().core().repositories().domain(), TestWiring.get().core().repositories().group());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.domainId = domain.id();
 		Device device = TestDevices.add(Device.create("CiscoIOS12", "10.30.0.1", domain, AUTHOR).toBuilder().name("router-1").build());

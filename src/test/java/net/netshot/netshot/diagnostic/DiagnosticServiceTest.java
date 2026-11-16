@@ -67,8 +67,9 @@ class DiagnosticServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
-		this.service = new DiagnosticService(this.transactions, new DiagnosticRepository(), TestWiring.get().repositories().diagnosticResult(), TestWiring.get().repositories().group());
+		this.transactions = TestWiring.get().core().transactions();
+		this.service = new DiagnosticService(this.transactions, new DiagnosticRepository(),
+			TestWiring.get().core().repositories().diagnosticResult(), TestWiring.get().core().repositories().group());
 		this.groupId = TestDevices.addStaticGroup("Group").id();
 		this.otherGroupId = TestDevices.addStaticGroup("Other group").id();
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");

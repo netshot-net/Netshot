@@ -79,14 +79,14 @@ class ComplianceServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		PolicyRepository policyRepository = new PolicyRepository();
-		this.policyService = new PolicyService(this.transactions, policyRepository, TestWiring.get().repositories().group());
+		this.policyService = new PolicyService(this.transactions, policyRepository, TestWiring.get().core().repositories().group());
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository,
 			RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(),
-				TestWiring.get().repositories().deviceReads()), TestWiring.get().repositories().device());
-		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry(), TestWiring.get().repositories().group());
-		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry(), TestWiring.get().repositories().group());
+				TestWiring.get().core().repositories().deviceReads()), TestWiring.get().core().repositories().device());
+		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry(), TestWiring.get().core().repositories().group());
+		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry(), TestWiring.get().core().repositories().group());
 		this.groupId = TestDevices.addStaticGroup("Group").id();
 		this.otherGroupId = TestDevices.addStaticGroup("Other group").id();
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");

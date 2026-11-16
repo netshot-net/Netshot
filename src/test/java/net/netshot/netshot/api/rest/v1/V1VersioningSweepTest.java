@@ -266,35 +266,35 @@ class V1VersioningSweepTest {
 		RuleMapper ruleMapper = new RuleMapper(links);
 		HardwareRuleMapper hardwareRuleMapper = new HardwareRuleMapper(links);
 		Map<String, Change> changes = new LinkedHashMap<>();
-		changes.put("/devices/{id}", (w, id, wrap) -> w.deviceService().update(id,
+		changes.put("/devices/{id}", (w, id, wrap) -> w.inventory().deviceService().update(id,
 			unchanged(wrap, DeviceRequest.class, deviceMapper::toRequest, deviceMapper::toChange), null));
-		changes.put("/groups/{id}", (w, id, wrap) -> w.groupService().update(id,
+		changes.put("/groups/{id}", (w, id, wrap) -> w.inventory().groupService().update(id,
 			unchanged(wrap, GroupRequest.class, groupMapper::toRequest, groupMapper::toDefinition), null));
-		changes.put("/domains/{id}", (w, id, wrap) -> w.domainService().update(id,
+		changes.put("/domains/{id}", (w, id, wrap) -> w.inventory().domainService().update(id,
 			unchanged(wrap, DomainRequest.class, domainMapper::toRequest, domainMapper::toDefinition), null));
-		changes.put("/credential-sets/{id}", (w, id, wrap) -> w.credentialSetService().update(id,
+		changes.put("/credential-sets/{id}", (w, id, wrap) -> w.credentials().credentialSetService().update(id,
 			unchanged(wrap, CredentialSetRequest.class, credentialSetMapper::toRequest, credentialSetMapper::toDefinition), null));
-		changes.put("/vault-instances/{id}", (w, id, wrap) -> w.vaultInstanceService().update(id,
+		changes.put("/vault-instances/{id}", (w, id, wrap) -> w.credentials().vaultInstanceService().update(id,
 			unchanged(wrap, VaultInstanceRequest.class, vaultInstanceMapper::toRequest, vaultInstanceMapper::toDefinition), null));
-		changes.put("/diagnostics/{id}", (w, id, wrap) -> w.diagnosticService().update(id,
+		changes.put("/diagnostics/{id}", (w, id, wrap) -> w.inventory().diagnosticService().update(id,
 			unchanged(wrap, DiagnosticRequest.class, diagnosticMapper::toRequest, diagnosticMapper::toDefinition), null));
-		changes.put("/scripts/{id}", (w, id, wrap) -> w.scriptService().update(id,
+		changes.put("/scripts/{id}", (w, id, wrap) -> w.inventory().scriptService().update(id,
 			unchanged(wrap, ScriptRequest.class, scriptMapper::toRequest, r -> scriptMapper.toDefinition(r, null)), null));
-		changes.put("/hooks/{id}", (w, id, wrap) -> w.hookService().update(id,
+		changes.put("/hooks/{id}", (w, id, wrap) -> w.api().hookService().update(id,
 			unchanged(wrap, HookRequest.class, hookMapper::toRequest, hookMapper::toHook), null));
-		changes.put("/users/{id}", (w, id, wrap) -> w.userService().update(id, "nobody",
+		changes.put("/users/{id}", (w, id, wrap) -> w.aaa().userService().update(id, "nobody",
 			unchanged(wrap, UserRequest.class, userMapper::toRequest, userMapper::toDefinition), null));
-		changes.put("/compliance/policies/{id}", (w, id, wrap) -> w.policyService().update(id,
+		changes.put("/compliance/policies/{id}", (w, id, wrap) -> w.compliance().policyService().update(id,
 			unchanged(wrap, PolicyRequest.class, policyMapper::toRequest, policyMapper::toDefinition), null));
 		changes.put("/compliance/rules/{id}", (w, id, wrap) -> {
 			Function<Rule, Rule> same = unchanged(wrap, RuleRequest.class, ruleMapper::toRequest, ruleMapper::toRule);
-			w.ruleService().update(id, same.andThen(RuleService.Replacement::of), null);
+			w.compliance().ruleService().update(id, same.andThen(RuleService.Replacement::of), null);
 		});
 		changes.put("/compliance/software-rules/{id}", (w, id, wrap) -> {
 			Function<RankedSoftwareRule, RankedSoftwareRule> same = same(wrap);
-			w.softwareRuleService().update(id, same.andThen(r -> new Replacement(r.rule(), null)), null);
+			w.compliance().softwareRuleService().update(id, same.andThen(r -> new Replacement(r.rule(), null)), null);
 		});
-		changes.put("/compliance/hardware-rules/{id}", (w, id, wrap) -> w.hardwareRuleService().update(id,
+		changes.put("/compliance/hardware-rules/{id}", (w, id, wrap) -> w.compliance().hardwareRuleService().update(id,
 			unchanged(wrap, HardwareRuleRequest.class, hardwareRuleMapper::toRequest, hardwareRuleMapper::toRule), null));
 		return changes;
 	}
@@ -317,7 +317,7 @@ class V1VersioningSweepTest {
 			AtomicReference<Thread> concurrent = new AtomicReference<>();
 			entry.getValue().run(TestWiring.get(), id, change -> current -> {
 				// Another transaction tries to change the object while it is being changed
-				Thread thread = new Thread(() -> TestWiring.get().transactions().run(dsl ->
+				Thread thread = new Thread(() -> TestWiring.get().core().transactions().run(dsl ->
 					dsl.execute("update \"%s\" set version = version + 1 where id = %d".formatted(table, id))));
 				thread.start();
 				try {

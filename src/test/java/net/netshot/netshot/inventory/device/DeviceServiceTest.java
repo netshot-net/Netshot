@@ -91,7 +91,7 @@ class DeviceServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
 				throw this.schedulerFailure;
@@ -99,12 +99,13 @@ class DeviceServiceTest {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestWiring.get().repositories().group());
-		this.service = new DeviceService(this.transactions, TestWiring.get().repositories().device(), TestDrivers.registry(), dynamicGroups, TestWiring.get().repositories().domain(),
-			TestWiring.get().repositories().credentialSet(), TestWiring.get().repositories().credentialSetAssembler(), TestWiring.get().repositories().binaryFiles());
-		this.creationService = new DeviceCreationService(this.transactions, TestWiring.get().repositories().device(), submitter, TestDrivers.registry(), dynamicGroups,
-			TestWiring.get().repositories().domain(), TestWiring.get().repositories().credentialSet(), TestWiring.get().repositories().task(),
-				TestWiring.get().repositories().credentialSetAssembler());
+		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().core().transactions(), TestDrivers.registry(), TestWiring.get().core().repositories().group());
+		this.service = new DeviceService(this.transactions, TestWiring.get().core().repositories().device(), TestDrivers.registry(),
+			dynamicGroups, TestWiring.get().core().repositories().domain(),
+			TestWiring.get().core().repositories().credentialSet(), TestWiring.get().core().repositories().credentialSetAssembler(), TestWiring.get().core().repositories().binaryFiles());
+		this.creationService = new DeviceCreationService(this.transactions, TestWiring.get().core().repositories().device(), submitter, TestDrivers.registry(), dynamicGroups,
+			TestWiring.get().core().repositories().domain(), TestWiring.get().core().repositories().credentialSet(), TestWiring.get().core().repositories().task(),
+				TestWiring.get().core().repositories().credentialSetAssembler());
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
 		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("secret")).superPassword(Secret.local("enable"))
@@ -358,7 +359,7 @@ class DeviceServiceTest {
 	@DisplayName("The device summaries are listed in pages, and filtered on a group")
 	void list() {
 		Device created = this.createDevice(this.nextAddress());
-		SearchService search = TestWiring.get().searchService();
+		SearchService search = TestWiring.get().inventory().searchService();
 		List<DeviceSummary> all = search.listDeviceSummaries(ListQuery.ALL, null).items();
 		DeviceSummary summary = all.stream().filter(s -> s.id() == created.id()).findFirst().orElseThrow();
 		Assertions.assertEquals(created.mgmtAddress(), summary.mgmtAddress());
@@ -424,7 +425,7 @@ class DeviceServiceTest {
 		Device created = this.createDevice(this.nextAddress());
 		ConfigBinaryFileAttribute attribute = ConfigBinaryFileAttribute.create("binary", "original.bin");
 		long configId = TestDevices.addOldConfig(created.id(), Config.builder().author("").attributes(List.of(attribute)).build());
-		Path file = TestWiring.get().repositories().binaryFiles().filePath(attribute, created.id(), configId);
+		Path file = TestWiring.get().core().repositories().binaryFiles().filePath(attribute, created.id(), configId);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, "binary content");
 		this.service.delete(created.id(), null);

@@ -61,8 +61,8 @@ class VaultInstanceServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
-		this.service = new VaultInstanceService(this.transactions, TestWiring.get().repositories().vaultInstance(),
+		this.transactions = TestWiring.get().core().transactions();
+		this.service = new VaultInstanceService(this.transactions, TestWiring.get().core().repositories().vaultInstance(),
 			this.notified::add,
 			instance -> {
 				this.tested.add(instance);
@@ -97,7 +97,7 @@ class VaultInstanceServiceTest {
 	}
 
 	private HashicorpVaultKv2Instance stored(long id) {
-		return (HashicorpVaultKv2Instance) this.transactions.read(dsl -> TestWiring.get().repositories().vaultInstance().find(dsl, id));
+		return (HashicorpVaultKv2Instance) this.transactions.read(dsl -> TestWiring.get().core().repositories().vaultInstance().find(dsl, id));
 	}
 
 	private HashicorpVaultKv2Instance createInstance() {

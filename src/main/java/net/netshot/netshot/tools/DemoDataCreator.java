@@ -840,7 +840,7 @@ public class DemoDataCreator {
 			log.info("Initializing access to the database.");
 			application.start("database");
 			Wiring wiring = application.wiring();
-			new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups(), wiring.repositories()).createData();
+			new DemoDataCreator(wiring.core().transactions(), wiring.core().dynamicGroups(), wiring.core().repositories()).createData();
 		}
 		catch (Exception e) {
 			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());

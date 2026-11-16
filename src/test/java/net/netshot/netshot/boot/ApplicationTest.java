@@ -64,7 +64,7 @@ class ApplicationTest {
 		application.start("database");
 		Assertions.assertEquals(ServiceState.RUNNING, states(application).get("database"));
 		Assertions.assertEquals(ServiceState.NEW, states(application).get("task-manager"));
-		Assertions.assertEquals(1, (int) application.wiring().transactions().read(dsl -> dsl.selectOne().fetchOne(0, Integer.class)));
+		Assertions.assertEquals(1, (int) application.wiring().core().transactions().read(dsl -> dsl.selectOne().fetchOne(0, Integer.class)));
 		application.close();
 		application.close();
 		Assertions.assertEquals(ServiceState.STOPPED, states(application).get("database"));

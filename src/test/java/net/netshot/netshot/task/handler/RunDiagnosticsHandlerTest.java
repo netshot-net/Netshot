@@ -98,7 +98,7 @@ class RunDiagnosticsHandlerTest {
 		TestDevices.addMembers(group, device);
 		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, 0, null, name, enabled, group.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(?s).*, Version ([^,]+), RELEASE.*", "$1");
-		TestWiring.get().transactions().run(dsl -> new DiagnosticRepository().add(dsl, diagnostic));
+		TestWiring.get().core().transactions().run(dsl -> new DiagnosticRepository().add(dsl, diagnostic));
 		return device;
 	}
 

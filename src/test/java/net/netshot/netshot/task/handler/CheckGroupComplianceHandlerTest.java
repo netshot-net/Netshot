@@ -118,7 +118,7 @@ class CheckGroupComplianceHandlerTest {
 	}
 
 	private static Map<String, ResultOption> results() {
-		return TestWiring.get().transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
+		return TestWiring.get().core().transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
 			.join(Tables.DEVICE).on(Tables.DEVICE.ID.eq(Tables.CHECK_RESULT.DEVICE))
 			.fetch()
 			.stream()
@@ -159,7 +159,7 @@ class CheckGroupComplianceHandlerTest {
 	}
 
 	private static Map<String, String> ruleResults(long ruleId) {
-		return TestWiring.get().transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
+		return TestWiring.get().core().transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
 			.join(Tables.DEVICE).on(Tables.DEVICE.ID.eq(Tables.CHECK_RESULT.DEVICE))
 			.where(Tables.CHECK_RESULT.RULE.eq(ruleId))
 			.fetchMap(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT));
@@ -197,7 +197,7 @@ class CheckGroupComplianceHandlerTest {
 		long id = this.runner.run(GroupBasedTask.of(new CheckGroupComplianceTask(this.group.id(), null), this.group.name(), "Test", "tester"));
 
 		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
-		String comments = TestWiring.get().transactions().read(dsl -> dsl.select(Tables.DEVICE.COMMENTS).from(Tables.DEVICE)
+		String comments = TestWiring.get().core().transactions().read(dsl -> dsl.select(Tables.DEVICE.COMMENTS).from(Tables.DEVICE)
 			.where(Tables.DEVICE.ID.eq(this.first.id())).fetchOne(Tables.DEVICE.COMMENTS));
 		Assertions.assertEquals(4096, comments.length());
 	}
