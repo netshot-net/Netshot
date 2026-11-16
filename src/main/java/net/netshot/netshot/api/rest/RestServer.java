@@ -240,7 +240,7 @@ public final class RestServer implements Service {
 				.setSecure(secureCookie)
 				.setAttribute("SameSite", "Strict")
 			)
-			.setDefaultSessionTimeout(UiUser.settings().maxIdleTime());
+			.setDefaultSessionTimeout(UiUser.Settings.from(current).maxIdleTime());
 
 		DeploymentManager deploymentManager = Servlets
 			.defaultContainer()

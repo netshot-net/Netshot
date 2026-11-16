@@ -84,8 +84,8 @@ class ClusterServiceTest {
 	@Test
 	@DisplayName("The server information is read when asked, from the version and the loaded settings")
 	void serverInfo() {
-		ServerInfo info = new ServerInfoService().get();
+		ServerInfo info = new ServerInfoService(Netshot.config()).get();
 		Assertions.assertEquals(Netshot.VERSION, info.serverVersion());
-		Assertions.assertEquals(UiUser.settings().maxIdleTime(), info.maxIdleTimeout());
+		Assertions.assertEquals(UiUser.Settings.from(Netshot.config().current()).maxIdleTime(), info.maxIdleTimeout());
 	}
 }

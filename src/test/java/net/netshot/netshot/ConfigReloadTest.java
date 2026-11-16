@@ -87,8 +87,8 @@ class ConfigReloadTest {
 			Map.entry("netshot.vault.http.readtimeoutms", "2222"),
 			Map.entry("netshot.snapshots.binary.path", this.tempDir.toString()),
 			Map.entry("netshot.python.virtualenv", this.tempDir.toString())));
-		Assertions.assertEquals(7, PasswordPolicy.getMainPolicy().getMaxHistory());
-		Assertions.assertEquals(600, UiUser.settings().maxIdleTime());
+		Assertions.assertEquals(7, PasswordPolicy.fromConfig(Netshot.config().current()).getMaxHistory());
+		Assertions.assertEquals(600, UiUser.Settings.from(Netshot.config().current()).maxIdleTime());
 		Assertions.assertEquals(1234, Ssh.Settings.from(Netshot.config().current()).connectionTimeout());
 		Assertions.assertEquals(List.of("aes256-ctr", "aes128-ctr"), Ssh.Settings.from(Netshot.config().current()).ciphers());
 		Assertions.assertEquals(4321, Telnet.Settings.from(Netshot.config().current()).receiveTimeout());
@@ -99,8 +99,8 @@ class ConfigReloadTest {
 		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.Settings.from(Netshot.config().current()).venvFolder());
 
 		reload(Map.of());
-		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory());
-		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime());
+		Assertions.assertEquals(0, PasswordPolicy.fromConfig(Netshot.config().current()).getMaxHistory());
+		Assertions.assertEquals(1800, UiUser.Settings.from(Netshot.config().current()).maxIdleTime());
 		Assertions.assertEquals(5000, Ssh.Settings.from(Netshot.config().current()).connectionTimeout());
 		Assertions.assertEquals(60000, Telnet.Settings.from(Netshot.config().current()).receiveTimeout());
 		Assertions.assertTrue(Collector.Settings.from(Netshot.config().current()).clusterIpOverrides().isEmpty());
@@ -139,8 +139,8 @@ class ConfigReloadTest {
 			"netshot.aaa.passwordpolicy.maxhistory", "seven",
 			"netshot.aaa.maxidletime", "1",
 			"netshot.cli.ssh.rekeydatalimit", "big"));
-		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory(), "Not a number");
-		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime(), "Out of range");
+		Assertions.assertEquals(0, PasswordPolicy.fromConfig(Netshot.config().current()).getMaxHistory(), "Not a number");
+		Assertions.assertEquals(1800, UiUser.Settings.from(Netshot.config().current()).maxIdleTime(), "Out of range");
 		Assertions.assertEquals(1024L * 1024L * 1024L, Ssh.Settings.from(Netshot.config().current()).rekeyDataLimit(), "Not a long");
 	}
 
