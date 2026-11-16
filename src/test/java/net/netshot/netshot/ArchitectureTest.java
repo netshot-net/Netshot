@@ -210,6 +210,16 @@ final class ArchitectureTest {
 			})
 			.allowEmptyShould(true);
 
+	/**
+	 * The dependency injection container of Jersey (HK2) stays in the REST layer: the composition root gives the
+	 * REST server its {@code RestDependencies}, a plain record.
+	 */
+	@ArchTest
+	static final ArchRule HK2_ONLY_IN_THE_REST_LAYER =
+		noClasses().that().resideOutsideOfPackage(ROOT + "api.rest..")
+			.should().dependOnClassesThat().resideInAPackage("org.glassfish.hk2..")
+			.allowEmptyShould(true);
+
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
 	@ArchTest
 	static final ArchRule API_DOES_NOT_USE_THE_DATABASE = 

@@ -136,6 +136,17 @@ class ServiceManagerTest {
 	}
 
 	@Test
+	@DisplayName("Services are added before the start, in start order; adding is refused once started")
+	void add() throws Exception {
+		ServiceManager manager = new ServiceManager(List.of(service("a", false, false)));
+		manager.add(service("b", false, false));
+		manager.start();
+		Assertions.assertThrows(IllegalStateException.class, () -> manager.add(service("c", false, false)));
+		manager.stop();
+		Assertions.assertEquals(List.of("start a", "start b", "stop b", "stop a"), this.calls);
+	}
+
+	@Test
 	@DisplayName("The shutdown hook stops the services")
 	void shutdownHook() throws Exception {
 		ServiceManager manager = new ServiceManager(List.of(service("a", false, false)));

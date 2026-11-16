@@ -40,7 +40,6 @@ import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.lifecycle.ServiceStatus;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
-import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestConfig;

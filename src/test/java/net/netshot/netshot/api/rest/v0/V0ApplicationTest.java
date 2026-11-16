@@ -31,10 +31,10 @@ import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 @DatabaseTest
 @DisplayName("v0 web application")
@@ -43,9 +43,9 @@ class V0ApplicationTest {
 	@Test
 	@DisplayName("Makes the wiring injectable into the resources")
 	void injection() {
-		ApplicationHandler handler = new ApplicationHandler(new V0Application(TestWiring.get().binder()));
-		Transactions injected = handler.getInjectionManager().getInstance(Transactions.class);
-		Assertions.assertSame(TestWiring.get().core().transactions(), injected);
+		ApplicationHandler handler = new ApplicationHandler(new V0Application(TestWiring.get().api().restDependencies().binder()));
+		ConfigStore injected = handler.getInjectionManager().getInstance(ConfigStore.class);
+		Assertions.assertSame(TestWiring.get().core().config(), injected);
 	}
 
 	@Test
@@ -73,7 +73,7 @@ class V0ApplicationTest {
 		config.setProperty("netshot.http.baseurl", "http://127.0.0.1:%d".formatted(port));
 		config.setProperty("netshot.http.api.v0.enabled", Boolean.toString(enabled));
 		TestConfig.init(config);
-		RestServer server = new RestServer(TestWiring.get().binder(), TestConfig.store());
+		RestServer server = new RestServer(TestWiring.get().api().restDependencies(), TestConfig.store());
 		server.start();
 		try {
 			HttpClient client = HttpClient.newHttpClient();
