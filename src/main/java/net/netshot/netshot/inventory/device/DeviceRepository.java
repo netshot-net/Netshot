@@ -38,7 +38,6 @@ import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERF
 import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP6ADDRESSES;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -632,19 +631,28 @@ public class DeviceRepository {
 	}
 
 	/**
-	 * Finds the paths of the binary files holding configuration attributes of a device.
+	 * A binary file attribute of a stored configuration.
+	 *
+	 * @param configId the ID of the configuration
+	 * @param attribute the attribute
+	 */
+	public record StoredBinaryFile(long configId, ConfigBinaryFileAttribute attribute) {
+	}
+
+	/**
+	 * Finds the binary file attributes of the configurations of a device.
 	 *
 	 * @param dsl the jOOQ context
 	 * @param deviceId the device ID
-	 * @return the file paths
+	 * @return the attributes, with their configurations
 	 */
-	public List<Path> findConfigBinaryFilePaths(DSLContext dsl, long deviceId) {
+	public List<StoredBinaryFile> findConfigBinaryFiles(DSLContext dsl, long deviceId) {
 		return dsl.select(CONFIG.ID, CONFIG_ATTRIBUTE.NAME, CONFIG_ATTRIBUTE.UID, CONFIG_ATTRIBUTE.ORIGINAL_NAME)
 			.from(CONFIG_ATTRIBUTE)
 			.join(CONFIG).on(CONFIG.ID.eq(CONFIG_ATTRIBUTE.CONFIG))
 			.where(CONFIG.DEVICE.eq(deviceId), CONFIG_ATTRIBUTE.TYPE.eq("F"))
-			.fetch(r -> new ConfigBinaryFileAttribute(r.get(CONFIG_ATTRIBUTE.NAME), r.get(CONFIG_ATTRIBUTE.UID),
-				r.get(CONFIG_ATTRIBUTE.ORIGINAL_NAME), 0, null).getFilePath(deviceId, r.get(CONFIG.ID)));
+			.fetch(r -> new StoredBinaryFile(r.get(CONFIG.ID), new ConfigBinaryFileAttribute(r.get(CONFIG_ATTRIBUTE.NAME),
+				r.get(CONFIG_ATTRIBUTE.UID), r.get(CONFIG_ATTRIBUTE.ORIGINAL_NAME), 0, null)));
 	}
 
 	/**

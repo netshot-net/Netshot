@@ -121,6 +121,7 @@ import net.netshot.netshot.vault.VaultInstanceRepository;
 import net.netshot.netshot.vault.VaultInstanceService;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultTokenRefresher;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -240,6 +241,7 @@ public final class Wiring {
 		VaultInstanceRepository vaultInstanceRepository = new VaultInstanceRepository();
 		UserRepository userRepository = new UserRepository();
 		CredentialSetAssembler credentialSetAssembler = new CredentialSetAssembler(vaultInstanceRepository);
+		BinaryFileStorage binaryFiles = new BinaryFileStorage(config);
 		DeviceReads deviceReads = new DeviceReads(this.transactions, deviceRepository, configRepository, diagnosticResultRepository,
 			credentialSetRepository);
 		// Drivers
@@ -263,7 +265,7 @@ public final class Wiring {
 		}
 		// Device
 		this.deviceService = new DeviceService(this.transactions, deviceRepository, this.driverRegistry, this.dynamicGroups,
-			domainRepository, credentialSetRepository, credentialSetAssembler);
+			domainRepository, credentialSetRepository, credentialSetAssembler, binaryFiles);
 		this.deviceCreationService = new DeviceCreationService(this.transactions, deviceRepository, taskSubmitter,
 			this.driverRegistry, this.dynamicGroups, domainRepository, credentialSetRepository, taskRepository, credentialSetAssembler);
 		// Compliance
@@ -290,7 +292,7 @@ public final class Wiring {
 		this.domainService = new DomainService(this.transactions, domainRepository);
 		this.groupService = new GroupService(this.transactions, groupRepository, this.dynamicGroups);
 		this.searchService = new SearchService(this.transactions, deviceRepository, this.driverRegistry);
-		this.configService = new ConfigService(this.transactions, configRepository, this.driverRegistry, deviceRepository);
+		this.configService = new ConfigService(this.transactions, configRepository, this.driverRegistry, deviceRepository, binaryFiles);
 		// AAA and system
 		this.oidc = new Oidc(config);
 		this.tacacs = new Tacacs(config);
@@ -335,7 +337,7 @@ public final class Wiring {
 			new CheckGroupSoftwareHandler(this.transactions, softwareRuleRepository, hardwareRuleRepository, deviceRepository, groupRepository),
 			new DiscoverDeviceTypeHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager,
 				taskRepository, credentialSetRepository, domainRepository, deviceRepository),
-			new PurgeDatabaseHandler(this.transactions, taskRepository),
+			new PurgeDatabaseHandler(this.transactions, taskRepository, binaryFiles),
 			new RunDeviceGroupScriptHandler(this.transactions, childTaskOrchestrator, this.driverRegistry, deviceRepository, groupRepository),
 			new RunDeviceScriptHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors, deviceRepository),
 			new RunDiagnosticsHandler(this.transactions, this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, connectors,
@@ -344,7 +346,7 @@ public final class Wiring {
 			new ScanSubnetsHandler(this.transactions, childTaskOrchestrator, credentialSetRepository),
 			new TakeGroupSnapshotHandler(this.transactions, childTaskOrchestrator, deviceRepository, groupRepository),
 			new TakeSnapshotHandler(this.transactions, this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
-				connectors, deviceRepository, config)));
+				connectors, deviceRepository, config, binaryFiles)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager, taskRepository, config);
 		this.taskManager.setJobFactory(this.taskJobFactory);
 		// Background services

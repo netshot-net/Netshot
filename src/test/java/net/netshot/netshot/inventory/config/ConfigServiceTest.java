@@ -54,8 +54,8 @@ import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestRepositories;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the configuration use cases, against a real database.
@@ -83,7 +83,8 @@ class ConfigServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry(), TestRepositories.DEVICE);
+		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry(), TestRepositories.DEVICE,
+			TestRepositories.BINARY_FILES);
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.domainId = domain.id();
 		Device routerDevice = device("CiscoIOS12", "router-a", "10.40.0.1", domain);
@@ -117,7 +118,7 @@ class ConfigServiceTest {
 			Config.builder().author(author).changeDate(Instant.ofEpochMilli(date)).attributes(attributes).build());
 		if (file != null) {
 			try {
-				Files.writeString(file.getFilePath(device.id(), configId), "bytes");
+				Files.writeString(TestRepositories.BINARY_FILES.filePath(file, device.id(), configId), "bytes");
 			}
 			catch (java.io.IOException e) {
 				throw new IllegalStateException(e);

@@ -45,11 +45,11 @@ import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.UtcTimeZoneExtension;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
-import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * The purge of the tasks, configurations and modules. The test data are dated by elapsed time from now (every
@@ -355,7 +355,7 @@ class PurgeDatabaseHandlerTest {
 	private void purge(int days, int configDays, int configSize, int configKeepDays, int moduleDays, Long groupId, List<Long> deviceIds) {
 		PurgeDatabaseTask spec = new PurgeDatabaseTask(groupId, deviceIds, days, configDays, configSize, configKeepDays, moduleDays, false);
 		Task task = Task.of(spec, "Test", "Global", "tester");
-		new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK).run(task, spec, new TaskRun(task));
+		new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK, TestRepositories.BINARY_FILES).run(task, spec, new TaskRun(task));
 	}
 
 	@Test

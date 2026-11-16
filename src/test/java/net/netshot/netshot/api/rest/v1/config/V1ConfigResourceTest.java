@@ -46,9 +46,10 @@ import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.api.v1.V1Client;
 import net.netshot.netshot.testing.api.v1.V1Client.Answer;
+import net.netshot.netshot.testing.api.v1.V1Client;
 import net.netshot.netshot.testing.api.v1.V1Endpoints;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
@@ -114,7 +115,7 @@ class V1ConfigResourceTest {
 		changed.add(this.backup);
 		this.second = TestDevices.addConfig(this.router1, base.toBuilder().changeDate(FEBRUARY).author("bob")
 			.attributes(changed).build());
-		Files.writeString(this.backup.getFilePath(this.router1.id(), this.second), "hello");
+		Files.writeString(TestRepositories.BINARY_FILES.filePath(this.backup, this.router1.id(), this.second), "hello");
 		this.other = TestDevices.addConfig(this.router2, FakeDeviceFactory.getFakeCiscoIosConfig(this.router2).toBuilder()
 			.changeDate(MARCH).author("alice").build());
 	}

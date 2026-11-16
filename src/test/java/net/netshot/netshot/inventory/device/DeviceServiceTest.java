@@ -66,9 +66,9 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.SecretChange;
-import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the device use cases (the devices are added by the {@link DeviceCreationService}), against a
@@ -102,7 +102,7 @@ class DeviceServiceTest {
 		};
 		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP);
 		this.service = new DeviceService(this.transactions, TestRepositories.DEVICE, TestDrivers.registry(), dynamicGroups, TestRepositories.DOMAIN,
-			TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
+			TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER, TestRepositories.BINARY_FILES);
 		this.creationService = new DeviceCreationService(this.transactions, TestRepositories.DEVICE, submitter, TestDrivers.registry(), dynamicGroups,
 			TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET, TestRepositories.TASK, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
@@ -424,7 +424,7 @@ class DeviceServiceTest {
 		Device created = this.createDevice(this.nextAddress());
 		ConfigBinaryFileAttribute attribute = ConfigBinaryFileAttribute.create("binary", "original.bin");
 		long configId = TestDevices.addOldConfig(created.id(), Config.builder().author("").attributes(List.of(attribute)).build());
-		Path file = attribute.getFilePath(created.id(), configId);
+		Path file = TestRepositories.BINARY_FILES.filePath(attribute, created.id(), configId);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, "binary content");
 		this.service.delete(created.id(), null);

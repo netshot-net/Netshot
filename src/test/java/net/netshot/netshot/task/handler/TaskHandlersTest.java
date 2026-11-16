@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRun;
@@ -55,14 +55,14 @@ class TaskHandlersTest {
 			new CheckGroupComplianceHandler(null, null, null, null, null, null, null, null, null, null),
 			new CheckGroupSoftwareHandler(null, null, null, null, null),
 			new DiscoverDeviceTypeHandler(null, null, null, null, null, null, null, null, null),
-			new PurgeDatabaseHandler(null, null),
+			new PurgeDatabaseHandler(null, null, null),
 			new RunDeviceGroupScriptHandler(null, null, null, null, null),
 			new RunDeviceScriptHandler(null, null, null, null, null, null),
 			new RunDiagnosticsHandler(null, null, null, null, null, null, null, null),
 			new RunGroupDiagnosticsHandler(null, null, null, null),
 			new ScanSubnetsHandler(null, null, null),
 			new TakeGroupSnapshotHandler(null, null, null, null),
-			new TakeSnapshotHandler(null, null, null, null, null, null, null, null, null)));
+			new TakeSnapshotHandler(null, null, null, null, null, null, null, null, null, null)));
 	}
 
 	@Test
@@ -90,7 +90,7 @@ class TaskHandlersTest {
 	@DisplayName("The registry refuses two handlers for the same task type")
 	void duplicateHandlerIsRejected() {
 		List<TaskHandler<?>> handlers = allHandlers();
-		handlers.add(new PurgeDatabaseHandler(null, null));
+		handlers.add(new PurgeDatabaseHandler(null, null, null));
 		Assertions.assertThrows(IllegalStateException.class, () -> new TaskHandlers(handlers));
 	}
 

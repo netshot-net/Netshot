@@ -36,8 +36,8 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
-import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
@@ -60,9 +60,9 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.SecretChange;
-import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the use case which adds a device, against a real database and a recording task submitter.
@@ -96,7 +96,7 @@ class DeviceCreationServiceTest {
 		};
 		DynamicGroups dynamicGroups = new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry(), TestRepositories.GROUP);
 		this.service = new DeviceService(this.transactions, TestRepositories.DEVICE, TestDrivers.registry(), dynamicGroups, TestRepositories.DOMAIN,
-			TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
+			TestRepositories.CREDENTIAL_SET, TestRepositories.CREDENTIAL_SET_ASSEMBLER, TestRepositories.BINARY_FILES);
 		this.creationService = new DeviceCreationService(this.transactions, TestRepositories.DEVICE, submitter, TestDrivers.registry(), dynamicGroups,
 			TestRepositories.DOMAIN, TestRepositories.CREDENTIAL_SET, TestRepositories.TASK, TestRepositories.CREDENTIAL_SET_ASSEMBLER);
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();

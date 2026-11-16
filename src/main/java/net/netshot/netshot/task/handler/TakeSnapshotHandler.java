@@ -44,6 +44,7 @@ import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * Takes the snapshot of a device.
@@ -69,6 +70,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	/** The secret resolver and the SSH client of the device accesses. */
 	private final Connectors connectors;
 	private final ConfigStore config;
+	private final BinaryFileStorage binaryFiles;
 
 	/**
 	 * Creates the handler.
@@ -81,9 +83,11 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param deviceRepository the device repository
 	 * @param config the configuration store (the dump folder of the configurations)
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
 	public TakeSnapshotHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
-		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors, DeviceRepository deviceRepository, ConfigStore config) {
+		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors, DeviceRepository deviceRepository, ConfigStore config,
+		BinaryFileStorage binaryFiles) {
 		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
@@ -93,6 +97,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		this.autoSnapshots = autoSnapshots;
 		this.deviceRepository = deviceRepository;
 		this.config = config;
+		this.binaryFiles = binaryFiles;
 	}
 
 	@Override
@@ -129,7 +134,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			return;
 		}
 		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger,
-			this.config.current().get(SnapshotDeviceScript.DUMP_PATH));
+			this.config.current().get(SnapshotDeviceScript.DUMP_PATH), this.binaryFiles);
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
@@ -151,7 +156,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			if (newConfig != null) {
 				for (ConfigAttribute ca : newConfig.attributes()) {
 					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
-						cbfa.finalizeStorage(deviceId, newConfig.id());
+						this.binaryFiles.finalizeStorage(cbfa, deviceId, newConfig.id());
 					}
 				}
 			}

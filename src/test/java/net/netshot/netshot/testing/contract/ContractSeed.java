@@ -39,6 +39,7 @@ import java.util.Set;
 import org.jooq.DSLContext;
 
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
@@ -130,6 +131,7 @@ import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.userscript.ScriptDefinition;
 import net.netshot.netshot.userscript.ScriptService;
@@ -137,7 +139,6 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
-import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Deterministic dataset used by the contract tests (API responses, webhook payloads), created through the
@@ -459,7 +460,7 @@ public final class ContractSeed {
 	 * @param deviceId the ID of the device holding the attributes
 	 */
 	private void writeBinaryFiles(long deviceId) {
-		Path folder = ConfigBinaryFileAttribute.settings().storageFolderPath();
+		Path folder = ConfigBinaryFileAttribute.Settings.from(Netshot.config().current()).storageFolderPath();
 		List<Config> configs = TestWiring.get().transactions().read(dsl -> new ConfigRepository().findAll(dsl,
 			new ListQuery(List.of(new Criterion("device", Lookup.EXACT, List.of(deviceId))), null, List.of(), Page.ALL, false), true));
 		for (Config config : configs) {

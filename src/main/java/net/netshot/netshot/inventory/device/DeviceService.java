@@ -43,6 +43,7 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * The device use cases: list, read, edit and delete devices (adding one is a task use case,
@@ -72,6 +73,7 @@ public class DeviceService {
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 	private final CredentialSetAssembler credentialSetAssembler;
+	private final BinaryFileStorage binaryFiles;
 
 	/**
 	 * Instantiates the service.
@@ -83,10 +85,11 @@ public class DeviceService {
 	 * @param domainRepository the domain repository (to check the management domain)
 	 * @param credentialSetRepository the credential set repository (to check the credentials)
 	 * @param credentialSetAssembler the credential set assembler (the specific credential sets)
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
 	public DeviceService(Transactions transactions, DeviceRepository repository,
 		DriverRegistry driverRegistry, DynamicGroups dynamicGroups, DomainRepository domainRepository,
-		CredentialSetRepository credentialSetRepository, CredentialSetAssembler credentialSetAssembler) {
+		CredentialSetRepository credentialSetRepository, CredentialSetAssembler credentialSetAssembler, BinaryFileStorage binaryFiles) {
 		this.dynamicGroups = dynamicGroups;
 		this.transactions = transactions;
 		this.repository = repository;
@@ -94,6 +97,7 @@ public class DeviceService {
 		this.domainRepository = domainRepository;
 		this.credentialSetRepository = credentialSetRepository;
 		this.credentialSetAssembler = credentialSetAssembler;
+		this.binaryFiles = binaryFiles;
 	}
 
 	/**
@@ -214,7 +218,9 @@ public class DeviceService {
 					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
 				}
 				Versions.check("device", version, expectedVersion);
-				List<Path> paths = this.repository.findConfigBinaryFilePaths(dsl, id);
+				List<Path> paths = this.repository.findConfigBinaryFiles(dsl, id).stream()
+					.map(file -> this.binaryFiles.filePath(file.attribute(), id, file.configId()))
+					.toList();
 				this.repository.remove(dsl, id);
 				return paths;
 			});

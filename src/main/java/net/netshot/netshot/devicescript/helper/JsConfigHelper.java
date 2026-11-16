@@ -70,6 +70,7 @@ import net.netshot.netshot.platform.crypto.PasswordGenerator;
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * Class used to control a device config from JavaScript.
@@ -270,6 +271,8 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	private final SshServer sshServer;
 	/** The collector settings (the address the devices upload to). */
 	private final Collector.Settings collectorSettings;
+	/** The storage of the binary file attributes. */
+	private final BinaryFileStorage binaryFiles;
 	private final DeviceDraft device;
 	private ConfigDraft config;
 	private Config lastConfig;
@@ -280,8 +283,10 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	private Map<Long, ConfigUploadTicket> uploadTickets = new HashMap<>();
 
 	public JsConfigHelper(DriverRegistry driverRegistry, DeviceDraft device, ConfigDraft config, Config lastConfig,
-		JsCliHelper defaultCliHelper, SshServer sshServer, Collector.Settings collectorSettings, TaskContext taskContext) {
+		JsCliHelper defaultCliHelper, SshServer sshServer, Collector.Settings collectorSettings,
+		BinaryFileStorage binaryFiles, TaskContext taskContext) {
 		this.driverRegistry = driverRegistry;
+		this.binaryFiles = binaryFiles;
 		this.sshServer = sshServer;
 		this.collectorSettings = collectorSettings;
 		this.device = device;
@@ -498,7 +503,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			if (cli instanceof Ssh sshCli) {
 				try {
 					ConfigBinaryFileAttribute fileAttribute = ConfigBinaryFileAttribute.create(attribute.getName(), storeName);
-					Path tempPath = fileAttribute.getPendingFilePath(this.device.getId());
+					Path tempPath = this.binaryFiles.pendingFilePath(fileAttribute, this.device.getId());
 					tempPath.toFile().deleteOnExit();
 					log.trace("Temporary file path for download is {}", tempPath);
 					try {
@@ -556,7 +561,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 * @throws Exception if the checksum doesn't match, or the file can't be moved
 	 */
 	void finalizeBinaryFile(ConfigBinaryFileAttribute fileAttribute, Path tempPath, String expectedHash) throws Exception {
-		Path targetPath = fileAttribute.getPendingFilePath(this.device.getId()).toAbsolutePath();
+		Path targetPath = this.binaryFiles.pendingFilePath(fileAttribute, this.device.getId()).toAbsolutePath();
 		try {
 			this.checkFileSum(tempPath, expectedHash);
 			long fileSize = tempPath.toFile().length();
@@ -583,7 +588,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 * @return the pending path of the file
 	 */
 	Path pendingFilePath(ConfigBinaryFileAttribute fileAttribute) {
-		return fileAttribute.getPendingFilePath(this.device.getId());
+		return this.binaryFiles.pendingFilePath(fileAttribute, this.device.getId());
 	}
 
 	/**
@@ -598,7 +603,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 * @param storeFileName the file name to store (null to derive one from {@code fallbackRemoteName})
 	 * @param fallbackRemoteName used to derive a store file name when {@code storeFileName} is null
 	 *        (typically the request path/URL that's about to be downloaded)
-	 * @return the (not yet attached) binary file attribute, whose {@link ConfigBinaryFileAttribute#getPendingFilePath(long)}
+	 * @return the (not yet attached) binary file attribute, whose {@link BinaryFileStorage#pendingFilePath(ConfigBinaryFileAttribute, long)}
 	 *         is where the caller should download the file to before calling {@link #finalizeBinaryFile}
 	 * @throws Exception if the device driver can't be resolved, the attribute is unknown/not a BinaryFile,
 	 *         or no store file name could be derived
@@ -697,7 +702,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			+ "t%d".formatted(ticketId);
 		String password = PasswordGenerator.generateAlphanumeric(24);
 
-		Path rootPath = ConfigBinaryFileAttribute.makeTempFolder(username);
+		Path rootPath = this.binaryFiles.makeTempFolder(username);
 
 		ConfigUploadTicket ticket = new ConfigUploadTicket(ticketId,
 			protocols, username, password, sourceIp, rootPath);
@@ -871,7 +876,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 
 		try {
 			ConfigBinaryFileAttribute fileAttribute = ConfigBinaryFileAttribute.create(attribute.getName(), finalStoreName);
-			Path targetPath = fileAttribute.getPendingFilePath(this.device.getId()).toAbsolutePath();
+			Path targetPath = this.binaryFiles.pendingFilePath(fileAttribute, this.device.getId()).toAbsolutePath();
 
 			// Verify checksum if provided
 			this.checkFileSum(tempPath, expectedHash);

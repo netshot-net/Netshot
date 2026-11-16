@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.UnitTest;
 
 /**
@@ -63,57 +64,57 @@ class ConfigBinaryFileAttributeStorageTest {
 	@DisplayName("finalizeStorage() renames the pending file to its final name once the config has a real id")
 	void finalizeStorageRenamesPendingToFinal() throws IOException {
 		ConfigBinaryFileAttribute attribute = newAttribute();
-		Path pendingPath = attribute.getPendingFilePath(DEVICE_ID);
+		Path pendingPath = TestRepositories.BINARY_FILES.pendingFilePath(attribute, DEVICE_ID);
 		Files.write(pendingPath, "hello".getBytes());
 
-		attribute.finalizeStorage(DEVICE_ID, CONFIG_ID);
+		TestRepositories.BINARY_FILES.finalizeStorage(attribute, DEVICE_ID, CONFIG_ID);
 
 		Path expectedFinalPath = pendingPath.getParent()
 			.resolve("12_cfg483_backupArchive_%s.data".formatted(attribute.uid()));
 		Assertions.assertFalse(Files.exists(pendingPath), "The pending file should have been renamed away");
 		Assertions.assertTrue(Files.exists(expectedFinalPath), "The final file should now exist");
-		Assertions.assertEquals(expectedFinalPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID));
+		Assertions.assertEquals(expectedFinalPath, TestRepositories.BINARY_FILES.filePath(attribute, DEVICE_ID, CONFIG_ID));
 	}
 
 	@Test
 	@DisplayName("finalizeStorage() is a no-op when called again after already finalizing")
 	void finalizeStorageIsIdempotent() throws IOException {
 		ConfigBinaryFileAttribute attribute = newAttribute();
-		Path pendingPath = attribute.getPendingFilePath(DEVICE_ID);
+		Path pendingPath = TestRepositories.BINARY_FILES.pendingFilePath(attribute, DEVICE_ID);
 		Files.write(pendingPath, "hello".getBytes());
 
-		attribute.finalizeStorage(DEVICE_ID, CONFIG_ID);
-		Path finalPath = attribute.getFilePath(DEVICE_ID, CONFIG_ID);
+		TestRepositories.BINARY_FILES.finalizeStorage(attribute, DEVICE_ID, CONFIG_ID);
+		Path finalPath = TestRepositories.BINARY_FILES.filePath(attribute, DEVICE_ID, CONFIG_ID);
 
-		Assertions.assertDoesNotThrow(() -> attribute.finalizeStorage(DEVICE_ID, CONFIG_ID));
-		Assertions.assertEquals(finalPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID));
+		Assertions.assertDoesNotThrow(() -> TestRepositories.BINARY_FILES.finalizeStorage(attribute, DEVICE_ID, CONFIG_ID));
+		Assertions.assertEquals(finalPath, TestRepositories.BINARY_FILES.filePath(attribute, DEVICE_ID, CONFIG_ID));
 		Assertions.assertTrue(Files.exists(finalPath));
 	}
 
 	@Test
-	@DisplayName("getFilePath() falls back to the pending path when the file hasn't been finalized yet")
+	@DisplayName("filePath() falls back to the pending path when the file hasn't been finalized yet")
 	void getFilePathFallsBackToPendingWhenNotYetFinalized() throws IOException {
 		// Simulates a persisted attribute whose finalizeStorage() never ran
 		// (e.g. process crash between commit() and finalizeStorage()), or
 		// whose rename attempt failed - either way, nothing exists yet at
 		// the final path, only at the pending one.
 		ConfigBinaryFileAttribute attribute = newAttribute();
-		Path pendingPath = attribute.getPendingFilePath(DEVICE_ID);
+		Path pendingPath = TestRepositories.BINARY_FILES.pendingFilePath(attribute, DEVICE_ID);
 		Files.write(pendingPath, "hello".getBytes());
 
-		Assertions.assertEquals(pendingPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID),
-			"getFilePath() should resolve to the pending path when the final one doesn't exist yet");
+		Assertions.assertEquals(pendingPath, TestRepositories.BINARY_FILES.filePath(attribute, DEVICE_ID, CONFIG_ID),
+			"filePath() should resolve to the pending path when the final one doesn't exist yet");
 	}
 
 	@Test
-	@DisplayName("getFilePath() falls back to the legacy <uid>.data name for a pre-feature row")
+	@DisplayName("filePath() falls back to the legacy <uid>.data name for a pre-feature row")
 	void getFilePathFallsBackToLegacyName() throws IOException {
 		ConfigBinaryFileAttribute attribute = newAttribute();
-		Path legacyPath = attribute.getPendingFilePath(DEVICE_ID).getParent()
+		Path legacyPath = TestRepositories.BINARY_FILES.pendingFilePath(attribute, DEVICE_ID).getParent()
 			.resolve("%s.data".formatted(attribute.uid()));
 		Files.write(legacyPath, "hello".getBytes());
 
-		Assertions.assertEquals(legacyPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID),
-			"With neither the final nor pending file present, getFilePath() should fall back to the legacy name");
+		Assertions.assertEquals(legacyPath, TestRepositories.BINARY_FILES.filePath(attribute, DEVICE_ID, CONFIG_ID),
+			"With neither the final nor pending file present, filePath() should fall back to the legacy name");
 	}
 }
