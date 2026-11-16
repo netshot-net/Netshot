@@ -389,8 +389,19 @@ public final class Wiring {
 	 * @param config the configuration store
 	 * @return the new wiring
 	 */
-	public static synchronized Wiring create(ConfigStore config) {
+	public static Wiring create(ConfigStore config) {
 		return new Wiring(new DriverRegistry(new DriverLoader(config)), config);
+	}
+
+	/**
+	 * Builds the wiring around an existing registry of drivers (loaded or not), without side effect.
+	 *
+	 * @param config the configuration store
+	 * @param driverRegistry the registry of the device drivers
+	 * @return the new wiring
+	 */
+	public static Wiring create(ConfigStore config, DriverRegistry driverRegistry) {
+		return new Wiring(driverRegistry, config);
 	}
 
 	/**

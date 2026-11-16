@@ -19,9 +19,13 @@
 package net.netshot.netshot.platform.lifecycle;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -65,9 +69,38 @@ public final class ServiceManager {
 	 *
 	 * @throws ServiceStartException if a service fails to start (the started ones are stopped then)
 	 */
-	public synchronized void start() throws ServiceStartException {
+	public void start() throws ServiceStartException {
+		this.start(_ -> true);
+	}
+
+	/**
+	 * Starts some of the services, in the order of the manager (for the tools and the tests, which need only some
+	 * of them).
+	 *
+	 * @param ids the IDs of the services to start
+	 * @throws ServiceStartException if a service fails to start (the started ones are stopped then)
+	 * @throws IllegalArgumentException if no service has one of the IDs
+	 */
+	public void start(Collection<String> ids) throws ServiceStartException {
+		Set<String> known = new HashSet<>();
+		this.services.forEach(managed -> known.add(managed.service.id()));
+		for (String id : ids) {
+			if (!known.contains(id)) {
+				throw new IllegalArgumentException("No service '%s'".formatted(id));
+			}
+		}
+		this.start(service -> ids.contains(service.id()));
+	}
+
+	/**
+	 * Starts the services matching a filter, in order.
+	 *
+	 * @param filter the filter of the services to start
+	 * @throws ServiceStartException if a service fails to start (the started ones are stopped then)
+	 */
+	private synchronized void start(Predicate<Service> filter) throws ServiceStartException {
 		for (Managed managed : this.services) {
-			if (managed.state != ServiceState.NEW) {
+			if (managed.state != ServiceState.NEW || !filter.test(managed.service)) {
 				continue;
 			}
 			String name = managed.service.name();

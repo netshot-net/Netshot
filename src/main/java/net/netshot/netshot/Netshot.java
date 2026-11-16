@@ -31,13 +31,11 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.help.HelpFormatter;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.BootstrapException;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.platform.runtime.AgentInstrumentation;
 import net.netshot.netshot.platform.runtime.BuildInfo;
 //CHECKSTYLE:OFF: IllegalImport
@@ -163,22 +161,18 @@ public class Netshot {
 		try {
 			ConfigStore config = Bootstrap.load(configFiles);
 
-			log.info("Updating the database schema, if necessary.");
-			Database.update(config.current());
-
-			Wiring wiring = Wiring.create(config);
-			ServiceManager services = new ServiceManager(wiring.services());
-			wiring.serviceHealthService().attach(services);
+			Application application = Application.create(config);
 			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
-			Runtime.getRuntime().addShutdownHook(services.shutdownHook());
-			services.start();
+			Runtime.getRuntime().addShutdownHook(application.services().shutdownHook());
+			application.migrate();
+			application.start();
 
 			log.info("Starting signal listener.");
 			Signal.handle(new Signal("HUP"), new SignalHandler() {
 				@Override
 				public void handle(Signal sig) {
 					// The components are notified of the change by the configuration store
-					config.reload(() -> Config.load(configFiles));
+					application.reload(configFiles);
 				}
 			});
 			log.warn("Netshot is started");
