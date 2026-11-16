@@ -74,6 +74,7 @@ public class GroupResource {
 	private final GroupService groupService;
 	private final SearchService searchService;
 	private final DeviceRefs deviceRefs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -90,12 +91,14 @@ public class GroupResource {
 	 * @param groupService the group use cases
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public GroupResource(GroupService groupService, SearchService searchService, DeviceRefs deviceRefs) {
+	public GroupResource(GroupService groupService, SearchService searchService, DeviceRefs deviceRefs, ListParams lists) {
 		this.groupService = groupService;
 		this.searchService = searchService;
 		this.deviceRefs = deviceRefs;
+		this.lists = lists;
 	}
 
 	/**
@@ -110,7 +113,7 @@ public class GroupResource {
 		+ "The device filter gives the groups a device is a member of.")
 	@ListFilters(ListSchema.GROUPS)
 	public ListResponse<GroupDto> listGroups() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.GROUPS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.GROUPS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), GroupDto.class, Selection.View.BRIEF),
 			GroupDto.class);
 		return ListResponse.of(this.uriInfo, query, this.groupService.list(query), GroupMapper::toDto);
@@ -149,7 +152,7 @@ public class GroupResource {
 	public ListResponse<DeviceDto> listGroupDevices(@PathParam("id") @Parameter(description = "Group ID") long id,
 		@QueryParam("query") @Parameter(description = "Device search query, in the Netshot query language") String query) {
 		this.groupService.get(id);
-		return DeviceResource.list(this.searchService, this.deviceRefs, this.request, this.uriInfo, query,
+		return DeviceResource.list(this.lists, this.searchService, this.deviceRefs, this.request, this.uriInfo, query,
 			new Criterion("group", Lookup.EXACT, List.of(id)));
 	}
 

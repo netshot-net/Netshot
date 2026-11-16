@@ -140,6 +140,7 @@ import net.netshot.netshot.vault.VaultTokenRefresher;
 @Slf4j
 public final class Wiring {
 
+	private final ConfigStore config;
 	private final DatabaseService database;
 	private final Transactions transactions;
 	// Drivers
@@ -219,6 +220,7 @@ public final class Wiring {
 	 * @param config the configuration store
 	 */
 	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
+		this.config = config;
 		this.database = new DatabaseService(config);
 		this.transactions = new Transactions(this.database);
 		// Repositories (stateless: one of each, shared)
@@ -439,6 +441,15 @@ public final class Wiring {
 	 */
 	public AbstractBinder binder() {
 		return new WiringBinder(this);
+	}
+
+	/**
+	 * Gets the configuration store.
+	 *
+	 * @return the configuration store
+	 */
+	public ConfigStore config() {
+		return this.config;
 	}
 
 	/**

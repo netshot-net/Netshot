@@ -65,6 +65,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class UserResource {
 
 	private final UserService userService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -82,10 +83,12 @@ public class UserResource {
 	 * Instantiates the resource.
 	 *
 	 * @param userService the user use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public UserResource(UserService userService) {
+	public UserResource(UserService userService, ListParams lists) {
 		this.userService = userService;
+		this.lists = lists;
 	}
 
 	/**
@@ -99,7 +102,7 @@ public class UserResource {
 	@Operation(summary = "List the users", description = "Lists the Netshot users, in their brief view by default.")
 	@ListFilters(ListSchema.USERS)
 	public ListResponse<UserDto> listUsers() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.USERS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.USERS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), UserDto.class, Selection.View.BRIEF),
 			UserDto.class);
 		return ListResponse.of(this.uriInfo, query, this.userService.list(query), UserMapper::toDto);

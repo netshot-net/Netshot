@@ -51,6 +51,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class DeviceTypeResource {
 
 	private final DeviceDriverService driverService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -62,10 +63,12 @@ public class DeviceTypeResource {
 	 * Instantiates the resource.
 	 *
 	 * @param driverService the device driver use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public DeviceTypeResource(DeviceDriverService driverService) {
+	public DeviceTypeResource(DeviceDriverService driverService, ListParams lists) {
 		this.driverService = driverService;
+		this.lists = lists;
 	}
 
 	/**
@@ -82,7 +85,7 @@ public class DeviceTypeResource {
 	@ListFilters(ListSchema.DEVICE_TYPES)
 	public ListResponse<DeviceTypeDto> listDeviceTypes() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_TYPES.schema());
+		ListQuery query = this.lists.parse(params, ListSchema.DEVICE_TYPES.schema());
 		Selection selection = Selection.of(params, DeviceTypeDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceTypeDto.class);
 		return ListResponse.of(this.uriInfo, query, this.driverService.list(query), DeviceInventoryMapper::toDto);

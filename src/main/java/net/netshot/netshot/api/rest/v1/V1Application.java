@@ -72,6 +72,7 @@ public class V1Application extends ResourceConfig {
 			@Override
 			protected void configure() {
 				bindAsContract(DeviceRefs.class).in(Singleton.class);
+				bindAsContract(ListParams.class).in(Singleton.class);
 			}
 		});
 	}

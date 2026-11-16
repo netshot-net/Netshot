@@ -81,6 +81,7 @@ public class ConfigResource {
 	private final ConfigService configService;
 	private final SearchService searchService;
 	private final DeviceRefs deviceRefs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -94,12 +95,14 @@ public class ConfigResource {
 	 * @param configService the configuration use cases
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public ConfigResource(ConfigService configService, SearchService searchService, DeviceRefs deviceRefs) {
+	public ConfigResource(ConfigService configService, SearchService searchService, DeviceRefs deviceRefs, ListParams lists) {
 		this.configService = configService;
 		this.searchService = searchService;
 		this.deviceRefs = deviceRefs;
+		this.lists = lists;
 	}
 
 	/**
@@ -116,7 +119,7 @@ public class ConfigResource {
 		+ "day, week or month, on changeDate, from/to, timeZone).")
 	@ListFilters(ListSchema.CONFIGS)
 	public StatsResponse getConfigStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.CONFIGS.schema(), "changeDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.CONFIGS.schema(), "changeDate");
 		ListResult<StatsRow> rows = this.configService.stats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of("device", DeviceMapper.resolver(this.searchService)));
 	}
@@ -135,12 +138,13 @@ public class ConfigResource {
 		+ "from their url. The filters on domain and group apply to the device of the configuration.")
 	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listConfigs() {
-		return list(this.configService, this.deviceRefs, this.request, this.uriInfo, null);
+		return list(this.lists, this.configService, this.deviceRefs, this.request, this.uriInfo, null);
 	}
 
 	/**
 	 * Answers a page of configurations (of the configuration list, or of a list of configurations of another object).
 	 *
+	 * @param lists the reader of the list parameters
 	 * @param configService the configuration use cases
 	 * @param deviceRefs writes the devices (the device of each configuration)
 	 * @param request the current request
@@ -149,10 +153,10 @@ public class ConfigResource {
 	 * @return the page of configurations
 	 * @throws NetshotException if a parameter is invalid
 	 */
-	public static ListResponse<ConfigDto> list(ConfigService configService, DeviceRefs deviceRefs,
+	public static ListResponse<ConfigDto> list(ListParams lists, ConfigService configService, DeviceRefs deviceRefs,
 		HttpServletRequest request, UriInfo uriInfo, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, ListSchema.CONFIGS.schema());
+		ListQuery listQuery = lists.parse(params, ListSchema.CONFIGS.schema());
 		Selection selection = Selection.of(params, ConfigDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, ConfigDto.class);
 		boolean withAttributes = selection.includes("attributes");

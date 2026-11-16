@@ -74,6 +74,7 @@ public class TaskResource {
 	private final SearchService searchService;
 	private final GroupService groupService;
 	private final TaskResponses responses;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -91,13 +92,16 @@ public class TaskResource {
 	 * @param searchService the device search use cases
 	 * @param groupService the group use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public TaskResource(TaskService taskService, SearchService searchService, GroupService groupService, DeviceRefs deviceRefs) {
+	public TaskResource(TaskService taskService, SearchService searchService, GroupService groupService, DeviceRefs deviceRefs,
+		ListParams lists) {
 		this.taskService = taskService;
 		this.searchService = searchService;
 		this.groupService = groupService;
 		this.responses = new TaskResponses(taskService, groupService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -111,12 +115,13 @@ public class TaskResource {
 	@Operation(summary = "List the tasks", description = "Lists the tasks, in their brief view by default, the latest first.")
 	@ListFilters(ListSchema.TASKS)
 	public ListResponse<TaskDto> listTasks() {
-		return list(this.taskService, this.responses, this.request, this.uriInfo, null);
+		return list(this.lists, this.taskService, this.responses, this.request, this.uriInfo, null);
 	}
 
 	/**
 	 * Answers a page of tasks (of the task list, or of a list of tasks of another object).
 	 *
+	 * @param lists the reader of the list parameters
 	 * @param taskService the task use cases
 	 * @param responses the builder of the task responses (loads the references)
 	 * @param request the current request
@@ -124,10 +129,10 @@ public class TaskResource {
 	 * @param scope a criterion the tasks must also match (the tasks of a device...), or null
 	 * @return the page of tasks
 	 */
-	public static ListResponse<TaskDto> list(TaskService taskService, TaskResponses responses, HttpServletRequest request,
+	public static ListResponse<TaskDto> list(ListParams lists, TaskService taskService, TaskResponses responses, HttpServletRequest request,
 		UriInfo uriInfo, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, ListSchema.TASKS.schema());
+		ListQuery listQuery = lists.parse(params, ListSchema.TASKS.schema());
 		Selection selection = Selection.of(params, TaskDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, TaskDto.class);
 		ListQuery query = scope == null ? listQuery : listQuery.and(scope);
@@ -228,7 +233,7 @@ public class TaskResource {
 		+ "from/to, timeZone). Without execution date, a task isn't counted by executionDate.")
 	@ListFilters(ListSchema.TASKS)
 	public StatsResponse getTaskStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.TASKS.schema(), "executionDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.TASKS.schema(), "executionDate");
 		ListResult<StatsRow> rows = this.taskService.stats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
 			"device", DeviceMapper.resolver(this.searchService),

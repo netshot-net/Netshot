@@ -24,9 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MultivaluedMap;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
@@ -115,12 +115,20 @@ public final class ListParams {
 		.defaultValue(100000).range(1, 5000000).live();
 
 	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+	private final ConfigStore.Binding<Settings> settings;
 
 	/** The maximum number of rows of an export, from the configuration. */
-	private static final ConfigStore.Binding<Integer> EXPORT_ROWS = Netshot.config().bind(config -> config.get(EXPORT_MAX_ROWS));
+	private final ConfigStore.Binding<Integer> exportRows;
 
-	private ListParams() {
+	/**
+	 * Creates the reader of the list parameters (one for the application: it binds the configuration).
+	 *
+	 * @param config the configuration store (the page sizes and the maximum number of rows of an export)
+	 */
+	@Inject
+	public ListParams(ConfigStore config) {
+		this.settings = config.bind(Settings::from);
+		this.exportRows = config.bind(current -> current.get(EXPORT_MAX_ROWS));
 	}
 
 	/**
@@ -128,8 +136,8 @@ public final class ListParams {
 	 *
 	 * @return the settings
 	 */
-	public static Settings settings() {
-		return SETTINGS.get();
+	public Settings settings() {
+		return this.settings.get();
 	}
 
 	/**
@@ -138,8 +146,8 @@ public final class ListParams {
 	 *
 	 * @return the maximum number of rows
 	 */
-	public static int exportMaxRows() {
-		return EXPORT_ROWS.get();
+	public int exportMaxRows() {
+		return this.exportRows.get();
 	}
 
 	/**
@@ -154,8 +162,8 @@ public final class ListParams {
 	 * @return the list query
 	 * @throws NetshotException if a parameter is unknown or invalid
 	 */
-	public static ListQuery parse(MultivaluedMap<String, String> params, QuerySchema schema, String... handled) {
-		Settings settings = settings();
+	public ListQuery parse(MultivaluedMap<String, String> params, QuerySchema schema, String... handled) {
+		Settings pages = this.settings();
 		Integer offset = integer(params, OFFSET, 0);
 		if (offset == null) {
 			offset = 0;
@@ -163,25 +171,25 @@ public final class ListParams {
 		Integer limit = integer(params, LIMIT, 0);
 		if (params.containsKey(EXPORT)) {
 			if (limit == null || limit == 0) {
-				limit = exportMaxRows() + 1;
+				limit = this.exportMaxRows() + 1;
 			}
-			else if (limit > exportMaxRows()) {
-				throw NetshotException.invalidParameter(LIMIT, "The limit of an export can't be more than %d".formatted(exportMaxRows()));
+			else if (limit > this.exportMaxRows()) {
+				throw NetshotException.invalidParameter(LIMIT, "The limit of an export can't be more than %d".formatted(this.exportMaxRows()));
 			}
 		}
 		else if (limit == null) {
-			limit = settings.defaultPageSize();
+			limit = pages.defaultPageSize();
 		}
 		else if (limit == 0) {
-			if (settings.maxPageSize() != null) {
+			if (pages.maxPageSize() != null) {
 				throw NetshotException.invalidParameter(LIMIT,
-					"All the items (limit=0) can't be asked for, the limit can't be more than %d".formatted(settings.maxPageSize()));
+					"All the items (limit=0) can't be asked for, the limit can't be more than %d".formatted(pages.maxPageSize()));
 			}
 			limit = null;
 		}
-		else if (settings.maxPageSize() != null && limit > settings.maxPageSize()) {
+		else if (pages.maxPageSize() != null && limit > pages.maxPageSize()) {
 			throw NetshotException.invalidParameter(LIMIT,
-				"The limit can't be more than %d".formatted(settings.maxPageSize()));
+				"The limit can't be more than %d".formatted(pages.maxPageSize()));
 		}
 		String countText = single(params, COUNT);
 		boolean count = false;

@@ -77,6 +77,7 @@ public class RuleResource {
 
 	private final RuleService ruleService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -94,16 +95,20 @@ public class RuleResource {
 	 * @param policyService the policy use cases
 	 * @param groupService the group use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public RuleResource(RuleService ruleService, PolicyService policyService, GroupService groupService, DeviceRefs deviceRefs) {
+	public RuleResource(RuleService ruleService, PolicyService policyService, GroupService groupService, DeviceRefs deviceRefs,
+		ListParams lists) {
 		this.ruleService = ruleService;
 		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
 	 * Lists the rules, optionally restricted by a fixed filter (the rules of a policy).
 	 *
+	 * @param lists the reader of the list parameters
 	 * @param ruleService the rule use cases
 	 * @param refs the loader of the referenced objects
 	 * @param request the request
@@ -111,9 +116,9 @@ public class RuleResource {
 	 * @param fixed the filter to add to the ones of the request, or null
 	 * @return the page of rules
 	 */
-	static ListResponse<RuleDto> list(RuleService ruleService, ComplianceRefs refs, HttpServletRequest request, UriInfo uriInfo,
+	static ListResponse<RuleDto> list(ListParams lists, RuleService ruleService, ComplianceRefs refs, HttpServletRequest request, UriInfo uriInfo,
 		Criterion fixed) {
-		ListQuery query = ListParams.parse(uriInfo.getQueryParameters(), ListSchema.RULES.schema());
+		ListQuery query = lists.parse(uriInfo.getQueryParameters(), ListSchema.RULES.schema());
 		Selection selection = Selection.of(uriInfo.getQueryParameters(), RuleDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, RuleDto.class);
 		ListQuery restricted = fixed == null ? query : query.and(fixed);
@@ -134,7 +139,7 @@ public class RuleResource {
 		+ "view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has).")
 	@ListFilters(ListSchema.RULES)
 	public ListResponse<RuleDto> listRules() {
-		return list(this.ruleService, this.refs, this.request, this.uriInfo, null);
+		return list(this.lists, this.ruleService, this.refs, this.request, this.uriInfo, null);
 	}
 
 	/**
@@ -246,7 +251,7 @@ public class RuleResource {
 		+ "their exemption ends. Filters: device, expirationDate.")
 	@ListFilters(ListSchema.EXEMPTIONS)
 	public ListResponse<ExemptionDto> listExemptions(@PathParam("id") @Parameter(description = "Rule ID") long id) {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.EXEMPTIONS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.EXEMPTIONS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), ExemptionDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, ExemptionDto.class);
 		ListResult<Exemption> exemptions = this.ruleService.listExemptions(id, query);

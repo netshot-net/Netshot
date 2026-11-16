@@ -44,6 +44,7 @@ import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.api.rest.v1.ListParams;
 
 /**
  * The configurations of a device (v1).
@@ -55,6 +56,7 @@ public class DeviceConfigResource {
 	private final DeviceCatalogService deviceCatalogService;
 	private final ConfigService configService;
 	private final DeviceRefs deviceRefs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -68,12 +70,15 @@ public class DeviceConfigResource {
 	 * @param deviceCatalogService the device sub-resource use cases (to check that the device exists)
 	 * @param configService the configuration use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public DeviceConfigResource(DeviceCatalogService deviceCatalogService, ConfigService configService, DeviceRefs deviceRefs) {
+	public DeviceConfigResource(DeviceCatalogService deviceCatalogService, ConfigService configService, DeviceRefs deviceRefs,
+		ListParams lists) {
 		this.deviceCatalogService = deviceCatalogService;
 		this.configService = configService;
 		this.deviceRefs = deviceRefs;
+		this.lists = lists;
 	}
 
 	/**
@@ -90,7 +95,7 @@ public class DeviceConfigResource {
 	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listDeviceConfigs(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
-		return ConfigResource.list(this.configService, this.deviceRefs, this.request, this.uriInfo,
+		return ConfigResource.list(this.lists, this.configService, this.deviceRefs, this.request, this.uriInfo,
 			new Criterion("device", Lookup.EXACT, List.of(id)));
 	}
 }

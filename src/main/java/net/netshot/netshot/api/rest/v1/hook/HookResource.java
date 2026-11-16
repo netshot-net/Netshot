@@ -62,6 +62,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class HookResource {
 
 	private final HookService hookService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -76,10 +77,12 @@ public class HookResource {
 	 * Instantiates the resource.
 	 *
 	 * @param hookService the hook use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public HookResource(HookService hookService) {
+	public HookResource(HookService hookService, ListParams lists) {
 		this.hookService = hookService;
+		this.lists = lists;
 	}
 
 	/**
@@ -93,7 +96,7 @@ public class HookResource {
 	@Operation(summary = "List the hooks", description = "Lists the hooks, in their brief view by default.")
 	@ListFilters(ListSchema.HOOKS)
 	public ListResponse<HookDto> listHooks() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.HOOKS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.HOOKS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), HookDto.class, Selection.View.BRIEF),
 			HookDto.class);
 		return ListResponse.of(this.uriInfo, query, this.hookService.list(query), HookMapper::toDto);

@@ -72,6 +72,7 @@ public class PolicyResource {
 	private final PolicyService policyService;
 	private final RuleService ruleService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -89,12 +90,15 @@ public class PolicyResource {
 	 * @param ruleService the rule use cases
 	 * @param groupService the group use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public PolicyResource(PolicyService policyService, RuleService ruleService, GroupService groupService, DeviceRefs deviceRefs) {
+	public PolicyResource(PolicyService policyService, RuleService ruleService, GroupService groupService, DeviceRefs deviceRefs,
+		ListParams lists) {
 		this.policyService = policyService;
 		this.ruleService = ruleService;
 		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -109,7 +113,7 @@ public class PolicyResource {
 		+ "The targetGroup filter gives the policies applying to a group.")
 	@ListFilters(ListSchema.POLICIES)
 	public ListResponse<PolicyDto> listPolicies() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.POLICIES.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.POLICIES.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), PolicyDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, PolicyDto.class);
 		var policies = this.policyService.list(query);
@@ -148,7 +152,7 @@ public class PolicyResource {
 	@ListFilters(ListSchema.RULES)
 	public ListResponse<RuleDto> listPolicyRules(@PathParam("id") @Parameter(description = "Policy ID") long id) {
 		this.policyService.get(id);
-		return RuleResource.list(this.ruleService, this.refs, this.request, this.uriInfo, new Criterion("policy", Lookup.EXACT, List.of(id)));
+		return RuleResource.list(this.lists, this.ruleService, this.refs, this.request, this.uriInfo, new Criterion("policy", Lookup.EXACT, List.of(id)));
 	}
 
 	/**

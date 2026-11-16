@@ -52,6 +52,7 @@ public class DeviceComplianceResultResource {
 
 	private final RuleService ruleService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -66,12 +67,14 @@ public class DeviceComplianceResultResource {
 	 * @param policyService the policy use cases
 	 * @param groupService the group use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
 	public DeviceComplianceResultResource(RuleService ruleService, PolicyService policyService, GroupService groupService,
-		DeviceRefs deviceRefs) {
+		DeviceRefs deviceRefs, ListParams lists) {
 		this.ruleService = ruleService;
 		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -88,7 +91,7 @@ public class DeviceComplianceResultResource {
 		+ "(unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.")
 	@ListFilters(ListSchema.DEVICE_COMPLIANCE_RESULTS)
 	public ListResponse<DeviceComplianceResultDto> listResults(@PathParam("id") @Parameter(description = "Device ID") long id) {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICE_COMPLIANCE_RESULTS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICE_COMPLIANCE_RESULTS.schema());
 		return ComplianceResultResource.respond(this.refs, this.request, this.uriInfo, query, this.ruleService.listDeviceResults(id, query));
 	}
 }

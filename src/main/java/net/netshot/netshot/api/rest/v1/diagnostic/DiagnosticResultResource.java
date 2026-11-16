@@ -70,6 +70,7 @@ public class DiagnosticResultResource {
 	private final DeviceService deviceService;
 	private final GroupService groupService;
 	private final DriverRegistry driverRegistry;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -84,14 +85,16 @@ public class DiagnosticResultResource {
 	 * @param deviceService the device use cases
 	 * @param groupService the group use cases
 	 * @param driverRegistry the loaded device drivers
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
 	public DiagnosticResultResource(DiagnosticService diagnosticService, DeviceService deviceService, GroupService groupService,
-		DriverRegistry driverRegistry) {
+		DriverRegistry driverRegistry, ListParams lists) {
 		this.diagnosticService = diagnosticService;
 		this.deviceService = deviceService;
 		this.groupService = groupService;
 		this.driverRegistry = driverRegistry;
+		this.lists = lists;
 	}
 
 	/**
@@ -108,7 +111,7 @@ public class DiagnosticResultResource {
 	@ListFilters(ListSchema.DIAGNOSTIC_RESULTS)
 	public ListResponse<DiagnosticResultDto> listDiagnosticResults(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceService.get(id);
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DIAGNOSTIC_RESULTS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DIAGNOSTIC_RESULTS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), DiagnosticResultDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, DiagnosticResultDto.class);
 		ListResult<DiagnosticResult> results = this.diagnosticService.listResults(query.and(new Criterion("device", Lookup.EXACT, List.of(id))));

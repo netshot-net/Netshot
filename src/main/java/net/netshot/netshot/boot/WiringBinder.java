@@ -49,6 +49,7 @@ import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.VaultInstanceService;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * Exposes the objects of the {@link Wiring} to the dependency injection of the REST
@@ -67,6 +68,7 @@ final class WiringBinder extends AbstractBinder {
 
 	@Override
 	protected void configure() {
+		this.bind(this.wiring.config()).to(ConfigStore.class);
 		this.bind(this.wiring.transactions()).to(Transactions.class);
 		this.bind(this.wiring.driverRegistry()).to(DriverRegistry.class);
 		this.bind(this.wiring.deviceService()).to(DeviceService.class);

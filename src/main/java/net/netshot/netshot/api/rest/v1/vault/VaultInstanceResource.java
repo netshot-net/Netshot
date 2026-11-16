@@ -66,6 +66,7 @@ import net.netshot.netshot.vault.VaultInstanceService;
 public class VaultInstanceResource {
 
 	private final VaultInstanceService vaultInstanceService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -80,10 +81,12 @@ public class VaultInstanceResource {
 	 * Instantiates the resource.
 	 *
 	 * @param vaultInstanceService the Vault instance use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public VaultInstanceResource(VaultInstanceService vaultInstanceService) {
+	public VaultInstanceResource(VaultInstanceService vaultInstanceService, ListParams lists) {
 		this.vaultInstanceService = vaultInstanceService;
+		this.lists = lists;
 	}
 
 	/**
@@ -98,7 +101,7 @@ public class VaultInstanceResource {
 		+ "The secrets are never returned.")
 	@ListFilters(ListSchema.VAULT_INSTANCES)
 	public ListResponse<VaultInstanceDto> listVaultInstances() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.VAULT_INSTANCES.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.VAULT_INSTANCES.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.BRIEF),
 			VaultInstanceDto.class);
 		return ListResponse.of(this.uriInfo, query, this.vaultInstanceService.list(query), VaultInstanceMapper::toDto);

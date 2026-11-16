@@ -59,6 +59,7 @@ public class DeviceModuleResource {
 	private static final String REMOVED = "removed";
 
 	private final DeviceCatalogService catalogService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -70,10 +71,12 @@ public class DeviceModuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param catalogService the device sub-resource use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public DeviceModuleResource(DeviceCatalogService catalogService) {
+	public DeviceModuleResource(DeviceCatalogService catalogService, ListParams lists) {
 		this.catalogService = catalogService;
+		this.lists = lists;
 	}
 
 	/**
@@ -95,7 +98,7 @@ public class DeviceModuleResource {
 		if (removed != null && !"true".equals(removed) && !"false".equals(removed)) {
 			throw NetshotException.invalidParameter(REMOVED, "Invalid removed parameter: true or false is expected");
 		}
-		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_MODULES.schema(), REMOVED);
+		ListQuery query = this.lists.parse(params, ListSchema.DEVICE_MODULES.schema(), REMOVED);
 		if (!"true".equals(removed)) {
 			query = query.and(new Criterion(REMOVED, Lookup.EXACT, List.of(Boolean.FALSE)));
 		}

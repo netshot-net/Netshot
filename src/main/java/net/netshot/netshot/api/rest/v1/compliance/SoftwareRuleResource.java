@@ -72,6 +72,7 @@ public class SoftwareRuleResource {
 
 	private final SoftwareRuleService softwareRuleService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -90,12 +91,14 @@ public class SoftwareRuleResource {
 	 * @param policyService the policy use cases
 	 * @param ruleService the rule use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
 	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, GroupService groupService, PolicyService policyService,
-		RuleService ruleService, DeviceRefs deviceRefs) {
+		RuleService ruleService, DeviceRefs deviceRefs, ListParams lists) {
 		this.softwareRuleService = softwareRuleService;
 		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.lists = lists;
 	}
 
 	/**
@@ -110,7 +113,7 @@ public class SoftwareRuleResource {
 		+ "checked in by default (priority is the position of the rule, from 1).")
 	@ListFilters(ListSchema.SOFTWARE_RULES)
 	public ListResponse<SoftwareRuleDto> listSoftwareRules() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.SOFTWARE_RULES.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.SOFTWARE_RULES.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), SoftwareRuleDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, SoftwareRuleDto.class);
 		ListResult<RankedSoftwareRule> rules = this.softwareRuleService.list(query);

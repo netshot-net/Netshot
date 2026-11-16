@@ -65,6 +65,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class DomainResource {
 
 	private final DomainService domainService;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -79,10 +80,12 @@ public class DomainResource {
 	 * Instantiates the resource.
 	 *
 	 * @param domainService the domain use cases
+	 * @param lists the reader of the list parameters
 	 */
 	@Inject
-	public DomainResource(DomainService domainService) {
+	public DomainResource(DomainService domainService, ListParams lists) {
 		this.domainService = domainService;
+		this.lists = lists;
 	}
 
 	/**
@@ -96,7 +99,7 @@ public class DomainResource {
 	@Operation(summary = "List the domains", description = "Lists the device domains, in their brief view by default.")
 	@ListFilters(ListSchema.DOMAINS)
 	public ListResponse<DomainDto> listDomains() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DOMAINS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DOMAINS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.BRIEF),
 			DomainDto.class);
 		return ListResponse.of(this.uriInfo, query, this.domainService.list(query), DomainMapper::toDto);
