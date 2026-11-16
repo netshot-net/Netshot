@@ -50,6 +50,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestNetwork;
+import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
@@ -66,7 +67,8 @@ class JsConfigHelperUploadTest {
 	}
 
 	private JsConfigHelper helper(SshServer sshServer) {
-		return new JsConfigHelper(null, null, null, null, null, sshServer, Collector.Settings.from(Netshot.config().current()), new FakeTaskContext());
+		return new JsConfigHelper(null, null, null, null, null, sshServer, Collector.Settings.from(Netshot.config().current()), TestRepositories.BINARY_FILES,
+			new FakeTaskContext());
 	}
 
 	/**
@@ -80,7 +82,8 @@ class JsConfigHelperUploadTest {
 		Domain domain = Domain.builder().id(1).name("Lab").description("Lab domain")
 			.server4Address(new Network4Address("127.0.0.1", 32)).build();
 		DeviceDraft device = new DeviceDraft(Device.create("CiscoIOS12", "10.0.0.1", domain, "tester"));
-		return new JsConfigHelper(null, device, null, null, null, sshServer, Collector.Settings.from(Netshot.config().current()), new FakeTaskContext());
+		return new JsConfigHelper(null, device, null, null, null, sshServer, Collector.Settings.from(Netshot.config().current()), TestRepositories.BINARY_FILES,
+			new FakeTaskContext());
 	}
 
 	/**

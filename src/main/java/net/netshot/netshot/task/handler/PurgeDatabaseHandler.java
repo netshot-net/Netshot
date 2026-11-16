@@ -56,6 +56,7 @@ import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * Cleans up the database.
@@ -67,16 +68,19 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final BinaryFileStorage binaryFiles;
 
 	/**
 	 * Instantiates the handler.
 	 *
 	 * @param transactions the transaction support
 	 * @param taskRepository the task repository
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
-	public PurgeDatabaseHandler(Transactions transactions, TaskRepository taskRepository) {
+	public PurgeDatabaseHandler(Transactions transactions, TaskRepository taskRepository, BinaryFileStorage binaryFiles) {
 		this.transactions = transactions;
 		this.taskRepository = taskRepository;
+		this.binaryFiles = binaryFiles;
 	}
 
 	@Override
@@ -207,7 +211,7 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 					.from(CONFIG_ATTRIBUTE).where(CONFIG_ATTRIBUTE.TYPE.eq("F")).fetch(CONFIG_ATTRIBUTE.UID)));
 
 				int count = 0;
-				Path storageFolder = ConfigBinaryFileAttribute.settings().storageFolderPath();
+				Path storageFolder = this.binaryFiles.folderOrNull();
 				if (storageFolder != null) {
 					Instant pendingSafeBefore = Instant.now().minus(24, ChronoUnit.HOURS);
 					try (Stream<Path> entries = Files.list(storageFolder)) {
@@ -316,8 +320,8 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 				dsl.select(CONFIG_ATTRIBUTE.NAME, CONFIG_ATTRIBUTE.UID, CONFIG_ATTRIBUTE.ORIGINAL_NAME)
 					.from(CONFIG_ATTRIBUTE)
 					.where(CONFIG_ATTRIBUTE.CONFIG.eq(configId), CONFIG_ATTRIBUTE.TYPE.eq("F"))
-					.forEach(a -> toDeletePathes.add(new ConfigBinaryFileAttribute(a.value1(), a.value2(), a.value3(), 0, null)
-						.getFilePath(deviceId, configId)));
+					.forEach(a -> toDeletePathes.add(this.binaryFiles.filePath(
+						new ConfigBinaryFileAttribute(a.value1(), a.value2(), a.value3(), 0, null), deviceId, configId)));
 				List<Long> longTextIds = dsl.select(CONFIG_ATTRIBUTE.LONG_TEXT).from(CONFIG_ATTRIBUTE)
 					.where(CONFIG_ATTRIBUTE.CONFIG.eq(configId), CONFIG_ATTRIBUTE.LONG_TEXT.isNotNull())
 					.fetch(CONFIG_ATTRIBUTE.LONG_TEXT);

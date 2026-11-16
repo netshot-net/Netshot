@@ -91,7 +91,7 @@ final class TaskRunner {
 			new CheckGroupSoftwareHandler(TestWiring.get().transactions(), TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE, TestRepositories.GROUP),
 			new DiscoverDeviceTypeHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager(),
 				TestRepositories.TASK, TestRepositories.CREDENTIAL_SET, TestRepositories.DOMAIN, TestRepositories.DEVICE),
-			new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK),
+			new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK, TestRepositories.BINARY_FILES),
 			new RunDeviceGroupScriptHandler(TestWiring.get().transactions(), orchestrator, TestDrivers.registry(), TestRepositories.DEVICE, TestRepositories.GROUP),
 			new RunDeviceScriptHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors,
 				TestRepositories.DEVICE),
@@ -101,7 +101,7 @@ final class TaskRunner {
 			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.CREDENTIAL_SET),
 			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.DEVICE, TestRepositories.GROUP),
 			new TakeSnapshotHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
-				connectors, TestRepositories.DEVICE, Netshot.config())));
+				connectors, TestRepositories.DEVICE, Netshot.config(), TestRepositories.BINARY_FILES)));
 		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), TestRepositories.TASK, Netshot.config());
 	}
 

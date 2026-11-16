@@ -57,6 +57,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {
@@ -70,6 +71,9 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	/** The folder to write the configurations to (null for none). */
 	private final String dumpFolder;
 
+	/** The storage of the binary file attributes. */
+	private final BinaryFileStorage binaryFiles;
+
 	/**
 	 * Creates the snapshot script.
 	 *
@@ -79,9 +83,11 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param logger the task logger
 	 * @param dumpFolder the folder to write the configurations to, null to write them nowhere
 	 *        ({@code netshot.snapshots.dump})
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
 	public SnapshotDeviceScript(DriverRegistry driverRegistry, Connectors connectors, SshServer sshServer, TaskContext logger,
-		String dumpFolder) {
+		String dumpFolder, BinaryFileStorage binaryFiles) {
+		this.binaryFiles = binaryFiles;
 		super(driverRegistry, connectors, logger);
 		this.sshServer = sshServer;
 		this.dumpFolder = dumpFolder;
@@ -197,7 +203,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			Config lastConfig = device.getLastConfig() != null ? device.getLastConfig() : loadLastConfig(device);
 			device.setLastConfig(lastConfig);
 			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.sshServer,
-				this.connectors.settings().collector(), this.taskContext);
+				this.connectors.settings().collector(), this.binaryFiles, this.taskContext);
 			options.setConfigHelper(configHelper);
 			context.getBindings("js").getMember("_connect")
 				.execute("snapshot", options);
@@ -238,7 +244,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 				this.taskContext.info("The configuration hasn't changed. Not storing a new one in the DB.");
 				for (ConfigAttribute ca : config.getAttributes()) {
 					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
-						Path pendingPath = cbfa.getPendingFilePath(device.getId());
+						Path pendingPath = this.binaryFiles.pendingFilePath(cbfa, device.getId());
 						try {
 							log.debug("Removing useless file {}", pendingPath);
 							Files.deleteIfExists(pendingPath);

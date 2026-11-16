@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.testing;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.compliance.HardwareRuleRepository;
 import net.netshot.netshot.compliance.PolicyRepository;
@@ -28,6 +29,7 @@ import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.inventory.config.ConfigRepository;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.GroupRepository;
@@ -36,8 +38,8 @@ import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.vault.VaultInstanceRepository;
 
 /**
- * The repositories for the tests which build the objects they test themselves (the main code receives them from
- * the wiring). The repositories are stateless: the tests share one of each.
+ * The repositories (and the storage of the binary files) for the tests which build the objects they test themselves
+ * (the main code receives them from the wiring). The repositories are stateless: the tests share one of each.
  */
 public final class TestRepositories {
 
@@ -55,6 +57,8 @@ public final class TestRepositories {
 	public static final DiagnosticRepository DIAGNOSTIC = new DiagnosticRepository();
 	public static final VaultInstanceRepository VAULT_INSTANCE = new VaultInstanceRepository();
 	public static final CredentialSetAssembler CREDENTIAL_SET_ASSEMBLER = new CredentialSetAssembler(VAULT_INSTANCE);
+	/** The storage of the binary file attributes, bound to the configuration of the tests. */
+	public static final BinaryFileStorage BINARY_FILES = new BinaryFileStorage(Netshot.config());
 
 	private TestRepositories() {
 	}

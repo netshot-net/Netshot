@@ -95,7 +95,7 @@ class ConfigReloadTest {
 		Assertions.assertEquals(NetworkAddress.getNetworkAddress("192.168.0.1"),
 			Collector.Settings.from(Netshot.config().current()).clusterIpOverrides().get(InetAddress.getByName("10.0.0.1")));
 		Assertions.assertEquals(2222, new VaultManager(Netshot.config(), _ -> null).settings().httpReadTimeoutMs());
-		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.settings().storageFolderPath());
+		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.Settings.from(Netshot.config().current()).storageFolderPath());
 		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.Settings.from(Netshot.config().current()).venvFolder());
 
 		reload(Map.of());

@@ -55,6 +55,7 @@ import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.platform.query.QuerySchema;
 import net.netshot.netshot.platform.query.StatsQuery;
 import net.netshot.netshot.platform.query.StatsRow;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * The configuration use cases: list the configurations, download an item of one, and compare two.
@@ -69,6 +70,7 @@ public class ConfigService {
 	private final ConfigRepository repository;
 	private final DriverRegistry driverRegistry;
 	private final DeviceRepository deviceRepository;
+	private final BinaryFileStorage binaryFiles;
 
 	/**
 	 * Instantiates the service.
@@ -77,13 +79,15 @@ public class ConfigService {
 	 * @param repository the configuration repository
 	 * @param driverRegistry the loaded device drivers
 	 * @param deviceRepository the device repository (to find the device of a configuration)
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
 	public ConfigService(Transactions transactions, ConfigRepository repository, DriverRegistry driverRegistry,
-		DeviceRepository deviceRepository) {
+		DeviceRepository deviceRepository, BinaryFileStorage binaryFiles) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
 		this.deviceRepository = deviceRepository;
+		this.binaryFiles = binaryFiles;
 	}
 
 	/**
@@ -201,7 +205,7 @@ public class ConfigService {
 		return new ConfigItem(fileName, content, null, content.length);
 	}
 
-	private static ConfigItem fileItem(Config config, DeviceSummary device, ConfigBinaryFileAttribute attribute) {
+	private ConfigItem fileItem(Config config, DeviceSummary device, ConfigBinaryFileAttribute attribute) {
 		String fileName = attribute.originalName();
 		if (fileName == null) {
 			fileName = "%s.dat".formatted(attribute.name());
@@ -210,7 +214,7 @@ public class ConfigService {
 			fileName = "%s_%s".formatted(attribute.name(), fileName);
 		}
 		fileName = downloadFileName(config, device, fileName);
-		File file = attribute.getFilePath(config.deviceId(), config.id()).toFile();
+		File file = this.binaryFiles.filePath(attribute, config.deviceId(), config.id()).toFile();
 		return new ConfigItem(fileName, null, file, file.length());
 	}
 
