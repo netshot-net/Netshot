@@ -18,13 +18,10 @@
  */
 package net.netshot.netshot;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.instrument.Instrumentation;
 import java.util.List;
 import java.util.Properties;
-import java.util.jar.JarFile;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -40,10 +37,12 @@ import net.netshot.netshot.boot.NetshotSettings;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
+import net.netshot.netshot.platform.runtime.AgentInstrumentation;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
+import net.netshot.netshot.platform.tls.Truststore;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -55,53 +54,14 @@ import sun.misc.SignalHandler;
 @Slf4j
 public class Netshot {
 
-	/** Netshot version. */
-	public static final String VERSION = "0.0.0-dev";
-
 	/** The list of configuration files to look at, in sequence. */
 	private static final String[] CONFIG_FILENAMES = new String[] {
 		"netshot.conf", "/etc/netshot.conf"};
 
-	/** A custom truststore (CA certificates to trust). */
-	static final Setting<String> TRUSTSTORE_FILE = Setting.text("netshot.ssl.truststore.file").restart();
-
 	/** The application configuration (the current snapshot, replaced as a whole on a reload). */
 	private static final ConfigStore CONFIG = new ConfigStore(Config.empty());
 
-	/**
-	 * The instrumentation handed by the JVM to the agent entry point (used to load the crypto libraries):
-	 * the only mutable static field, see the STATIC_FIELDS_ARE_FINAL rule of ArchitectureTest.
-	 */
-	private static volatile Instrumentation instrumentation;
-
 	protected Netshot() {
-	}
-
-	/**
-	 * Retrieve the local machine hostname.
-	 *
-	 * @return the local machine hostname
-	 */
-	public static String getHostname() {
-		return Hostname.VALUE;
-	}
-
-	/** Holder of the machine hostname, read once, on first use (lazy, thread-safe class initialization). */
-	private static final class Hostname {
-		static final String VALUE = read();
-
-		private static String read() {
-			String hostname = null;
-			try {
-				Process process = Runtime.getRuntime().exec(new String[] { "hostname" });
-				BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-				hostname = stdInput.readLine();
-			}
-			catch (IOException e) {
-				log.error("Error while getting local machine hostname", e);
-			}
-			return hostname == null ? "unknown" : hostname;
-		}
 	}
 
 	/**
@@ -172,16 +132,6 @@ public class Netshot {
 	}
 
 	/**
-	 * Set up a custom truststore (CA certificates to trust).
-	 */
-	protected static void setTruststore() {
-		String path = CONFIG.current().get(TRUSTSTORE_FILE);
-		if (path != null) {
-			System.setProperty("javax.net.ssl.trustStore", path);
-		}
-	}
-
-	/**
 	 * The main method.
 	 *
 	 * @param args the arguments
@@ -216,11 +166,11 @@ public class Netshot {
 		}
 
 		if (commandLine.hasOption("v")) {
-			System.out.println(String.format("Netshot version %s", Netshot.VERSION));
+			System.out.println(String.format("Netshot version %s", BuildInfo.VERSION));
 			return;
 		}
 
-		System.out.println(String.format("Starting Netshot version %s.", Netshot.VERSION));
+		System.out.println(String.format("Starting Netshot version %s.", BuildInfo.VERSION));
 		log.info("Starting Netshot");
 
 		final String[] configFileNames;
@@ -269,7 +219,7 @@ public class Netshot {
 			log.info("Checking current JVM.");
 			Netshot.checkJvm();
 			log.info("Selecting truststore.");
-			Netshot.setTruststore();
+			Truststore.apply(CONFIG.current());
 
 			log.info("Updating the database schema, if necessary.");
 			Database.update(CONFIG.current());
@@ -307,20 +257,7 @@ public class Netshot {
 	 */
 	public static void agentmain(String agentArgs, Instrumentation inst) {
 		log.info("Netshot agentmain entrypoint");
-		instrumentation = inst;
-	}
-
-	/**
-	 * Append a JAR to the system class loader search.
-	 *
-	 * @param jar the JAR file to append
-	 * @throws Exception if instrumentation is not initialized
-	 */
-	public static void appendJar(JarFile jar) throws Exception {
-		if (instrumentation == null) {
-			throw new IllegalStateException("Instrumentation not initialized");
-		}
-		instrumentation.appendToSystemClassLoaderSearch(jar);
+		AgentInstrumentation.set(inst);
 	}
 
 }

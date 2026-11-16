@@ -38,9 +38,9 @@ import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
 import org.apache.sshd.common.session.SessionListener;
 import org.apache.sshd.core.CoreModuleProperties;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 /**
  * The SSH client shared by the SSH accesses to the devices ({@link Ssh}): built with the settings of
@@ -79,7 +79,7 @@ public final class SshClientService implements Service {
 			}
 		});
 
-		CoreModuleProperties.CLIENT_IDENTIFICATION.set(this.client, "NETSHOT-%s".formatted(Netshot.VERSION));
+		CoreModuleProperties.CLIENT_IDENTIFICATION.set(this.client, "NETSHOT-%s".formatted(BuildInfo.VERSION));
 		// Cisco IOS at least doesn't like receiving the identification message from client before sending its own
 		CoreModuleProperties.SEND_IMMEDIATE_IDENTIFICATION.set(this.client, false);
 		CoreModuleProperties.SEND_IMMEDIATE_KEXINIT.set(this.client, false);

@@ -47,7 +47,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
@@ -61,6 +60,7 @@ import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.report.ReportExportSelection;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.report.XlsxReportWriter;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 /**
  * The REST resource of the reports: statistics, device lists behind them, and the data export.
@@ -391,7 +391,7 @@ public class ReportResource {
 				exportInventoryHistory, exportLocations, exportCompliance, exportGroups, exportDeviceDriverAttributes);
 			SXSSFWorkbook workBook = new SXSSFWorkbook(100);
 			try {
-				this.reportService.export(selection, new XlsxReportWriter(workBook, Netshot.VERSION, user.getName()));
+				this.reportService.export(selection, new XlsxReportWriter(workBook, BuildInfo.VERSION, user.getName()));
 				ByteArrayOutputStream output = new ByteArrayOutputStream();
 				workBook.write(output);
 				byte[] content = output.toByteArray();

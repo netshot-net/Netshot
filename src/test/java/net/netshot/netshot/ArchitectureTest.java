@@ -292,12 +292,13 @@ final class ArchitectureTest {
 	/**
 	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring,
 	 * and the values read once are held by lazily initialized holder classes. The exception is the
-	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}).
+	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}, kept by
+	 * {@code AgentInstrumentation}).
 	 */
 	@ArchTest
 	static final ArchRule STATIC_FIELDS_ARE_FINAL =
 		fields().that().areStatic()
-			.and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
+			.and().doNotHaveFullName(ROOT + "platform.runtime.AgentInstrumentation.instrumentation")
 			.should().beFinal().allowEmptyShould(true);
 
 	/**

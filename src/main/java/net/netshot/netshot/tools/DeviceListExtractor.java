@@ -42,6 +42,7 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 @Slf4j
 public class DeviceListExtractor extends Netshot {
@@ -91,7 +92,7 @@ public class DeviceListExtractor extends Netshot {
 	 */
 	public static void main(String[] args) {
 		System.out.println("Netshot Device List Extractor -- extracts and formats device data.");
-		System.out.println(String.format("Based on Netshot version %s.", Netshot.VERSION));
+		System.out.println(String.format("Based on Netshot version %s.", BuildInfo.VERSION));
 		log.info("Starting now.");
 
 		if (!Netshot.readConfig()) {

@@ -20,7 +20,6 @@ package net.netshot.netshot.boot;
 
 import java.util.List;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.auth.Radius;
 import net.netshot.netshot.aaa.auth.Tacacs;
@@ -54,6 +53,7 @@ import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultTokenRefresher;
 import net.netshot.netshot.platform.config.SettingCatalog;
+import net.netshot.netshot.platform.tls.Truststore;
 
 /**
  * The catalog of all the configuration settings: the classes declaring {@code Setting} fields
@@ -72,7 +72,7 @@ public final class NetshotSettings {
 	 */
 	public static List<Class<?>> declaringClasses() {
 		return List.of(
-			Netshot.class,
+			Truststore.class,
 			Oidc.class,
 			Radius.class,
 			Tacacs.class,

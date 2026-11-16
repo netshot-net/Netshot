@@ -52,7 +52,6 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
@@ -93,6 +92,7 @@ import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 @Path("/" + DeviceMapper.PATH)
 @Tag(name = "Devices", description = "Devices (network or security equipment)")
@@ -250,7 +250,7 @@ public class DeviceResource {
 		ListExport.write(this.request, output -> {
 			SXSSFWorkbook workBook = new SXSSFWorkbook(100);
 			try {
-				this.reportService.export(selection, new XlsxReportWriter(workBook, Netshot.VERSION, userName));
+				this.reportService.export(selection, new XlsxReportWriter(workBook, BuildInfo.VERSION, userName));
 				workBook.write(output);
 			}
 			finally {

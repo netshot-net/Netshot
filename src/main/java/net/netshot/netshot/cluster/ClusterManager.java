@@ -46,7 +46,6 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.messages.AssignTasksMessage;
 import net.netshot.netshot.cluster.messages.AutoSnapshotMessage;
@@ -69,6 +68,8 @@ import net.netshot.netshot.task.engine.ClusterCoordinator;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.platform.runtime.BuildInfo;
+import net.netshot.netshot.platform.runtime.LocalHost;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
@@ -368,8 +369,8 @@ public class ClusterManager implements Service, ClusterCoordinator {
 				localId);
 		}
 
-		this.localMember = new ClusterMember(localId, Netshot.getHostname(), ClusterManager.CLUSTERING_VERSION,
-			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, this.node.getDriverHash());
+		this.localMember = new ClusterMember(localId, LocalHost.name(), ClusterManager.CLUSTERING_VERSION,
+			masterPriority, runnerPriority, runnerWeight, BuildInfo.VERSION, jvmVersion, this.node.getDriverHash());
 		this.members.put(localId, this.localMember);
 	}
 
