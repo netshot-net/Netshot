@@ -31,7 +31,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -41,6 +40,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the user use cases (administration and change of the own password), against a real
@@ -67,7 +67,7 @@ class UserServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new UserService(this.transactions, this.repository, Netshot.config());
+		this.service = new UserService(this.transactions, this.repository, TestConfig.store());
 	}
 
 	private String nextName() {
@@ -334,8 +334,8 @@ class UserServiceTest {
 		String name = user.username();
 		this.transactions.run(dsl -> this.repository.save(dsl,
 			this.repository.findByUsername(dsl, name).withLastPasswordChangeDate(Instant.now().minus(60, ChronoUnit.DAYS))));
-		Assertions.assertThrows(PasswordPolicy.PasswordPolicyException.class, () -> this.reload(name).checkPassword(PASSWORD, PasswordPolicy.fromConfig(Netshot.config().current())));
+		Assertions.assertThrows(PasswordPolicy.PasswordPolicyException.class, () -> this.reload(name).checkPassword(PASSWORD, PasswordPolicy.fromConfig(TestConfig.store().current())));
 		this.service.changeOwnPassword(name, name, PASSWORD, "Fresh-passw0rd");
-		this.reload(name).checkPassword("Fresh-passw0rd", PasswordPolicy.fromConfig(Netshot.config().current()));
+		this.reload(name).checkPassword("Fresh-passw0rd", PasswordPolicy.fromConfig(TestConfig.store().current()));
 	}
 }

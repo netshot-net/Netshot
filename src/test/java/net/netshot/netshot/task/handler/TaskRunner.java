@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessSettings;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.boot.Wiring;
@@ -41,6 +40,7 @@ import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -77,7 +77,7 @@ final class TaskRunner {
 		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(TestWiring.get().transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
-		}, TestRepositories.TASK, Netshot.config());
+		}, TestRepositories.TASK, TestConfig.store());
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
 		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), TestRepositories.deviceReads(wiring.transactions()),
 			new AccessSettings(wiring.config()));
@@ -101,8 +101,8 @@ final class TaskRunner {
 			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.CREDENTIAL_SET),
 			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.DEVICE, TestRepositories.GROUP),
 			new TakeSnapshotHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
-				connectors, TestRepositories.DEVICE, Netshot.config(), TestRepositories.BINARY_FILES)));
-		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), TestRepositories.TASK, Netshot.config());
+				connectors, TestRepositories.DEVICE, TestConfig.store(), TestRepositories.BINARY_FILES)));
+		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), TestRepositories.TASK, TestConfig.store());
 	}
 
 	/**

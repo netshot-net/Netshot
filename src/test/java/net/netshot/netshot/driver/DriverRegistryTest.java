@@ -30,8 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
 
 @ScriptEngineTest
@@ -53,7 +52,7 @@ class DriverRegistryTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.drivers.path", this.driversFolder.toString());
 		TestConfig.init(config);
-		this.registry = new DriverRegistry(new DriverLoader(Netshot.config()));
+		this.registry = new DriverRegistry(new DriverLoader(TestConfig.store()));
 	}
 
 	@AfterEach

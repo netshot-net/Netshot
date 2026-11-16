@@ -38,7 +38,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.PolicyService;
@@ -68,6 +67,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestRepositories;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the report use cases (statistics, device lists, export), against a real database.
@@ -142,7 +142,7 @@ class ReportServiceTest {
 		TestDevices.addStaticGroup("Report empty group");
 		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository(), TestRepositories.GROUP);
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
-			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(),
+			RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(),
 				TestRepositories.deviceReads(TestWiring.get().transactions())), TestRepositories.DEVICE);
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).id();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();

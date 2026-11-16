@@ -29,13 +29,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.Netshot;
 
 @DatabaseTest
 @DisplayName("v0 web application")
@@ -74,7 +73,7 @@ class V0ApplicationTest {
 		config.setProperty("netshot.http.baseurl", "http://127.0.0.1:%d".formatted(port));
 		config.setProperty("netshot.http.api.v0.enabled", Boolean.toString(enabled));
 		TestConfig.init(config);
-		RestServer server = new RestServer(TestWiring.get().binder(), Netshot.config());
+		RestServer server = new RestServer(TestWiring.get().binder(), TestConfig.store());
 		server.start();
 		try {
 			HttpClient client = HttpClient.newHttpClient();

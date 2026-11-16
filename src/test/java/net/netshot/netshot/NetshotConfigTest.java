@@ -21,6 +21,7 @@ package net.netshot.netshot;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.TestConfig;
 
 @UnitTest
 @DisplayName("Configuration items")
@@ -43,12 +45,12 @@ class NetshotConfigTest {
 	Path tempDir;
 
 	private static Config current() {
-		return Netshot.config().current();
+		return TestConfig.store().current();
 	}
 
 	@AfterEach
 	void resetConfig() {
-		Netshot.initConfig(new Properties());
+		TestConfig.init(new Properties());
 	}
 
 	private Path writeSecretFile(String content) throws Exception {
@@ -65,7 +67,7 @@ class NetshotConfigTest {
 		if (secretFile != null) {
 			config.setProperty(KEY + ".file", secretFile.toString());
 		}
-		Netshot.initConfig(config);
+		TestConfig.init(config);
 	}
 
 	@Test
@@ -136,7 +138,7 @@ class NetshotConfigTest {
 		Path file = tempDir.resolve("netshot.conf");
 		Files.writeString(file, "netshot.test.item = fromfile\n", StandardCharsets.UTF_8);
 		initConfig("inline", null);
-		Assertions.assertTrue(Netshot.readConfig(new String[] { tempDir.resolve("missing.conf").toString(), file.toString() }));
+		Assertions.assertTrue(TestConfig.store().load(() -> Config.load(List.of(tempDir.resolve("missing.conf").toString(), file.toString()))));
 		Assertions.assertEquals("fromfile", current().get("netshot.test.item"));
 		Assertions.assertNull(current().get(KEY), "The previous configuration was not replaced");
 	}
@@ -145,11 +147,11 @@ class NetshotConfigTest {
 	@DisplayName("The current configuration is kept if no configuration file can be read")
 	void readConfigKeepsCurrentOnFailure() throws Exception {
 		initConfig("inline", null);
-		Assertions.assertFalse(Netshot.readConfig(new String[] { tempDir.resolve("missing.conf").toString() }));
+		Assertions.assertFalse(TestConfig.store().load(() -> Config.load(List.of(tempDir.resolve("missing.conf").toString()))));
 		Assertions.assertEquals("inline", current().get(KEY));
 		Path empty = tempDir.resolve("empty.conf");
 		Files.writeString(empty, "# Nothing\n", StandardCharsets.UTF_8);
-		Assertions.assertFalse(Netshot.readConfig(new String[] { empty.toString() }));
+		Assertions.assertFalse(TestConfig.store().load(() -> Config.load(List.of(empty.toString()))));
 		Assertions.assertEquals("inline", current().get(KEY));
 	}
 
@@ -157,11 +159,11 @@ class NetshotConfigTest {
 	@DisplayName("Encryption password: legacy key name, then default value")
 	void encryptionPasswordDefault() {
 		Properties config = new Properties();
-		Netshot.initConfig(config);
-		Assertions.assertEquals("NETSHOT", Database.getEncryptionPassword(Netshot.config().current()));
+		TestConfig.init(config);
+		Assertions.assertEquals("NETSHOT", Database.getEncryptionPassword(TestConfig.store().current()));
 		config.setProperty("netshot.db.encryptionPassword", "legacy");
-		Netshot.initConfig(config);
-		Assertions.assertEquals("legacy", Database.getEncryptionPassword(Netshot.config().current()));
+		TestConfig.init(config);
+		Assertions.assertEquals("legacy", Database.getEncryptionPassword(TestConfig.store().current()));
 	}
 
 	@Test
@@ -169,10 +171,10 @@ class NetshotConfigTest {
 	void encryptionPasswordRequired() throws Exception {
 		Properties config = new Properties();
 		config.setProperty("netshot.db.encryptionpassword.required", "true");
-		Netshot.initConfig(config);
-		Assertions.assertThrows(IllegalStateException.class, () -> Database.getEncryptionPassword(Netshot.config().current()));
+		TestConfig.init(config);
+		Assertions.assertThrows(IllegalStateException.class, () -> Database.getEncryptionPassword(TestConfig.store().current()));
 		config.setProperty("netshot.db.encryptionpassword.file", writeSecretFile("fromfile").toString());
-		Netshot.initConfig(config);
-		Assertions.assertEquals("fromfile", Database.getEncryptionPassword(Netshot.config().current()));
+		TestConfig.init(config);
+		Assertions.assertEquals("fromfile", Database.getEncryptionPassword(TestConfig.store().current()));
 	}
 }

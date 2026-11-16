@@ -28,10 +28,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.swagger.v3.core.util.Json;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.Golden;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Keeps the snapshot of the OpenAPI document of the v1 API, which the web UI generates its API types from
@@ -48,7 +48,7 @@ class V1OpenApiSnapshotTest {
 	@Test
 	@DisplayName("The snapshot used by the web UI is the current OpenAPI document")
 	void snapshotIsCurrent() throws Exception {
-		Config config = Netshot.config().current();
+		Config config = TestConfig.store().current();
 		// The default path of the API (netshot.http.apipath)
 		V1Links links = new V1Links("/api");
 		V1Application application = new V1Application(new AbstractBinder() {

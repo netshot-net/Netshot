@@ -21,7 +21,6 @@ package net.netshot.netshot;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.util.List;
-import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -34,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.BootstrapException;
-import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.runtime.AgentInstrumentation;
 import net.netshot.netshot.platform.runtime.BuildInfo;
@@ -44,67 +42,13 @@ import sun.misc.SignalHandler;
 //CHECKSTYLE:ON: IllegalImport
 
 /**
- * The Class Netshot. Starting point of Netshot
+ * The entry points of Netshot: {@link #main} starts the server (the process is prepared by {@code Bootstrap}, the
+ * application runs through {@code Application}), {@link #agentmain} receives the instrumentation of the JVM.
  */
 @Slf4j
-public class Netshot {
+public final class Netshot {
 
-
-	/** The application configuration (the current snapshot, replaced as a whole on a reload). */
-	private static final ConfigStore CONFIG = new ConfigStore(Config.empty());
-
-	protected Netshot() {
-	}
-
-	/**
-	 * Gets the configuration store, which holds the current configuration snapshot.
-	 *
-	 * @return the configuration store
-	 */
-	public static ConfigStore config() {
-		return CONFIG;
-	}
-
-	/**
-	 * Read the application configuration from default files.
-	 *
-	 * @return true, if successful
-	 */
-	public static boolean readConfig() {
-		return readConfig(Bootstrap.DEFAULT_FILES.toArray(String[]::new));
-	}
-
-	/**
-	 * Read the application configuration from the files (at startup). If no file can be read,
-	 * the current configuration is kept.
-	 *
-	 * @param filenames the names of the files to read from
-	 * @return true, if successful
-	 */
-	protected static boolean readConfig(String[] filenames) {
-		return CONFIG.load(() -> Config.load(List.of(filenames)));
-	}
-
-	/**
-	 * Reload the application configuration from the files (HUP signal). If no file can be read,
-	 * the current configuration is kept.
-	 *
-	 * @param filenames the names of the files to read from
-	 * @return true, if successful
-	 */
-	protected static boolean reloadConfig(String[] filenames) {
-		return CONFIG.reload(() -> Config.load(List.of(filenames)));
-	}
-
-	/**
-	 * Initialize the application configuration from Properties object.
-	 *
-	 * @param newConfig the configuration
-	 * @return true
-	 */
-	protected static boolean initConfig(Properties newConfig) {
-		CONFIG.replace(Config.of(newConfig));
-		return true;
+	private Netshot() {
 	}
 
 	/**

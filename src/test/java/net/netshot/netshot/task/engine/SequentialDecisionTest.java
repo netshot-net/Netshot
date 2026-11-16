@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.task.engine;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.task.Task.SequentialScheduling.NextAction;
 import net.netshot.netshot.task.Task.SequentialScheduling;
 import net.netshot.netshot.task.Task.Status;

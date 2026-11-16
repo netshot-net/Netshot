@@ -25,7 +25,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.task.Task.ScheduleType;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.testing.UnitTest;
