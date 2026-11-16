@@ -89,7 +89,6 @@ class TaskServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		net.netshot.netshot.boot.Wiring.init(TestDrivers.registry());
 		this.transactions = TestWiring.get().transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
