@@ -23,6 +23,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -32,11 +33,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
+import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
@@ -48,7 +51,9 @@ import net.netshot.netshot.platform.net.Network4Address;
  * snapshots if needed.
  *
  * <p>If the UDP port can't be opened (or the socket fails), the server keeps trying to open it again,
- * with an increasing delay (up to a minute), and reports itself as unhealthy in the meantime.</p>
+ * with an increasing delay (up to a minute), and reports itself as unhealthy in the meantime. The settings are applied
+ * live: a change of the port or of the listen address opens the socket again, disabling the server closes it (a
+ * disabled server is healthy).</p>
  */
 @Slf4j
 public final class SyslogServer implements Service {
@@ -57,10 +62,13 @@ public final class SyslogServer implements Service {
 	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SyslogServer.class);
 
 	/** Whether the Syslog server is disabled. */
-	public static final Setting<Boolean> DISABLED = Setting.bool("netshot.syslog.disabled").defaultValue(false).restart();
+	static final Setting<Boolean> DISABLED = Setting.bool("netshot.syslog.disabled").defaultValue(false).live();
 
 	/** The UDP port to listen Syslog messages on. */
-	static final Setting<Integer> PORT = Setting.integer("netshot.syslog.port").defaultValue(514).range(1, 65535).restart();
+	static final Setting<Integer> PORT = Setting.integer("netshot.syslog.port").defaultValue(514).range(1, 65535).live();
+
+	/** The IP address to listen Syslog messages on. */
+	static final Setting<String> LISTEN_ADDRESS = Setting.text("netshot.syslog.listenaddress").defaultValue("0.0.0.0").live();
 
 	/** Max delay (ms) before trying to open the socket again. */
 	private static final long MAX_RETRY_DELAY = 60000;
@@ -74,6 +82,12 @@ public final class SyslogServer implements Service {
 	/** The configuration store. */
 	private final ConfigStore config;
 
+	/** Applies the configuration changes (opening the socket again if needed). */
+	private final Consumer<Config> listener = this::loadConfig;
+
+	/** Signals the receive loop of a configuration change. */
+	private final Object lock = new Object();
+
 	/** The number of received messages. */
 	private final AtomicLong received = new AtomicLong();
 
@@ -83,8 +97,17 @@ public final class SyslogServer implements Service {
 	/** The number of socket errors. */
 	private final AtomicLong errors = new AtomicLong();
 
-	/** The UDP port (read when the server starts). */
-	private int udpPort;
+	/** Whether the server is disabled by the configuration. */
+	private volatile boolean disabled;
+
+	/** The UDP port. */
+	private volatile int udpPort;
+
+	/** The listen address. */
+	private volatile InetAddress listenHost;
+
+	/** Incremented on each change of the listening configuration (the socket is opened again). */
+	private volatile long generation;
 
 	/** Whether the server is running. */
 	private volatile boolean running;
@@ -120,32 +143,34 @@ public final class SyslogServer implements Service {
 
 	@Override
 	public synchronized void start() {
-		this.udpPort = this.config.current().get(PORT);
 		this.running = true;
+		this.loadConfig(this.config.current());
+		this.config.addListener(this.listener);
 		this.executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotSyslogServer"));
 		this.executor.execute(this::run);
 	}
 
 	@Override
-	public void stop() throws InterruptedException {
+	public synchronized void stop() throws InterruptedException {
+		this.config.removeListener(this.listener);
 		this.running = false;
-		DatagramSocket current = this.socket;
-		if (current != null) {
-			// Unblocks the receive call
-			current.close();
+		synchronized (this.lock) {
+			this.lock.notifyAll();
 		}
+		this.closeSocket();
 		this.executor.shutdownNow();
 		this.executor.awaitTermination(10, TimeUnit.SECONDS);
 	}
 
 	@Override
 	public boolean isHealthy() {
-		return this.running && this.socket != null;
+		return this.disabled || (this.running && this.socket != null);
 	}
 
 	@Override
 	public Map<String, Object> stats() {
 		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("enabled", !this.disabled);
 		stats.put("port", this.udpPort);
 		stats.put("listening", this.socket != null);
 		stats.put("received", this.received.get());
@@ -155,15 +180,77 @@ public final class SyslogServer implements Service {
 	}
 
 	/**
+	 * Applies the configuration: opens the socket again when the port or the listen address changes, closes it
+	 * when the server is disabled.
+	 *
+	 * @param newConfig the configuration
+	 */
+	private void loadConfig(Config newConfig) {
+		boolean newDisabled = newConfig.get(DISABLED);
+		int newPort = newConfig.get(PORT);
+		String listenAddress = newConfig.get(LISTEN_ADDRESS);
+		InetAddress newHost;
+		try {
+			newHost = InetAddress.getByName(listenAddress);
+		}
+		catch (UnknownHostException e) {
+			log.warn("Unable to parse IP address '{}' for the Syslog listen address, using loopback instead", listenAddress, e);
+			newHost = InetAddress.getLoopbackAddress();
+		}
+		synchronized (this.lock) {
+			if (newDisabled == this.disabled && newPort == this.udpPort && newHost.equals(this.listenHost)) {
+				return;
+			}
+			if (newDisabled) {
+				log.warn("The Syslog server is disabled by configuration.");
+			}
+			this.disabled = newDisabled;
+			this.udpPort = newPort;
+			this.listenHost = newHost;
+			this.generation++;
+			this.lock.notifyAll();
+		}
+		// Unblocks the receive call, the loop opens the socket again (or waits while disabled)
+		this.closeSocket();
+	}
+
+	private void closeSocket() {
+		DatagramSocket current = this.socket;
+		if (current != null) {
+			current.close();
+		}
+	}
+
+	/**
 	 * The receive loop.
 	 */
 	private void run() {
 		long retryDelay = 1000;
 		while (this.running) {
-			try (DatagramSocket newSocket = new DatagramSocket(this.udpPort)) {
+			long currentGeneration;
+			synchronized (this.lock) {
+				while (this.running && this.disabled) {
+					try {
+						this.lock.wait();
+					}
+					catch (InterruptedException e) {
+						return;
+					}
+				}
+				currentGeneration = this.generation;
+			}
+			if (!this.running) {
+				break;
+			}
+			InetSocketAddress bindAddress = new InetSocketAddress(this.listenHost, this.udpPort);
+			try (DatagramSocket newSocket = new DatagramSocket(bindAddress)) {
 				this.socket = newSocket;
-				log.debug("Now listening for Syslog messages on UDP port {}.", this.udpPort);
+				log.debug("Now listening for Syslog messages on {}.", bindAddress);
 				retryDelay = 1000;
+				if (currentGeneration != this.generation) {
+					// Changed while opening the socket
+					continue;
+				}
 				while (this.running) {
 					DatagramPacket packet = new DatagramPacket(new byte[4096], 4096);
 					newSocket.receive(packet);
@@ -175,14 +262,23 @@ public final class SyslogServer implements Service {
 				if (!this.running) {
 					break;
 				}
+				if (currentGeneration != this.generation) {
+					// Closed by a configuration change: opened again right away
+					continue;
+				}
 				this.errors.incrementAndGet();
-				log.error("Error with the Syslog server socket (UDP port {}), retrying in {}ms.", this.udpPort, retryDelay, e);
+				log.error("Error with the Syslog server socket ({}), retrying in {}ms.", bindAddress, retryDelay, e);
 			}
 			finally {
 				this.socket = null;
 			}
 			try {
-				Thread.sleep(retryDelay);
+				synchronized (this.lock) {
+					// Woken up early by a configuration change
+					if (currentGeneration == this.generation && this.running) {
+						this.lock.wait(retryDelay);
+					}
+				}
 			}
 			catch (InterruptedException e) {
 				break;

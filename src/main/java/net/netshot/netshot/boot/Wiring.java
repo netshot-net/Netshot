@@ -352,8 +352,7 @@ public final class Wiring {
 		// Background services
 		this.oidcDiscovery = new OidcDiscovery(this.oidc, config);
 		this.vaultTokenRefresher = new VaultTokenRefresher(this.transactions, this.vaultManager, config, vaultInstanceRepository);
-		this.syslogServer = config.current().get(SyslogServer.DISABLED) ? null
-			: new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
+		this.syslogServer = new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.snmpTrapReceiver = new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		this.restServer = config.current().get(RestServer.ENABLED) ? new RestServer(this.binder(), config) : null;
 	}
@@ -392,7 +391,9 @@ public final class Wiring {
 
 	/**
 	 * Gets the services of the server, in start order (they're stopped in the reverse order).
-	 * The services disabled by the configuration aren't part of the list.
+	 * The services disabled by the configuration with a restart (the cluster manager, the SSH server, the REST server)
+	 * aren't part of the list; the Syslog server and the SNMP trap receiver, which apply their settings live, are
+	 * (idle while disabled).
 	 *
 	 * @return the services
 	 */
@@ -414,12 +415,7 @@ public final class Wiring {
 		services.add(this.sshClientService);
 		services.add(this.taskManager);
 		// The receivers submit tasks: after the task manager
-		if (this.syslogServer != null) {
-			services.add(this.syslogServer);
-		}
-		else {
-			log.warn("The Syslog server is disabled by configuration.");
-		}
+		services.add(this.syslogServer);
 		services.add(this.snmpTrapReceiver);
 		if (this.sshServer != null) {
 			services.add(this.sshServer);
