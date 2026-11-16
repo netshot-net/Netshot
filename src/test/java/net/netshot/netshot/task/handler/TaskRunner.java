@@ -37,10 +37,10 @@ import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestConfig;
+import net.netshot.netshot.boot.Repositories;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -70,39 +70,40 @@ final class TaskRunner {
 	 */
 	TaskRunner() {
 		Wiring wiring = TestWiring.get();
+		Repositories r = wiring.repositories();
 		TaskSubmitter submitter = task -> {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(TestWiring.get().transactions(), child -> {
+		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(wiring.transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
-		}, TestRepositories.TASK, TestConfig.store());
+		}, r.task(), TestConfig.store());
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
-		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), TestRepositories.deviceReads(wiring.transactions()),
+		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), r.deviceReads(),
 			new AccessSettings(wiring.config()));
 		TaskHandlers handlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
-				TestRepositories.POLICY, TestRepositories.RULE, TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE,
-				TestRepositories.CONFIG, TestRepositories.GROUP),
-			new CheckGroupComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
-				TestRepositories.POLICY, TestRepositories.RULE, TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE,
-				TestRepositories.CONFIG, TestRepositories.GROUP),
-			new CheckGroupSoftwareHandler(TestWiring.get().transactions(), TestRepositories.SOFTWARE_RULE, TestRepositories.HARDWARE_RULE, TestRepositories.DEVICE, TestRepositories.GROUP),
-			new DiscoverDeviceTypeHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager(),
-				TestRepositories.TASK, TestRepositories.CREDENTIAL_SET, TestRepositories.DOMAIN, TestRepositories.DEVICE),
-			new PurgeDatabaseHandler(TestWiring.get().transactions(), TestRepositories.TASK, TestRepositories.BINARY_FILES),
-			new RunDeviceGroupScriptHandler(TestWiring.get().transactions(), orchestrator, TestDrivers.registry(), TestRepositories.DEVICE, TestRepositories.GROUP),
-			new RunDeviceScriptHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors,
-				TestRepositories.DEVICE),
-			new RunDiagnosticsHandler(TestWiring.get().transactions(), TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors,
-				TestRepositories.DEVICE, TestRepositories.DIAGNOSTIC),
-			new RunGroupDiagnosticsHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.DEVICE, TestRepositories.GROUP),
-			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.CREDENTIAL_SET),
-			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator, TestRepositories.DEVICE, TestRepositories.GROUP),
-			new TakeSnapshotHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
-				connectors, TestRepositories.DEVICE, TestConfig.store(), TestRepositories.BINARY_FILES)));
-		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), TestRepositories.TASK, TestConfig.store());
+			new CheckComplianceHandler(wiring.transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
+				r.policy(), r.rule(), r.softwareRule(), r.hardwareRule(), r.device(),
+				r.config(), r.group()),
+			new CheckGroupComplianceHandler(wiring.transactions(), wiring.complianceChecker(), wiring.dynamicGroups(),
+				r.policy(), r.rule(), r.softwareRule(), r.hardwareRule(), r.device(),
+				r.config(), r.group()),
+			new CheckGroupSoftwareHandler(wiring.transactions(), r.softwareRule(), r.hardwareRule(), r.device(), r.group()),
+			new DiscoverDeviceTypeHandler(wiring.transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager(),
+				r.task(), r.credentialSet(), r.domain(), r.device()),
+			new PurgeDatabaseHandler(wiring.transactions(), r.task(), r.binaryFiles()),
+			new RunDeviceGroupScriptHandler(wiring.transactions(), orchestrator, TestDrivers.registry(), r.device(), r.group()),
+			new RunDeviceScriptHandler(wiring.transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors,
+				r.device()),
+			new RunDiagnosticsHandler(wiring.transactions(), TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors,
+				r.device(), r.diagnostic()),
+			new RunGroupDiagnosticsHandler(wiring.transactions(), orchestrator, r.device(), r.group()),
+			new ScanSubnetsHandler(wiring.transactions(), orchestrator, r.credentialSet()),
+			new TakeGroupSnapshotHandler(wiring.transactions(), orchestrator, r.device(), r.group()),
+			new TakeSnapshotHandler(wiring.transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
+				connectors, r.device(), TestConfig.store(), r.binaryFiles())));
+		this.taskJob = new TaskJob(wiring.transactions(), handlers, wiring.domainEvents(), wiring.taskManager(), r.task(), TestConfig.store());
 	}
 
 	/**

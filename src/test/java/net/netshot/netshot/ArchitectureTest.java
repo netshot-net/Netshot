@@ -159,11 +159,11 @@ final class ArchitectureTest {
 
 	/**
 	 * The repositories are built once, by the composition root, and handed to the classes using them by constructor:
-	 * no other class creates one (the command line tools, which have their own entry point, excepted).
+	 * no other class creates one (the command line tools take them from the wiring too).
 	 */
 	@ArchTest
 	static final ArchRule REPOSITORIES_ARE_BUILT_BY_THE_COMPOSITION_ROOT =
-		noClasses().that().resideOutsideOfPackages(ROOT + "boot..", ROOT + "tools..")
+		noClasses().that().resideOutsideOfPackage(ROOT + "boot..")
 			.should().callConstructorWhere(new DescribedPredicate<JavaConstructorCall>("the target is a repository") {
 				@Override
 				public boolean test(JavaConstructorCall call) {

@@ -48,7 +48,6 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the diagnostic use cases, against a real database: error codes and their order,
@@ -69,7 +68,7 @@ class DiagnosticServiceTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		this.transactions = TestWiring.get().transactions();
-		this.service = new DiagnosticService(this.transactions, new DiagnosticRepository(), TestRepositories.DIAGNOSTIC_RESULT, TestRepositories.GROUP);
+		this.service = new DiagnosticService(this.transactions, new DiagnosticRepository(), TestWiring.get().repositories().diagnosticResult(), TestWiring.get().repositories().group());
 		this.groupId = TestDevices.addStaticGroup("Group").id();
 		this.otherGroupId = TestDevices.addStaticGroup("Other group").id();
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");

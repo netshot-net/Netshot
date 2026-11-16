@@ -31,15 +31,14 @@ import org.jooq.DSLContext;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
+import net.netshot.netshot.boot.Repositories;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.domain.Domain;
-import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
@@ -63,7 +62,6 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicGroups;
-import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
@@ -71,7 +69,6 @@ import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.secret.Secret;
-import net.netshot.netshot.platform.database.LocalSecretConverter;
 
 @Slf4j
 public class DemoDataCreator {
@@ -83,7 +80,7 @@ public class DemoDataCreator {
 	private final DynamicGroups dynamicGroups;
 
 	/** The converter of the encrypted columns. */
-	private final LocalSecretConverter secretConverter;
+	private final Repositories repositories;
 
 	private long domainCount = 3;
 	private List<Domain> testDomains = new ArrayList<>();
@@ -98,12 +95,12 @@ public class DemoDataCreator {
 	 *
 	 * @param transactions the transaction support
 	 * @param dynamicGroups the refresher of the dynamic groups
-	 * @param secretConverter the converter of the encrypted columns
+	 * @param repositories the repositories
 	 */
-	public DemoDataCreator(Transactions transactions, DynamicGroups dynamicGroups, LocalSecretConverter secretConverter) {
+	public DemoDataCreator(Transactions transactions, DynamicGroups dynamicGroups, Repositories repositories) {
 		this.transactions = transactions;
 		this.dynamicGroups = dynamicGroups;
-		this.secretConverter = secretConverter;
+		this.repositories = repositories;
 	}
 
 	/**
@@ -681,7 +678,7 @@ public class DemoDataCreator {
 
 	private void createData(DSLContext dsl) {
 		{
-			if (!new DomainRepository().findAll(dsl, ListQuery.ALL).isEmpty()) {
+			if (!this.repositories.domain().findAll(dsl, ListQuery.ALL).isEmpty()) {
 				log.error("Data already exist in the DB (domain found)");
 				return;
 			}
@@ -689,14 +686,14 @@ public class DemoDataCreator {
 			// Create domains
 			for (int i = 1; i <= domainCount; i++) {
 				Domain domain = this.getDomain(i);
-				testDomains.add(new DomainRepository().add(dsl, domain));
+				testDomains.add(this.repositories.domain().add(dsl, domain));
 			}
 			log.info("Created {} domains", domainCount);
 
-			DynamicDeviceGroup allGroup = (DynamicDeviceGroup) new GroupRepository().add(dsl, this.getAllDevicesGroup());
+			DynamicDeviceGroup allGroup = (DynamicDeviceGroup) this.repositories.group().add(dsl, this.getAllDevicesGroup());
 
 			Diagnostic draft = this.getReloadReasonIosSimpleDiagnostic(allGroup);
-			Diagnostic diag = draft.withId(new DiagnosticRepository().add(dsl, draft));
+			Diagnostic diag = draft.withId(this.repositories.diagnostic().add(dsl, draft));
 
 			// Create Cisco IOS devices
 			for (int i = 0; i < ciscoIosDeviceCount; i++) {
@@ -807,7 +804,7 @@ public class DemoDataCreator {
 	}
 
 	private Device store(DSLContext dsl, FakeDevice fake) {
-		CredentialSetRepository credentialSetRepository = new CredentialSetRepository(this.secretConverter);
+		CredentialSetRepository credentialSetRepository = this.repositories.credentialSet();
 		List<DeviceAccess> accesses = new ArrayList<>();
 		for (DeviceAccess access : fake.device().accesses()) {
 			if (access.specificCredentialSet() != null) {
@@ -815,9 +812,9 @@ public class DemoDataCreator {
 			}
 			accesses.add(access);
 		}
-		ConfigRepository configRepository = new ConfigRepository();
-		DiagnosticResultRepository diagnosticResultRepository = new DiagnosticResultRepository();
-		DeviceRepository deviceRepository = new DeviceRepository(configRepository, diagnosticResultRepository, credentialSetRepository);
+		ConfigRepository configRepository = this.repositories.config();
+		DiagnosticResultRepository diagnosticResultRepository = this.repositories.diagnosticResult();
+		DeviceRepository deviceRepository = this.repositories.device();
 		Device added = deviceRepository.add(dsl, fake.device().toBuilder().accesses(accesses).build());
 		Long lastConfigId = null;
 		for (Config config : fake.configs()) {
@@ -843,7 +840,7 @@ public class DemoDataCreator {
 			log.info("Initializing access to the database.");
 			application.start("database");
 			Wiring wiring = application.wiring();
-			new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups(), wiring.secretConverter()).createData();
+			new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups(), wiring.repositories()).createData();
 		}
 		catch (Exception e) {
 			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());

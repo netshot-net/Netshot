@@ -60,7 +60,6 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.TestRepositories;
 
 /**
  * Tests of the task use cases, against a real database, a recording task submitter and a fake task engine.
@@ -120,7 +119,7 @@ class TaskServiceTest {
 			}
 		};
 		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, TestDrivers.registry(),
-			TestRepositories.DEVICE, TestRepositories.DOMAIN, TestRepositories.GROUP);
+			TestWiring.get().repositories().device(), TestWiring.get().repositories().domain(), TestWiring.get().repositories().group());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.domainId = domain.id();
 		Device device = TestDevices.add(Device.create("CiscoIOS12", "10.30.0.1", domain, AUTHOR).toBuilder().name("router-1").build());

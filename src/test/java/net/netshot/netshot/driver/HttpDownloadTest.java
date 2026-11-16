@@ -58,9 +58,9 @@ import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 import net.netshot.netshot.vault.SecretResolver;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * Tests for {@code Http.download()}/{@code http.download(...)}: the
@@ -238,7 +238,7 @@ class HttpDownloadTest {
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, TestRepositories.BINARY_FILES);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, new BinaryFileStorage(TestConfig.store()));
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, null);
 		accessManager.forceClientForTest(fakeHttp, credentials);
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
@@ -250,11 +250,11 @@ class HttpDownloadTest {
 		ConfigBinaryFileAttribute fileAttribute = (ConfigBinaryFileAttribute) config.getAttribute("backupArchive");
 		Assertions.assertNotNull(fileAttribute, "The backupArchive attribute wasn't set");
 		Assertions.assertEquals(payload.length, fileAttribute.fileSize(), "The stored file size is incorrect");
-		Assertions.assertArrayEquals(payload, Files.readAllBytes(TestRepositories.BINARY_FILES.pendingFilePath(fileAttribute, device.getId())),
+		Assertions.assertArrayEquals(payload, Files.readAllBytes(new BinaryFileStorage(TestConfig.store()).pendingFilePath(fileAttribute, device.getId())),
 			"The stored file content doesn't match the server response");
 		Assertions.assertEquals(
 			".tmp.%d_cfg0_backupArchive_%s.data".formatted(device.getId(), fileAttribute.uid()),
-			TestRepositories.BINARY_FILES.pendingFilePath(fileAttribute, device.getId()).getFileName().toString(),
+			new BinaryFileStorage(TestConfig.store()).pendingFilePath(fileAttribute, device.getId()).getFileName().toString(),
 			"The pending file name should embed the device id, cfg0 placeholder, attribute name and uid");
 	}
 
@@ -309,7 +309,7 @@ class HttpDownloadTest {
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpAuthOverrideTestDriver", null, domain, "test").toBuilder();
 		DeviceAccess httpAccess = DeviceAccess.of("http").toBuilder().address("127.0.0.1").port(this.port).build();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(List.of(httpAccess)).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, TestRepositories.BINARY_FILES);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, new BinaryFileStorage(TestConfig.store()));
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, Set.of(credentials));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);

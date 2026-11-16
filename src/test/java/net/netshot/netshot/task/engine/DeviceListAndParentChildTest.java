@@ -41,7 +41,6 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestConfig;
 
 @DatabaseTest
@@ -134,7 +133,7 @@ class DeviceListAndParentChildTest {
 	 */
 	private ChildTaskOrchestrator orchestrator() {
 		return new ChildTaskOrchestrator(TestWiring.get().transactions(), _ -> {
-		}, TestRepositories.TASK, TestConfig.store());
+		}, TestWiring.get().repositories().task(), TestConfig.store());
 	}
 
 	@Test

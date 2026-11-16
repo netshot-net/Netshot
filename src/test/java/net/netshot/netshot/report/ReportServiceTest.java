@@ -66,7 +66,6 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.TestRepositories;
 import net.netshot.netshot.testing.TestConfig;
 
 /**
@@ -140,10 +139,10 @@ class ReportServiceTest {
 		StaticDeviceGroup hidden = TestDevices.addStaticGroup("Report hidden group", d4);
 		TestWiring.get().transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
 		TestDevices.addStaticGroup("Report empty group");
-		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository(), TestRepositories.GROUP);
+		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository(), TestWiring.get().repositories().group());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
 			RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(),
-				TestRepositories.deviceReads(TestWiring.get().transactions())), TestRepositories.DEVICE);
+				TestWiring.get().repositories().deviceReads()), TestWiring.get().repositories().device());
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).id();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
 		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();
@@ -167,7 +166,7 @@ class ReportServiceTest {
 
 	private void snapshot(DSLContext dsl, long deviceId, Task.Status status, long date) {
 		Instant when = Instant.ofEpochMilli(date);
-		new TaskRepository().add(dsl, TakeSnapshotTask.of(TestRepositories.DEVICE.find(dsl, deviceId), "snapshot", "tester", true, false, false)
+		new TaskRepository().add(dsl, TakeSnapshotTask.of(TestWiring.get().repositories().device().find(dsl, deviceId), "snapshot", "tester", true, false, false)
 			.toBuilder()
 			.status(status)
 			.creationDate(when)
