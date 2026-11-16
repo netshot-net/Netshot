@@ -35,7 +35,7 @@ compliance/ userscript/ task/ report/ hook/ aaa/ cluster/ system/ tools/
 
 - **Feature packages** (`inventory`, `task`, `compliance`...) hold the domain model of the feature, its repositories and its services. The domain model is made of plain immutable records (with a Lombok `@Builder(toBuilder = true)` when they have many components), a sealed interface for a family of types (`Hook` and `WebHook`; `User` with `UiUser` and `ApiToken`; `Rule`, `DeviceCredentialSet`, `DeviceAttribute`, `TaskSpec`...), with no mapping annotation (see [Database access with jOOQ](#database-access-with-jooq)).
 - **Domain records** carry the invariants on their own state only. No database access, no I/O, no static registry lookup, and no Jackson/JAXB serialization annotation (no API channel serializes a domain record: the DTOs and the webhook payloads are written by the mappers). Where some code must change an object step by step (the device scripts and drivers on a device or a configuration, a running task), a separate mutable class holds the working state: `DeviceDraft`, `ConfigDraft`, `TaskRun`.
-- **Repositories** contain queries only; the `DSLContext` is passed explicitly as first parameter.
+- **Repositories** contain queries only; the `DSLContext` is passed explicitly as first parameter. They hold no state: `boot.Wiring` builds one of each and hands it by constructor to the classes using it (services, task handlers, the task engine...); no other class creates a repository (`ArchitectureTest.REPOSITORIES_ARE_BUILT_BY_THE_COMPOSITION_ROOT`; the command line tools of `tools`, which have their own entry point, excepted). A repository using another one (`DeviceRepository` saves the configuration and the diagnostic results of a snapshot) receives it by constructor too. The device accesses and the device scripts read the database through `access.DeviceReads` (in `Connectors`), the credential sets are built by `credentials.CredentialSetAssembler`: both are built by the wiring as well.
 - **Services** implement the use cases and own the transaction boundaries (see [Transactions](#transactions)). They throw neutral exceptions (see [Errors](#errors)), and know nothing of HTTP.
 - **`api.*`** are the API channels. Each channel owns its DTOs, even when two channels have similar ones (the REST task representation is not the webhook task payload). A channel translates between the wire format and the services. `api.rest` and `api.hook` do not depend on each other; they share services and domain records, not DTOs.
 - **`platform`** knows nothing about the features.
@@ -236,7 +236,7 @@ The helpers used by the tests of a single package stay in that package: `cluster
 
 ## Wiring
 
-`boot.Wiring` is the composition root: it builds the long-lived objects (`Transactions`, then each repository and service, in dependency order) without side effect, and lists the [services](#configuration-and-services) of the server in start order (`Wiring.services()`). `Netshot.main` builds it with `Wiring.create(config)` right after the schema update, and hands the services to a `ServiceManager`. Tests needing a database call `Wiring.init()`, which also initializes the database access (the connection pools).
+`boot.Wiring` is the composition root: it builds the long-lived objects (`Transactions`, then the repositories, one of each, then the services, in dependency order) without side effect, and lists the [services](#configuration-and-services) of the server in start order (`Wiring.services()`). `Netshot.main` builds it with `Wiring.create(config)` right after the schema update, and hands the services to a `ServiceManager`. Tests needing a database call `Wiring.init()`, which also initializes the database access (the connection pools).
 
 - **Adding a service** (a use case class): build it in the `Wiring` constructor, give it an accessor, and bind it in `boot.WiringBinder`.
 - **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, given to the `RestServer` service which gives it to `V0Application` and `V1Application`, which register it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
@@ -328,11 +328,11 @@ For each endpoint note the status codes and the way they are chosen (`suggestRet
 
 ### 5. Wiring
 
-In `boot.Wiring.init()` build the repository and the service (a `new` chain, dependencies first), add an accessor, and bind the service in `boot.WiringBinder`.
+In `boot.Wiring` build the repository (once: the other classes using it receive the same instance) and the service (a `new` chain, dependencies first), add an accessor, and bind the service in `boot.WiringBinder`.
 
 ### 6. Service tests
 
-Write `<Entity>ServiceTest` in the package of the service, annotated `@DatabaseTest` (see `inventory.device.DeviceServiceTest`: its own database, migrated and wired by the extension, the service built in `@BeforeAll` with the transaction support of the test wiring, `TestWiring.get().transactions()`, its repository and a recording `TaskSubmitter`; see [Test layout](#test-layout)). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, and the side effects. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
+Write `<Entity>ServiceTest` in the package of the service, annotated `@DatabaseTest` (see `inventory.device.DeviceServiceTest`: its own database, migrated and wired by the extension, the service built in `@BeforeAll` with the transaction support of the test wiring, `TestWiring.get().transactions()`, its repositories (`testing.TestRepositories` holds one of each) and a recording `TaskSubmitter`; see [Test layout](#test-layout)). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, and the side effects. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
 
 ### 7. DTOs and mapper
 

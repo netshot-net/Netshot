@@ -155,6 +155,22 @@ final class ArchitectureTest {
 			})
 			.allowEmptyShould(true);
 
+	/**
+	 * The repositories are built once, by the composition root, and handed to the classes using them by constructor:
+	 * no other class creates one (the command line tools, which have their own entry point, excepted).
+	 */
+	@ArchTest
+	static final ArchRule REPOSITORIES_ARE_BUILT_BY_THE_COMPOSITION_ROOT =
+		noClasses().that().resideOutsideOfPackages(ROOT + "boot..", ROOT + "tools..")
+			.should().callConstructorWhere(new DescribedPredicate<JavaConstructorCall>("the target is a repository") {
+				@Override
+				public boolean test(JavaConstructorCall call) {
+					JavaClass owner = call.getTargetOwner();
+					return owner.getPackageName().startsWith(ROOT) && owner.getSimpleName().endsWith("Repository");
+				}
+			})
+			.allowEmptyShould(true);
+
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
 	@ArchTest
 	static final ArchRule API_DOES_NOT_USE_THE_DATABASE = 
