@@ -182,6 +182,11 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	}
 
 	@Override
+	public String id() {
+		return "snmp-trap-receiver";
+	}
+
+	@Override
 	public String name() {
 		return "SNMP trap receiver";
 	}

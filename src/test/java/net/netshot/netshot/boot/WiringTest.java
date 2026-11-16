@@ -47,8 +47,8 @@ class WiringTest {
 	@DisplayName("The services, in start order")
 	void services() {
 		Wiring wiring = TestWiring.set(Wiring.init());
-		Assertions.assertEquals(List.of("database", "device drivers", "OIDC IdP discovery", "task lock manager",
-			"Vault token refresher", "SSH client", "task manager", "Syslog server", "SNMP trap receiver", "SSH/SCP/SFTP server",
-			"Web/REST server"), wiring.services().stream().map(Service::name).toList());
+		Assertions.assertEquals(List.of("database", "device-drivers", "oidc-discovery", "task-lock-manager",
+			"vault-token-refresher", "ssh-client", "task-manager", "syslog-server", "snmp-trap-receiver", "ssh-server",
+			"rest-server"), wiring.services().stream().map(Service::id).toList());
 	}
 }

@@ -299,8 +299,13 @@ public final class TaskManager implements Service, TaskEngine {
 	}
 
 	@Override
+	public String id() {
+		return "task-manager";
+	}
+
+	@Override
 	public String name() {
-		return "task manager";
+		return "Task manager";
 	}
 
 	@Override
@@ -313,6 +318,24 @@ public final class TaskManager implements Service, TaskEngine {
 	@Override
 	public void stop() {
 		this.shutdown();
+	}
+
+	/**
+	 * Whether the task manager runs: its schedulers are started and not shut down.
+	 *
+	 * @return true if healthy
+	 */
+	@Override
+	public boolean isHealthy() {
+		Scheduler master = this.masterScheduler;
+		Scheduler runner = this.runnerScheduler;
+		try {
+			return master != null && runner != null && master.isStarted() && !master.isShutdown()
+				&& runner.isStarted() && !runner.isShutdown();
+		}
+		catch (SchedulerException e) {
+			return false;
+		}
 	}
 
 	@Override

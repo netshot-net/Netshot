@@ -35,8 +35,13 @@ public final class DatabaseService implements Service {
 	private volatile ConnectionPools pools;
 
 	@Override
-	public String name() {
+	public String id() {
 		return "database";
+	}
+
+	@Override
+	public String name() {
+		return "Database";
 	}
 
 	@Override

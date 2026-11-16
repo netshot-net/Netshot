@@ -38,6 +38,11 @@ class ServiceManagerTest {
 	private Service service(String name, boolean failStart, boolean failStop) {
 		return new Service() {
 			@Override
+			public String id() {
+				return name;
+			}
+
+			@Override
 			public String name() {
 				return name;
 			}

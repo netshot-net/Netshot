@@ -111,9 +111,11 @@ class TaskManagerShutdownTest {
 	void scheduledTaskIsKept() throws Exception {
 		Task task = TestWiring.get().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true)
 			.scheduledIn(60));
+		Assertions.assertTrue(TestWiring.get().taskManager().isHealthy(), "Unhealthy with started schedulers");
 		long start = System.currentTimeMillis();
 		TestWiring.get().taskManager().shutdown();
 		Assertions.assertTrue(System.currentTimeMillis() - start < 1000, "The stop waited without running task");
+		Assertions.assertFalse(TestWiring.get().taskManager().isHealthy(), "Healthy once stopped");
 		Assertions.assertEquals(Status.SCHEDULED, TestTasks.find(task.id()).status());
 	}
 }

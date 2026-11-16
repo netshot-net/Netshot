@@ -142,8 +142,6 @@ public final class Wiring {
 
 	private final DatabaseService database;
 	private final Transactions transactions;
-	// Configuration
-	private final ConfigStore config;
 	// Drivers
 	private final DriverRegistry driverRegistry;
 	private final DynamicGroups dynamicGroups;
@@ -223,7 +221,6 @@ public final class Wiring {
 	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
 		this.database = new DatabaseService();
 		this.transactions = new Transactions(this.database);
-		this.config = config;
 		// Repositories (stateless: one of each, shared)
 		ConfigRepository configRepository = new ConfigRepository();
 		DiagnosticResultRepository diagnosticResultRepository = new DiagnosticResultRepository();

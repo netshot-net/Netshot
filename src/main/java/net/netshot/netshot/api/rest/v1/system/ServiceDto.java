@@ -25,8 +25,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * A service of the server (task manager, Syslog server, web server...).
  *
- * @param display the name of the service
- * @param name the name of the service
+ * @param display the name of the service, for display (e.g. {@code Syslog server})
+ * @param name the identifier of the service, stable (e.g. {@code syslog-server})
  * @param state the state ({@code NEW}, {@code STARTING}, {@code RUNNING}, {@code STOPPING}, {@code STOPPED} or
  *        {@code FAILED})
  * @param healthy whether the service is running and works as expected

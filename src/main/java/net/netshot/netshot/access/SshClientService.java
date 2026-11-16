@@ -135,6 +135,11 @@ public final class SshClientService implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "ssh-client";
+	}
+
+	@Override
 	public String name() {
 		return "SSH client";
 	}

@@ -252,8 +252,13 @@ public class TaskLockManager implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "task-lock-manager";
+	}
+
+	@Override
 	public String name() {
-		return "task lock manager";
+		return "Task lock manager";
 	}
 
 	@Override

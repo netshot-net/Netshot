@@ -94,6 +94,11 @@ public final class OidcDiscovery implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "oidc-discovery";
+	}
+
+	@Override
 	public String name() {
 		return "OIDC IdP discovery";
 	}

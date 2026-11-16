@@ -147,6 +147,11 @@ public final class RestServer implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "rest-server";
+	}
+
+	@Override
 	public String name() {
 		return "Web/REST server";
 	}

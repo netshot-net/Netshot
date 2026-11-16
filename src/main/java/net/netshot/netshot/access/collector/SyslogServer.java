@@ -109,6 +109,11 @@ public final class SyslogServer implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "syslog-server";
+	}
+
+	@Override
 	public String name() {
 		return "Syslog server";
 	}

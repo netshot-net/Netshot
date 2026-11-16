@@ -380,6 +380,11 @@ public final class SshServer implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "ssh-server";
+	}
+
+	@Override
 	public String name() {
 		return "SSH/SCP/SFTP server";
 	}
