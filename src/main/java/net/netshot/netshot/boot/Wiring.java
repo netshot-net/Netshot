@@ -82,7 +82,6 @@ import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
@@ -150,7 +149,6 @@ public final class Wiring {
 	private final DynamicGroups dynamicGroups;
 	// Vault client
 	private final VaultManager vaultManager;
-	private final VaultInstanceRepository vaultInstanceRepository;
 	// SSH client of the device accesses
 	private final SshClientService sshClientService;
 	// Device
@@ -205,6 +203,12 @@ public final class Wiring {
 	private final ClusterManager clusterManager;
 	// Receivers
 	private final SshServer sshServer;
+	private final SyslogServer syslogServer;
+	private final SnmpTrapReceiver snmpTrapReceiver;
+	// Background services
+	private final OidcDiscovery oidcDiscovery;
+	private final VaultTokenRefresher vaultTokenRefresher;
+	private final RestServer restServer;
 	// Task handlers
 	private final TaskHandlers taskHandlers;
 	private final TaskJobFactory taskJobFactory;
@@ -233,16 +237,16 @@ public final class Wiring {
 		HardwareRuleRepository hardwareRuleRepository = new HardwareRuleRepository();
 		TaskRepository taskRepository = new TaskRepository();
 		DiagnosticRepository diagnosticRepository = new DiagnosticRepository();
-		this.vaultInstanceRepository = new VaultInstanceRepository();
+		VaultInstanceRepository vaultInstanceRepository = new VaultInstanceRepository();
 		UserRepository userRepository = new UserRepository();
-		CredentialSetAssembler credentialSetAssembler = new CredentialSetAssembler(this.vaultInstanceRepository);
+		CredentialSetAssembler credentialSetAssembler = new CredentialSetAssembler(vaultInstanceRepository);
 		DeviceReads deviceReads = new DeviceReads(this.transactions, deviceRepository, configRepository, diagnosticResultRepository,
 			credentialSetRepository);
 		// Drivers
 		this.driverRegistry = driverRegistry;
 		this.dynamicGroups = new DynamicGroups(this.transactions, driverRegistry, groupRepository);
 		// Vault (the secret resolver of the device accesses)
-		this.vaultManager = new VaultManager(config, this.transactions, this.vaultInstanceRepository);
+		this.vaultManager = new VaultManager(config, this.transactions, vaultInstanceRepository);
 		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
 		this.lockManager = TaskLockManager.create(clustered);
@@ -304,7 +308,7 @@ public final class Wiring {
 		// Credentials
 		this.credentialSetService = new CredentialSetService(this.transactions, credentialSetRepository, domainRepository, credentialSetAssembler);
 		// Vault
-		this.vaultInstanceService = new VaultInstanceService(this.transactions, this.vaultInstanceRepository,
+		this.vaultInstanceService = new VaultInstanceService(this.transactions, vaultInstanceRepository,
 			vaultInstanceId -> {
 				this.vaultManager.invalidate(vaultInstanceId);
 				if (this.clusterManager != null) {
@@ -342,6 +346,13 @@ public final class Wiring {
 				connectors, deviceRepository)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager, taskRepository);
 		this.taskManager.setJobFactory(this.taskJobFactory);
+		// Background services
+		this.oidcDiscovery = new OidcDiscovery(this.oidc, config);
+		this.vaultTokenRefresher = new VaultTokenRefresher(this.transactions, this.vaultManager, config, vaultInstanceRepository);
+		this.syslogServer = config.current().get(SyslogServer.DISABLED) ? null
+			: new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
+		this.snmpTrapReceiver = new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
+		this.restServer = config.current().get(RestServer.ENABLED) ? new RestServer(this.binder()) : null;
 	}
 
 	/**
@@ -383,11 +394,10 @@ public final class Wiring {
 	 * @return the services
 	 */
 	public List<Service> services() {
-		Config current = this.config.current();
 		List<Service> services = new ArrayList<>();
 		services.add(this.database);
 		services.add(this.driverRegistry);
-		services.add(new OidcDiscovery(this.oidc, this.config));
+		services.add(this.oidcDiscovery);
 		// Before the clustering manager, which can start running tasks
 		services.add(this.lockManager);
 		if (this.clusterManager != null) {
@@ -396,18 +406,18 @@ public final class Wiring {
 		else {
 			log.info("High Availability is not enabled.");
 		}
-		services.add(new VaultTokenRefresher(this.transactions, this.vaultManager, this.config, this.vaultInstanceRepository));
+		services.add(this.vaultTokenRefresher);
 		// Before the task manager, which runs the tasks connecting to the devices
 		services.add(this.sshClientService);
 		services.add(this.taskManager);
 		// The receivers submit tasks: after the task manager
-		if (current.get(SyslogServer.DISABLED)) {
-			log.warn("The Syslog server is disabled by configuration.");
+		if (this.syslogServer != null) {
+			services.add(this.syslogServer);
 		}
 		else {
-			services.add(new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
+			log.warn("The Syslog server is disabled by configuration.");
 		}
-		services.add(new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
+		services.add(this.snmpTrapReceiver);
 		if (this.sshServer != null) {
 			services.add(this.sshServer);
 		}
@@ -415,8 +425,8 @@ public final class Wiring {
 			log.warn("The SSH server is disabled by configuration.");
 		}
 		// Last: the server is ready when it accepts the requests
-		if (current.get(RestServer.ENABLED)) {
-			services.add(new RestServer(this.binder()));
+		if (this.restServer != null) {
+			services.add(this.restServer);
 		}
 		else {
 			log.info("HTTP server is not enabled.");
