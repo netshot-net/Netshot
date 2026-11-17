@@ -26,9 +26,9 @@ import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.platform.tls.Truststore;
 
 /**
- * Prepares the process before the application is built, once per JVM: loads the configuration store, sets up the
+ * Initializes the process before the application is built, once per JVM: loads the configuration store, sets up the
  * logging, the crypto libraries and the truststore. Used by the server ({@code Netshot.main}) and by the tools, so
- * that they all start the same way (the tests, which build several applications, prepare what they need
+ * that they all start the same way (the tests, which build several applications, set up what they need
  * themselves).
  */
 @Slf4j
@@ -38,9 +38,10 @@ public final class Bootstrap {
 	}
 
 	/**
-	 * Loads the configuration store from its source, then prepares the process, in this order:
+	 * Initializes the process, once per JVM (a second call is a mistake: the crypto libraries, the logging and the
+	 * truststore are global to the JVM), in this order:
 	 * <ol>
-	 * <li>the configuration is loaded, and the logging is set up from it;</li>
+	 * <li>the configuration store is loaded from its source, and the logging is set up from it;</li>
 	 * <li>the crypto libraries are registered, before anything initializes the SSH library, which checks the
 	 * available crypto providers (EdDSA, X25519...) only once;</li>
 	 * <li>the catalog of the settings is built (it initializes the classes which declare them, the SSH ones
@@ -54,7 +55,7 @@ public final class Bootstrap {
 	 * @throws BootstrapException if the configuration can't be read or checked, or the logging or the crypto
 	 *     libraries can't be set up
 	 */
-	public static void prepare(ConfigStore config) throws BootstrapException {
+	public static void initialize(ConfigStore config) throws BootstrapException {
 		load(config);
 		registerCryptoLibraries(config.current());
 		checkSettings(config);

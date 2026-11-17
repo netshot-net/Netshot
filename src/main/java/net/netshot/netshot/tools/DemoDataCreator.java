@@ -838,7 +838,7 @@ public class DemoDataCreator {
 	public static void main(String[] args) {
 		try {
 			ConfigStore config = ConfigStore.ofFiles(ToolCommandLine.configFiles(args));
-			Bootstrap.prepare(config);
+			Bootstrap.initialize(config);
 			try (Application application = Application.create(config)) {
 				application.migrate();
 				log.info("Initializing access to the database.");
