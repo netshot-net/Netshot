@@ -135,7 +135,7 @@ public record TaskModule(
 			new TakeGroupSnapshotHandler(transactions, orchestrator, r.device(), r.group()),
 			new TakeSnapshotHandler(transactions, drivers, submitter, autoSnapshots, access.sshServer().orElse(null), dynamicGroups,
 				connectors, r.device(), config, r.binaryFiles())));
-		TaskJobFactory taskJobFactory = new TaskJobFactory(taskHandlers, core.domainEvents(), taskManager, r.task(), config);
+		TaskJobFactory taskJobFactory = new TaskJobFactory(transactions, taskHandlers, core.domainEvents(), taskManager, lockManager, r.task(), config);
 		taskManager.setJobFactory(taskJobFactory);
 		TaskService taskService = new TaskService(transactions, r.task(), submitter, taskManager, drivers, r.device(), r.domain(), r.group());
 		DeviceCreationService deviceCreationService = new DeviceCreationService(transactions, r.device(), submitter,

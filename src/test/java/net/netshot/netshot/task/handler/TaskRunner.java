@@ -103,7 +103,8 @@ final class TaskRunner {
 			new TakeGroupSnapshotHandler(wiring.core().transactions(), orchestrator, r.device(), r.group()),
 			new TakeSnapshotHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.core().dynamicGroups(),
 				connectors, r.device(), TestConfig.store(), r.binaryFiles())));
-		this.taskJob = new TaskJob(wiring.core().transactions(), handlers, wiring.core().domainEvents(), wiring.tasks().taskManager(), r.task(), TestConfig.store());
+		this.taskJob = new TaskJob(wiring.core().transactions(), handlers, wiring.core().domainEvents(), wiring.tasks().taskManager(),
+			wiring.tasks().lockManager(), r.task(), () -> 3000);
 	}
 
 	/**
