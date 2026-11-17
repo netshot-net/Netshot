@@ -45,13 +45,12 @@ import net.netshot.netshot.aaa.auth.LoginService;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.ClientAddress;
 import net.netshot.netshot.api.rest.SessionAuthenticator;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 
@@ -72,7 +71,7 @@ public class SessionResource {
 
 	private final LoginService loginService;
 	private final Oidc oidc;
-	private final ConfigStore config;
+	private final ClientAddress clientAddress;
 	private final V1Links links;
 	private final AuthMapper authMapper;
 
@@ -90,15 +89,15 @@ public class SessionResource {
 	 *
 	 * @param loginService the login use case
 	 * @param oidc the OIDC authentication (for the end session endpoint)
-	 * @param config the configuration store
+	 * @param clientAddress the address of the client of a request
 	 * @param links the paths of the v1 objects
 	 * @param authMapper maps the auth objects
 	 */
 	@Inject
-	public SessionResource(LoginService loginService, Oidc oidc, ConfigStore config, V1Links links, AuthMapper authMapper) {
+	public SessionResource(LoginService loginService, Oidc oidc, ClientAddress clientAddress, V1Links links, AuthMapper authMapper) {
 		this.loginService = loginService;
 		this.oidc = oidc;
-		this.config = config;
+		this.clientAddress = clientAddress;
 		this.links = links;
 		this.authMapper = authMapper;
 	}
@@ -120,7 +119,7 @@ public class SessionResource {
 		+ "comply with the password policy is a 400. Useless when using API tokens.")
 	public SessionDto login(SessionRequest credentials) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		LoginAttempt attempt = toAttempt(credentials, LoggerFilter.getClientAddress(this.request, this.config.current()));
+		LoginAttempt attempt = toAttempt(credentials, this.clientAddress.of(this.request));
 		V1Response.noStore(this.request);
 		// Any exception thrown by the service (expired password...) leaves the existing session untouched
 		UiUser user = this.loginService.authenticate(attempt);

@@ -49,10 +49,9 @@ import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.ClientAddress;
 import net.netshot.netshot.api.rest.SessionAuthenticator;
 import net.netshot.netshot.api.rest.v0.NetshotAuthenticationRequiredException;
-import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * The REST resource of the current user: log in, log out, read the current user and change its
@@ -79,7 +78,8 @@ public class LoginResource {
 
 	/** The OIDC authentication. */
 	private final Oidc oidc;
-	private final ConfigStore config;
+	/** The address of the client of a request. */
+	private final ClientAddress clientAddress;
 
 	/**
 	 * Instantiates the resource.
@@ -87,14 +87,14 @@ public class LoginResource {
 	 * @param loginService the login use case
 	 * @param userService the user use cases
 	 * @param oidc the OIDC authentication (for the end session endpoint)
-	 * @param config the configuration store
+	 * @param clientAddress the address of the client of a request
 	 */
 	@Inject
-	public LoginResource(LoginService loginService, UserService userService, Oidc oidc, ConfigStore config) {
+	public LoginResource(LoginService loginService, UserService userService, Oidc oidc, ClientAddress clientAddress) {
 		this.loginService = loginService;
 		this.userService = userService;
 		this.oidc = oidc;
-		this.config = config;
+		this.clientAddress = clientAddress;
 	}
 
 	/**
@@ -180,7 +180,7 @@ public class LoginResource {
 	public UserDto login(LoginRequest rsLogin) throws WebApplicationException {
 		log.debug("REST authentication request, username {}.", rsLogin.username());
 
-		String remoteAddress = LoggerFilter.getClientAddress(this.request, this.config.current());
+		String remoteAddress = this.clientAddress.of(this.request);
 		// Any exception thrown by the service leaves the existing session untouched
 		UiUser user = this.loginService.authenticate(UserMapper.toAttempt(rsLogin, remoteAddress));
 

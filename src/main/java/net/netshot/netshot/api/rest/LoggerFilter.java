@@ -32,11 +32,8 @@ import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.config.Config;
 
 /**
  * Filter to log requests.
@@ -47,47 +44,24 @@ public class LoggerFilter implements ContainerResponseFilter {
 	/** Authentication, Authorization, Accounting logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
-	/** Whether the client address is read from the X-Forwarded-For header (behind a reverse proxy). */
-	static final Setting<Boolean> TRUST_X_FORWARDED_FOR = Setting.bool("netshot.http.trustxforwardedfor").defaultValue(false).live();
-
 	@Context
 	private HttpServletRequest httpRequest;
 
 	/** The TACACS+ authentication (accounting of the requests). */
 	private final Tacacs tacacs;
-	private final ConfigStore config;
+	/** The address of the client of a request. */
+	private final ClientAddress clientAddress;
 
 	/**
 	 * Creates the filter.
 	 *
 	 * @param tacacs the TACACS+ authentication (accounting of the requests)
-	 * @param config the configuration store
+	 * @param clientAddress the address of the client of a request
 	 */
 	@Inject
-	public LoggerFilter(Tacacs tacacs, ConfigStore config) {
+	public LoggerFilter(Tacacs tacacs, ClientAddress clientAddress) {
 		this.tacacs = tacacs;
-		this.config = config;
-	}
-
-	/**
-	 * Guess the client IP address based on X-Forwarded-For header (if present).
-	 * @param request = the http request
-	 * @param config the configuration (whether the X-Forwarded-For header is trusted)
-	 * @return the probable client IP address
-	 */
-	public static String getClientAddress(HttpServletRequest request, Config config) {
-		String address = null;
-		if (config.get(TRUST_X_FORWARDED_FOR)) {
-			String forwardedFor = request.getHeader("X-Forwarded-For");
-			if (forwardedFor != null) {
-				String[] addresses = forwardedFor.split(",");
-				address = addresses[0].trim();
-			}
-		}
-		if (address == null) {
-			address = request.getRemoteAddr();
-		}
-		return address;
+		this.clientAddress = clientAddress;
 	}
 
 	@Override
@@ -101,7 +75,7 @@ public class LoggerFilter implements ContainerResponseFilter {
 			//
 		}
 		String method = requestContext.getMethod().toUpperCase();
-		String remoteAddr = LoggerFilter.getClientAddress(this.httpRequest, this.config.current());
+		String remoteAddr = this.clientAddress.of(this.httpRequest);
 		if ("GET".equals(method)) {
 			AAA_LOG.debug("Request from {} ({}) - {} - \"{} {}\" - {}.", remoteAddr,
 				requestContext.getHeaderString(HttpHeaders.USER_AGENT), user == null ? "<none>" : user.username(),
