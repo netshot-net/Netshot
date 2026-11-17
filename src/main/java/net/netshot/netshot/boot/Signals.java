@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.boot;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -49,20 +48,20 @@ public final class Signals {
 	}
 
 	/**
-	 * Reloads the configuration of the application on HUP. The reload runs in its own thread (the reloads are run
-	 * one at a time, out of the signal dispatcher of the JVM, along with what the components do on a change).
+	 * Reloads the configuration of the application on HUP, from the files given at startup. The reload runs in its
+	 * own thread (the reloads are run one at a time, out of the signal dispatcher of the JVM, along with what the
+	 * components do on a change).
 	 *
 	 * @param application the application
-	 * @param files the configuration files to reload from
 	 */
-	public static void reloadOnHangup(Application application, List<String> files) {
+	public static void reloadOnHangup(Application application) {
 		ExecutorService reloader = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotReload", true));
 		try {
-			Signal.handle(new Signal("HUP"), _ -> reloader.execute(() -> application.reload(files)));
+			Signal.handle(new Signal("HUP"), _ -> reloader.execute(application::reload));
 		}
 		catch (IllegalArgumentException e) {
 			reloader.shutdown();
-			log.warn("The HUP signal isn't available on this platform: the configuration can't be reloaded.");
+			log.warn("The HUP signal isn't available on this platform: the configuration can't be reloaded by signal.");
 		}
 	}
 }

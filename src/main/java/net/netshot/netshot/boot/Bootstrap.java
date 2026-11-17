@@ -20,10 +20,9 @@ package net.netshot.netshot.boot;
 
 import java.util.List;
 
-import org.slf4j.MarkerFactory;
-
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigException;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.platform.tls.Truststore;
@@ -52,14 +51,15 @@ public final class Bootstrap {
 	 * the catalog. The logging is set up from each load, and again on each change of the configuration (first, so
 	 * that the other changes are logged accordingly).</p>
 	 *
-	 * @param files the configuration files to look at, in sequence (the first readable one is used)
+	 * @param files the configuration files to look at, in sequence (the first readable one is used), on startup and
+	 *     on each reload
 	 * @return the configuration store, holding the loaded configuration
 	 * @throws BootstrapException if the configuration can't be read, or the logging or the crypto libraries can't be
 	 *     set up
 	 */
 	public static ConfigStore load(List<String> files) throws BootstrapException {
-		ConfigStore config = new ConfigStore(Config.empty());
-		read(config, files);
+		ConfigStore config = new ConfigStore(() -> Config.load(files));
+		read(config);
 		try {
 			log.info("Registering crypto libraries");
 			BouncyCastleLoader.registerBouncyCastle(config.current());
@@ -68,7 +68,7 @@ public final class Bootstrap {
 			throw new BootstrapException(String.valueOf(e.getMessage()), e);
 		}
 		config.setCatalog(NetshotSettings.catalog());
-		read(config, files);
+		read(config);
 		config.addListener(LoggingSetup::apply);
 		config.catalog().warnUnknownItems(config.current());
 		log.info("Checking current JVM.");
@@ -79,16 +79,18 @@ public final class Bootstrap {
 	}
 
 	/**
-	 * Reads the configuration from the files into the store, and sets up the logging from it.
+	 * Loads the configuration into the store from its source, and sets up the logging from it.
 	 *
 	 * @param config the configuration store
-	 * @param files the configuration files to look at, in sequence
-	 * @throws BootstrapException if the configuration can't be read or the logging can't be set up
+	 * @throws BootstrapException if the configuration can't be read (the message tells why) or the logging can't be
+	 *     set up
 	 */
-	private static void read(ConfigStore config, List<String> files) throws BootstrapException {
-		if (!config.load(() -> Config.load(files))) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
-			throw new BootstrapException("Unable to read the configuration.");
+	private static void read(ConfigStore config) throws BootstrapException {
+		try {
+			config.load();
+		}
+		catch (ConfigException e) {
+			throw new BootstrapException("Unable to read the configuration: " + e.getMessage());
 		}
 		if (!LoggingSetup.apply(config.current())) {
 			throw new BootstrapException("Unable to set up the logging.");

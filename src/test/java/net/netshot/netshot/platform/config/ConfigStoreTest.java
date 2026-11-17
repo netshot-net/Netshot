@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -68,40 +69,83 @@ class ConfigStoreTest {
 		Assertions.assertNull(CATALOG.find("netshot.test.notstatic"));
 	}
 
+	/**
+	 * A store whose source gives the configuration set in the test.
+	 *
+	 * @param source the configuration (or the failure) the source gives
+	 * @return the store, loaded from the source
+	 */
+	private static ConfigStore store(AtomicReference<ConfigStore.Loader> source) throws ConfigException {
+		ConfigStore store = new ConfigStore(() -> source.get().load());
+		store.load();
+		return store;
+	}
+
+	@Test
+	@DisplayName("The configuration is loaded, then reloaded, from the source of the store")
+	void loadsFromItsSource() throws Exception {
+		Path file = this.tempDir.resolve("netshot.conf");
+		Files.writeString(file, "netshot.test.timeout = 7\n", StandardCharsets.UTF_8);
+		ConfigStore store = new ConfigStore(() -> Config.load(List.of(this.tempDir.resolve("missing.conf").toString(), file.toString())));
+		Assertions.assertNull(store.current().get("netshot.test.timeout"), "Empty until loaded");
+		store.load();
+		Assertions.assertEquals("7", store.current().get("netshot.test.timeout"));
+		Files.writeString(file, "netshot.test.timeout = 9\n", StandardCharsets.UTF_8);
+		Assertions.assertTrue(store.reload());
+		Assertions.assertEquals("9", store.current().get("netshot.test.timeout"));
+	}
+
 	@Test
 	@DisplayName("A failed load or reload keeps the current configuration")
-	void failedReloadKeepsCurrent() {
-		ConfigStore store = new ConfigStore(config(Map.of("netshot.test.timeout", "7")));
+	void failedReloadKeepsCurrent() throws Exception {
+		AtomicReference<ConfigStore.Loader> source = new AtomicReference<>(() -> config(Map.of("netshot.test.timeout", "7")));
+		ConfigStore store = store(source);
 		Config initial = store.current();
-		Assertions.assertFalse(store.reload(() -> {
+		source.set(() -> {
 			throw new ConfigException("No file");
-		}));
+		});
+		Assertions.assertFalse(store.reload());
 		Assertions.assertSame(initial, store.current());
-		Assertions.assertFalse(store.load(() -> Config.load(List.of(this.tempDir.resolve("missing.conf").toString()))));
+		ConfigException e = Assertions.assertThrows(ConfigException.class, store::load);
+		Assertions.assertEquals("No file", e.getMessage());
 		Assertions.assertSame(initial, store.current());
+	}
+
+	@Test
+	@DisplayName("A fixed configuration is its own source")
+	void fixedConfiguration() throws Exception {
+		Config fixed = config(Map.of("netshot.test.timeout", "7"));
+		ConfigStore store = new ConfigStore(fixed);
+		store.replace(config(Map.of()));
+		Assertions.assertTrue(store.reload());
+		Assertions.assertSame(fixed, store.current());
 	}
 
 	@Test
 	@DisplayName("A reload with an unreadable secret file of a known secret keeps the current configuration")
 	void unreadableSecretKeepsCurrent() throws Exception {
-		ConfigStore store = new ConfigStore(config(Map.of()));
+		AtomicReference<ConfigStore.Loader> source = new AtomicReference<>(() -> config(Map.of()));
+		ConfigStore store = store(source);
 		store.setCatalog(CATALOG);
 		Config initial = store.current();
 		Config withMissingSecret = config(Map.of("netshot.test.server1.secret.file", this.tempDir.resolve("missing").toString()));
-		Assertions.assertFalse(store.reload(() -> withMissingSecret));
+		source.set(() -> withMissingSecret);
+		Assertions.assertFalse(store.reload());
 		Assertions.assertSame(initial, store.current());
 
 		Path secretFile = this.tempDir.resolve("secret");
 		Files.writeString(secretFile, "s3cret", StandardCharsets.UTF_8);
 		Config withSecret = config(Map.of("netshot.test.server1.secret.file", secretFile.toString()));
-		Assertions.assertTrue(store.reload(() -> withSecret));
+		source.set(() -> withSecret);
+		Assertions.assertTrue(store.reload());
 		Assertions.assertEquals("s3cret", store.current().get(Declared.SECRET.at(1)));
 	}
 
 	@Test
 	@DisplayName("Bindings follow the current configuration, listeners are called on change")
-	void bindingsAndListeners() {
-		ConfigStore store = new ConfigStore(config(Map.of("netshot.test.timeout", "7")));
+	void bindingsAndListeners() throws Exception {
+		AtomicReference<ConfigStore.Loader> source = new AtomicReference<>(() -> config(Map.of("netshot.test.timeout", "7")));
+		ConfigStore store = store(source);
 		AtomicInteger mappings = new AtomicInteger();
 		ConfigStore.Binding<Integer> timeout = store.bind(c -> {
 			mappings.incrementAndGet();
@@ -114,7 +158,8 @@ class ConfigStoreTest {
 		Assertions.assertEquals(1, mappings.get(), "Mapped once per snapshot");
 
 		Config next = config(Map.of("netshot.test.timeout", "9"));
-		Assertions.assertTrue(store.reload(() -> next));
+		source.set(() -> next);
+		Assertions.assertTrue(store.reload());
 		Assertions.assertEquals(2, mappings.get(), "Mapped again, eagerly, on reload");
 		Assertions.assertEquals(9, timeout.get());
 		Assertions.assertEquals(List.of(next), notified);
@@ -152,7 +197,7 @@ class ConfigStoreTest {
 	@Test
 	@DisplayName("Concurrent reloads are run one at a time, listeners included")
 	void reloadsAreSerialized() throws Exception {
-		ConfigStore store = new ConfigStore(Config.empty());
+		ConfigStore store = new ConfigStore(() -> Config.of(new Properties()));
 		AtomicInteger running = new AtomicInteger();
 		AtomicInteger overlaps = new AtomicInteger();
 		store.addListener(_ -> {
@@ -169,7 +214,7 @@ class ConfigStoreTest {
 		});
 		List<Thread> threads = new ArrayList<>();
 		for (int i = 0; i < 4; i++) {
-			Thread thread = Thread.ofVirtual().unstarted(() -> store.reload(() -> Config.of(new Properties())));
+			Thread thread = Thread.ofVirtual().unstarted(store::reload);
 			threads.add(thread);
 			thread.start();
 		}

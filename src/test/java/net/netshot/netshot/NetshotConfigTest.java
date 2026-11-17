@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigException;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.TestConfig;
@@ -133,26 +134,23 @@ class NetshotConfigTest {
 	}
 
 	@Test
-	@DisplayName("Reading the configuration file replaces the configuration")
+	@DisplayName("The first readable configuration file is used")
 	void readConfigFile() throws Exception {
 		Path file = tempDir.resolve("netshot.conf");
 		Files.writeString(file, "netshot.test.item = fromfile\n", StandardCharsets.UTF_8);
-		initConfig("inline", null);
-		Assertions.assertTrue(TestConfig.store().load(() -> Config.load(List.of(tempDir.resolve("missing.conf").toString(), file.toString()))));
-		Assertions.assertEquals("fromfile", current().get("netshot.test.item"));
-		Assertions.assertNull(current().get(KEY), "The previous configuration was not replaced");
+		Config config = Config.load(List.of(tempDir.resolve("missing.conf").toString(), file.toString()));
+		Assertions.assertEquals("fromfile", config.get("netshot.test.item"));
 	}
 
 	@Test
-	@DisplayName("The current configuration is kept if no configuration file can be read")
-	void readConfigKeepsCurrentOnFailure() throws Exception {
-		initConfig("inline", null);
-		Assertions.assertFalse(TestConfig.store().load(() -> Config.load(List.of(tempDir.resolve("missing.conf").toString()))));
-		Assertions.assertEquals("inline", current().get(KEY));
+	@DisplayName("Reading fails if no configuration file can be read, or if it's empty")
+	void readConfigFailure() throws Exception {
+		String missing = tempDir.resolve("missing.conf").toString();
+		ConfigException e = Assertions.assertThrows(ConfigException.class, () -> Config.load(List.of(missing)));
+		Assertions.assertTrue(e.getMessage().contains(missing), "The message tells the tried files");
 		Path empty = tempDir.resolve("empty.conf");
 		Files.writeString(empty, "# Nothing\n", StandardCharsets.UTF_8);
-		Assertions.assertFalse(TestConfig.store().load(() -> Config.load(List.of(empty.toString()))));
-		Assertions.assertEquals("inline", current().get(KEY));
+		Assertions.assertThrows(ConfigException.class, () -> Config.load(List.of(empty.toString())));
 	}
 
 	@Test

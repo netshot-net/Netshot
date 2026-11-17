@@ -10,7 +10,7 @@ parameter = value
 
 Lines starting with `#` are ignored.
 
-Netshot reloads its configuration when it receives a `HUP` signal (e.g. `systemctl reload netshot`). The **Reload** column of the tables below tells whether a parameter is applied by such a reload (**Yes**), or only at the next start of Netshot (**Restart**; Netshot logs a warning when such a parameter is changed by a reload). If the configuration can't be read on a reload (no readable configuration file, unreadable secret file), Netshot logs an error and keeps its current configuration.
+Netshot reloads its configuration when it receives a `HUP` signal (e.g. `systemctl reload netshot`). The **Reload** column of the tables below tells whether a parameter is applied by such a reload (**Yes**), or only at the next start of Netshot (**Restart**; Netshot logs a warning when such a parameter is changed by a reload). If the configuration can't be read on a reload (no readable configuration file, unreadable secret file), Netshot logs an error and keeps its current configuration. A reload reads the configuration file Netshot was started with (`-c` option, or the first readable one of `netshot.conf` and `/etc/netshot.conf`).
 
 A warning is logged for each `netshot.*` parameter (or `NETSHOT_*` environment variable) which doesn't match any known parameter, typically a typo.
 

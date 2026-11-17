@@ -22,7 +22,6 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
@@ -124,14 +123,13 @@ public final class Application implements AutoCloseable {
 	}
 
 	/**
-	 * Reloads the configuration from the files (the services are notified of the change by the configuration store).
-	 * If no file can be read, the current configuration is kept.
+	 * Reloads the configuration from its source, the files given at startup (the services are notified of the change
+	 * by the configuration store). If the configuration can't be read, the current one is kept.
 	 *
-	 * @param files the configuration files to look at, in sequence
 	 * @return true if the configuration was reloaded
 	 */
-	public boolean reload(List<String> files) {
-		return this.config.reload(() -> Config.load(files));
+	public boolean reload() {
+		return this.config.reload();
 	}
 
 	/**

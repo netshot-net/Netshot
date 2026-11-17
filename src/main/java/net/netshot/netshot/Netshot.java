@@ -109,11 +109,11 @@ public final class Netshot {
 			application.start();
 
 			log.info("Starting signal listener.");
-			Signals.reloadOnHangup(application, configFiles);
+			Signals.reloadOnHangup(application);
 			log.warn("Netshot is started");
-
 		}
 		catch (BootstrapException e) {
+			// The message tells why (and the cause, if any, where)
 			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
 			if (e.getCause() != null) {
 				e.printStackTrace();
