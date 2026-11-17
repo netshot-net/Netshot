@@ -39,25 +39,38 @@ public final class Signals {
 	}
 
 	/**
-	 * Stops the services of the application (in the reverse order) when the JVM shuts down: on SIGTERM or SIGINT, or
-	 * when the startup fails.
+	 * Registers the signal handling of the server application. To be called before the services start (the default
+	 * action of the JVM on HUP is to shut down):
+	 * <ul>
+	 * <li>the services are stopped (in the reverse order) when the JVM shuts down: on SIGTERM or SIGINT, or when the
+	 * startup fails;</li>
+	 * <li>the configuration is reloaded on HUP, from the source of the configuration store (a HUP received while the
+	 * services start reloads it too: the started services apply it, the next ones read it when they start).</li>
+	 * </ul>
 	 *
 	 * @param application the application
 	 */
-	public static void stopOnShutdown(Application application) {
+	public static void register(Application application) {
+		stopOnShutdown(application);
+		reloadOnHangup(application);
+	}
+
+	/**
+	 * Stops the services of the application (in the reverse order) when the JVM shuts down.
+	 *
+	 * @param application the application
+	 */
+	private static void stopOnShutdown(Application application) {
 		Runtime.getRuntime().addShutdownHook(application.services().shutdownHook());
 	}
 
 	/**
-	 * Reloads the configuration of the application on HUP, from the files given at startup. The reload runs in its
-	 * own thread (the reloads are run one at a time, out of the signal dispatcher of the JVM, along with what the
-	 * components do on a change). To be called before the services start: the default action of the JVM on HUP is
-	 * to shut down, a HUP received while the services start reloads the configuration instead (the started services
-	 * apply it, the next ones read it when they start).
+	 * Reloads the configuration of the application on HUP. The reload runs in its own thread (the reloads are run one
+	 * at a time, out of the signal dispatcher of the JVM, along with what the components do on a change).
 	 *
 	 * @param application the application
 	 */
-	public static void reloadOnHangup(Application application) {
+	private static void reloadOnHangup(Application application) {
 		ExecutorService reloader = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotReload", true));
 		SignalHandler previous;
 		try {
