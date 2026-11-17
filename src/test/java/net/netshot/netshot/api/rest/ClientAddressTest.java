@@ -59,10 +59,12 @@ class ClientAddressTest {
 	@DisplayName("The X-Forwarded-For header is ignored unless trusted, and the trust follows the configuration")
 	void forwardedFor() {
 		ClientAddress clientAddress = new ClientAddress(TestConfig.store());
+		Assertions.assertFalse(clientAddress.trustsForwardedFor());
 		Assertions.assertEquals("10.0.0.1", clientAddress.of(request("10.0.0.1", "192.0.2.7, 10.0.0.1")));
 		Properties config = new Properties();
 		config.setProperty("netshot.http.trustxforwardedfor", "true");
 		TestConfig.init(config);
+		Assertions.assertTrue(clientAddress.trustsForwardedFor());
 		Assertions.assertEquals("192.0.2.7", clientAddress.of(request("10.0.0.1", "192.0.2.7, 10.0.0.1")));
 		Assertions.assertEquals("10.0.0.1", clientAddress.of(request("10.0.0.1", null)));
 	}
