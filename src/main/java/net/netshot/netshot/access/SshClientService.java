@@ -59,8 +59,11 @@ public final class SshClientService implements Service {
 	/** The number of sessions currently open. */
 	private final AtomicInteger openSessions = new AtomicInteger();
 
-	/** The configuration store. */
+	/** The configuration store (its changes are applied to the client). */
 	private final ConfigStore config;
+
+	/** The settings of the device accesses (the SSH settings). */
+	private final AccessSettings settings;
 
 	/** Applies the settings on each configuration change (while the service runs). */
 	private final Consumer<Config> listener = _ -> this.applySettings();
@@ -69,9 +72,11 @@ public final class SshClientService implements Service {
 	 * Builds the client (not started).
 	 *
 	 * @param config the configuration store, whose changes are applied to the client
+	 * @param settings the settings of the device accesses (the SSH settings)
 	 */
-	public SshClientService(ConfigStore config) {
+	public SshClientService(ConfigStore config, AccessSettings settings) {
 		this.config = config;
+		this.settings = settings;
 		this.client = SshClient.setUpDefaultClient();
 		this.client.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
 		this.client.setFilePasswordProvider(FilePasswordProvider.EMPTY);
@@ -124,12 +129,12 @@ public final class SshClientService implements Service {
 	 * Applies the settings to the client.
 	 */
 	private void applySettings() {
-		Ssh.Settings settings = Ssh.Settings.from(this.config.current());
-		CoreModuleProperties.NIO2_READ_TIMEOUT.set(this.client, Duration.ofMillis(settings.receiveTimeout()));
-		CoreModuleProperties.REKEY_TIME_LIMIT.set(this.client, Duration.ofMillis(settings.rekeyTimeLimit()));
-		CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.client, settings.rekeyDataLimit());
-		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.client, settings.rekeyBlocksLimit());
-		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.client, settings.rekeyPacketsLimit());
+		Ssh.Settings ssh = this.settings.ssh();
+		CoreModuleProperties.NIO2_READ_TIMEOUT.set(this.client, Duration.ofMillis(ssh.receiveTimeout()));
+		CoreModuleProperties.REKEY_TIME_LIMIT.set(this.client, Duration.ofMillis(ssh.rekeyTimeLimit()));
+		CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.client, ssh.rekeyDataLimit());
+		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.client, ssh.rekeyBlocksLimit());
+		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.client, ssh.rekeyPacketsLimit());
 	}
 
 	/**
