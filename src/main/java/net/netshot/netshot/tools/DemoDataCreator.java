@@ -63,6 +63,7 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
@@ -835,12 +836,16 @@ public class DemoDataCreator {
 	 * @param args the arguments ({@code -c} the configuration file, as for the server)
 	 */
 	public static void main(String[] args) {
-		try (Application application = Application.create(Bootstrap.load(ToolCommandLine.configFiles(args)))) {
-			application.migrate();
-			log.info("Initializing access to the database.");
-			application.start("database");
-			Wiring wiring = application.wiring();
-			new DemoDataCreator(wiring.core().transactions(), wiring.core().dynamicGroups(), wiring.core().repositories()).createData();
+		try {
+			ConfigStore config = ConfigStore.ofFiles(ToolCommandLine.configFiles(args));
+			Bootstrap.prepare(config);
+			try (Application application = Application.create(config)) {
+				application.migrate();
+				log.info("Initializing access to the database.");
+				application.start("database");
+				Wiring wiring = application.wiring();
+				new DemoDataCreator(wiring.core().transactions(), wiring.core().dynamicGroups(), wiring.core().repositories()).createData();
+			}
 		}
 		catch (Exception e) {
 			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());

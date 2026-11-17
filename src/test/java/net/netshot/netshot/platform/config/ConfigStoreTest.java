@@ -86,7 +86,7 @@ class ConfigStoreTest {
 	void loadsFromItsSource() throws Exception {
 		Path file = this.tempDir.resolve("netshot.conf");
 		Files.writeString(file, "netshot.test.timeout = 7\n", StandardCharsets.UTF_8);
-		ConfigStore store = new ConfigStore(() -> Config.load(List.of(this.tempDir.resolve("missing.conf").toString(), file.toString())));
+		ConfigStore store = ConfigStore.ofFiles(List.of(this.tempDir.resolve("missing.conf").toString(), file.toString()));
 		Assertions.assertNull(store.current().get("netshot.test.timeout"), "Empty until loaded");
 		store.load();
 		Assertions.assertEquals("7", store.current().get("netshot.test.timeout"));
@@ -109,6 +109,19 @@ class ConfigStoreTest {
 		ConfigException e = Assertions.assertThrows(ConfigException.class, store::load);
 		Assertions.assertEquals("No file", e.getMessage());
 		Assertions.assertSame(initial, store.current());
+	}
+
+	@Test
+	@DisplayName("The loaded configuration is checked against the catalog set after the load")
+	void checkAfterLoad() throws Exception {
+		Path missing = this.tempDir.resolve("missing");
+		ConfigStore store = new ConfigStore(config(Map.of("netshot.test.server1.secret.file", missing.toString())));
+		store.check();
+		store.setCatalog(CATALOG);
+		ConfigException e = Assertions.assertThrows(ConfigException.class, store::check);
+		Assertions.assertTrue(e.getMessage().contains(missing.toString()), "The message tells the secret file: " + e.getMessage());
+		Files.writeString(missing, "s3cret", StandardCharsets.UTF_8);
+		store.check();
 	}
 
 	@Test

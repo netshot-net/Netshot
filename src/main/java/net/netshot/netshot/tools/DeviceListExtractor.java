@@ -35,6 +35,7 @@ import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
@@ -77,96 +78,100 @@ public final class DeviceListExtractor {
 
 		StringBuffer output = new StringBuffer();
 
-		try (Application application = Application.create(Bootstrap.load(ToolCommandLine.configFiles(args)))) {
-			log.info("Initializing access to the database.");
-			application.start("database");
-			Wiring wiring = application.wiring();
+		try {
+			ConfigStore config = ConfigStore.ofFiles(ToolCommandLine.configFiles(args));
+			Bootstrap.prepare(config);
+			try (Application application = Application.create(config)) {
+				log.info("Initializing access to the database.");
+				application.start("database");
+				Wiring wiring = application.wiring();
 
-			log.info("Requesting data from the DB...");
-			DeviceRepository deviceRepository = wiring.core().repositories().device();
-			List<Device> devices = wiring.core().transactions().read(dsl -> deviceRepository.findAll(dsl,
-				dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())).fetch(DEVICE.ID)));
-			for (Device device : devices) {
-				DeviceCliAccount cliAccount = null;
-				DeviceSnmpCommunity community = null;
+				log.info("Requesting data from the DB...");
+				DeviceRepository deviceRepository = wiring.core().repositories().device();
+				List<Device> devices = wiring.core().transactions().read(dsl -> deviceRepository.findAll(dsl,
+					dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())).fetch(DEVICE.ID)));
+				for (Device device : devices) {
+					DeviceCliAccount cliAccount = null;
+					DeviceSnmpCommunity community = null;
 
-				for (String accessName : List.of("telnet", "ssh")) {
-					DeviceAccess access = device.getDeviceAccess(accessName);
-					if (access == null) {
-						continue;
+					for (String accessName : List.of("telnet", "ssh")) {
+						DeviceAccess access = device.getDeviceAccess(accessName);
+						if (access == null) {
+							continue;
+						}
+						DeviceCredentialSet pinned = access.specificCredentialSet() != null
+							? access.specificCredentialSet() : access.globalCredentialSet();
+						if (pinned instanceof DeviceCliAccount ca) {
+							cliAccount = ca;
+						}
 					}
-					DeviceCredentialSet pinned = access.specificCredentialSet() != null
-						? access.specificCredentialSet() : access.globalCredentialSet();
-					if (pinned instanceof DeviceCliAccount ca) {
-						cliAccount = ca;
+					for (String accessName : List.of("snmpv1", "snmpv2c", "snmpv3")) {
+						DeviceAccess access = device.getDeviceAccess(accessName);
+						if (access == null) {
+							continue;
+						}
+						DeviceCredentialSet pinned = access.specificCredentialSet() != null
+							? access.specificCredentialSet() : access.globalCredentialSet();
+						if (pinned instanceof DeviceSnmpCommunity sc) {
+							community = sc;
+						}
 					}
-				}
-				for (String accessName : List.of("snmpv1", "snmpv2c", "snmpv3")) {
-					DeviceAccess access = device.getDeviceAccess(accessName);
-					if (access == null) {
-						continue;
+					if (cliAccount == null) {
+						log.warn("No CLI account found for device {}.", device.name());
 					}
-					DeviceCredentialSet pinned = access.specificCredentialSet() != null
-						? access.specificCredentialSet() : access.globalCredentialSet();
-					if (pinned instanceof DeviceSnmpCommunity sc) {
-						community = sc;
+					if (community == null) {
+						log.warn("No SNMP community found for device {}.", device.name());
 					}
+					List<String> fields = new ArrayList<>();
+					String ipAddress;
+					try {
+						ipAddress = InetAddress.getByName(device.mgmtAddress()).getHostAddress();
+					}
+					catch (UnknownHostException e) {
+						ipAddress = device.mgmtAddress();
+					}
+					fields.add(ipAddress);					// Col. 1 = IP Address <<<
+					fields.add(device.name());			// Col. 2 = Host Name <<<
+					fields.add("");							// Col. 3 = Domain Name
+					fields.add("");							// Col. 4 = Device Identity
+					fields.add("");							// Col. 5 = Display Name
+					fields.add("");							// Col. 6 = SysObjectID
+					fields.add("");							// Col. 7 = DCR Device Type
+					fields.add("");							// Col. 8 = MDF Type
+					fields.add(community == null ? "" : resolveSecret(community.community(), device, wiring.core().vaultManager()));			// Col. 9 = SNMP RO <<<
+					fields.add("");							// Col. 10 = SNMP RW
+					fields.add("");							// Col. 11 = SNMPv3 User Name
+					fields.add("");							// Col. 12 = SNMPv3 Auth Pass 
+					fields.add("");							// Col. 13 = SNMPv3 Engine ID
+					fields.add("");							// Col. 14 = SNMPv3 Auth Algorithm
+					fields.add("");							// Col. 15 = RX Boot Mode User
+					fields.add("");							// Col. 16 = RX Boot Mode Pass
+					fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.username(), device, wiring.core().vaultManager()));	// Col. 17 = Primary User <<<
+					fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.password(), device, wiring.core().vaultManager()));	// Col. 18 = Primary Pass <<<
+					fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPassword(), device, wiring.core().vaultManager()));	// Col. 19 = Primary Enable Pass <<<
+					fields.add("");							// Col. 20 = HTTP User
+					fields.add("");							// Col. 21 = HTTP Pass
+					fields.add("");							// Col. 22 = HTTP Mode
+					fields.add("");							// Col. 23 = HTTP Port
+					fields.add("");							// Col. 24 = HTTPS Port
+					fields.add("");							// Col. 25 = Cert Common Name
+					fields.add("");							// Col. 26 = Secondary User
+					fields.add("");							// Col. 27 = Secondary Pass
+					fields.add("");							// Col. 28 = Secondary Enable Pass
+					fields.add("");							// Col. 29 = Secondary HTTP User
+					fields.add("");							// Col. 30 = Secondary HTTP Pass
+					fields.add("");							// Col. 31 = SNMPv3 Priv Algo
+					fields.add("");							// Col. 32 = SNMPv3 Priv Pass
+					fields.add("");							// Col. 33 = User Field 1
+					fields.add("");							// Col. 34 = User Field 2
+					fields.add("");							// Col. 35 = User Field 3
+					fields.add("");							// Col. 36 = User Field 4
+					output.append(String.join(";", fields));
+					output.append("\n");
 				}
-				if (cliAccount == null) {
-					log.warn("No CLI account found for device {}.", device.name());
-				}
-				if (community == null) {
-					log.warn("No SNMP community found for device {}.", device.name());
-				}
-				List<String> fields = new ArrayList<>();
-				String ipAddress;
-				try {
-					ipAddress = InetAddress.getByName(device.mgmtAddress()).getHostAddress();
-				}
-				catch (UnknownHostException e) {
-					ipAddress = device.mgmtAddress();
-				}
-				fields.add(ipAddress);					// Col. 1 = IP Address <<<
-				fields.add(device.name());			// Col. 2 = Host Name <<<
-				fields.add("");							// Col. 3 = Domain Name
-				fields.add("");							// Col. 4 = Device Identity
-				fields.add("");							// Col. 5 = Display Name
-				fields.add("");							// Col. 6 = SysObjectID
-				fields.add("");							// Col. 7 = DCR Device Type
-				fields.add("");							// Col. 8 = MDF Type
-				fields.add(community == null ? "" : resolveSecret(community.community(), device, wiring.core().vaultManager()));			// Col. 9 = SNMP RO <<<
-				fields.add("");							// Col. 10 = SNMP RW
-				fields.add("");							// Col. 11 = SNMPv3 User Name
-				fields.add("");							// Col. 12 = SNMPv3 Auth Pass 
-				fields.add("");							// Col. 13 = SNMPv3 Engine ID
-				fields.add("");							// Col. 14 = SNMPv3 Auth Algorithm
-				fields.add("");							// Col. 15 = RX Boot Mode User
-				fields.add("");							// Col. 16 = RX Boot Mode Pass
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.username(), device, wiring.core().vaultManager()));			// Col. 17 = Primary User <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.password(), device, wiring.core().vaultManager()));			// Col. 18 = Primary Pass <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPassword(), device, wiring.core().vaultManager()));	// Col. 19 = Primary Enable Pass <<<
-				fields.add("");							// Col. 20 = HTTP User
-				fields.add("");							// Col. 21 = HTTP Pass
-				fields.add("");							// Col. 22 = HTTP Mode
-				fields.add("");							// Col. 23 = HTTP Port
-				fields.add("");							// Col. 24 = HTTPS Port
-				fields.add("");							// Col. 25 = Cert Common Name
-				fields.add("");							// Col. 26 = Secondary User
-				fields.add("");							// Col. 27 = Secondary Pass
-				fields.add("");							// Col. 28 = Secondary Enable Pass
-				fields.add("");							// Col. 29 = Secondary HTTP User
-				fields.add("");							// Col. 30 = Secondary HTTP Pass
-				fields.add("");							// Col. 31 = SNMPv3 Priv Algo
-				fields.add("");							// Col. 32 = SNMPv3 Priv Pass
-				fields.add("");							// Col. 33 = User Field 1
-				fields.add("");							// Col. 34 = User Field 2
-				fields.add("");							// Col. 35 = User Field 3
-				fields.add("");							// Col. 36 = User Field 4
-				output.append(String.join(";", fields));
-				output.append("\n");
+				System.out.println(output);
+
 			}
-			System.out.println(output);
-
 		}
 		catch (Exception e) {
 			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
