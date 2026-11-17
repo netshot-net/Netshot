@@ -47,6 +47,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
+import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
 import net.netshot.netshot.testing.DatabaseTest;
@@ -590,5 +591,20 @@ class ClusterManagerTest {
 			await(() -> status(other) == MastershipStatus.MASTER, "the other node takes over");
 			Assertions.assertEquals(MastershipStatus.EXPIRED, members(other).get(masterId));
 		}
+	}
+
+	@Test
+	@DisplayName("Settings of the local member: a configured ID if valid, the priorities, the HTTP port (part of a generated ID)")
+	void settings() {
+		Properties properties = new Properties();
+		properties.setProperty("netshot.cluster.id", "0123456789abcdef0123");
+		properties.setProperty("netshot.cluster.master.priority", "50");
+		properties.setProperty("netshot.cluster.runner.priority", "60");
+		properties.setProperty("netshot.cluster.runner.weight", "70");
+		properties.setProperty("netshot.http.baseurl", "http://localhost:8080");
+		ClusterManager.Settings settings = ClusterManager.Settings.from(Config.of(properties));
+		Assertions.assertEquals(new ClusterManager.Settings("0123456789abcdef0123", 50, 60, 70, 8080), settings);
+		properties.setProperty("netshot.cluster.id", "not-an-id");
+		Assertions.assertNull(ClusterManager.Settings.from(Config.of(properties)).id());
 	}
 }
