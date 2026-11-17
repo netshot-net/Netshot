@@ -94,29 +94,46 @@ public final class RestServer implements Service {
 	static final Setting<Boolean> SECURE_COOKIE = Setting.bool("netshot.http.securecookie").restart();
 
 	/**
-	 * Gets the path the REST API is served on.
+	 * The settings of the server, read when it starts.
 	 *
-	 * @param config the configuration
-	 * @return the path, e.g. {@code /api}
+	 * @param address the address the server listens on, and whether it serves HTTPS
+	 * @param keystore the keystore of the HTTPS certificate (null with plain HTTP)
+	 * @param staticPath the path the web UI is served on
+	 * @param api the path the REST API is served on, and the name of the session cookie
+	 * @param v0Enabled whether the legacy (v0) REST API is served
+	 * @param secureCookie whether the session cookie is marked as Secure, null for the default (with HTTPS, or behind a
+	 *        reverse proxy)
 	 */
-	public static String apiPath(Config config) {
-		return config.get(API_PATH);
+	public record Settings(HttpServerAddress address, Keystore keystore, String staticPath, ApiEndpoint api, boolean v0Enabled,
+			Boolean secureCookie) {
+
+		/**
+		 * Reads the settings from a configuration.
+		 *
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		public static Settings from(Config config) {
+			HttpServerAddress address = HttpServerAddress.from(config);
+			Keystore keystore = address.useSsl() ? new Keystore(config.get(KEYSTORE_FILE), config.get(KEYSTORE_PASS)) : null;
+			return new Settings(address, keystore, config.get(STATIC_PATH),
+				new ApiEndpoint(config.get(API_PATH), config.get(SESSION_COOKIE_NAME)), config.get(V0_ENABLED), config.get(SECURE_COOKIE));
+		}
 	}
 
 	/**
-	 * Gets the name of the session cookie.
+	 * The keystore of the HTTPS certificate.
 	 *
-	 * @param config the configuration
-	 * @return the name of the cookie
+	 * @param file the keystore file (JKS if its name ends with {@code .jks}, PKCS12 otherwise)
+	 * @param password the password of the keystore
 	 */
-	public static String sessionCookieName(Config config) {
-		return config.get(SESSION_COOKIE_NAME);
-	}
+	public record Keystore(String file, String password) {
 
-	private URI httpBaseUri;
-	private boolean httpUseSsl;
-	private String httpSslKeystoreFile;
-	private String httpSslKeystorePass;
+		@Override
+		public String toString() {
+			return "Keystore[file=%s, password=***]".formatted(this.file);
+		}
+	}
 
 	/** What the resources of the web applications may inject. */
 	private final RestDependencies dependencies;
@@ -161,51 +178,45 @@ public final class RestServer implements Service {
 
 	@Override
 	public synchronized void start() throws Exception {
-		Config current = this.config.current();
-		HttpServerAddress address = HttpServerAddress.from(current);
-		this.httpBaseUri = address.baseUri();
-		httpUseSsl = address.useSsl();
-		if (httpUseSsl) {
-			httpSslKeystoreFile = current.get(KEYSTORE_FILE);
-			httpSslKeystorePass = current.get(KEYSTORE_PASS);
-		}
+		Settings settings = Settings.from(this.config.current());
+		URI baseUri = settings.address().baseUri();
+		boolean useSsl = settings.address().useSsl();
 		Undertow.Builder builder = Undertow.builder()
 			.setServerOption(UndertowOptions.ENABLE_HTTP2, true);
 
 		// === SSL Setup ===
-		if (httpUseSsl) {
+		if (useSsl) {
+			Keystore keystore = settings.keystore();
 			KeyStore keyStore = KeyStore.getInstance(
-				httpSslKeystoreFile.endsWith(".jks") ? "JKS" : "PKCS12"
+				keystore.file().endsWith(".jks") ? "JKS" : "PKCS12"
 			);
-			try (InputStream is = new FileInputStream(httpSslKeystoreFile)) {
-				keyStore.load(is, httpSslKeystorePass.toCharArray());
+			try (InputStream is = new FileInputStream(keystore.file())) {
+				keyStore.load(is, keystore.password().toCharArray());
 			}
 			KeyManagerFactory kmf = KeyManagerFactory.getInstance(
 				KeyManagerFactory.getDefaultAlgorithm()
 			);
-			kmf.init(keyStore, httpSslKeystorePass.toCharArray());
+			kmf.init(keyStore, keystore.password().toCharArray());
 
 			SSLContext sslContext = SSLContext.getInstance("TLS");
 			sslContext.init(kmf.getKeyManagers(), null, null);
 
-			builder.addHttpsListener(httpBaseUri.getPort(), httpBaseUri.getHost(), sslContext);
+			builder.addHttpsListener(baseUri.getPort(), baseUri.getHost(), sslContext);
 		}
 		else {
-			builder.addHttpListener(httpBaseUri.getPort(), httpBaseUri.getHost());
+			builder.addHttpListener(baseUri.getPort(), baseUri.getHost());
 		}
 
 		// === Session cookie ===
 		// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
 		boolean behindProxy = this.dependencies.clientAddress().trustsForwardedFor();
-		Boolean configuredSecureCookie = current.get(SECURE_COOKIE);
-		boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
-		String apiPath = current.get(API_PATH);
-		String staticPath = current.get(STATIC_PATH);
+		boolean secureCookie = settings.secureCookie() == null ? useSsl || behindProxy : settings.secureCookie();
+		ApiEndpoint api = settings.api();
 		if (!secureCookie) {
 			log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
 				+ "via a reverse proxy, set netshot.http.securecookie to true.");
 		}
-		else if (!httpUseSsl) {
+		else if (!useSsl) {
 			log.info("The session cookie is marked as Secure while Netshot serves plain HTTP (expecting a HTTPS reverse proxy). "
 				+ "If users access Netshot over plain HTTP, set netshot.http.securecookie to false.");
 		}
@@ -213,15 +224,15 @@ public final class RestServer implements Service {
 		// === Servlet (Jersey REST API) Deployment ===
 		DeploymentInfo deployment = Servlets.deployment()
 			.setClassLoader(RestServer.class.getClassLoader())
-			.setContextPath(apiPath) // same as Grizzly context path
+			.setContextPath(api.path()) // same as Grizzly context path
 			.setDeploymentName("NetshotREST")
 			.addServlet(Servlets.servlet("JerseyV1", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.dependencies.binder(), new V1Links(apiPath)))))
+					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.dependencies.binder(), api))))
 				.setLoadOnStartup(1)
 				.addMapping(V1Links.VERSION_PATH + "/*"));
-		if (current.get(V0_ENABLED)) {
+		if (settings.v0Enabled()) {
 			ServletInfo v0 = Servlets.servlet("Jersey", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.dependencies.binder()))))
+					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.dependencies.binder(), api))))
 				.setLoadOnStartup(1)
 				.addMapping("/*");
 			deployment.addServlet(v0);
@@ -231,7 +242,7 @@ public final class RestServer implements Service {
 		}
 		deployment
 			.setServletSessionConfig(new ServletSessionConfig()
-				.setName(current.get(SESSION_COOKIE_NAME))
+				.setName(api.sessionCookieName())
 				.setHttpOnly(true)
 				.setSecure(secureCookie)
 				.setAttribute("SameSite", "Strict")
@@ -267,8 +278,8 @@ public final class RestServer implements Service {
 
 		// === Routing ===
 		PathHandler pathHandler = Handlers.path()
-			.addPrefixPath(staticPath, staticHandler)
-			.addPrefixPath(apiPath, servletHandler);
+			.addPrefixPath(settings.staticPath(), staticHandler)
+			.addPrefixPath(api.path(), servletHandler);
 
 		// Counts the requests by status class (statistics of the service)
 		builder.setHandler(exchange -> {
@@ -284,7 +295,7 @@ public final class RestServer implements Service {
 		this.server.start();
 		this.manager = deploymentManager;
 		this.servletBuilder = deployment;
-		log.info("The Web/REST server listens on {}.", this.httpBaseUri);
+		log.info("The Web/REST server listens on {}.", baseUri);
 	}
 
 	@Override

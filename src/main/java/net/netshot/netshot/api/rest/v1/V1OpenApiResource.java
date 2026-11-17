@@ -43,10 +43,8 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import net.netshot.netshot.api.rest.ApiEndpoint;
 import net.netshot.netshot.api.rest.ApiTokenAuthenticator;
-import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * The OpenAPI document of the v1 API ({@code /api/v1/openapi.json} and {@code .yaml}), built once from the v1
@@ -63,19 +61,19 @@ public class V1OpenApiResource {
 	@Context
 	private Application application;
 
-	/** The configuration store. */
-	private final ConfigStore config;
+	/** Where the API is served (the name of the session cookie). */
+	private final ApiEndpoint api;
 	private final V1Links links;
 
 	/**
 	 * Creates the resource.
 	 *
-	 * @param config the configuration store (the name of the session cookie)
+	 * @param api the path the API is served on and the name of the session cookie
 	 * @param links the paths of the v1 objects
 	 */
 	@Inject
-	public V1OpenApiResource(ConfigStore config, V1Links links) {
-		this.config = config;
+	public V1OpenApiResource(ApiEndpoint api, V1Links links) {
+		this.api = api;
 		this.links = links;
 	}
 
@@ -85,7 +83,7 @@ public class V1OpenApiResource {
 			synchronized (this) {
 				current = this.document;
 				if (current == null) {
-					current = build(this.application, this.config.current(), this.links);
+					current = build(this.application, this.api, this.links);
 					this.document = current;
 				}
 			}
@@ -97,11 +95,11 @@ public class V1OpenApiResource {
 	 * Builds the document.
 	 *
 	 * @param application the v1 application
-	 * @param config the configuration (the name of the session cookie)
+	 * @param api the path the API is served on and the name of the session cookie
 	 * @param links the paths of the v1 objects (the base path of the API)
 	 * @return the document
 	 */
-	static OpenAPI build(Application application, Config config, V1Links links) {
+	static OpenAPI build(Application application, ApiEndpoint api, V1Links links) {
 		OpenAPI base = new OpenAPI()
 			.info(new Info()
 				.title("Netshot API")
@@ -117,7 +115,7 @@ public class V1OpenApiResource {
 				.addSecuritySchemes("BearerAuth", new SecurityScheme()
 					.type(SecurityScheme.Type.HTTP).scheme("bearer"))
 				.addSecuritySchemes("CookieAuth", new SecurityScheme()
-					.name(RestServer.sessionCookieName(config))
+					.name(api.sessionCookieName())
 					.type(SecurityScheme.Type.APIKEY).in(SecurityScheme.In.COOKIE)))
 			.addSecurityItem(new SecurityRequirement().addList("ApiTokenAuth"))
 			.addSecurityItem(new SecurityRequirement().addList("BearerAuth"))

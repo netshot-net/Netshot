@@ -26,6 +26,7 @@ import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 import jakarta.inject.Singleton;
 
+import net.netshot.netshot.api.rest.ApiEndpoint;
 import net.netshot.netshot.api.rest.AuthenticationFilter;
 import net.netshot.netshot.api.rest.LoggerFilter;
 import net.netshot.netshot.api.rest.v1.apitoken.ApiTokenMapper;
@@ -69,9 +70,9 @@ public class V1Application extends ResourceConfig {
 	 * Instantiates the web application.
 	 *
 	 * @param binder the dependency injection binder exposing the services to the REST resources
-	 * @param links the paths of the v1 objects (built with the path the API is served on)
+	 * @param api the path the API is served on (the paths of the v1 objects) and the name of the session cookie
 	 */
-	public V1Application(AbstractBinder binder, V1Links links) {
+	public V1Application(AbstractBinder binder, ApiEndpoint api) {
 		packages(V1Application.class.getPackageName());
 		register(AuthenticationFilter.class);
 		register(V1ExceptionMapper.class);
@@ -96,7 +97,8 @@ public class V1Application extends ResourceConfig {
 		register(new AbstractBinder() {
 			@Override
 			protected void configure() {
-				bind(links).to(V1Links.class);
+				bind(api).to(ApiEndpoint.class);
+				bind(new V1Links(api.path())).to(V1Links.class);
 				bindAsContract(ListParams.class).in(Singleton.class);
 				// The mappers and the response helpers of the resources
 				for (Class<?> helper : List.of(
