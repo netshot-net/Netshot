@@ -44,8 +44,6 @@ import org.snmp4j.security.PrivAES192;
 import org.snmp4j.security.PrivAES256;
 import org.snmp4j.security.PrivDES;
 import org.snmp4j.security.SecurityLevel;
-import org.snmp4j.security.SecurityModels;
-import org.snmp4j.security.SecurityProtocols;
 import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.OID;
@@ -91,23 +89,8 @@ public class Snmp extends Poller implements Client {
 	/** SNMPv3 priv protocol. */
 	private OID privProtocol;
 
-	static {
-		// Registered once for the whole JVM (SecurityProtocols is a global
-		// singleton) - not relying on SnmpTrapReceiver having done it first,
-		// since the trap receiver can be disabled by configuration.
-		SecurityProtocols protocols = SecurityProtocols.getInstance();
-		protocols.addAuthenticationProtocol(new AuthMD5());
-		protocols.addAuthenticationProtocol(new AuthSHA());
-		protocols.addAuthenticationProtocol(new AuthHMAC128SHA224());
-		protocols.addAuthenticationProtocol(new AuthHMAC192SHA256());
-		protocols.addAuthenticationProtocol(new AuthHMAC256SHA384());
-		protocols.addAuthenticationProtocol(new AuthHMAC384SHA512());
-		protocols.addPrivacyProtocol(new PrivDES());
-		protocols.addPrivacyProtocol(new Priv3DES());
-		protocols.addPrivacyProtocol(new PrivAES128());
-		protocols.addPrivacyProtocol(new PrivAES192());
-		protocols.addPrivacyProtocol(new PrivAES256());
-	}
+	/** The SNMPv3 users of this object (null for SNMPv1/v2c). */
+	private USM usm;
 
 	/**
 	 * Instantiates a new SNMP object based on a target address and a Netshot community,
@@ -191,15 +174,14 @@ public class Snmp extends Poller implements Client {
 				};
 			}
 
-			USM usm = new USM(SecurityProtocols.getInstance(), new OctetString(MPv3.createLocalEngineID()), 0);
-			usm.addUser(
+			this.usm = SnmpSecurity.usm(new OctetString(MPv3.createLocalEngineID()));
+			this.usm.addUser(
 				new UsmUser(
 					new OctetString(v3Username),
 					hasAuth ? this.authProtocol : null,
 					hasAuth ? new OctetString(resolveSecret(secrets, v3Credentials.authKey())) : null,
 					hasPriv ? this.privProtocol : null,
 					hasPriv ? new OctetString(resolveSecret(secrets, v3Credentials.privKey())) : null));
-			SecurityModels.getInstance().addSecurityModel(usm);
 
 			start();
 		}
@@ -265,7 +247,7 @@ public class Snmp extends Poller implements Client {
 	 */
 	private void start() throws IOException {
 		TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping();
-		this.snmp = new org.snmp4j.Snmp(transport);
+		this.snmp = new org.snmp4j.Snmp(SnmpSecurity.dispatcher(this.usm), transport);
 		transport.listen();
 	}
 
