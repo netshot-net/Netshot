@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
+import sun.misc.SignalHandler;
 //CHECKSTYLE:ON: IllegalImport
 
 /**
@@ -50,18 +51,27 @@ public final class Signals {
 	/**
 	 * Reloads the configuration of the application on HUP, from the files given at startup. The reload runs in its
 	 * own thread (the reloads are run one at a time, out of the signal dispatcher of the JVM, along with what the
-	 * components do on a change).
+	 * components do on a change). To be called before the services start: the default action of the JVM on HUP is
+	 * to shut down, a HUP received while the services start reloads the configuration instead (the started services
+	 * apply it, the next ones read it when they start).
 	 *
 	 * @param application the application
 	 */
 	public static void reloadOnHangup(Application application) {
 		ExecutorService reloader = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotReload", true));
+		SignalHandler previous;
 		try {
-			Signal.handle(new Signal("HUP"), _ -> reloader.execute(application::reload));
+			previous = Signal.handle(new Signal("HUP"), _ -> reloader.execute(application::reload));
 		}
 		catch (IllegalArgumentException e) {
 			reloader.shutdown();
 			log.warn("The HUP signal isn't available on this platform: the configuration can't be reloaded by signal.");
+			return;
+		}
+		if (previous == SignalHandler.SIG_IGN) {
+			// The JVM doesn't install a handler for a signal ignored at launch
+			reloader.shutdown();
+			log.warn("The HUP signal is ignored by this process (started with nohup?): the configuration can't be reloaded by signal.");
 		}
 	}
 }

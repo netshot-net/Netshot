@@ -46,7 +46,6 @@ final class ToolCommandLine {
 		Options options = new Options();
 		options.addOption("c", "config", true, "path to configuration file");
 		CommandLine commandLine = new DefaultParser().parse(options, args);
-		String file = commandLine.getOptionValue("c");
-		return file == null ? Bootstrap.DEFAULT_FILES : List.of(file);
+		return Bootstrap.configFiles(commandLine.getOptionValue("c"));
 	}
 }

@@ -20,7 +20,6 @@ package net.netshot.netshot;
 
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
-import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -90,26 +89,16 @@ public final class Netshot {
 		System.out.println(String.format("Starting Netshot version %s.", BuildInfo.VERSION));
 		log.info("Starting Netshot");
 
-		final List<String> configFiles;
-		String configFilename = commandLine.getOptionValue("c");
-		if (configFilename == null) {
-			configFiles = Bootstrap.DEFAULT_FILES;
-		}
-		else {
-			configFiles = List.of(configFilename);
-		}
-
 		try {
-			ConfigStore config = Bootstrap.load(configFiles);
+			ConfigStore config = Bootstrap.load(Bootstrap.configFiles(commandLine.getOptionValue("c")));
 
 			Application application = Application.create(config);
 			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
 			Signals.stopOnShutdown(application);
+			// Reloads the configuration on HUP (from now on: the default action of the JVM would stop it)
+			Signals.reloadOnHangup(application);
 			application.migrate();
 			application.start();
-
-			log.info("Starting signal listener.");
-			Signals.reloadOnHangup(application);
 			log.warn("Netshot is started");
 		}
 		catch (BootstrapException e) {
