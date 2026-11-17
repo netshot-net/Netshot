@@ -79,8 +79,11 @@ public final class Bootstrap {
 		catch (ConfigException e) {
 			throw new BootstrapException("Unable to read the configuration: " + e.getMessage());
 		}
-		if (!LoggingSetup.apply(config.current())) {
-			throw new BootstrapException("Unable to set up the logging.");
+		try {
+			LoggingSetup.apply(config.current());
+		}
+		catch (IllegalStateException e) {
+			throw new BootstrapException("Unable to set up the logging: " + e.getMessage());
 		}
 	}
 
