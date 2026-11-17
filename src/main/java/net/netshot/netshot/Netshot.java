@@ -38,8 +38,9 @@ import net.netshot.netshot.platform.runtime.AgentInstrumentation;
 import net.netshot.netshot.platform.runtime.BuildInfo;
 
 /**
- * The entry points of Netshot: {@link #main} starts the server (the process is prepared by {@code Bootstrap}, the
- * application runs through {@code Application}), {@link #agentmain} receives the instrumentation of the JVM.
+ * The entry points of Netshot: {@link #main} starts the server (the configuration store, with the configuration files
+ * as source, is loaded and the process is prepared by {@code Bootstrap}, the application runs through
+ * {@code Application}), {@link #agentmain} receives the instrumentation of the JVM.
  */
 @Slf4j
 public final class Netshot {
@@ -90,7 +91,8 @@ public final class Netshot {
 		log.info("Starting Netshot");
 
 		try {
-			ConfigStore config = Bootstrap.load(Bootstrap.configFiles(commandLine.getOptionValue("c")));
+			ConfigStore config = ConfigStore.ofFiles(Bootstrap.configFiles(commandLine.getOptionValue("c")));
+			Bootstrap.prepare(config);
 
 			Application application = Application.create(config);
 			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails

@@ -126,6 +126,17 @@ public final class ConfigStore {
 	}
 
 	/**
+	 * Creates a store whose source is a configuration file.
+	 *
+	 * @param files the configuration files to look at, in sequence (the first readable one is used), at each load
+	 * @return the store, empty until the configuration is {@link #load() loaded}
+	 */
+	public static ConfigStore ofFiles(List<String> files) {
+		List<String> sources = List.copyOf(files);
+		return new ConfigStore(() -> Config.load(sources));
+	}
+
+	/**
 	 * Gets the current configuration snapshot.
 	 *
 	 * @return the current configuration
@@ -162,6 +173,17 @@ public final class ConfigStore {
 	 */
 	public synchronized void load() throws ConfigException {
 		this.replace(this.check(this.source.load()));
+	}
+
+	/**
+	 * Checks the current configuration against the known settings, once they're {@link #setCatalog set} after the
+	 * load (at startup): the secret files of the secret settings must be readable, the unknown items are logged.
+	 *
+	 * @throws ConfigException if a secret file can't be read
+	 */
+	public synchronized void check() throws ConfigException {
+		this.check(this.current);
+		this.catalog.warnUnknownItems(this.current);
 	}
 
 	/**

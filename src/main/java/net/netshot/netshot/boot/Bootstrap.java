@@ -28,9 +28,10 @@ import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.platform.tls.Truststore;
 
 /**
- * Prepares the process before the application is built: loads the configuration, sets up the logging, the crypto
- * libraries and the truststore. Used by the server ({@code Netshot.main}) and by the tools, so that they all start
- * the same way.
+ * Prepares the process before the application is built, once per JVM: loads the configuration store, sets up the
+ * logging, the crypto libraries and the truststore. Used by the server ({@code Netshot.main}) and by the tools, so
+ * that they all start the same way (the tests, which build several applications, prepare what they need
+ * themselves).
  */
 @Slf4j
 public final class Bootstrap {
@@ -52,40 +53,30 @@ public final class Bootstrap {
 	}
 
 	/**
-	 * Loads the configuration from the files and prepares the process.
+	 * Loads the configuration store from its source, then prepares the process, in this order:
+	 * <ol>
+	 * <li>the configuration is loaded, and the logging is set up from it;</li>
+	 * <li>the crypto libraries are registered, before anything initializes the SSH library, which checks the
+	 * available crypto providers (EdDSA, X25519...) only once;</li>
+	 * <li>the catalog of the settings is built (it initializes the classes which declare them, the SSH ones
+	 * included), and the loaded configuration is checked against it (secret files, unknown items);</li>
+	 * <li>the logging follows the changes of the configuration (first listener, so that the other changes are
+	 * logged accordingly);</li>
+	 * <li>the JVM is checked, the truststore is applied.</li>
+	 * </ol>
 	 *
-	 * <p>The crypto libraries are registered before anything initializes the SSH library, which checks the
-	 * available crypto providers (EdDSA, X25519...) only once. Building the catalog of the settings initializes the
-	 * classes which declare them, the SSH ones included: the settings of the crypto libraries are read from a first
-	 * load of the configuration, without catalog (without the secrets), then the configuration is loaded again with
-	 * the catalog. The logging is set up from each load, and again on each change of the configuration (first, so
-	 * that the other changes are logged accordingly).</p>
-	 *
-	 * @param files the configuration files to look at, in sequence (the first readable one is used), on startup and
-	 *     on each reload
-	 * @return the configuration store, holding the loaded configuration
-	 * @throws BootstrapException if the configuration can't be read, or the logging or the crypto libraries can't be
-	 *     set up
+	 * @param config the configuration store, with its source (e.g. {@link ConfigStore#ofFiles})
+	 * @throws BootstrapException if the configuration can't be read or checked, or the logging or the crypto
+	 *     libraries can't be set up
 	 */
-	public static ConfigStore load(List<String> files) throws BootstrapException {
-		ConfigStore config = new ConfigStore(() -> Config.load(files));
-		read(config);
-		try {
-			log.info("Registering crypto libraries");
-			BouncyCastleLoader.registerBouncyCastle(config.current());
-		}
-		catch (Exception e) {
-			throw new BootstrapException(String.valueOf(e.getMessage()), e);
-		}
-		config.setCatalog(NetshotSettings.catalog());
-		read(config);
+	public static void prepare(ConfigStore config) throws BootstrapException {
+		load(config);
+		registerCryptoLibraries(config.current());
+		checkSettings(config);
 		config.addListener(LoggingSetup::apply);
-		config.catalog().warnUnknownItems(config.current());
-		log.info("Checking current JVM.");
 		checkJvm();
 		log.info("Selecting truststore.");
 		Truststore.apply(config.current());
-		return config;
 	}
 
 	/**
@@ -95,7 +86,7 @@ public final class Bootstrap {
 	 * @throws BootstrapException if the configuration can't be read (the message tells why) or the logging can't be
 	 *     set up
 	 */
-	private static void read(ConfigStore config) throws BootstrapException {
+	private static void load(ConfigStore config) throws BootstrapException {
 		try {
 			config.load();
 		}
@@ -108,9 +99,42 @@ public final class Bootstrap {
 	}
 
 	/**
+	 * Registers the additional crypto libraries (Bouncy Castle).
+	 *
+	 * @param config the configuration
+	 * @throws BootstrapException if the libraries can't be registered
+	 */
+	private static void registerCryptoLibraries(Config config) throws BootstrapException {
+		log.info("Registering crypto libraries");
+		try {
+			BouncyCastleLoader.registerBouncyCastle(config);
+		}
+		catch (Exception e) {
+			throw new BootstrapException(String.valueOf(e.getMessage()), e);
+		}
+	}
+
+	/**
+	 * Sets the catalog of the settings, and checks the loaded configuration against it.
+	 *
+	 * @param config the configuration store
+	 * @throws BootstrapException if the configuration is invalid (the message tells why)
+	 */
+	private static void checkSettings(ConfigStore config) throws BootstrapException {
+		config.setCatalog(NetshotSettings.catalog());
+		try {
+			config.check();
+		}
+		catch (ConfigException e) {
+			throw new BootstrapException("Invalid configuration: " + e.getMessage());
+		}
+	}
+
+	/**
 	 * Checks the JVM, and logs an error if it's not GraalVM 25.
 	 */
 	private static void checkJvm() {
+		log.info("Checking current JVM.");
 		final String vendorVersion = System.getProperty("java.vendor.version"); // e.g. Oracle GraalVM 25.0.4+7.1
 		final String vendor = System.getProperty("java.vendor"); // e.g. Oracle Corporation
 		final String version = System.getProperty("java.vm.version"); // e.g. 25.0.4+7-LTS-jvmci-b01
