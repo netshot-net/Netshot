@@ -135,6 +135,35 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 	/** ID of the local member (20 lowercase hex digits; generated if not set). */
 	static final Setting<String> ID = Setting.text("netshot.cluster.id").restart();
 
+	/**
+	 * The settings of the local member.
+	 *
+	 * @param id the configured ID of the local member, null if not set or invalid (then generated)
+	 * @param masterPriority the priority of the local member in the master election
+	 * @param runnerPriority the priority of the local member to run the tasks
+	 * @param runnerWeight the weight of the local member to run the tasks
+	 * @param httpPort the port of the HTTP server (part of a generated ID)
+	 */
+	record Settings(String id, int masterPriority, int runnerPriority, int runnerWeight, int httpPort) {
+
+		/**
+		 * Reads the settings from a configuration (an invalid ID is logged and ignored).
+		 *
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			String id = config.get(ID);
+			if (id != null && !id.matches("^[0-9a-z]{20}$")) {
+				log.error("Invalid netshot.cluster.id parameter (invalid format), will generate one");
+				id = null;
+			}
+			// The port of the HTTP server is read from the configuration: the HTTP server isn't started yet
+			return new Settings(id, config.get(MASTER_PRIORITY), config.get(RUNNER_PRIORITY), config.get(RUNNER_WEIGHT),
+				HttpServerAddress.from(config).port());
+		}
+	}
+
 	/** What the cluster manager drives on the local node (tasks, drivers, automatic snapshots, Vault caches). */
 	private final LocalNode node;
 
@@ -324,23 +353,11 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 	 */
 	private void initLocalMember() {
 		String jvmVersion = System.getProperty("java.vm.version");
-		Config current = this.config.current();
-		int masterPriority = current.get(MASTER_PRIORITY);
-		int runnerPriority = current.get(RUNNER_PRIORITY);
-		int runnerWeight = current.get(RUNNER_WEIGHT);
-
-		String localId = current.get(ID);
-		if (localId != null) {
-			// First option: configured ID
-			if (!localId.matches("^[0-9a-z]{20}$")) {
-				log.error("Invalid netshot.cluster.id parameter (invalid format), will generate one");
-				localId = null;
-			}
-		}
+		Settings settings = Settings.from(this.config.current());
+		// First option: configured ID
+		String localId = settings.id();
 		if (localId == null) {
-			// Second option: based on MAC address and HTTP port (read from the configuration,
-			// the HTTP server isn't started yet)
-			final int restPort = HttpServerAddress.from(current).port();
+			// Second option: based on MAC address and HTTP port
 			try {
 				InetAddress mainAddress = InetAddress.getLocalHost();
 				NetworkInterface networkInterface = NetworkInterface.getByInetAddress(mainAddress);
@@ -348,7 +365,7 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 				if (mainMac != null && mainMac.length == 6 && (mainMac[0] != 0 || mainMac[1] != 0
 					|| mainMac[2] != 0 || mainMac[3] != 0 || mainMac[4] != 0 || mainMac[5] != 0)) {
 					localId = String.format("01ff%02x%02x%02x%02x%02x%02x%04x",
-						mainMac[0], mainMac[1], mainMac[2], mainMac[3], mainMac[4], mainMac[5], restPort);
+						mainMac[0], mainMac[1], mainMac[2], mainMac[3], mainMac[4], mainMac[5], settings.httpPort());
 					log.info("Cluster ID {} was automatically generated based on main local MAC address", localId);
 				}
 			}
@@ -367,7 +384,7 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 		}
 
 		this.localMember = new ClusterMember(localId, LocalHost.name(), ClusterManager.CLUSTERING_VERSION,
-			masterPriority, runnerPriority, runnerWeight, BuildInfo.VERSION, jvmVersion, this.node.getDriverHash());
+			settings.masterPriority(), settings.runnerPriority(), settings.runnerWeight(), BuildInfo.VERSION, jvmVersion, this.node.getDriverHash());
 		this.members.put(localId, this.localMember);
 	}
 
