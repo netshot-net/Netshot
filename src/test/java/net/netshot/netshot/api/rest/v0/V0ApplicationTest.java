@@ -30,6 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.testing.TestConfig;
+import net.netshot.netshot.api.rest.ApiEndpoint;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestNetwork;
@@ -43,7 +44,8 @@ class V0ApplicationTest {
 	@Test
 	@DisplayName("Makes the wiring injectable into the resources")
 	void injection() {
-		ApplicationHandler handler = new ApplicationHandler(new V0Application(TestWiring.get().api().restDependencies().binder()));
+		ApplicationHandler handler = new ApplicationHandler(new V0Application(TestWiring.get().api().restDependencies().binder(),
+			new ApiEndpoint("/api", "NetshotSessionID")));
 		ConfigStore injected = handler.getInjectionManager().getInstance(ConfigStore.class);
 		Assertions.assertSame(TestWiring.get().core().config(), injected);
 	}
