@@ -70,6 +70,36 @@ public final class SyslogServer implements Service {
 	/** The IP address to listen Syslog messages on. */
 	static final Setting<String> LISTEN_ADDRESS = Setting.text("netshot.syslog.listenaddress").defaultValue("0.0.0.0").live();
 
+	/**
+	 * The settings of the Syslog server.
+	 *
+	 * @param enabled whether the server is enabled (not {@code netshot.syslog.disabled})
+	 * @param port the UDP port
+	 * @param listenAddress the address to listen on
+	 */
+	record Settings(boolean enabled, int port, InetAddress listenAddress) {
+
+		/**
+		 * Reads the settings from a configuration (an invalid listen address is logged and replaced by the loopback
+		 * address).
+		 *
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			String listenAddress = config.get(LISTEN_ADDRESS);
+			InetAddress host;
+			try {
+				host = InetAddress.getByName(listenAddress);
+			}
+			catch (UnknownHostException e) {
+				log.warn("Unable to parse IP address '{}' for the Syslog listen address, using loopback instead", listenAddress, e);
+				host = InetAddress.getLoopbackAddress();
+			}
+			return new Settings(!config.get(DISABLED), config.get(PORT), host);
+		}
+	}
+
 	/** Max delay (ms) before trying to open the socket again. */
 	private static final long MAX_RETRY_DELAY = 60000;
 
@@ -83,7 +113,7 @@ public final class SyslogServer implements Service {
 	private final ConfigStore config;
 
 	/** Applies the configuration changes (opening the socket again if needed). */
-	private final Consumer<Config> listener = this::loadConfig;
+	private final Consumer<Config> listener = this::applySettings;
 
 	/** Signals the receive loop of a configuration change. */
 	private final Object lock = new Object();
@@ -97,14 +127,8 @@ public final class SyslogServer implements Service {
 	/** The number of socket errors. */
 	private final AtomicLong errors = new AtomicLong();
 
-	/** Whether the server is disabled by the configuration. */
-	private volatile boolean disabled;
-
-	/** The UDP port. */
-	private volatile int udpPort;
-
-	/** The listen address. */
-	private volatile InetAddress listenHost;
+	/** The settings (null before the first start). */
+	private volatile Settings settings;
 
 	/** Incremented on each change of the listening configuration (the socket is opened again). */
 	private volatile long generation;
@@ -144,7 +168,7 @@ public final class SyslogServer implements Service {
 	@Override
 	public synchronized void start() {
 		this.running = true;
-		this.loadConfig(this.config.current());
+		this.applySettings(this.config.current());
 		this.config.addListener(this.listener);
 		this.executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotSyslogServer"));
 		this.executor.execute(this::run);
@@ -164,14 +188,16 @@ public final class SyslogServer implements Service {
 
 	@Override
 	public boolean isHealthy() {
-		return this.disabled || (this.running && this.socket != null);
+		Settings current = this.settings;
+		return (current != null && !current.enabled()) || (this.running && this.socket != null);
 	}
 
 	@Override
 	public Map<String, Object> stats() {
 		Map<String, Object> stats = new LinkedHashMap<>();
-		stats.put("enabled", !this.disabled);
-		stats.put("port", this.udpPort);
+		Settings current = this.settings;
+		stats.put("enabled", current != null && current.enabled());
+		stats.put("port", current == null ? 0 : current.port());
 		stats.put("listening", this.socket != null);
 		stats.put("received", this.received.get());
 		stats.put("matched", this.matched.get());
@@ -185,28 +211,16 @@ public final class SyslogServer implements Service {
 	 *
 	 * @param newConfig the configuration
 	 */
-	private void loadConfig(Config newConfig) {
-		boolean newDisabled = newConfig.get(DISABLED);
-		int newPort = newConfig.get(PORT);
-		String listenAddress = newConfig.get(LISTEN_ADDRESS);
-		InetAddress newHost;
-		try {
-			newHost = InetAddress.getByName(listenAddress);
-		}
-		catch (UnknownHostException e) {
-			log.warn("Unable to parse IP address '{}' for the Syslog listen address, using loopback instead", listenAddress, e);
-			newHost = InetAddress.getLoopbackAddress();
-		}
+	private void applySettings(Config newConfig) {
+		Settings newSettings = Settings.from(newConfig);
 		synchronized (this.lock) {
-			if (newDisabled == this.disabled && newPort == this.udpPort && newHost.equals(this.listenHost)) {
+			if (newSettings.equals(this.settings)) {
 				return;
 			}
-			if (newDisabled) {
+			if (!newSettings.enabled()) {
 				log.warn("The Syslog server is disabled by configuration.");
 			}
-			this.disabled = newDisabled;
-			this.udpPort = newPort;
-			this.listenHost = newHost;
+			this.settings = newSettings;
 			this.generation++;
 			this.lock.notifyAll();
 		}
@@ -228,8 +242,9 @@ public final class SyslogServer implements Service {
 		long retryDelay = 1000;
 		while (this.running) {
 			long currentGeneration;
+			Settings current;
 			synchronized (this.lock) {
-				while (this.running && this.disabled) {
+				while (this.running && !this.settings.enabled()) {
 					try {
 						this.lock.wait();
 					}
@@ -238,11 +253,12 @@ public final class SyslogServer implements Service {
 					}
 				}
 				currentGeneration = this.generation;
+				current = this.settings;
 			}
 			if (!this.running) {
 				break;
 			}
-			InetSocketAddress bindAddress = new InetSocketAddress(this.listenHost, this.udpPort);
+			InetSocketAddress bindAddress = new InetSocketAddress(current.listenAddress(), current.port());
 			try (DatagramSocket newSocket = new DatagramSocket(bindAddress)) {
 				this.socket = newSocket;
 				log.debug("Now listening for Syslog messages on {}.", bindAddress);

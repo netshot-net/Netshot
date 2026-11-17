@@ -135,7 +135,7 @@ The embedded SNMP trap receiver listens for traps that indicate a device configu
 | `netshot.snmptrap.port` | UDP port to listen on. Default: `162` (requires root on Linux). | Yes |
 | `netshot.snmptrap.listenaddress` | IP address to bind to. Default: `0.0.0.0`. | Yes |
 | `netshot.snmptrap.community` | SNMP community (or space-separated list of communities) accepted from devices. No SNMP v1/v2c trap is accepted unless set. | Yes |
-| `netshot.snmptrap.engineid` | SNMP engine ID. Default: auto-generated at startup. | Yes |
+| `netshot.snmptrap.engineid` | SNMP engine ID, as hexadecimal bytes separated by colons (e.g. `80:00:1f:88:80:...`). Default: auto-generated at startup. | Yes |
 | `netshot.snmptrap.user` | SNMPv3 user(s) allowed to send traps, space-separated for multiple entries. Format: `username protocols [authkey] [privkey]`, where `protocols` is a pipe-separated list of auth (`MD5`, `SHA`, `HMAC128SHA224`, `HMAC192SHA256`, `HMAC256SHA384`, `HMAC384SHA512`) and privacy (`DES`, `3DES`, `AES128`, `AES192`, `AES256`) protocols. No SNMPv3 user is defined by default. | Yes |
 | `netshot.snmptrap.threadcount` | Number of worker threads processing incoming traps. Default: `2`. | Yes |
 | `netshot.snmptrap.disabled` | Disables the embedded SNMP trap receiver. Enabled by default. | Yes |
