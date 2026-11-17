@@ -30,12 +30,31 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.snmp4j.PDU;
+import org.snmp4j.ScopedPDU;
+import org.snmp4j.UserTarget;
+import org.snmp4j.mp.MPv3;
+import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.AuthSHA;
 import org.snmp4j.security.PrivAES128;
+import org.snmp4j.security.SecurityLevel;
+import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
+import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
+import org.snmp4j.smi.TimeTicks;
+import org.snmp4j.smi.UdpAddress;
+import org.snmp4j.smi.VariableBinding;
+import org.snmp4j.transport.DefaultUdpTransportMapping;
 
+import net.netshot.netshot.access.Snmp;
+import net.netshot.netshot.access.SnmpSecurity;
+import net.netshot.netshot.credentials.DeviceSnmpv3Community;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.UnitTest;
@@ -161,6 +180,65 @@ class SnmpTrapReceiverTest {
 			finally {
 				receiver.stop();
 			}
+		}
+	}
+
+	/**
+	 * Sends an SNMPv3 trap (authNoPriv, SHA), from an SNMP object with its own USM.
+	 *
+	 * @param port the UDP port of the receiver
+	 * @param user the SNMPv3 user
+	 * @param authKey the authentication key of the user
+	 * @throws Exception if the trap can't be sent
+	 */
+	private static void sendV3Trap(int port, String user, String authKey) throws Exception {
+		USM usm = SnmpSecurity.usm(new OctetString(MPv3.createLocalEngineID()));
+		usm.addUser(new UsmUser(new OctetString(user), AuthSHA.ID, new OctetString(authKey), null, null));
+		org.snmp4j.Snmp sender = new org.snmp4j.Snmp(SnmpSecurity.dispatcher(usm), new DefaultUdpTransportMapping());
+		try {
+			sender.listen();
+			UserTarget<UdpAddress> target = new UserTarget<>();
+			target.setAddress(new UdpAddress(InetAddress.getLoopbackAddress(), port));
+			target.setVersion(SnmpConstants.version3);
+			target.setSecurityLevel(SecurityLevel.AUTH_NOPRIV);
+			target.setSecurityName(new OctetString(user));
+			ScopedPDU pdu = new ScopedPDU();
+			pdu.setType(PDU.TRAP);
+			pdu.add(new VariableBinding(SnmpConstants.sysUpTime, new TimeTicks(1000)));
+			pdu.add(new VariableBinding(SnmpConstants.snmpTrapOID, new OID("1.3.6.1.6.3.1.1.5.3")));
+			sender.send(pdu, target);
+		}
+		finally {
+			sender.close();
+		}
+	}
+
+	@Test
+	@DisplayName("Receives the SNMPv3 traps of its users, also after a device access with another SNMPv3 user (each has its own USM)")
+	void v3TrapAfterDeviceAccess() throws Exception {
+		int port = TestNetwork.freePort();
+		Properties properties = properties(port, false, "");
+		properties.setProperty("netshot.snmptrap.user", "trapuser SHA trapauth1");
+		properties.setProperty("netshot.snmptrap.engineid", "80:00:1f:88:80:01:02:03:04");
+		TestConfig.init(properties);
+		SnmpTrapReceiver receiver = new SnmpTrapReceiver(new DriverRegistry(null), (_, _) -> { }, TestConfig.store());
+		receiver.start();
+		try {
+			// A device access with another SNMPv3 user, which used to replace the (global) USM of the receiver
+			DeviceSnmpv3Community community = DeviceSnmpv3Community.builder().name("device").username(LocalSecret.of("deviceuser"))
+				.authType(DeviceSnmpv3Community.AuthProtocol.SHA).authKey(LocalSecret.of("deviceauth1"))
+				.privType(DeviceSnmpv3Community.PrivProtocol.NONE).build();
+			new Snmp(new Network4Address("127.0.0.1"), TestNetwork.freePort(), community, SecretResolver.LOCAL).stop();
+			sendV3Trap(port, "trapuser", "trapauth1");
+			long deadline = System.currentTimeMillis() + 10000;
+			while ((Long) receiver.stats().get("received") < 1L && System.currentTimeMillis() < deadline) {
+				Thread.sleep(50);
+			}
+			Assertions.assertEquals(1L, receiver.stats().get("received"));
+			Assertions.assertEquals(0L, receiver.stats().get("rejected"));
+		}
+		finally {
+			receiver.stop();
 		}
 	}
 }

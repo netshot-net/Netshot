@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.SnmpSecurity;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.Config;
@@ -51,8 +52,6 @@ import org.snmp4j.Snmp;
 import org.snmp4j.TransportMapping;
 import org.snmp4j.event.AuthenticationFailureEvent;
 import org.snmp4j.event.AuthenticationFailureListener;
-import org.snmp4j.mp.MPv1;
-import org.snmp4j.mp.MPv2c;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.AuthHMAC128SHA224;
@@ -68,8 +67,6 @@ import org.snmp4j.security.PrivAES256;
 import org.snmp4j.security.PrivDES;
 import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.SecurityModel;
-import org.snmp4j.security.SecurityModels;
-import org.snmp4j.security.SecurityProtocols;
 import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.Address;
@@ -443,34 +440,15 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 		try {
 			Settings current = this.settings;
 			threadPool = ThreadPool.create("SNMP Receiver Pool", current.threadCount());
-			MessageDispatcherImpl effDispatcher = new MessageDispatcherImpl();
+			// Its own USM (SNMPv3 users), not the global one of SNMP4J that the device accesses use too
+			USM usm = null;
+			if (this.engineId != null) {
+				usm = SnmpSecurity.usm(this.engineId);
+				usm.setUsers(current.users().toArray(UsmUser[]::new));
+			}
+			MessageDispatcherImpl effDispatcher = SnmpSecurity.dispatcher(usm);
 			effDispatcher.addAuthenticationFailureListener(this);
 			MultiThreadedMessageDispatcher dispatcher = new MultiThreadedMessageDispatcher(threadPool, effDispatcher);
-			dispatcher.addMessageProcessingModel(new MPv1());
-			dispatcher.addMessageProcessingModel(new MPv2c());
-			if (this.engineId != null) {
-				dispatcher.addMessageProcessingModel(new MPv3(this.engineId.getValue()));
-			}
-
-			SecurityProtocols securityProtocols = SecurityProtocols.getInstance();
-			securityProtocols.addPrivacyProtocol(new PrivDES());
-			securityProtocols.addPrivacyProtocol(new Priv3DES());
-			securityProtocols.addPrivacyProtocol(new PrivAES128());
-			securityProtocols.addPrivacyProtocol(new PrivAES192());
-			securityProtocols.addPrivacyProtocol(new PrivAES256());
-			securityProtocols.addPrivacyProtocol(new PrivAES256());
-			securityProtocols.addAuthenticationProtocol(new AuthMD5());
-			securityProtocols.addAuthenticationProtocol(new AuthSHA());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC128SHA224());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC192SHA256());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC256SHA384());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC384SHA512());
-
-			USM usm = new USM(securityProtocols, this.engineId, 0);
-			usm.setUsers(current.users().toArray(UsmUser[]::new));
-			SecurityModels securityModels = SecurityModels.getInstance();
-
-			securityModels.addSecurityModel(usm);
 
 			UdpAddress udpAddress = new UdpAddress(current.listenAddress(), current.port());
 			TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping(
