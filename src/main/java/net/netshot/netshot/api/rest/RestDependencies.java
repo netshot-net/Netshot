@@ -56,6 +56,7 @@ import net.netshot.netshot.vault.VaultInstanceService;
  * application.
  *
  * @param config the configuration store
+ * @param clientAddress the client address of the requests
  * @param driverRegistry the device drivers
  * @param deviceService the device use cases
  * @param deviceCreationService the device creation use cases
@@ -87,6 +88,7 @@ import net.netshot.netshot.vault.VaultInstanceService;
  */
 public record RestDependencies(
 	ConfigStore config,
+	ClientAddress clientAddress,
 	DriverRegistry driverRegistry,
 	DeviceService deviceService,
 	DeviceCreationService deviceCreationService,
@@ -127,7 +129,7 @@ public record RestDependencies(
 			@Override
 			protected void configure() {
 				this.bind(config).to(ConfigStore.class);
-				this.bind(new ClientAddress(config)).to(ClientAddress.class);
+				this.bind(clientAddress).to(ClientAddress.class);
 				this.bind(driverRegistry).to(DriverRegistry.class);
 				this.bind(deviceService).to(DeviceService.class);
 				this.bind(deviceCreationService).to(DeviceCreationService.class);

@@ -25,7 +25,7 @@ import net.netshot.netshot.platform.config.Setting;
 /**
  * Gives the address of the client of a request: the address the request comes from, or the first address of the
  * X-Forwarded-For header behind a trusted reverse proxy ({@code netshot.http.trustxforwardedfor}). Injected in the
- * REST layer (logs, authentication, audit of the logins).
+ * REST layer (logs, authentication, audit of the logins); built by the composition root.
  */
 public final class ClientAddress {
 
@@ -42,6 +42,15 @@ public final class ClientAddress {
 	 */
 	public ClientAddress(ConfigStore config) {
 		this.trustForwardedFor = config.bind(current -> current.get(TRUST_X_FORWARDED_FOR));
+	}
+
+	/**
+	 * Whether the X-Forwarded-For header is trusted, i.e. Netshot is behind a reverse proxy.
+	 *
+	 * @return true behind a trusted reverse proxy
+	 */
+	public boolean trustsForwardedFor() {
+		return this.trustForwardedFor.get();
 	}
 
 	/**

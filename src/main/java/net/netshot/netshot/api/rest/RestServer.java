@@ -196,7 +196,7 @@ public final class RestServer implements Service {
 
 		// === Session cookie ===
 		// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
-		boolean behindProxy = current.get(ClientAddress.TRUST_X_FORWARDED_FOR);
+		boolean behindProxy = this.dependencies.clientAddress().trustsForwardedFor();
 		Boolean configuredSecureCookie = current.get(SECURE_COOKIE);
 		boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
 		String apiPath = current.get(API_PATH);

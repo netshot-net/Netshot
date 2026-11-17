@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import net.netshot.netshot.api.hook.HookDispatcher;
 import net.netshot.netshot.api.hook.WebHookSender;
+import net.netshot.netshot.api.rest.ClientAddress;
 import net.netshot.netshot.api.rest.RestDependencies;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.hook.HookService;
@@ -55,7 +56,7 @@ public record ApiModule(
 			CredentialsModule credentials, AaaModule aaa, SystemModule system) {
 		HookService hookService = new HookService(core.transactions(), core.repositories().hook());
 		new HookDispatcher(hookService, tasks.taskService(), new WebHookSender(), core.driverRegistry()).register(core.domainEvents());
-		RestDependencies restDependencies = new RestDependencies(core.config(), core.driverRegistry(),
+		RestDependencies restDependencies = new RestDependencies(core.config(), new ClientAddress(core.config()), core.driverRegistry(),
 			inventory.deviceService(), tasks.deviceCreationService(), compliance.policyService(), compliance.ruleService(),
 			compliance.softwareRuleService(), compliance.hardwareRuleService(), tasks.taskService(), inventory.deviceCatalogService(),
 			inventory.deviceDriverService(), inventory.domainService(), inventory.groupService(), inventory.searchService(),
