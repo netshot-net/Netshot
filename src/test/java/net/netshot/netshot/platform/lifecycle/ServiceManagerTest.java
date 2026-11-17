@@ -145,15 +145,4 @@ class ServiceManagerTest {
 		manager.stop();
 		Assertions.assertEquals(List.of("start a", "start b", "stop b", "stop a"), this.calls);
 	}
-
-	@Test
-	@DisplayName("The shutdown hook stops the services")
-	void shutdownHook() throws Exception {
-		ServiceManager manager = new ServiceManager(List.of(service("a", false, false)));
-		manager.start();
-		Thread hook = manager.shutdownHook();
-		hook.start();
-		hook.join();
-		Assertions.assertEquals(List.of("start a", "stop a"), this.calls);
-	}
 }

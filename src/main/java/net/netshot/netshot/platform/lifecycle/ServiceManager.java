@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>If a service fails to start, the services already started are stopped (in the reverse order) and
  * {@link #start()} throws: the server doesn't run half started. {@link #stop()} stops every running service,
- * even if some of them fail to stop. Typically called by a shutdown hook (see {@link #shutdownHook()}).</p>
+ * even if some of them fail to stop. Typically called by a JVM shutdown hook.</p>
  */
 @Slf4j
 public final class ServiceManager {
@@ -193,19 +193,5 @@ public final class ServiceManager {
 	 */
 	public boolean isHealthy() {
 		return this.status().stream().allMatch(ServiceStatus::healthy);
-	}
-
-	/**
-	 * Creates a thread which stops the services, to be registered as a JVM shutdown hook
-	 * (run on SIGTERM/SIGINT, or when the JVM exits).
-	 *
-	 * @return the thread
-	 */
-	public Thread shutdownHook() {
-		return new Thread(() -> {
-			log.warn("Netshot is stopping.");
-			this.stop();
-			log.warn("Netshot is stopped.");
-		}, "NetshotShutdown");
 	}
 }

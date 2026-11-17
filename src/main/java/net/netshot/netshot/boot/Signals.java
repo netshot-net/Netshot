@@ -61,7 +61,11 @@ public final class Signals {
 	 * @param application the application
 	 */
 	private static void stopOnShutdown(Application application) {
-		Runtime.getRuntime().addShutdownHook(application.services().shutdownHook());
+		Runtime.getRuntime().addShutdownHook(new NamedThreadFactory("NetshotShutdown", false).newThread(() -> {
+			log.warn("Netshot is stopping.");
+			application.close();
+			log.warn("Netshot is stopped.");
+		}));
 	}
 
 	/**
