@@ -226,7 +226,7 @@ public final class BouncyCastleLoader {
 	 * @param config the configuration
 	 * @throws Exception in case of error
 	 */
-	public static void registerBouncyCastle(Config config) throws Exception {
+	public static void register(Config config) throws Exception {
 		// Check if BC classes are already on the classpath (dev mode)
 		if (BouncyCastleLoader.tryRegister("native classpath")) {
 			return;

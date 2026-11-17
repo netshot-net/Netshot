@@ -162,7 +162,7 @@ public final class RestServer implements Service {
 	@Override
 	public synchronized void start() throws Exception {
 		Config current = this.config.current();
-		HttpServerAddress address = HttpServerAddress.fromConfig(current);
+		HttpServerAddress address = HttpServerAddress.from(current);
 		this.httpBaseUri = address.baseUri();
 		httpUseSsl = address.useSsl();
 		if (httpUseSsl) {

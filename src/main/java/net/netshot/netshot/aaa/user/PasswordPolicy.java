@@ -117,7 +117,7 @@ public class PasswordPolicy {
 	 * @param config the configuration
 	 * @return the policy
 	 */
-	public static PasswordPolicy fromConfig(Config config) {
+	public static PasswordPolicy from(Config config) {
 		PasswordPolicy policy = new PasswordPolicy();
 		policy.maxHistory = config.get(MAX_HISTORY);
 		policy.maxDuration = config.get(MAX_DURATION);

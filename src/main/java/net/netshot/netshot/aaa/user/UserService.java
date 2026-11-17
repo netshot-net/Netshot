@@ -65,7 +65,7 @@ public class UserService {
 	public UserService(Transactions transactions, UserRepository repository, ConfigStore config) {
 		this.transactions = transactions;
 		this.repository = repository;
-		this.passwordPolicy = config.bind(PasswordPolicy::fromConfig);
+		this.passwordPolicy = config.bind(PasswordPolicy::from);
 	}
 
 	/**

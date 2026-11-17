@@ -88,7 +88,7 @@ class ConfigReloadTest {
 			Map.entry("netshot.vault.http.readtimeoutms", "2222"),
 			Map.entry("netshot.snapshots.binary.path", this.tempDir.toString()),
 			Map.entry("netshot.python.virtualenv", this.tempDir.toString())));
-		Assertions.assertEquals(7, PasswordPolicy.fromConfig(TestConfig.store().current()).getMaxHistory());
+		Assertions.assertEquals(7, PasswordPolicy.from(TestConfig.store().current()).getMaxHistory());
 		Assertions.assertEquals(600, UiUser.Settings.from(TestConfig.store().current()).maxIdleTime());
 		Assertions.assertEquals(1234, Ssh.Settings.from(TestConfig.store().current()).connectionTimeout());
 		Assertions.assertEquals(List.of("aes256-ctr", "aes128-ctr"), Ssh.Settings.from(TestConfig.store().current()).ciphers());
@@ -100,7 +100,7 @@ class ConfigReloadTest {
 		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.Settings.from(TestConfig.store().current()).venvFolder());
 
 		reload(Map.of());
-		Assertions.assertEquals(0, PasswordPolicy.fromConfig(TestConfig.store().current()).getMaxHistory());
+		Assertions.assertEquals(0, PasswordPolicy.from(TestConfig.store().current()).getMaxHistory());
 		Assertions.assertEquals(1800, UiUser.Settings.from(TestConfig.store().current()).maxIdleTime());
 		Assertions.assertEquals(5000, Ssh.Settings.from(TestConfig.store().current()).connectionTimeout());
 		Assertions.assertEquals(60000, Telnet.Settings.from(TestConfig.store().current()).receiveTimeout());
@@ -140,7 +140,7 @@ class ConfigReloadTest {
 			"netshot.aaa.passwordpolicy.maxhistory", "seven",
 			"netshot.aaa.maxidletime", "1",
 			"netshot.cli.ssh.rekeydatalimit", "big"));
-		Assertions.assertEquals(0, PasswordPolicy.fromConfig(TestConfig.store().current()).getMaxHistory(), "Not a number");
+		Assertions.assertEquals(0, PasswordPolicy.from(TestConfig.store().current()).getMaxHistory(), "Not a number");
 		Assertions.assertEquals(1800, UiUser.Settings.from(TestConfig.store().current()).maxIdleTime(), "Out of range");
 		Assertions.assertEquals(1024L * 1024L * 1024L, Ssh.Settings.from(TestConfig.store().current()).rekeyDataLimit(), "Not a long");
 	}

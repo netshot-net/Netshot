@@ -340,7 +340,7 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 		if (localId == null) {
 			// Second option: based on MAC address and HTTP port (read from the configuration,
 			// the HTTP server isn't started yet)
-			final int restPort = HttpServerAddress.fromConfig(current).port();
+			final int restPort = HttpServerAddress.from(current).port();
 			try {
 				InetAddress mainAddress = InetAddress.getLocalHost();
 				NetworkInterface networkInterface = NetworkInterface.getByInetAddress(mainAddress);

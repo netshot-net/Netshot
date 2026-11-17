@@ -334,8 +334,8 @@ class UserServiceTest {
 		String name = user.username();
 		this.transactions.run(dsl -> this.repository.save(dsl,
 			this.repository.findByUsername(dsl, name).withLastPasswordChangeDate(Instant.now().minus(60, ChronoUnit.DAYS))));
-		Assertions.assertThrows(PasswordPolicy.PasswordPolicyException.class, () -> this.reload(name).checkPassword(PASSWORD, PasswordPolicy.fromConfig(TestConfig.store().current())));
+		Assertions.assertThrows(PasswordPolicy.PasswordPolicyException.class, () -> this.reload(name).checkPassword(PASSWORD, PasswordPolicy.from(TestConfig.store().current())));
 		this.service.changeOwnPassword(name, name, PASSWORD, "Fresh-passw0rd");
-		this.reload(name).checkPassword("Fresh-passw0rd", PasswordPolicy.fromConfig(TestConfig.store().current()));
+		this.reload(name).checkPassword("Fresh-passw0rd", PasswordPolicy.from(TestConfig.store().current()));
 	}
 }
