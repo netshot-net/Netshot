@@ -20,7 +20,6 @@ package net.netshot.netshot.boot;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MarkerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import ch.qos.logback.classic.Level;
@@ -33,6 +32,7 @@ import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
+import ch.qos.logback.core.status.Status;
 import ch.qos.logback.core.util.FileSize;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
@@ -92,19 +92,21 @@ public final class LoggingSetup {
 	 * Sets up all the logging from the configuration.
 	 *
 	 * @param config the configuration
-	 * @return true if the main and audit logging could be set up
+	 * @throws IllegalStateException if the main logging can't be set up (the message tells why)
 	 */
-	public static boolean apply(Config config) {
-		return initMainLogging(config) && initAuditLogging(config) && initSyslogLogging(config);
+	public static void apply(Config config) {
+		initMainLogging(config);
+		initAuditLogging(config);
+		initSyslogLogging(config);
 	}
 
 	/**
 	 * Initializes the logging.
 	 *
 	 * @param config the configuration
-	 * @return true, if successful
+	 * @throws IllegalStateException if the log file can't be set up
 	 */
-	static boolean initMainLogging(Config config) {
+	static void initMainLogging(Config config) {
 		// Redirect JUL to SLF4J
 		SLF4JBridgeHandler.removeHandlersForRootLogger();
 		SLF4JBridgeHandler.install();
@@ -161,22 +163,28 @@ public final class LoggingSetup {
 
 			}
 			catch (Exception e) {
-				log.error(MarkerFactory.getMarker("FATAL"), "Unable to log into file {}. Exiting.", logFile, e);
-				return false;
+				throw new IllegalStateException("Unable to log into file %s: %s".formatted(logFile, e.getMessage()), e);
 			}
 		}
 
-		loggerContext.reset();
-		rootLogger.setLevel(logLevel);
+		// The new appender is started before the current one is replaced: if it can't start (e.g. the log file can't
+		// be written), the current logging is kept (on a reload)
 		PatternLayoutEncoder encoder = new PatternLayoutEncoder();
 		encoder.setContext(loggerContext);
 		encoder.setPattern("%d %-5level [%thread] %logger{0}: %msg%n");
 		encoder.start();
 		appender.setEncoder(encoder);
 		appender.setContext(loggerContext);
-		appender.start();
 		final String appenderName = "Netshot appender";
 		appender.setName(appenderName);
+		long startTime = System.currentTimeMillis();
+		appender.start();
+		if (!appender.isStarted()) {
+			throw new IllegalStateException("Unable to log into file %s%s".formatted(logFile, lastError(loggerContext, startTime)));
+		}
+
+		loggerContext.reset();
+		rootLogger.setLevel(logLevel);
 		rootLogger.detachAppender(appenderName);
 		rootLogger.addAppender(appender);
 
@@ -204,16 +212,34 @@ public final class LoggingSetup {
 				}
 			}
 		}
+	}
 
-		return true;
+	/**
+	 * Gets the last error reported by logback (which reports the failures of its components as status messages,
+	 * without exception) since a given time.
+	 *
+	 * @param loggerContext the logger context
+	 * @param since the time to look from (ms)
+	 * @return the error message, prefixed by a colon, or an empty string
+	 */
+	private static String lastError(LoggerContext loggerContext, long since) {
+		String error = "";
+		for (Status status : loggerContext.getStatusManager().getCopyOfStatusList()) {
+			if (status.getLevel() == Status.ERROR && status.getTimestamp() >= since) {
+				error = ": " + status.getMessage();
+				if (status.getThrowable() != null) {
+					error += " (" + status.getThrowable().getMessage() + ")";
+				}
+			}
+		}
+		return error;
 	}
 
 	/**
 	 * Initialize the audit logging.
 	 * @param config the configuration
-	 * @return true if everything went well
 	 */
-	static boolean initAuditLogging(Config config) {
+	static void initAuditLogging(Config config) {
 		String auditFile = config.get(AUDIT_FILE);
 		String auditLevelCfg = config.get(AUDIT_LEVEL);
 		int auditCount = config.get(AUDIT_COUNT);
@@ -261,19 +287,17 @@ public final class LoggingSetup {
 				AAA_LOG.error("Audit starting.");
 			}
 			catch (Exception e) {
-				log.error("Unable to log AAA data into file {}. Exiting.", auditFile, e);
+				log.error("Unable to log AAA data into file {}.", auditFile, e);
 			}
 		}
-		return true;
 	}
 
 	/**
 	 * Initialize remote Syslog logging.
 	 *
 	 * @param config the configuration
-	 * @return true if everything went fine
 	 */
-	static boolean initSyslogLogging(Config config) {
+	static void initSyslogLogging(Config config) {
 
 		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger)
 			LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
@@ -307,7 +331,5 @@ public final class LoggingSetup {
 			log.warn("Logging to syslog {}:{} has started", appender.getSyslogHost(), appender.getPort());
 			syslogIndex++;
 		}
-
-		return true;
 	}
 }
