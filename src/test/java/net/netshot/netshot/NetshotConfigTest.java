@@ -158,10 +158,10 @@ class NetshotConfigTest {
 	void encryptionPasswordDefault() {
 		Properties config = new Properties();
 		TestConfig.init(config);
-		Assertions.assertEquals("NETSHOT", Database.getEncryptionPassword(TestConfig.store().current()));
+		Assertions.assertEquals("NETSHOT", Database.encryptionPassword(TestConfig.store().current()));
 		config.setProperty("netshot.db.encryptionPassword", "legacy");
 		TestConfig.init(config);
-		Assertions.assertEquals("legacy", Database.getEncryptionPassword(TestConfig.store().current()));
+		Assertions.assertEquals("legacy", Database.encryptionPassword(TestConfig.store().current()));
 	}
 
 	@Test
@@ -170,9 +170,9 @@ class NetshotConfigTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.db.encryptionpassword.required", "true");
 		TestConfig.init(config);
-		Assertions.assertThrows(IllegalStateException.class, () -> Database.getEncryptionPassword(TestConfig.store().current()));
+		Assertions.assertThrows(IllegalStateException.class, () -> Database.encryptionPassword(TestConfig.store().current()));
 		config.setProperty("netshot.db.encryptionpassword.file", writeSecretFile("fromfile").toString());
 		TestConfig.init(config);
-		Assertions.assertEquals("fromfile", Database.getEncryptionPassword(TestConfig.store().current()));
+		Assertions.assertEquals("fromfile", Database.encryptionPassword(TestConfig.store().current()));
 	}
 }

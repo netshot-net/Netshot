@@ -29,8 +29,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
@@ -77,14 +76,14 @@ public class TaskLockManager implements Service {
 	/**
 	 * Creates the lock manager of this instance.
 	 * @param distributed true to also hold the locks in the database (cluster mode), false for in-memory locks only
-	 * @param config the configuration store (the database to hold the locks in)
+	 * @param database the database to hold the locks in
 	 * @return the lock manager
 	 */
-	public static TaskLockManager create(boolean distributed, ConfigStore config) {
+	public static TaskLockManager create(boolean distributed, DatabaseService database) {
 		log.info("Initializing the task lock manager ({} mode).", distributed ? "distributed" : "local");
 		return new TaskLockManager(distributed, () -> {
 			try {
-				return Database.openUnpooledConnection(config.current());
+				return database.openUnpooledConnection();
 			}
 			catch (SQLException e) {
 				throw new IllegalStateException("Unable to open the task lock DB connection", e);

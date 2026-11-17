@@ -55,7 +55,7 @@ class ConnectionPoolsTest {
 		config.setProperty("netshot.db.pooler.unreturnedconnectiontimeout", "321");
 		TestConfig.init(config);
 
-		try (ConnectionPools pools = new ConnectionPools(TestConfig.store().current(), "org.postgresql.Driver", URL, URL + "-read", "user", "secret")) {
+		try (ConnectionPools pools = new ConnectionPools(TestConfig.store().current(), new Database.Settings("org.postgresql.Driver", URL, URL + "-read", "user", "secret"))) {
 			ComboPooledDataSource readWrite = (ComboPooledDataSource) pools.get(PoolKind.READ_WRITE);
 			Assertions.assertEquals("ReadWrite", readWrite.getDataSourceName());
 			Assertions.assertEquals(URL, readWrite.getJdbcUrl());
@@ -97,7 +97,7 @@ class ConnectionPoolsTest {
 	@DisplayName("Without read URL, the read-only connections come from the read-write pool")
 	void noReadDatabase() {
 		TestConfig.init(new Properties());
-		try (ConnectionPools pools = new ConnectionPools(TestConfig.store().current(), "org.postgresql.Driver", URL, null, "user", "secret")) {
+		try (ConnectionPools pools = new ConnectionPools(TestConfig.store().current(), new Database.Settings("org.postgresql.Driver", URL, null, "user", "secret"))) {
 			Assertions.assertSame(pools.get(PoolKind.READ_WRITE), pools.get(PoolKind.READ_ONLY));
 			Assertions.assertEquals(Set.of("ReadWrite", "System"), pools.stats().keySet(), "Statistics by pool");
 			ComboPooledDataSource readWrite = (ComboPooledDataSource) pools.get(PoolKind.READ_WRITE);
@@ -112,7 +112,7 @@ class ConnectionPoolsTest {
 	@DisplayName("The pools close without error")
 	void close() {
 		TestConfig.init(new Properties());
-		try (ConnectionPools pools = new ConnectionPools(TestConfig.store().current(), "org.postgresql.Driver", URL, URL + "-read", "user", "secret")) {
+		try (ConnectionPools pools = new ConnectionPools(TestConfig.store().current(), new Database.Settings("org.postgresql.Driver", URL, URL + "-read", "user", "secret"))) {
 			for (PoolKind kind : PoolKind.values()) {
 				ComboPooledDataSource pool = (ComboPooledDataSource) pools.get(kind);
 				Assertions.assertDoesNotThrow(() -> pool.close(), "Closing the %s pool".formatted(kind));

@@ -59,7 +59,7 @@ import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
@@ -143,6 +143,9 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 
 	/** The configuration store. */
 	private final ConfigStore config;
+
+	/** The database (the connection of the cluster notifications). */
+	private final DatabaseService database;
 
 	/** Whether a driver reload was just requested. */
 	private boolean driverReloadRequested;
@@ -286,22 +289,25 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 * @param taskManager the task manager
 	 * @param vaultManager the Vault client (its caches are invalidated on request of the other members)
+	 * @param database the database (the connection of the cluster notifications)
 	 * @param config the configuration store
 	 */
 	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager, VaultManager vaultManager,
-		ConfigStore config) {
-		this(LocalNode.of(driverRegistry, autoSnapshotScheduler, taskManager, vaultManager), config, Timers.DEFAULT);
+		DatabaseService database, ConfigStore config) {
+		this(LocalNode.of(driverRegistry, autoSnapshotScheduler, taskManager, vaultManager), database, config, Timers.DEFAULT);
 	}
 
 	/**
 	 * Constructor.
 	 *
 	 * @param node what the cluster manager drives on the local node
+	 * @param database the database (the connection of the cluster notifications)
 	 * @param config the configuration store
 	 * @param timers the timers
 	 */
-	ClusterManager(LocalNode node, ConfigStore config, Timers timers) {
+	ClusterManager(LocalNode node, DatabaseService database, ConfigStore config, Timers timers) {
 		this.node = node;
+		this.database = database;
 		this.config = config;
 		this.timers = timers;
 		ObjectMapper jsonMapper = new ObjectMapper();
@@ -593,7 +599,7 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 				// Stopping
 				break;
 			}
-			try (Connection dbConnection = Database.openUnpooledConnection(this.config.current())) {
+			try (Connection dbConnection = this.database.openUnpooledConnection()) {
 				PGConnection pgConnection = dbConnection.unwrap(PGConnection.class);
 
 				try (Statement listenStatement = dbConnection.createStatement()) {

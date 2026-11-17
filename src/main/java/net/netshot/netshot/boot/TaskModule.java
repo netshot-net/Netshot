@@ -102,13 +102,13 @@ public record TaskModule(
 		Repositories r = core.repositories();
 		DriverRegistry drivers = core.driverRegistry();
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
-		TaskLockManager lockManager = TaskLockManager.create(clustered, config);
+		TaskLockManager lockManager = TaskLockManager.create(clustered, core.database());
 		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
 		TaskManager taskManager = new TaskManager(transactions, config, autoSnapshots, lockManager, r.task());
 		TaskSubmitter submitter = taskManager::addTask;
 		AutoSnapshotScheduler autoSnapshotScheduler = new AutoSnapshotScheduler(submitter, config, taskManager, autoSnapshots, r.device());
 		Optional<ClusterManager> clusterManager = clustered
-			? Optional.of(new ClusterManager(drivers, autoSnapshotScheduler, taskManager, core.vaultManager(), config))
+			? Optional.of(new ClusterManager(drivers, autoSnapshotScheduler, taskManager, core.vaultManager(), core.database(), config))
 			: Optional.empty();
 		clusterManager.ifPresent(taskManager::setCluster);
 		ClusterLink cluster = clusterManager.<ClusterLink>map(m -> m).orElse(ClusterLink.NONE);

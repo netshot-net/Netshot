@@ -48,6 +48,36 @@ public final class DatabaseService implements Service {
 		this.config = config;
 	}
 
+	/**
+	 * Migrates the database schema to the current version, if necessary (at startup, before the service starts).
+	 *
+	 * @throws Exception if the schema can't be migrated
+	 */
+	public void migrate() throws Exception {
+		Database.migrate(this.config.current());
+	}
+
+	/**
+	 * Opens a raw SQL connection, out of the connection pools (the long-lived connections of the task locks and of
+	 * the cluster notifications), whether the service is started or not. The caller closes it.
+	 *
+	 * @return the connection
+	 * @throws SQLException if the connection can't be opened
+	 */
+	public Connection openUnpooledConnection() throws SQLException {
+		return Database.openUnpooledConnection(this.config.current());
+	}
+
+	/**
+	 * Gets the password used to encrypt the sensitive data in the database (the secrets of the credentials).
+	 *
+	 * @return the password
+	 * @throws IllegalStateException if the password is required but not configured
+	 */
+	public String encryptionPassword() {
+		return Database.encryptionPassword(this.config.current());
+	}
+
 	@Override
 	public String id() {
 		return "database";
@@ -62,8 +92,7 @@ public final class DatabaseService implements Service {
 	public synchronized void start() {
 		if (this.pools == null) {
 			Config current = this.config.current();
-			this.pools = new ConnectionPools(current, Database.getDriverClass(current), Database.getUrl(current),
-				Database.getReadUrl(current), Database.getUsername(current), Database.getPassword(current));
+			this.pools = new ConnectionPools(current, Database.Settings.from(current));
 		}
 	}
 

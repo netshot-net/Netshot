@@ -21,7 +21,6 @@ package net.netshot.netshot.boot;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.LocalSecretConverter;
 import net.netshot.netshot.platform.database.Transactions;
@@ -63,7 +62,7 @@ public record CoreModule(
 	public static CoreModule create(ConfigStore config, DriverRegistry driverRegistry) {
 		DatabaseService database = new DatabaseService(config);
 		Transactions transactions = new Transactions(database);
-		LocalSecretConverter secretConverter = new LocalSecretConverter(Database.getEncryptionPassword(config.current()));
+		LocalSecretConverter secretConverter = new LocalSecretConverter(database.encryptionPassword());
 		Repositories repositories = Repositories.create(transactions, secretConverter, config);
 		return new CoreModule(config, database, transactions, secretConverter, repositories, new DomainEvents(), driverRegistry,
 			new DynamicGroups(transactions, driverRegistry, repositories.group()),

@@ -66,10 +66,10 @@ class DatabaseJitTest {
 	@Test
 	@DisplayName("An options parameter of the JDBC URL replaces the default one")
 	void urlOptions() throws SQLException {
-		String url = Database.getUrl(TestConfig.store().current());
-		String withOptions = url + (url.contains("?") ? "&" : "?") + "options=-c%20jit%3Don";
+		Database.Settings settings = Database.Settings.from(TestConfig.store().current());
+		String withOptions = settings.url() + (settings.url().contains("?") ? "&" : "?") + "options=-c%20jit%3Don";
 		try (Connection connection = DriverManager.getConnection(withOptions,
-				Database.connectionProperties(withOptions, Database.getUsername(TestConfig.store().current()), Database.getPassword(TestConfig.store().current())))) {
+				Database.connectionProperties(withOptions, settings.username(), settings.password()))) {
 			Assertions.assertEquals("on", jit(connection));
 		}
 	}
