@@ -96,7 +96,7 @@ public final class Bootstrap {
 	private static void registerCryptoLibraries(Config config) throws BootstrapException {
 		log.info("Registering crypto libraries");
 		try {
-			BouncyCastleLoader.registerBouncyCastle(config);
+			BouncyCastleLoader.register(config);
 		}
 		catch (Exception e) {
 			throw new BootstrapException(String.valueOf(e.getMessage()), e);

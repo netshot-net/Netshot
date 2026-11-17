@@ -197,7 +197,7 @@ class AuthenticationTest {
 			UiUser user = UiUser.withPassword(testUsername, true, testUserLevel, oldPasswords.removeLast());
 			while (oldPasswords.size() > 0) {
 				try {
-					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.fromConfig(TestConfig.store().current()));
+					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.from(TestConfig.store().current()));
 				}
 				catch (PasswordPolicyException e) {
 					// Ignore

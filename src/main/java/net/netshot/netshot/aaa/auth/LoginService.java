@@ -70,7 +70,7 @@ public class LoginService {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.remote = remote;
-		this.passwordPolicy = config.bind(PasswordPolicy::fromConfig);
+		this.passwordPolicy = config.bind(PasswordPolicy::from);
 		this.userSettings = config.bind(UiUser.Settings::from);
 	}
 

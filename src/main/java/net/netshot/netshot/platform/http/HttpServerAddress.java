@@ -47,7 +47,7 @@ public record HttpServerAddress(URI baseUri, boolean useSsl) {
 	 * @param config the configuration
 	 * @return the configured HTTP server address
 	 */
-	public static HttpServerAddress fromConfig(Config config) {
+	public static HttpServerAddress from(Config config) {
 		boolean useSsl = config.get(SSL_ENABLED);
 		String baseUrl = config.get(BASE_URL);
 		if (baseUrl == null) {
