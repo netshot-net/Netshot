@@ -96,10 +96,8 @@ public final class Netshot {
 			Bootstrap.initialize(config);
 
 			Application application = Application.create(config);
-			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
-			Signals.stopOnShutdown(application);
-			// Reloads the configuration on HUP (from now on: the default action of the JVM would stop it)
-			Signals.reloadOnHangup(application);
+			// Stops the services on SIGTERM/SIGINT (or if the startup fails), reloads the configuration on HUP
+			Signals.register(application);
 			application.migrate();
 			application.start();
 			log.warn("Netshot is started");
