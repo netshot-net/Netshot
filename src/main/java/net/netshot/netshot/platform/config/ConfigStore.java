@@ -29,12 +29,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.slf4j.MarkerFactory;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Holds the current configuration snapshot, and replaces it as a whole on a reload.
+ *
+ * <p>The store owns the source of the configuration (e.g. the configuration files given at startup): it loads the
+ * configuration from it at startup ({@link #load()}), then again on each reload ({@link #reload()}).</p>
  *
  * <p>A reload is all or nothing: the new configuration is loaded and checked (configuration file,
  * secret files of the known secret settings) first; if anything fails, the current configuration is kept.
@@ -46,7 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class ConfigStore {
 
-	/** Loads a configuration. */
+	/** Loads a configuration from its source. */
 	@FunctionalInterface
 	public interface Loader {
 		/**
@@ -89,6 +90,9 @@ public final class ConfigStore {
 		}
 	}
 
+	/** The source of the configuration. */
+	private final Loader source;
+
 	/** The current configuration. */
 	private volatile Config current;
 
@@ -102,12 +106,23 @@ public final class ConfigStore {
 	private final List<Consumer<Config>> listeners = new CopyOnWriteArrayList<>();
 
 	/**
-	 * Creates a store.
+	 * Creates a store, empty until the configuration is {@link #load() loaded} from the source.
 	 *
-	 * @param initial the initial configuration
+	 * @param source the source of the configuration (e.g. the configuration files)
+	 */
+	public ConfigStore(Loader source) {
+		this.source = Objects.requireNonNull(source);
+		this.current = Config.empty();
+	}
+
+	/**
+	 * Creates a store holding a fixed configuration (the tools, the tests): it's also the source of a reload.
+	 *
+	 * @param initial the configuration
 	 */
 	public ConfigStore(Config initial) {
 		this.current = Objects.requireNonNull(initial);
+		this.source = () -> initial;
 	}
 
 	/**
@@ -139,37 +154,26 @@ public final class ConfigStore {
 	}
 
 	/**
-	 * Loads the initial configuration (at startup): it replaces the current one if it can be loaded.
+	 * Loads the initial configuration from the source (at startup): it replaces the current one if it can be loaded.
 	 * The unknown items aren't reported yet (see {@link SettingCatalog#warnUnknownItems(Config)}),
 	 * as the logging is set up from this configuration.
 	 *
-	 * @param loader the loader
-	 * @return true if the configuration was loaded
+	 * @throws ConfigException if the configuration can't be loaded (the current one is kept)
 	 */
-	public synchronized boolean load(Loader loader) {
-		Config config;
-		try {
-			config = this.check(loader.load());
-		}
-		catch (ConfigException e) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to load the configuration: {}", e.getMessage(), e);
-			return false;
-		}
-		this.replace(config);
-		return true;
+	public synchronized void load() throws ConfigException {
+		this.replace(this.check(this.source.load()));
 	}
 
 	/**
-	 * Reloads the configuration (HUP signal): on success, the new configuration replaces the current one,
-	 * otherwise the current one is kept.
+	 * Reloads the configuration from the source (HUP signal): on success, the new configuration replaces the current
+	 * one, otherwise the current one is kept (the error is logged).
 	 *
-	 * @param loader the loader
 	 * @return true if the configuration was reloaded
 	 */
-	public synchronized boolean reload(Loader loader) {
+	public synchronized boolean reload() {
 		Config config;
 		try {
-			config = this.check(loader.load());
+			config = this.check(this.source.load());
 		}
 		catch (ConfigException e) {
 			log.error("Unable to reload the configuration, the current configuration is kept: {}", e.getMessage(), e);
