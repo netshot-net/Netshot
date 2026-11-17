@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.boot;
 
-import java.util.List;
-
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigException;
@@ -36,20 +34,7 @@ import net.netshot.netshot.platform.tls.Truststore;
 @Slf4j
 public final class Bootstrap {
 
-	/** The configuration files to look at, in sequence, when none is given. */
-	private static final List<String> DEFAULT_FILES = List.of("netshot.conf", "/etc/netshot.conf");
-
 	private Bootstrap() {
-	}
-
-	/**
-	 * Gets the configuration files to look at, from the command line option ({@code -c} of the server and the tools).
-	 *
-	 * @param file the configuration file given on the command line, or null
-	 * @return the given file, or the default files ({@code netshot.conf}, then {@code /etc/netshot.conf})
-	 */
-	public static List<String> configFiles(String file) {
-		return file == null ? DEFAULT_FILES : List.of(file);
 	}
 
 	/**
