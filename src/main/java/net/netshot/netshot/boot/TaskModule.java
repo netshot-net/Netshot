@@ -104,7 +104,7 @@ public record TaskModule(
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
 		TaskLockManager lockManager = TaskLockManager.create(clustered, core.database());
 		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
-		TaskManager taskManager = new TaskManager(transactions, config, autoSnapshots, lockManager, r.task());
+		TaskManager taskManager = new TaskManager(transactions, config, core.database(), autoSnapshots, lockManager, r.task());
 		TaskSubmitter submitter = taskManager::addTask;
 		AutoSnapshotScheduler autoSnapshotScheduler = new AutoSnapshotScheduler(submitter, config, taskManager, autoSnapshots, r.device());
 		Optional<ClusterManager> clusterManager = clustered
