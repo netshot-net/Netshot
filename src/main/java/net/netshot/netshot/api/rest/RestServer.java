@@ -49,7 +49,6 @@ import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSessionConfig;
 import io.undertow.servlet.util.ImmediateInstanceFactory;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.api.rest.v0.V0Application;
 import net.netshot.netshot.api.rest.v1.V1Application;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -237,7 +236,7 @@ public final class RestServer implements Service {
 				.setSecure(secureCookie)
 				.setAttribute("SameSite", "Strict")
 			)
-			.setDefaultSessionTimeout(UiUser.Settings.from(current).maxIdleTime());
+			.setDefaultSessionTimeout(this.dependencies.loginService().sessionMaxIdleTime());
 
 		DeploymentManager deploymentManager = Servlets
 			.defaultContainer()

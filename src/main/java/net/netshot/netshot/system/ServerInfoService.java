@@ -18,8 +18,7 @@
  */
 package net.netshot.netshot.system;
 
-import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.aaa.auth.LoginService;
 import net.netshot.netshot.platform.runtime.BuildInfo;
 
 /**
@@ -28,16 +27,16 @@ import net.netshot.netshot.platform.runtime.BuildInfo;
  */
 public class ServerInfoService {
 
-	/** The configuration store. */
-	private final ConfigStore config;
+	/** The login use cases (the max idle time of the sessions). */
+	private final LoginService loginService;
 
 	/**
 	 * Instantiates the service.
 	 *
-	 * @param config the configuration store (the maximum idle time of the sessions)
+	 * @param loginService the login use cases (the max idle time of the sessions)
 	 */
-	public ServerInfoService(ConfigStore config) {
-		this.config = config;
+	public ServerInfoService(LoginService loginService) {
+		this.loginService = loginService;
 	}
 
 	/**
@@ -46,6 +45,6 @@ public class ServerInfoService {
 	 * @return the server information
 	 */
 	public ServerInfo get() {
-		return new ServerInfo(BuildInfo.VERSION, UiUser.Settings.from(this.config.current()).maxIdleTime());
+		return new ServerInfo(BuildInfo.VERSION, this.loginService.sessionMaxIdleTime());
 	}
 }
