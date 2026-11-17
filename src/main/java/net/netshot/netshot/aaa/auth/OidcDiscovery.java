@@ -65,7 +65,7 @@ public final class OidcDiscovery implements Service {
 	private final ConfigStore config;
 
 	/** Applies the configuration changes. */
-	private final Consumer<Config> listener = _ -> this.apply();
+	private final Consumer<Config> listener = _ -> this.applySettings();
 
 	/** The number of successful fetches. */
 	private final AtomicLong fetches = new AtomicLong();
@@ -107,7 +107,7 @@ public final class OidcDiscovery implements Service {
 	public synchronized void start() {
 		this.executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("NetshotOidcIdPDiscovery"));
 		this.config.addListener(this.listener);
-		this.apply();
+		this.applySettings();
 	}
 
 	@Override
@@ -157,7 +157,7 @@ public final class OidcDiscovery implements Service {
 	/**
 	 * Applies the current settings.
 	 */
-	private synchronized void apply() {
+	private synchronized void applySettings() {
 		if (this.executor == null || this.executor.isShutdown()) {
 			return;
 		}
