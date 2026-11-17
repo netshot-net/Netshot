@@ -39,7 +39,7 @@ public final class TestConnectors {
 		static final SshClientService SERVICE = start();
 
 		private static SshClientService start() {
-			SshClientService service = new SshClientService(TestConfig.store());
+			SshClientService service = new SshClientService(TestConfig.store(), new AccessSettings(TestConfig.store()));
 			service.start();
 			return service;
 		}
