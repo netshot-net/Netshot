@@ -36,6 +36,7 @@ import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TaskSpec;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.UnitTest;
 
 /**
@@ -62,7 +63,7 @@ class TaskHandlersTest {
 			new RunGroupDiagnosticsHandler(null, null, null, null),
 			new ScanSubnetsHandler(null, null, null),
 			new TakeGroupSnapshotHandler(null, null, null, null),
-			new TakeSnapshotHandler(null, null, null, null, null, null, null, null, null, null)));
+			new TakeSnapshotHandler(null, null, null, null, null, null, null, null, TestConfig.store(), null)));
 	}
 
 	@Test

@@ -44,6 +44,7 @@ import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
@@ -58,6 +59,9 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	/** The devices with a queued automatic snapshot. */
 	private final AutoSnapshotQueue autoSnapshots;
 
+	/** Folder to dump the configurations into, after each snapshot. */
+	static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
+
 	/** The embedded SSH server, where the devices upload files (null if disabled). */
 	private final SshServer sshServer;
 	/** The transaction support. */
@@ -69,7 +73,8 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	/** The secret resolver and the SSH client of the device accesses. */
 	private final Connectors connectors;
-	private final ConfigStore config;
+	/** The folder to dump the configurations into after each snapshot (null for none), from the configuration. */
+	private final ConfigStore.Binding<String> dumpPath;
 	private final BinaryFileStorage binaryFiles;
 
 	/**
@@ -96,7 +101,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		this.taskSubmitter = taskSubmitter;
 		this.autoSnapshots = autoSnapshots;
 		this.deviceRepository = deviceRepository;
-		this.config = config;
+		this.dumpPath = config.bind(current -> current.get(DUMP_PATH));
 		this.binaryFiles = binaryFiles;
 	}
 
@@ -134,7 +139,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			return;
 		}
 		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger,
-			this.config.current().get(SnapshotDeviceScript.DUMP_PATH), this.binaryFiles);
+			this.dumpPath.get(), this.binaryFiles);
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));

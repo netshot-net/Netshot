@@ -54,16 +54,12 @@ import net.netshot.netshot.inventory.config.ConfigDraft;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
 import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {
-
-	/** Folder to dump the configurations into, after each snapshot. */
-	public static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
 
 	/** The embedded SSH server, where the devices upload files (null if not running). */
 	private final SshServer sshServer;

@@ -38,7 +38,6 @@ import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
-import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
@@ -50,6 +49,7 @@ import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJob;
 import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.task.handler.TakeSnapshotHandler;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultTokenRefresher;
 import net.netshot.netshot.platform.config.SettingCatalog;
@@ -92,7 +92,6 @@ public final class NetshotSettings {
 			ClusterManager.class,
 			JsRuleRuntime.class,
 			PyRuleRuntime.class,
-			SnapshotDeviceScript.class,
 			PythonFileSystem.class,
 			DriverLoader.class,
 			ConfigBinaryFileAttribute.class,
@@ -104,6 +103,7 @@ public final class NetshotSettings {
 			ChildTaskOrchestrator.class,
 			TaskJob.class,
 			TaskManager.class,
+			TakeSnapshotHandler.class,
 			VaultManager.class,
 			VaultTokenRefresher.class);
 	}
