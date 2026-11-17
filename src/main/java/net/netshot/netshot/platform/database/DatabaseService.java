@@ -69,6 +69,15 @@ public final class DatabaseService implements Service {
 	}
 
 	/**
+	 * Gets the maximum size of the main connection pool, the one of the transactions.
+	 *
+	 * @return the maximum number of connections
+	 */
+	public int maxPoolSize() {
+		return this.config.current().get(ConnectionPools.MAX_POOL_SIZE);
+	}
+
+	/**
 	 * Gets the password used to encrypt the sensitive data in the database (the secrets of the credentials).
 	 *
 	 * @return the password

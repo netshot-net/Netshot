@@ -55,7 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.ConnectionPools;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.task.AutoSnapshotQueue;
@@ -195,6 +195,9 @@ public final class TaskManager implements Service, TaskEngine {
 	/** The configuration store. */
 	private final ConfigStore config;
 
+	/** The database (the size of its connection pool, against the number of task threads). */
+	private final DatabaseService database;
+
 	/** The devices with a queued automatic snapshot. */
 	private final AutoSnapshotQueue autoSnapshots;
 
@@ -227,14 +230,16 @@ public final class TaskManager implements Service, TaskEngine {
 	 *
 	 * @param transactions the transaction support
 	 * @param config the configuration store
+	 * @param database the database (the size of its connection pool)
 	 * @param autoSnapshots the devices with a queued automatic snapshot
 	 * @param lockManager the task and device locks
 	 * @param repository the task repository
 	 */
-	public TaskManager(Transactions transactions, ConfigStore config, AutoSnapshotQueue autoSnapshots, TaskLockManager lockManager,
-		TaskRepository repository) {
+	public TaskManager(Transactions transactions, ConfigStore config, DatabaseService database, AutoSnapshotQueue autoSnapshots,
+		TaskLockManager lockManager, TaskRepository repository) {
 		this.transactions = transactions;
 		this.config = config;
+		this.database = database;
 		this.autoSnapshots = autoSnapshots;
 		this.lockManager = lockManager;
 		for (Status status : Status.values()) {
@@ -401,7 +406,7 @@ public final class TaskManager implements Service, TaskEngine {
 		this.threadCount = current.get(THREAD_COUNT);
 		// Running device tasks hold a DB connection from the main pool, so the pool must be
 		// comfortably larger than the number of task threads
-		int maxPoolSize = current.get(ConnectionPools.MAX_POOL_SIZE);
+		int maxPoolSize = this.database.maxPoolSize();
 		if (this.threadCount > maxPoolSize - MIN_SPARE_DB_CONNECTIONS) {
 			log.warn("The task thread count ({}) is too close to the DB pool max size ({}): "
 				+ "tasks may starve the connection pool. Set netshot.db.pooler.maxpoolsize to at least {}.",

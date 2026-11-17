@@ -45,7 +45,7 @@ public final class ConnectionPools implements AutoCloseable {
 	static final Setting<Integer> MIN_POOL_SIZE = poolSetting("netshot.db.pooler.minpoolsize", 5, 0);
 
 	/** Max size of the main (read-write and read-only) pools. */
-	public static final Setting<Integer> MAX_POOL_SIZE = poolSetting("netshot.db.pooler.maxpoolsize", 50, 0);
+	static final Setting<Integer> MAX_POOL_SIZE = poolSetting("netshot.db.pooler.maxpoolsize", 50, 0);
 
 	/** Min size of the system pool. */
 	static final Setting<Integer> SYSTEM_MIN_POOL_SIZE = poolSetting("netshot.db.pooler.system.minpoolsize", 1, 0);
