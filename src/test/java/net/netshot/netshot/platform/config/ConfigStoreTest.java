@@ -116,12 +116,10 @@ class ConfigStoreTest {
 	void checkAfterLoad() throws Exception {
 		Path missing = this.tempDir.resolve("missing");
 		ConfigStore store = new ConfigStore(config(Map.of("netshot.test.server1.secret.file", missing.toString())));
-		store.check();
-		store.setCatalog(CATALOG);
-		ConfigException e = Assertions.assertThrows(ConfigException.class, store::check);
+		ConfigException e = Assertions.assertThrows(ConfigException.class, () -> store.setCatalog(CATALOG));
 		Assertions.assertTrue(e.getMessage().contains(missing.toString()), "The message tells the secret file: " + e.getMessage());
 		Files.writeString(missing, "s3cret", StandardCharsets.UTF_8);
-		store.check();
+		store.setCatalog(CATALOG);
 	}
 
 	@Test

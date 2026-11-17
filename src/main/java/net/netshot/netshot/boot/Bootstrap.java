@@ -107,9 +107,8 @@ public final class Bootstrap {
 	 * @throws BootstrapException if the configuration is invalid (the message tells why)
 	 */
 	private static void checkSettings(ConfigStore config) throws BootstrapException {
-		config.setCatalog(NetshotSettings.catalog());
 		try {
-			config.check();
+			config.setCatalog(NetshotSettings.catalog());
 		}
 		catch (ConfigException e) {
 			throw new BootstrapException("Invalid configuration: " + e.getMessage());

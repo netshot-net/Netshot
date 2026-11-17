@@ -146,22 +146,18 @@ public final class ConfigStore {
 	}
 
 	/**
-	 * Sets the known settings: a new configuration is checked against them (secret files,
-	 * changes of the settings which need a restart, unknown items).
+	 * Sets the known settings (at startup, after the load), and checks the current configuration against them: the
+	 * secret files of the secret settings must be readable, the unknown items are logged. The next configurations
+	 * (reloads) are checked against them too (secret files, changes of the settings which need a restart, unknown
+	 * items).
 	 *
 	 * @param newCatalog the known settings
+	 * @throws ConfigException if a secret file of the current configuration can't be read
 	 */
-	public void setCatalog(SettingCatalog newCatalog) {
+	public synchronized void setCatalog(SettingCatalog newCatalog) throws ConfigException {
 		this.catalog = Objects.requireNonNull(newCatalog);
-	}
-
-	/**
-	 * Gets the known settings.
-	 *
-	 * @return the known settings
-	 */
-	public SettingCatalog catalog() {
-		return this.catalog;
+		this.check(this.current);
+		this.catalog.warnUnknownItems(this.current);
 	}
 
 	/**
@@ -173,17 +169,6 @@ public final class ConfigStore {
 	 */
 	public synchronized void load() throws ConfigException {
 		this.replace(this.check(this.source.load()));
-	}
-
-	/**
-	 * Checks the current configuration against the known settings, once they're {@link #setCatalog set} after the
-	 * load (at startup): the secret files of the secret settings must be readable, the unknown items are logged.
-	 *
-	 * @throws ConfigException if a secret file can't be read
-	 */
-	public synchronized void check() throws ConfigException {
-		this.check(this.current);
-		this.catalog.warnUnknownItems(this.current);
 	}
 
 	/**
