@@ -127,6 +127,7 @@ public record RestDependencies(
 			@Override
 			protected void configure() {
 				this.bind(config).to(ConfigStore.class);
+				this.bind(new ClientAddress(config)).to(ClientAddress.class);
 				this.bind(driverRegistry).to(DriverRegistry.class);
 				this.bind(deviceService).to(DeviceService.class);
 				this.bind(deviceCreationService).to(DeviceCreationService.class);

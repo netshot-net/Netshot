@@ -37,7 +37,6 @@ import jakarta.ws.rs.core.SecurityContext;
 import net.netshot.netshot.aaa.auth.LoginService;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * Authenticates the REST requests, with the methods tried in turn: API token, JWT access token, session. The
@@ -56,36 +55,37 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 	/** The authentication methods, in order. */
 	private final List<RequestAuthenticator> authenticators;
-	private final ConfigStore config;
+	/** The address of the client of a request. */
+	private final ClientAddress clientAddress;
 
 	/**
 	 * Creates the filter.
 	 *
 	 * @param apiTokenService the API token use cases
 	 * @param loginService the login use cases
-	 * @param config the configuration store
+	 * @param clientAddress the address of the client of a request
 	 */
 	@Inject
-	public AuthenticationFilter(ApiTokenService apiTokenService, LoginService loginService, ConfigStore config) {
+	public AuthenticationFilter(ApiTokenService apiTokenService, LoginService loginService, ClientAddress clientAddress) {
 		this.authenticators = List.of(
 			new ApiTokenAuthenticator(apiTokenService),
 			new JwtAuthenticator(loginService),
 			new SessionAuthenticator());
-		this.config = config;
+		this.clientAddress = clientAddress;
 	}
 
 	@Override
 	public void filter(ContainerRequestContext requestContext) throws IOException {
-		String clientAddress = LoggerFilter.getClientAddress(this.httpRequest, this.config.current());
+		String address = this.clientAddress.of(this.httpRequest);
 		RequestAuthenticator.Result result = null;
 		for (RequestAuthenticator authenticator : this.authenticators) {
-			result = authenticator.authenticate(this.httpRequest, clientAddress);
+			result = authenticator.authenticate(this.httpRequest, address);
 			if (result != null) {
 				break;
 			}
 		}
 		if (result != null && result.user() == null) {
-			AAA_LOG.debug("Invalid {} credentials from {}, the request is anonymous.", result.scheme(), clientAddress);
+			AAA_LOG.debug("Invalid {} credentials from {}, the request is anonymous.", result.scheme(), address);
 		}
 		boolean secure = "https".equals(requestContext.getUriInfo().getRequestUri().getScheme());
 		requestContext.setSecurityContext(result == null || result.user() == null
