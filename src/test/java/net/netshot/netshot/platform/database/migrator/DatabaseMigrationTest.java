@@ -155,7 +155,7 @@ class DatabaseMigrationTest {
 	}
 
 	private static void updateCount(liquibase.database.Database database, int count) throws Exception {
-		// The Java migrations read the configuration from the Liquibase scope, as with Database.update
+		// The Java migrations read the configuration from the Liquibase scope, as with Database.migrate
 		Scope.child(Map.of(Database.CONFIG_SCOPE_KEY, TestConfig.store().current()), () -> new CommandScope(UpdateCountCommandStep.COMMAND_NAME)
 			.addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
 			.addArgumentValue(UpdateCountCommandStep.CHANGELOG_FILE_ARG, "migration/netshot0.xml")
@@ -232,7 +232,7 @@ class DatabaseMigrationTest {
 			}
 
 			// Resume the migration to completion: this is where NetworkAddressMigrator runs.
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -351,7 +351,7 @@ class DatabaseMigrationTest {
 			}
 
 			// Resume the migration to completion: this is where 0.25.0_30 runs.
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -485,7 +485,7 @@ class DatabaseMigrationTest {
 			}
 
 			// Resume the migration to completion: this is where the enhanced 0.25.0_32 logic runs.
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -561,7 +561,7 @@ class DatabaseMigrationTest {
 						+ "values (501, '[NONAME]', false, 0, 22, 23, %d, 0, 0)".formatted(mgmtIpv4Int));
 			}
 
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -591,7 +591,7 @@ class DatabaseMigrationTest {
 				statement.execute(insert.formatted(605, "'10.1.2.5'", "'10.9.9.9'"));
 			}
 
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -619,7 +619,7 @@ class DatabaseMigrationTest {
 		@DisplayName("The device and discovered device columns of the task table are indexed")
 		void indexesTaskDeviceColumns() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("taskdeviceindexmigrationtest"));
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -653,7 +653,7 @@ class DatabaseMigrationTest {
 					+ "(0, 'CheckComplianceTask', 401), (0, 'TakeSnapshotTask', 402)");
 			}
 
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -750,7 +750,7 @@ class DatabaseMigrationTest {
 				statement.execute("insert into dynamic_device_group (id, query) values (702, '[Name] contains \"r\"')");
 			}
 
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -864,7 +864,7 @@ class DatabaseMigrationTest {
 				statement.execute("insert into diagnostic_result (id, type, device, diagnostic, long_text) values (1061, 'L', 1011, 1051, 1003)");
 			}
 
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -891,7 +891,7 @@ class DatabaseMigrationTest {
 					+ "values (1101, 0, 'd', '10.0.0.1', 0, 'PRIMARY', '2001:db8::1', 0, 'PRIMARY')");
 			}
 
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -932,7 +932,7 @@ class DatabaseMigrationTest {
 					+ "'SUCCESS', '2026-06-01 10:00:00')");
 			}
 
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
@@ -972,7 +972,7 @@ class DatabaseMigrationTest {
 		@DisplayName("A database migrated with the legacy custom change class names still validates and upgrades")
 		void legacyChecksumsRemainValid() throws Exception {
 			TestConfig.init(this.getNetshotConfig());
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 
 			// Simulate a database created by a version using the legacy class names
 			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
@@ -987,7 +987,7 @@ class DatabaseMigrationTest {
 
 			// Liquibase validates the stored checksums before applying anything: this throws if the
 			// legacy checksums are not accepted by the current changelog.
-			Assertions.assertDoesNotThrow(() -> Database.update(TestConfig.store().current()));
+			Assertions.assertDoesNotThrow(() -> Database.migrate(TestConfig.store().current()));
 
 			// The changesets now compute a different checksum (so the validCheckSum elements are required)
 			for (var entry : LEGACY_CHECKSUMS.entrySet()) {

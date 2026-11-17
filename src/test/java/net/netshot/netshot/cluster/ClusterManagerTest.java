@@ -47,6 +47,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
@@ -132,7 +133,7 @@ class ClusterManagerTest {
 		config.setProperty("netshot.cluster.id", id);
 		config.setProperty("netshot.cluster.master.priority", Integer.toString(masterPriority));
 		TestConfig.init(config);
-		ClusterManager manager = new ClusterManager(node, TestConfig.store(), TIMERS);
+		ClusterManager manager = new ClusterManager(node, new DatabaseService(TestConfig.store()), TestConfig.store(), TIMERS);
 		manager.start();
 		this.managers.add(manager);
 		return manager;

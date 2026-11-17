@@ -93,20 +93,16 @@ public final class ConnectionPools implements AutoCloseable {
 	 * Creates the pools.
 	 *
 	 * @param config the configuration (the sizes of the pools)
-	 * @param driverClass the JDBC driver class
-	 * @param url the URL of the (read-write) database
-	 * @param readUrl the URL of the read-only database, or null to read from the read-write one
-	 * @param username the user name
-	 * @param password the password
+	 * @param database the settings of the database connections
 	 */
-	public ConnectionPools(Config config, String driverClass, String url, String readUrl, String username, String password) {
-		this.pools.put(PoolKind.READ_WRITE, create(config, PoolKind.READ_WRITE, driverClass, url, username, password,
-			config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
-		this.pools.put(PoolKind.SYSTEM, create(config, PoolKind.SYSTEM, driverClass, url, username, password,
-			config.get(SYSTEM_MIN_POOL_SIZE), config.get(SYSTEM_MAX_POOL_SIZE)));
-		if (readUrl != null) {
-			this.pools.put(PoolKind.READ_ONLY, create(config, PoolKind.READ_ONLY, driverClass, readUrl, username, password,
-				config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
+	public ConnectionPools(Config config, Database.Settings database) {
+		this.pools.put(PoolKind.READ_WRITE, create(config, PoolKind.READ_WRITE, database.driverClass(), database.url(),
+			database.username(), database.password(), config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
+		this.pools.put(PoolKind.SYSTEM, create(config, PoolKind.SYSTEM, database.driverClass(), database.url(),
+			database.username(), database.password(), config.get(SYSTEM_MIN_POOL_SIZE), config.get(SYSTEM_MAX_POOL_SIZE)));
+		if (database.readUrl() != null) {
+			this.pools.put(PoolKind.READ_ONLY, create(config, PoolKind.READ_ONLY, database.driverClass(), database.readUrl(),
+				database.username(), database.password(), config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
 		}
 	}
 

@@ -37,7 +37,9 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
 
 /**
- * The Database class, utilities to access the database.
+ * The database settings, and the access to the database out of the connection pools ({@link DatabaseService}): the
+ * schema migration, the raw connections. The wired components go through the {@link DatabaseService}; the static
+ * methods are for the code which runs without the wiring (the Java migrations, the tests).
  */
 @Slf4j
 public final class Database {
@@ -68,12 +70,45 @@ public final class Database {
 		.defaultValue(false).restart();
 
 	/**
+	 * The settings of the database connections.
+	 *
+	 * @param driverClass the JDBC driver class
+	 * @param url the JDBC URL of the (read-write) database
+	 * @param readUrl the JDBC URL of the read-only database, or null to read from the read-write one
+	 * @param username the user name
+	 * @param password the password
+	 */
+	public record Settings(String driverClass, String url, String readUrl, String username, String password) {
+
+		/**
+		 * Reads the settings from the configuration.
+		 *
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		public static Settings from(Config config) {
+			return new Settings(config.get(DRIVER_CLASS), config.get(URL), config.get(READ_URL), config.get(USERNAME),
+				config.get(PASSWORD));
+		}
+
+		/**
+		 * Opens a raw SQL connection to the (read-write) database. The caller closes it.
+		 *
+		 * @return the connection
+		 * @throws SQLException if the connection can't be opened
+		 */
+		Connection openUnpooledConnection() throws SQLException {
+			return DriverManager.getConnection(this.url, connectionProperties(this.url, this.username, this.password));
+		}
+	}
+
+	/**
 	 * The key of the configuration in the Liquibase scope, for the Java migrations (which Liquibase builds itself).
 	 */
 	public static final String CONFIG_SCOPE_KEY = "netshot.config";
 
 	/**
-	 * Gets the configuration given to the migrations which run (see {@link #update(Config)}).
+	 * Gets the configuration given to the migrations which run (see {@link #migrate(Config)}).
 	 *
 	 * @return the configuration
 	 * @throws IllegalStateException if no migration runs
@@ -87,13 +122,15 @@ public final class Database {
 	}
 
 	/**
-	 * Update the database schema (to be run at startup).
+	 * Migrates the database schema to the current version, if necessary (at startup, before the connection pools are
+	 * opened).
+	 *
 	 * @param config the configuration (the database, and the settings the Java migrations read)
-	 * @throws Exception if the schema can't be updated
+	 * @throws Exception if the schema can't be migrated
 	 */
-	public static void update(Config config) throws Exception {
+	public static void migrate(Config config) throws Exception {
 		// Check the encryption password is available before touching the DB
-		Database.getEncryptionPassword(config);
+		Database.encryptionPassword(config);
 		try {
 			System.setProperty("liquibase.analytics.enabled", "false");
 			Class.forName("org.postgresql.Driver");
@@ -114,64 +151,14 @@ public final class Database {
 	}
 
 	/**
-	 * Retrieve the configured driver class.
-	 * 
-	 * @param config the configuration
-	 * @return the configured driver class
-	 */
-	static String getDriverClass(Config config) {
-		return config.get(DRIVER_CLASS);
-	}
-
-	/**
-	 * Retrieve the DB URL.
-	 * 
-	 * @param config the configuration
-	 * @return the configured DB URL.
-	 */
-	static String getUrl(Config config) {
-		return config.get(URL);
-	}
-
-	/**
-	 * Retrieve the read-only DB URL.
-	 * 
-	 * @param config the configuration
-	 * @return the configured DB URL.
-	 */
-	static String getReadUrl(Config config) {
-		return config.get(READ_URL);
-	}
-
-	/**
-	 * Retrieve the DB username.
-	 * 
-	 * @param config the configuration
-	 * @return the configured DB username
-	 */
-	static String getUsername(Config config) {
-		return config.get(USERNAME);
-	}
-
-	/**
-	 * Retrieve the DB password.
-	 * 
-	 * @param config the configuration
-	 * @return the configured DB password
-	 */
-	static String getPassword(Config config) {
-		return config.get(PASSWORD);
-	}
-
-	/**
-	 * Retrieve the password used to encrypt the sensitive data (e.g. device credentials) in the DB.
+	 * Gets the password used to encrypt the sensitive data (e.g. device credentials) in the DB.
 	 * Unless {@code netshot.db.encryptionpassword.required} is enabled, defaults to {@code NETSHOT}.
 	 *
 	 * @param config the configuration
 	 * @return the configured encryption password
 	 * @throws IllegalStateException if the password is required but not configured
 	 */
-	public static String getEncryptionPassword(Config config) {
+	public static String encryptionPassword(Config config) {
 		String password = config.get(ENCRYPTION_PASSWORD);
 		if (password == null) {
 			if (config.get(ENCRYPTION_PASSWORD_REQUIRED)) {
@@ -193,8 +180,7 @@ public final class Database {
 	 * @throws SQLException if the connection can't be opened
 	 */
 	public static Connection openUnpooledConnection(Config config) throws SQLException {
-		String url = getUrl(config);
-		return DriverManager.getConnection(url, connectionProperties(url, getUsername(config), getPassword(config)));
+		return Settings.from(config).openUnpooledConnection();
 	}
 
 	/**

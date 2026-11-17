@@ -125,7 +125,7 @@ final class SharedPostgres implements AutoCloseable {
 			config.setProperty("netshot.log.level", "WARN");
 			TestConfig.init(config);
 			// Plain connection, closed after the update: nothing stays connected to the template
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 			this.templateMigrated = true;
 		}
 		this.execute("DROP DATABASE IF EXISTS \"%s\"".formatted(databaseName));

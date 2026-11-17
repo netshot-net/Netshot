@@ -116,7 +116,7 @@ public final class JooqCodegen {
 			config.setProperty("netshot.log.file", "CONSOLE");
 			config.setProperty("netshot.log.level", "WARN");
 			TestConfig.init(config);
-			Database.update(TestConfig.store().current());
+			Database.migrate(TestConfig.store().current());
 			JooqCodegen.generate(container.getJdbcUrl(), container.getUsername(), container.getPassword(), Path.of(args[0]));
 		}
 	}

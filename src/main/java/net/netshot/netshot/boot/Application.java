@@ -23,7 +23,6 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.platform.lifecycle.ServiceStartException;
 
@@ -100,7 +99,7 @@ public final class Application implements AutoCloseable {
 	 */
 	public void migrate() throws Exception {
 		log.info("Updating the database schema, if necessary.");
-		Database.update(this.config.current());
+		this.wiring.core().database().migrate();
 	}
 
 	/**
