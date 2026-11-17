@@ -135,7 +135,7 @@ public class SessionResource {
 		}
 		HttpSession httpSession = this.request.getSession(true);
 		// The current max idle time (the default timeout of the sessions is set when the server starts)
-		int maxIdleTime = UiUser.Settings.from(this.config.current()).maxIdleTime();
+		int maxIdleTime = this.loginService.sessionMaxIdleTime();
 		httpSession.setMaxInactiveInterval(maxIdleTime);
 		httpSession.setAttribute(SessionAuthenticator.USER_ATTRIBUTE, user);
 		V1Response.created(this.request, this.links.of(AuthMapper.AUTH_PATH, "session"));

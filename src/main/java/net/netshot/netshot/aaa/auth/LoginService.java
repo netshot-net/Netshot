@@ -55,6 +55,8 @@ public class LoginService {
 	private final RemoteAuthenticator remote;
 	/** The password policy of the local users, from the configuration. */
 	private final ConfigStore.Binding<PasswordPolicy> passwordPolicy;
+	/** The settings of the users (the max idle time of the sessions), from the configuration. */
+	private final ConfigStore.Binding<UiUser.Settings> userSettings;
 
 	/**
 	 * Instantiates the service.
@@ -62,13 +64,23 @@ public class LoginService {
 	 * @param transactions the transaction support
 	 * @param repository the user queries
 	 * @param remote the remote authentication methods
-	 * @param config the configuration store (the password policy)
+	 * @param config the configuration store (the password policy, the max idle time of the sessions)
 	 */
 	public LoginService(Transactions transactions, UserRepository repository, RemoteAuthenticator remote, ConfigStore config) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.remote = remote;
 		this.passwordPolicy = config.bind(PasswordPolicy::fromConfig);
+		this.userSettings = config.bind(UiUser.Settings::from);
+	}
+
+	/**
+	 * Gets the max idle time of the user sessions, from the current configuration (applied to the new sessions).
+	 *
+	 * @return the max idle time (in seconds)
+	 */
+	public int sessionMaxIdleTime() {
+		return this.userSettings.get().maxIdleTime();
 	}
 
 	/**

@@ -69,7 +69,7 @@ public final class Wiring {
 		this.aaa = AaaModule.create(this.core);
 		// The lifecycle of the services (filled once they are all built), and the report of their state
 		this.services = new ServiceManager(List.of());
-		this.system = SystemModule.create(this.core, this.tasks, this.services);
+		this.system = SystemModule.create(this.core, this.tasks, this.aaa, this.services);
 		this.api = ApiModule.create(this.core, this.compliance, this.tasks, this.inventory, this.credentials, this.aaa, this.system);
 		this.serviceList().forEach(this.services::add);
 	}
