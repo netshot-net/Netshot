@@ -36,6 +36,13 @@ class BootstrapTest {
 	Path tempDir;
 
 	@Test
+	@DisplayName("The configuration file given on the command line, or the default ones")
+	void configFiles() {
+		Assertions.assertEquals(List.of("netshot.conf", "/etc/netshot.conf"), Bootstrap.configFiles(null));
+		Assertions.assertEquals(List.of("/opt/netshot.conf"), Bootstrap.configFiles("/opt/netshot.conf"));
+	}
+
+	@Test
 	@DisplayName("The failure to read the configuration tells which files were tried")
 	void unreadableConfiguration() {
 		String missing = this.tempDir.resolve("missing.conf").toString();
