@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.BootstrapException;
+import net.netshot.netshot.boot.ConfigOption;
 import net.netshot.netshot.boot.Signals;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.runtime.AgentInstrumentation;
@@ -56,7 +57,7 @@ public final class Netshot {
 	public static void main(String[] args) {
 		Options options = new Options();
 		options.addOption("h", "help", false, "print this help and exit");
-		options.addOption("c", "config", true, "path to configuration file");
+		options.addOption(ConfigOption.option());
 		options.addOption("v", "version", false, "print the current version and exit");
 		CommandLineParser parser = new DefaultParser();
 		CommandLine commandLine;
@@ -91,7 +92,7 @@ public final class Netshot {
 		log.info("Starting Netshot");
 
 		try {
-			ConfigStore config = ConfigStore.ofFiles(Bootstrap.configFiles(commandLine.getOptionValue("c")));
+			ConfigStore config = ConfigStore.ofFiles(ConfigOption.files(commandLine));
 			Bootstrap.prepare(config);
 
 			Application application = Application.create(config);

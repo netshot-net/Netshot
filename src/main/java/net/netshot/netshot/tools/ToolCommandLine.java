@@ -25,7 +25,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import net.netshot.netshot.boot.Bootstrap;
+import net.netshot.netshot.boot.ConfigOption;
 
 /**
  * The command line of the tools: the configuration file to use, as for the server ({@code -c}).
@@ -43,9 +43,7 @@ final class ToolCommandLine {
 	 * @throws ParseException if the arguments can't be parsed
 	 */
 	static List<String> configFiles(String[] args) throws ParseException {
-		Options options = new Options();
-		options.addOption("c", "config", true, "path to configuration file");
-		CommandLine commandLine = new DefaultParser().parse(options, args);
-		return Bootstrap.configFiles(commandLine.getOptionValue("c"));
+		CommandLine commandLine = new DefaultParser().parse(new Options().addOption(ConfigOption.option()), args);
+		return ConfigOption.files(commandLine);
 	}
 }
