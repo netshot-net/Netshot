@@ -40,7 +40,7 @@ class BootstrapTest {
 	@DisplayName("The failure to read the configuration tells which files were tried")
 	void unreadableConfiguration() {
 		String missing = this.tempDir.resolve("missing.conf").toString();
-		BootstrapException e = Assertions.assertThrows(BootstrapException.class, () -> Bootstrap.prepare(ConfigStore.ofFiles(List.of(missing))));
+		BootstrapException e = Assertions.assertThrows(BootstrapException.class, () -> Bootstrap.initialize(ConfigStore.ofFiles(List.of(missing))));
 		Assertions.assertEquals("Unable to read the configuration: No configuration file was found (tried %s)".formatted(missing), e.getMessage());
 		Assertions.assertNull(e.getCause(), "No stack trace for a configuration error");
 	}

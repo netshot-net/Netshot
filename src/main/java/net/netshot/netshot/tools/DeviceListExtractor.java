@@ -80,7 +80,7 @@ public final class DeviceListExtractor {
 
 		try {
 			ConfigStore config = ConfigStore.ofFiles(ToolCommandLine.configFiles(args));
-			Bootstrap.prepare(config);
+			Bootstrap.initialize(config);
 			try (Application application = Application.create(config)) {
 				log.info("Initializing access to the database.");
 				application.start("database");
