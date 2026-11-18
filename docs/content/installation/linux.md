@@ -52,13 +52,13 @@ Compatibility matrix:
 | 0.20.x | 21.0.4-graal | 23.1.5 |
 | 0.21.x - 0.23.x | 21.0.6-graal | 24.1.2 |
 | 0.24.0 - 0.25.0 | 21.0.9-graal | 24.1.2 |
-| 0.25.1 and newer | 25.0.4-graal (or newer 25.0.x) | 25.0.4.1.1 |
+| 0.25.1 and newer | 25.0.5.1-graal (or newer 25.0.x) | 25.0.4.1.1 |
 
 For modern GraalVM versions:
 
 ```bash
-GRAALVM_VERSION="25.0.4"
-wget --quiet https://download.oracle.com/graalvm/${GRAALVM_VERSION%%.*}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
+GRAALVM_VERSION="25.0.5.1"
+wget --quiet https://gds.oracle.com/download/graal/${GRAALVM_VERSION%%.*}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     tar xvzf graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     rm -f graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     JDIR=$(ls -d graalvm-jdk-${GRAALVM_VERSION}* | tail -n 1) && \
@@ -79,7 +79,7 @@ java -version 2>&1 | grep Environment | grep GraalVM
 It should return something like:
 
 ```text
-Java(TM) SE Runtime Environment Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS-jvmci-b01)
+Java(TM) SE Runtime Environment Oracle GraalVM 25.0.5.1+4.1 (build 25.0.5.1+4-LTS-jvmci-b01)
 ```
 
 !!! note
