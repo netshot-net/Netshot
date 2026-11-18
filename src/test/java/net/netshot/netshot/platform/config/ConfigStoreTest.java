@@ -48,6 +48,9 @@ class ConfigStoreTest {
 		static final Setting<Boolean> ENABLED = Setting.bool("netshot.test.enabled")
 			.alias("netshot.test.disabled", disabled -> !disabled).defaultValue(true).live();
 		static final Setting<String> DRIVER_CLASS = Setting.text("netshot.test.driverclass").alias("netshot.test.driver_class").restart();
+		/** Its legacy key differs only by case: the same environment variable. */
+		static final Setting<String> PASSWORD = Setting.text("netshot.test.encryptionpassword").alias("netshot.test.encryptionPassword")
+			.secret().restart();
 		/** Not a setting (not static). */
 		final Setting<String> notStatic = Setting.text("netshot.test.notstatic").live();
 	}
@@ -66,7 +69,7 @@ class ConfigStoreTest {
 	@Test
 	@DisplayName("Catalog from the static final fields")
 	void catalogFromClasses() {
-		Assertions.assertEquals(5, CATALOG.settings().size());
+		Assertions.assertEquals(6, CATALOG.settings().size());
 		Assertions.assertSame(Declared.TIMEOUT, CATALOG.find("netshot.test.timeout"));
 		Assertions.assertSame(Declared.SECRET, CATALOG.find("netshot.test.server3.secret"));
 		Assertions.assertNull(CATALOG.find("netshot.test.notstatic"));
@@ -266,6 +269,11 @@ class ConfigStoreTest {
 			CATALOG.legacyKeys(environment));
 		Assertions.assertEquals(Set.of(), CATALOG.unknownKeys(environment), "NETSHOT_TEST_DRIVER_CLASS is the legacy netshot.test.driver_class");
 		Assertions.assertEquals(Map.of(), CATALOG.legacyKeys(config(Map.of("netshot.test.enabled", "false"))));
+		// The environment variable of a legacy key which differs only by case is the one of the setting
+		Config current = Config.of(new Properties(), Map.of("NETSHOT_TEST_ENCRYPTIONPASSWORD", "x", "NETSHOT_TEST_ENCRYPTIONPASSWORD_FILE", "/f"));
+		Assertions.assertEquals(Map.of(), CATALOG.legacyKeys(current), "NETSHOT_TEST_ENCRYPTIONPASSWORD is the current variable");
+		Assertions.assertEquals(Map.of("netshot.test.encryptionPassword", "netshot.test.encryptionpassword"),
+			CATALOG.legacyKeys(config(Map.of("netshot.test.encryptionPassword", "x"))), "The legacy key in the file");
 	}
 
 	@Test
