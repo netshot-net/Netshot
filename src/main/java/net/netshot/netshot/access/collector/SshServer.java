@@ -124,10 +124,12 @@ public final class SshServer implements Service {
 	/** The AAA logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
+	/** Whether the SSH (SFTP/SCP) server is enabled (the server is built only then). */
+	public static final Setting<Boolean> ENABLED = Setting.bool("netshot.sshserver.enabled").defaultValue(true).restart();
+
 	/**
 	 * The settings of the embedded SSH server (applied when it starts).
 	 *
-	 * @param enabled whether the SSH (SFTP/SCP) server is enabled
 	 * @param enabledProtocols the enabled transfer protocols
 	 * @param tcpPort the listening TCP port
 	 * @param externalTcpPort the external TCP port (can be different than tcpPort if port translation is used)
@@ -140,7 +142,7 @@ public final class SshServer implements Service {
 	 * @param hostKeyPath the path to store the host keys
 	 * @param maxConcurrentSessions the max number of concurrent SSH sessions
 	 */
-	public record Settings(boolean enabled, List<TransferProtocol> enabledProtocols, int tcpPort, int externalTcpPort,
+	public record Settings(List<TransferProtocol> enabledProtocols, int tcpPort, int externalTcpPort,
 		InetAddress listenHost, List<String> kexAlgorithms, List<String> hostKeyAlgorithms, List<String> ciphers,
 		List<String> macs, List<String> compressionAlgorithms, Path hostKeyPath, int maxConcurrentSessions) {
 
@@ -186,9 +188,6 @@ public final class SshServer implements Service {
 			BuiltinCompressions.Constants.NONE,
 			BuiltinCompressions.Constants.ZLIB
 		);
-
-		/** Whether the SSH (SFTP/SCP) server is enabled. */
-		public static final Setting<Boolean> ENABLED = Setting.bool("netshot.sshserver.enabled").defaultValue(true).restart();
 
 		/** Whether SFTP is enabled. */
 		static final Setting<Boolean> SFTP_ENABLED = Setting.bool("netshot.sshserver.sftp.enabled").defaultValue(true).restart();
@@ -239,7 +238,6 @@ public final class SshServer implements Service {
 		 * @return the settings
 		 */
 		static Settings from(Config config) {
-			boolean enabled = config.get(ENABLED);
 			List<TransferProtocol> enabledProtocols = new ArrayList<>();
 			if (config.get(SFTP_ENABLED)) {
 				enabledProtocols.add(TransferProtocol.SFTP);
@@ -264,17 +262,15 @@ public final class SshServer implements Service {
 			if (hostKeyPathString == null) {
 				// No configuration set, use system temp directory and warn
 				hostKeyPath = Paths.get(System.getProperty("java.io.tmpdir"));
-				if (enabled) {
-					log.warn("Embedded SSH server host keys will be stored in system temp directory: {}. "
-						+ "Set netshot.sshserver.hostkeypath configuration to a persistent location to avoid "
-						+ "host key regeneration.", hostKeyPath);
-				}
+				log.warn("Embedded SSH server host keys will be stored in system temp directory: {}. "
+					+ "Set netshot.sshserver.hostkeypath configuration to a persistent location to avoid "
+					+ "host key regeneration.", hostKeyPath);
 			}
 			else {
 				hostKeyPath = Paths.get(hostKeyPathString);
 				log.info("SSH server host keys will be stored in: {}", hostKeyPath);
 			}
-			return new Settings(enabled, List.copyOf(enabledProtocols), tcpPort,
+			return new Settings(List.copyOf(enabledProtocols), tcpPort,
 				externalTcpPort == null ? tcpPort : externalTcpPort, listenHost,
 				config.get(KEX_ALGORITHMS), config.get(HOST_KEY_ALGORITHMS), config.get(CIPHERS), config.get(MACS),
 				config.get(COMPRESSION_ALGORITHMS), hostKeyPath, config.get(MAX_CONCURRENT_SESSIONS));
@@ -358,7 +354,7 @@ public final class SshServer implements Service {
 	/** The number of registered upload tickets. */
 	private final AtomicLong registeredTickets = new AtomicLong();
 
-	/** The settings (read when the server is created, then when it starts: a change needs a restart). */
+	/** The settings, read when the server starts (a change needs a restart); null before. */
 	private volatile Settings settings;
 
 	/**
@@ -368,12 +364,11 @@ public final class SshServer implements Service {
 	 */
 	public SshServer(ConfigStore config) {
 		this.config = config;
-		this.settings = Settings.from(config.current());
 	}
 
 	/**
 	 * Gets the settings of the SSH server: the ones it was started with.
-	 * @return the settings
+	 * @return the settings, null if it wasn't started
 	 */
 	public Settings settings() {
 		return this.settings;
@@ -390,7 +385,7 @@ public final class SshServer implements Service {
 	}
 
 	@Override
-	public synchronized void start() {
+	public synchronized void start() throws IOException {
 		this.settings = Settings.from(this.config.current());
 		this.startServer();
 	}
@@ -402,14 +397,14 @@ public final class SshServer implements Service {
 
 	@Override
 	public boolean isHealthy() {
-		return this.sshd != null;
+		return this.isRunning();
 	}
 
 	@Override
 	public Map<String, Object> stats() {
 		Map<String, Object> stats = new LinkedHashMap<>();
 		Settings current = this.settings;
-		stats.put("port", current.tcpPort());
+		stats.put("port", current == null ? 0 : current.tcpPort());
 		stats.put("listening", this.sshd != null);
 		stats.put("sessions", this.sshd == null ? 0 : this.sshd.getActiveSessions().size());
 		stats.put("tickets", this.tickets.size());
@@ -985,7 +980,7 @@ public final class SshServer implements Service {
 	/**
 	 * Start the embedded SSH server.
 	 */
-	private void startServer() {
+	private void startServer() throws IOException {
 		this.sshd = org.apache.sshd.server.SshServer.setUpDefaultServer();
 		this.sshd.setPort(this.settings.tcpPort());
 		this.sshd.setHost(this.settings.listenHost().getHostAddress());
@@ -1098,13 +1093,8 @@ public final class SshServer implements Service {
 		}
 		this.sshd.setFileSystemFactory(new DeviceVirtualFileSystemFactory());
 
-		try {
-			this.sshd.start();
-		}
-		catch (IOException e) {
-			log.error("Cannot start the embedded SSH server", e);
-			this.stopServer();
-		}
+		// A failure (e.g. port in use) fails the start: logged by the service manager, which stops the server
+		this.sshd.start();
 
 	}
 
