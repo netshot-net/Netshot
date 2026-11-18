@@ -122,7 +122,7 @@ public final class SshClientService implements Service {
 				}
 			}
 		});
-		this.applySettings();
+		// The settings are applied by start()
 	}
 
 	/**
