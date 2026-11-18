@@ -61,7 +61,7 @@ class TaskManagerShutdownTest {
 
 	@BeforeEach
 	void init() throws Exception {
-		TestWiring.get().tasks().taskManager().startSchedulers();
+		TestWiring.get().task().taskManager().startSchedulers();
 		Domain domain = TestDevices.addDomain("Test domain", "Fake domain for tests");
 		Device fake = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
 		this.device = TestDevices.add(fake.toBuilder().status(Device.Status.DISABLED).build(),
@@ -85,25 +85,25 @@ class TaskManagerShutdownTest {
 	@Test
 	@DisplayName("A task still running after the timeout is marked as failed")
 	void runningTaskIsFailed() throws Exception {
-		TaskLockManager lockManager = TestWiring.get().tasks().lockManager();
+		TaskLockManager lockManager = TestWiring.get().task().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID));
 		try {
 			// The counters of the task manager are shared by the tests of the class
-			long interruptedBefore = (Long) TestWiring.get().tasks().taskManager().stats().get("interruptedOnStop");
-			long startedBefore = (Long) TestWiring.get().tasks().taskManager().stats().get("started");
-			Task task = TestWiring.get().tasks().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
+			long interruptedBefore = (Long) TestWiring.get().task().taskManager().stats().get("interruptedOnStop");
+			long startedBefore = (Long) TestWiring.get().task().taskManager().stats().get("started");
+			Task task = TestWiring.get().task().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
 			// Claimed by its job (RUNNING), and waiting for the device
 			await(() -> TestTasks.find(task.id()).status() == Status.RUNNING, "The task isn't running");
 			long start = System.currentTimeMillis();
-			TestWiring.get().tasks().taskManager().stop();
+			TestWiring.get().task().taskManager().stop();
 			Assertions.assertTrue(System.currentTimeMillis() - start >= 1000, "The running task wasn't waited for");
 			Task stopped = TestTasks.find(task.id());
 			Assertions.assertEquals(Status.FAILURE, stopped.status());
 			Assertions.assertTrue(stopped.log().contains("Netshot was stopped while the task was running."), stopped.log());
-			Assertions.assertEquals(interruptedBefore + 1, TestWiring.get().tasks().taskManager().stats().get("interruptedOnStop"));
-			Assertions.assertEquals(startedBefore + 1, TestWiring.get().tasks().taskManager().stats().get("started"));
+			Assertions.assertEquals(interruptedBefore + 1, TestWiring.get().task().taskManager().stats().get("interruptedOnStop"));
+			Assertions.assertEquals(startedBefore + 1, TestWiring.get().task().taskManager().stats().get("started"));
 			// Let the job thread end
-			TestWiring.get().tasks().taskManager().requestCancel(task.id());
+			TestWiring.get().task().taskManager().requestCancel(task.id());
 		}
 		finally {
 			lockManager.unlock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID);
@@ -113,14 +113,14 @@ class TaskManagerShutdownTest {
 	@Test
 	@DisplayName("A stop interrupted while waiting for a running task still shuts the schedulers down")
 	void interruptedStop() throws Exception {
-		TaskLockManager lockManager = TestWiring.get().tasks().lockManager();
+		TaskLockManager lockManager = TestWiring.get().task().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID));
 		try {
-			Task task = TestWiring.get().tasks().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
+			Task task = TestWiring.get().task().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
 			await(() -> TestTasks.find(task.id()).status() == Status.RUNNING, "The task isn't running");
 			Thread.currentThread().interrupt();
 			try {
-				TestWiring.get().tasks().taskManager().stop();
+				TestWiring.get().task().taskManager().stop();
 				Assertions.assertTrue(Thread.currentThread().isInterrupted(), "The interrupt status is kept");
 			}
 			finally {
@@ -128,7 +128,7 @@ class TaskManagerShutdownTest {
 			}
 			Assertions.assertNull(SchedulerRepository.getInstance().lookup("NetshotMasterScheduler"), "The master scheduler is still registered");
 			Assertions.assertNull(SchedulerRepository.getInstance().lookup("NetshotRunnerScheduler"), "The runner scheduler is still registered");
-			TestWiring.get().tasks().taskManager().requestCancel(task.id());
+			TestWiring.get().task().taskManager().requestCancel(task.id());
 		}
 		finally {
 			lockManager.unlock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID);
@@ -138,13 +138,13 @@ class TaskManagerShutdownTest {
 	@Test
 	@DisplayName("Without running task, the stop doesn't wait, and the scheduled tasks are kept")
 	void scheduledTaskIsKept() throws Exception {
-		Task task = TestWiring.get().tasks().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true)
+		Task task = TestWiring.get().task().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true)
 			.scheduledIn(60));
-		Assertions.assertTrue(TestWiring.get().tasks().taskManager().isHealthy(), "Unhealthy with started schedulers");
+		Assertions.assertTrue(TestWiring.get().task().taskManager().isHealthy(), "Unhealthy with started schedulers");
 		long start = System.currentTimeMillis();
-		TestWiring.get().tasks().taskManager().stop();
+		TestWiring.get().task().taskManager().stop();
 		Assertions.assertTrue(System.currentTimeMillis() - start < 1000, "The stop waited without running task");
-		Assertions.assertFalse(TestWiring.get().tasks().taskManager().isHealthy(), "Healthy once stopped");
+		Assertions.assertFalse(TestWiring.get().task().taskManager().isHealthy(), "Healthy once stopped");
 		Assertions.assertEquals(Status.SCHEDULED, TestTasks.find(task.id()).status());
 	}
 }

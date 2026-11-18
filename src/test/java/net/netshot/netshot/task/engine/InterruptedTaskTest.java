@@ -71,7 +71,7 @@ class InterruptedTaskTest {
 
 	@BeforeEach
 	void init() throws Exception {
-		TaskManager taskManager = TestWiring.get().tasks().taskManager();
+		TaskManager taskManager = TestWiring.get().task().taskManager();
 		taskManager.startSchedulers();
 		// The tasks must stay in the schedulers to be checked, not run
 		this.runnerScheduler = SchedulerRepository.getInstance().lookup("NetshotRunnerScheduler");
@@ -86,7 +86,7 @@ class InterruptedTaskTest {
 
 	@AfterEach
 	void cleanUp() throws Exception {
-		TaskManager taskManager = TestWiring.get().tasks().taskManager();
+		TaskManager taskManager = TestWiring.get().task().taskManager();
 		taskManager.setMode(Mode.SINGLE);
 		taskManager.setRunners(List.of());
 		this.runnerScheduler.clear();
@@ -107,7 +107,7 @@ class InterruptedTaskTest {
 	void interruptedTaskFails() throws Exception {
 		Task script = TestTasks.add(this.script(), Status.RUNNING);
 
-		TestWiring.get().tasks().taskManager().rescheduleAll();
+		TestWiring.get().task().taskManager().rescheduleAll();
 
 		Task task = TestTasks.find(script.id());
 		Assertions.assertEquals(Status.FAILURE, task.status());
@@ -122,7 +122,7 @@ class InterruptedTaskTest {
 		Task snapshot = TestTasks.add(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true).toBuilder()
 			.scheduleType(ScheduleType.DAILY).scheduleFactor(1).scheduleReference(reference).build(), Status.RUNNING);
 
-		TestWiring.get().tasks().taskManager().rescheduleAll();
+		TestWiring.get().task().taskManager().rescheduleAll();
 
 		Assertions.assertEquals(Status.FAILURE, TestTasks.find(snapshot.id()).status());
 		List<Task> next = TestTasks.all().stream().filter(t -> t.id() != snapshot.id()).toList();
@@ -138,7 +138,7 @@ class InterruptedTaskTest {
 		Task parent = TestTasks.add(GroupBasedTask.of(new TakeGroupSnapshotTask(this.group.id(), null, 0, true, true),
 			this.group.name(), "test", "tester"), Status.RUNNING);
 
-		TestWiring.get().tasks().taskManager().rescheduleAll();
+		TestWiring.get().task().taskManager().rescheduleAll();
 
 		Task task = TestTasks.find(parent.id());
 		Assertions.assertEquals(Status.SCHEDULED, task.status());
@@ -148,7 +148,7 @@ class InterruptedTaskTest {
 	@Test
 	@DisplayName("Cluster: a running task of a lost member is marked as failed, a waiting one is reassigned")
 	void lostMemberTasks() throws Exception {
-		TaskManager taskManager = TestWiring.get().tasks().taskManager();
+		TaskManager taskManager = TestWiring.get().task().taskManager();
 		taskManager.setMode(Mode.CLUSTER_MASTER);
 		taskManager.setRunners(List.of(new Runner("liverunner0000000001", 100, 1)));
 		Task script = TestTasks.add(this.script().toBuilder().runnerId("lostrunner0000000001").build(), Status.RUNNING);
