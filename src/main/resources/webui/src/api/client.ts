@@ -26,6 +26,8 @@ export type ListResponse<T> = {
   limit: number
   next?: string | null
   previous?: string | null
+  /** The device search query as the server applies it (canonical form), on the device lists searched with a query. */
+  query?: string | null
   results: T[]
 }
 

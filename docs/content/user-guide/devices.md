@@ -30,6 +30,8 @@ Type a device's name (or virtual name, e.g. a VDC) or IP address in the **Search
 
 For more complex queries, open **Advanced search** and build a logical search expression with the provided buttons. Selecting a device type lets you filter on fields specific to that type.
 
+An expression (typed in the box, starting with `[`, `(` or `not`, or built with the advanced search) is shown, once the search ran, as Netshot applies it: the same expression in its standard form (e.g. `[family]   IS "Cisco ISR"` becomes `[Family] is "Cisco ISR"`), which the page link keeps. If the expression is invalid, the reason (e.g. the position of a syntax error) is shown under the box.
+
 To find devices by tag, use the **Tags** attribute in the advanced search (it suggests the existing tags), or type an expression such as `[Tag] is "core"` directly. All the text operators are supported (`is`, `contains`, `containsnocase`, `startswith`, `endswith`, `matches`); a device matches as soon as one of its tags matches. Clicking a tag badge on a device runs this search for you.
 
 To find devices by IP address, use the `[IP]` attribute, which compares the management address and the interface addresses (IPv4 or IPv6) of the devices:

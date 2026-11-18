@@ -1,7 +1,7 @@
 import api from "@/api"
-import { Brief, listAll, ListParams, Schemas } from "@/api/client"
+import { Brief, list, listAll, ListParams, ListResponse, Schemas } from "@/api/client"
+import { NetshotError } from "@/api/httpClient"
 import { QUERIES } from "@/constants"
-import { useListAll } from "@/hooks/useListAll"
 import { Config, Device, DeviceFamily, DeviceTag, DeviceType } from "@/types"
 import { sortAlphabetical } from "@/utils"
 import { useQuery } from "@tanstack/react-query"
@@ -73,12 +73,29 @@ export function deviceListParams(groupId: number, query = ""): ListParams {
   }
 }
 
+/** The cache key of the list of devices of the sidebar. */
+export function deviceListKey(params: ListParams) {
+  return [QUERIES.DEVICE_LIST, params]
+}
+
 /**
  * The devices of the sidebar list: all the devices, or those of a group, or those matching a search query
- * (Netshot query language), loaded whole (the list is virtualized).
+ * (Netshot query language), loaded whole (the list is virtualized). With a query, also gives the query as the server
+ * applies it (canonical form), or the error of an invalid query.
  */
-export function useDevices(groupId: number, query = "") {
-  return useListAll<Device>([QUERIES.DEVICE_LIST], "/devices", deviceListParams(groupId, query))
+export function useDevices(groupId: number, query = "", enabled = true) {
+  const params = deviceListParams(groupId, query)
+  const result = useQuery<ListResponse<Device>, NetshotError>({
+    queryKey: deviceListKey(params),
+    queryFn: async ({ signal }) => list<Device>("/devices", { ...params, offset: undefined, limit: 0 }, signal),
+    enabled,
+  })
+  return {
+    rows: result.data?.results ?? [],
+    appliedQuery: result.data?.query ?? undefined,
+    error: result.error,
+    isPending: result.isPending,
+  }
 }
 
 export function useDeviceFamilies() {
