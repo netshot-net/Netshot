@@ -23,8 +23,8 @@ export const useUserLevelOptions = createOptionHook([
     value: Level.Operator,
   },
   {
-    label: "user.role.visitor",
-    description: "user.role.visitorDescription",
+    label: "user.role.readOnly",
+    description: "user.role.readOnlyDescription",
     value: Level.ReadOnly,
   },
 ])
