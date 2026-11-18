@@ -48,4 +48,5 @@ COPY --from=builder /build/graalpy /usr/lib/graalpy
 COPY --from=builder /build/target/netshot.jar /usr/local/netshot/netshot.jar
 COPY dist/netshot.conf.docker /etc/netshot.conf
 EXPOSE 8080
-CMD ["/usr/bin/java", "-jar", "/usr/local/netshot/netshot.jar"]
+# -XX:-UseBASE64Intrinsics: workaround for CVE-2026-114938 (JIT Base64 decoding intrinsic)
+CMD ["/usr/bin/java", "-XX:-UseBASE64Intrinsics", "-jar", "/usr/local/netshot/netshot.jar"]

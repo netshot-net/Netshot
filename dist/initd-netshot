@@ -20,7 +20,7 @@ NAME=netshot
 USER=netshot
 DAEMON=/usr/bin/java
 APP=/usr/local/netshot/$NAME.jar
-DAEMON_ARGS="-jar $APP"
+DAEMON_ARGS="-XX:-UseBASE64Intrinsics -jar $APP"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 

@@ -45,6 +45,8 @@
 
 **Java/GraalVM**: the container image now ships Oracle GraalVM for JDK 21.0.12, for the latest Java security fixes. On a Linux installation, upgrade the Java environment to GraalVM 21.0.12 as described in the [install guide](installation/linux.md#2-install-the-graalvm-jre).
 
+**CVE-2026-114938**: this Java vulnerability (heap overflow in the JIT-compiled Base64 decoding, on x86-64 CPUs with AVX-512 VBMI) also affects GraalVM 21.0.12. It is fixed in Oracle GraalVM for JDK 21.0.13.1, but that build is released under the GraalVM OTN license (no longer the GraalVM Free Terms and Conditions), so it can't be shipped in the container image; you may install it on your Linux server if your Oracle license allows. Netshot is now started with `-XX:-UseBASE64Intrinsics`, which disables the vulnerable code: the container image, `systemd-netshot` and `initd-netshot` include it. If you start Netshot with your own service file or command line, add `-XX:-UseBASE64Intrinsics` to the `java` options.
+
 ### Any version to 0.25.1+
 
 **Clustering**: the tasks working on a device (snapshot, diagnostics, compliance check) are now always assigned to the same runner while the set of available runners doesn't change; they went to a random runner, as the other tasks still do (according to the runner weights). The distribution of the tasks between the runners may change after the upgrade.
