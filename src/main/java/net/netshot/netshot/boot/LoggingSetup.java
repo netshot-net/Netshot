@@ -123,10 +123,7 @@ public final class LoggingSetup {
 		int logCount = config.get(COUNT);
 		int logMaxSize = config.get(MAX_SIZE);
 
-		Level logLevel = Level.toLevel(logLevelCfg, Level.WARN);
-		if (logLevelCfg != null && !logLevel.toString().equals(logLevelCfg)) {
-			log.error("Invalid log level (netshot.log.level) '{}'. Using {}.", logLevelCfg, logLevel);
-		}
+		Level logLevel = level(logLevelCfg, Level.WARN, "netshot.log.level");
 
 		OutputStreamAppender<ILoggingEvent> appender;
 
@@ -246,10 +243,7 @@ public final class LoggingSetup {
 		int auditMaxSize = config.get(AUDIT_MAX_SIZE);
 
 		((ch.qos.logback.classic.Logger) AAA_LOG).setAdditive(false);
-		Level logLevel = Level.toLevel(auditLevelCfg, Level.OFF);
-		if (auditLevelCfg != null && !logLevel.toString().equals(auditLevelCfg)) {
-			log.error("Invalid log level (netshot.log.audit.level) '{}'. Using {}.", auditLevelCfg, logLevel);
-		}
+		Level logLevel = level(auditLevelCfg, Level.OFF, "netshot.log.audit.level");
 		((ch.qos.logback.classic.Logger) AAA_LOG).setLevel(logLevel);
 
 		if (auditFile != null) {
@@ -293,6 +287,26 @@ public final class LoggingSetup {
 	}
 
 	/**
+	 * Reads a log level, whatever its case.
+	 *
+	 * @param value the configured level, null if not set
+	 * @param defaultLevel the level if not set or invalid
+	 * @param setting the name of the setting, for the error
+	 * @return the level
+	 */
+	static Level level(String value, Level defaultLevel, String setting) {
+		if (value == null) {
+			return defaultLevel;
+		}
+		Level level = Level.toLevel(value, null);
+		if (level == null) {
+			log.error("Invalid log level ({}) '{}'. Using {}.", setting, value, defaultLevel);
+			return defaultLevel;
+		}
+		return level;
+	}
+
+	/**
 	 * Initialize remote Syslog logging.
 	 *
 	 * @param config the configuration
@@ -320,16 +334,22 @@ public final class LoggingSetup {
 			int port = config.get(SYSLOG_PORT.at(syslogIndex));
 			appender.setPort(port);
 			appender.setFacility(config.get(SYSLOG_FACILITY.at(syslogIndex)));
-			rootLogger.addAppender(appender);
-			((ch.qos.logback.classic.Logger) AAA_LOG).addAppender(appender);
+			syslogIndex++;
 			try {
+				// Logback reports most failures as a status, without exception: checked with isStarted
 				appender.start();
 			}
 			catch (Exception e) {
-				log.error("Unable to start syslog instance {}: {}.", syslogIndex, e.getMessage());
+				log.error("Unable to start the logging to syslog {}:{}: {}.", host, port, e.getMessage());
+				continue;
 			}
+			if (!appender.isStarted()) {
+				log.error("Unable to start the logging to syslog {}:{}.", host, port);
+				continue;
+			}
+			rootLogger.addAppender(appender);
+			((ch.qos.logback.classic.Logger) AAA_LOG).addAppender(appender);
 			log.warn("Logging to syslog {}:{} has started", appender.getSyslogHost(), appender.getPort());
-			syslogIndex++;
 		}
 	}
 }
