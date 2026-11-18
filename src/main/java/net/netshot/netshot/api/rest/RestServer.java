@@ -59,7 +59,7 @@ import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
- * The web server of Netshot: a thread which starts Undertow, serving the Web UI (static files) and the
+ * The web server of Netshot: Undertow, serving the Web UI (static files) and the
  * REST API (the Jersey applications of the legacy API, {@link V0Application}, on the API path, and of the v1 API,
  * {@link V1Application}, on {@code <API path>/v1}) with the HTTP(S) and session cookie
  * settings of the configuration.
