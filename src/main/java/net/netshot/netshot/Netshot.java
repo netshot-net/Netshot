@@ -31,8 +31,8 @@ import org.apache.commons.cli.help.HelpFormatter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
-import net.netshot.netshot.boot.BootstrapException;
 import net.netshot.netshot.boot.ConfigOption;
+import net.netshot.netshot.boot.FatalError;
 import net.netshot.netshot.boot.Signals;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.runtime.AgentInstrumentation;
@@ -89,11 +89,12 @@ public final class Netshot {
 		}
 
 		System.out.println(String.format("Starting Netshot version %s.", BuildInfo.VERSION));
-		log.info("Starting Netshot");
 
 		try {
 			ConfigStore config = ConfigStore.ofFiles(ConfigOption.files(commandLine));
+			// Sets the logging up: nothing is logged before
 			Bootstrap.initialize(config);
+			log.info("Starting Netshot version {}.", BuildInfo.VERSION);
 			System.out.println(String.format("Configuration file %s read.", config.current().fileName()));
 			log.info("Configuration file {} read.", config.current().fileName());
 
@@ -104,17 +105,8 @@ public final class Netshot {
 			application.start();
 			log.warn("Netshot is started");
 		}
-		catch (BootstrapException e) {
-			// The message tells why (and the cause, if any, where)
-			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
-			if (e.getCause() != null) {
-				e.printStackTrace();
-			}
-			System.exit(1);
-		}
 		catch (Exception e) {
-			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
-			e.printStackTrace();
+			FatalError.report(e);
 			System.exit(1);
 		}
 	}

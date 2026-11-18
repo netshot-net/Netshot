@@ -411,9 +411,13 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 	@Override
 	public void stop() throws InterruptedException {
 		this.running = false;
-		this.mainLoop.shutdownNow();
+		if (this.mainLoop != null) {
+			this.mainLoop.shutdownNow();
+		}
 		this.worker.shutdownNow();
-		this.mainLoop.awaitTermination(10, TimeUnit.SECONDS);
+		if (this.mainLoop != null) {
+			this.mainLoop.awaitTermination(10, TimeUnit.SECONDS);
+		}
 		this.worker.awaitTermination(10, TimeUnit.SECONDS);
 	}
 

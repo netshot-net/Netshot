@@ -89,17 +89,28 @@ class ServiceManagerTest {
 	}
 
 	@Test
-	@DisplayName("A start failure stops the services already started, and nothing more is started")
+	@DisplayName("A start failure stops the failed service and the services already started, and nothing more is started")
 	void startFailureStopsStarted() {
 		ServiceManager manager = new ServiceManager(List.of(
 			service("a", false, false), service("b", false, false), service("c", true, false), service("d", false, false)));
 		ServiceStartException thrown = Assertions.assertThrows(ServiceStartException.class, manager::start);
 		Assertions.assertTrue(thrown.getMessage().contains("c"));
-		Assertions.assertEquals(List.of("start a", "start b", "start c", "stop b", "stop a"), this.calls);
+		Assertions.assertEquals(List.of("start a", "start b", "start c", "stop c", "stop b", "stop a"), this.calls);
 		List<ServiceStatus> status = manager.status();
 		Assertions.assertEquals(ServiceState.FAILED, status.get(2).state());
 		Assertions.assertEquals("Start failure of c", status.get(2).error());
 		Assertions.assertEquals(ServiceState.NEW, status.get(3).state());
+	}
+
+	@Test
+	@DisplayName("A failed service whose release fails keeps its start error, and the started services are still stopped")
+	void startFailureReleaseFailure() {
+		ServiceManager manager = new ServiceManager(List.of(service("a", false, false), service("b", true, true)));
+		Assertions.assertThrows(ServiceStartException.class, manager::start);
+		Assertions.assertEquals(List.of("start a", "start b", "stop b", "stop a"), this.calls);
+		Assertions.assertEquals(ServiceState.FAILED, manager.status().get(1).state());
+		Assertions.assertEquals("Start failure of b", manager.status().get(1).error());
+		Assertions.assertEquals(ServiceState.STOPPED, manager.status().get(0).state());
 	}
 
 	@Test

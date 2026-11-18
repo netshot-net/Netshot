@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest;
 
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -28,6 +29,8 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.undertow.servlet.Servlets;
 
 import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.DatabaseTest;
@@ -75,6 +78,23 @@ class RestServerTest {
 		Assertions.assertFalse(server.isHealthy());
 		try (ServerSocket socket = new ServerSocket(port)) {
 			Assertions.assertTrue(socket.isBound(), "The port wasn't released");
+		}
+	}
+
+	@Test
+	@DisplayName("A start failure (port in use) leaves nothing deployed once stopped")
+	void portUsed() throws Exception {
+		try (ServerSocket used = new ServerSocket(0, 50, InetAddress.getLoopbackAddress())) {
+			Properties config = TestConfig.properties();
+			config.setProperty("netshot.http.ssl.enabled", "false");
+			config.setProperty("netshot.http.baseurl", "http://127.0.0.1:%d".formatted(used.getLocalPort()));
+			TestConfig.init(config);
+			RestServer server = new RestServer(TestWiring.get().api().restDependencies(), TestConfig.store());
+			Assertions.assertThrows(Exception.class, server::start);
+			// As the service manager does after a failed start
+			server.stop();
+			Assertions.assertFalse(server.isHealthy());
+			Assertions.assertNull(Servlets.defaultContainer().getDeployment("NetshotREST"), "The deployment is still registered");
 		}
 	}
 }

@@ -183,6 +183,9 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	/** The SNMP object. */
 	private volatile Snmp snmp;
 
+	/** Whether the receiver is started (guarded by the receiver). */
+	private boolean running;
+
 	/** The thread pool. */
 	private ThreadPool threadPool;
 
@@ -231,13 +234,17 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	}
 
 	@Override
-	public void start() {
-		this.applySettings(this.config.current());
+	public synchronized void start() {
+		this.running = true;
+		// Listening first: a reload while starting is applied, at worst twice
 		this.config.addListener(this.listener);
+		this.applySettings(this.config.current());
 	}
 
 	@Override
 	public synchronized void stop() {
+		// A reload already calling the listener mustn't open the receiver again
+		this.running = false;
 		this.config.removeListener(this.listener);
 		this.closeReceiver();
 	}
@@ -266,9 +273,14 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	 * the SNMPv3 engine ID change, closes it when the receiver is disabled; the communities and the users are applied
 	 * in place.
 	 *
+	 * Ignored once the receiver is stopped (a reload which started before the stop).
+	 *
 	 * @param newConfig the configuration
 	 */
-	private synchronized void applySettings(Config newConfig) {
+	synchronized void applySettings(Config newConfig) {
+		if (!this.running) {
+			return;
+		}
 		Settings newSettings = Settings.from(newConfig);
 		Settings oldSettings = this.settings;
 		this.settings = newSettings;
@@ -413,17 +425,16 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	 * Closes the trap receiver (socket and threads).
 	 */
 	private void closeReceiver() {
-		if (this.snmp == null) {
-			return;
+		if (this.snmp != null) {
+			try {
+				this.snmp.close();
+			}
+			catch (IOException e) {
+				log.warn("Cannot close SNMP trap receiver", e);
+			}
+			this.snmp = null;
 		}
-
-		try {
-			this.snmp.close();
-		}
-		catch (IOException e) {
-			log.warn("Cannot close SNMP trap receiver", e);
-		}
-		this.snmp = null;
+		// Also when the receiver couldn't be opened (e.g. port in use): the pool is created before the socket
 		if (this.threadPool != null) {
 			this.threadPool.stop();
 			this.threadPool = null;
