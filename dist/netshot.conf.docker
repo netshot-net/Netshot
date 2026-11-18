@@ -9,8 +9,8 @@ netshot.log.level = WARN
 #netshot.log.syslog1.host = 10.0.16.16
 
 # Database connection
-#netshot.db.driver_class = com.mysql.cj.jdbc.Driver
-netshot.db.driver_class = org.postgresql.Driver
+#netshot.db.driverclass = com.mysql.cj.jdbc.Driver
+netshot.db.driverclass = org.postgresql.Driver
 #netshot.db.url = jdbc:mysql://localhost/netshot01
 netshot.db.url = jdbc:postgresql://localhost/netshot01
 netshot.db.username = netshot

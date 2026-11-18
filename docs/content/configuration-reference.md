@@ -14,6 +14,8 @@ Netshot reloads its configuration when it receives a `HUP` signal (e.g. `systemc
 
 A warning is logged for each `netshot.*` parameter (or `NETSHOT_*` environment variable) which doesn't match any known parameter, typically a typo.
 
+A renamed parameter is still read under its former name (when the new one isn't set), with a warning at startup and on each reload telling the new name: `netshot.db.driver_class` (now `netshot.db.driverclass`), `netshot.db.encryptionPassword` (now `netshot.db.encryptionpassword`), `netshot.syslog.disabled` (now `netshot.syslog.enabled`, inverted) and `netshot.snmptrap.disabled` (now `netshot.snmptrap.enabled`, inverted).
+
 Every parameter can also be passed as an environment variable: replace `.` with `_` and upper-case it. For example, `netshot.log.file` becomes `NETSHOT_LOG_FILE`.
 
 ## Secrets in files
@@ -122,7 +124,7 @@ The embedded Syslog server listens for messages that indicate a device configura
 |---|---|---|
 | `netshot.syslog.port` | UDP port to listen on. Default: `514` (requires root on Linux). | Yes |
 | `netshot.syslog.listenaddress` | IP address to bind to. Default: `0.0.0.0`. | Yes |
-| `netshot.syslog.disabled` | Disables the embedded Syslog server. Enabled by default. | Yes |
+| `netshot.syslog.enabled` | Enables the embedded Syslog server. Default: `true`. Formerly `netshot.syslog.disabled` (inverted), still read. | Yes |
 
 To avoid running as root, listen on a high port (e.g. `1514`) and redirect with `iptables`, as described in the [installation guide](installation/linux.md).
 
@@ -138,7 +140,7 @@ The embedded SNMP trap receiver listens for traps that indicate a device configu
 | `netshot.snmptrap.engineid` | SNMP engine ID, as hexadecimal bytes separated by colons (e.g. `80:00:1f:88:80:...`). Default: auto-generated at startup. | Yes |
 | `netshot.snmptrap.user` | SNMPv3 user(s) allowed to send traps, space-separated for multiple entries. Format: `username protocols [authkey] [privkey]`, where `protocols` is a pipe-separated list of auth (`MD5`, `SHA`, `HMAC128SHA224`, `HMAC192SHA256`, `HMAC256SHA384`, `HMAC384SHA512`) and privacy (`DES`, `3DES`, `AES128`, `AES192`, `AES256`) protocols. No SNMPv3 user is defined by default. | Yes |
 | `netshot.snmptrap.threadcount` | Number of worker threads processing incoming traps. Default: `2`. | Yes |
-| `netshot.snmptrap.disabled` | Disables the embedded SNMP trap receiver. Enabled by default. | Yes |
+| `netshot.snmptrap.enabled` | Enables the embedded SNMP trap receiver. Default: `true`. Formerly `netshot.snmptrap.disabled` (inverted), still read. | Yes |
 
 As with Syslog, listen on a high port and redirect with `iptables` to avoid running as root.
 

@@ -45,6 +45,9 @@ class ConfigStoreTest {
 		static final Setting<Integer> PORT = Setting.integer("netshot.test.port").defaultValue(514).restart();
 		static final Setting<Integer> TIMEOUT = Setting.integer("netshot.test.timeout").defaultValue(5).live();
 		static final Setting<String> SECRET = Setting.text("netshot.test.serverN.secret").secret().live();
+		static final Setting<Boolean> ENABLED = Setting.bool("netshot.test.enabled")
+			.alias("netshot.test.disabled", disabled -> !disabled).defaultValue(true).live();
+		static final Setting<String> DRIVER_CLASS = Setting.text("netshot.test.driverclass").alias("netshot.test.driver_class").restart();
 		/** Not a setting (not static). */
 		final Setting<String> notStatic = Setting.text("netshot.test.notstatic").live();
 	}
@@ -63,7 +66,7 @@ class ConfigStoreTest {
 	@Test
 	@DisplayName("Catalog from the static final fields")
 	void catalogFromClasses() {
-		Assertions.assertEquals(3, CATALOG.settings().size());
+		Assertions.assertEquals(5, CATALOG.settings().size());
 		Assertions.assertSame(Declared.TIMEOUT, CATALOG.find("netshot.test.timeout"));
 		Assertions.assertSame(Declared.SECRET, CATALOG.find("netshot.test.server3.secret"));
 		Assertions.assertNull(CATALOG.find("netshot.test.notstatic"));
@@ -248,6 +251,21 @@ class ConfigStoreTest {
 		Assertions.assertEquals(Set.of("netshot.test.prot", "netshot.test.timeout.file", "netshot.test.tiemout"),
 			CATALOG.unknownKeys(config));
 		Assertions.assertEquals(Set.of(), SettingCatalog.EMPTY.unknownKeys(config), "Nothing is checked without catalog");
+	}
+
+	@Test
+	@DisplayName("Legacy items: known (not reported as unknown), and listed with their new key")
+	void legacyKeys() {
+		Properties properties = new Properties();
+		properties.putAll(Map.of("netshot.test.disabled", "true", "netshot.test.port", "514"));
+		Config file = Config.of(properties, Map.of());
+		Assertions.assertEquals(Map.of("netshot.test.disabled", "netshot.test.enabled"), CATALOG.legacyKeys(file));
+		Assertions.assertEquals(Set.of(), CATALOG.unknownKeys(file));
+		Config environment = Config.of(new Properties(), Map.of("NETSHOT_TEST_DISABLED", "true", "NETSHOT_TEST_DRIVER_CLASS", "x"));
+		Assertions.assertEquals(Map.of("netshot.test.disabled", "netshot.test.enabled", "netshot.test.driver_class", "netshot.test.driverclass"),
+			CATALOG.legacyKeys(environment));
+		Assertions.assertEquals(Set.of(), CATALOG.unknownKeys(environment), "NETSHOT_TEST_DRIVER_CLASS is the legacy netshot.test.driver_class");
+		Assertions.assertEquals(Map.of(), CATALOG.legacyKeys(config(Map.of("netshot.test.enabled", "false"))));
 	}
 
 	@Test

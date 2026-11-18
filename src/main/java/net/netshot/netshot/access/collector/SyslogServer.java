@@ -61,8 +61,9 @@ public final class SyslogServer implements Service {
 	/** Where the scripts of the drivers log when they analyze a message. */
 	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SyslogServer.class);
 
-	/** Whether the Syslog server is disabled. */
-	static final Setting<Boolean> DISABLED = Setting.bool("netshot.syslog.disabled").defaultValue(false).live();
+	/** Whether the Syslog server is enabled (legacy: {@code netshot.syslog.disabled}, inverted). */
+	static final Setting<Boolean> ENABLED = Setting.bool("netshot.syslog.enabled")
+		.alias("netshot.syslog.disabled", disabled -> !disabled).defaultValue(true).live();
 
 	/** The UDP port to listen Syslog messages on. */
 	static final Setting<Integer> PORT = Setting.integer("netshot.syslog.port").defaultValue(514).range(1, 65535).live();
@@ -73,7 +74,7 @@ public final class SyslogServer implements Service {
 	/**
 	 * The settings of the Syslog server.
 	 *
-	 * @param enabled whether the server is enabled (not {@code netshot.syslog.disabled})
+	 * @param enabled whether the server is enabled ({@code netshot.syslog.enabled})
 	 * @param port the UDP port
 	 * @param listenAddress the address to listen on
 	 */
@@ -96,7 +97,7 @@ public final class SyslogServer implements Service {
 				log.warn("Unable to parse IP address '{}' for the Syslog listen address, using loopback instead", listenAddress, e);
 				host = InetAddress.getLoopbackAddress();
 			}
-			return new Settings(!config.get(DISABLED), config.get(PORT), host);
+			return new Settings(config.get(ENABLED), config.get(PORT), host);
 		}
 	}
 

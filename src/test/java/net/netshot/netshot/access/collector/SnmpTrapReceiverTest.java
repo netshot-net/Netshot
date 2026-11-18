@@ -92,7 +92,7 @@ class SnmpTrapReceiverTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.snmptrap.port", Integer.toString(port));
 		config.setProperty("netshot.snmptrap.listenaddress", "127.0.0.1");
-		config.setProperty("netshot.snmptrap.disabled", Boolean.toString(disabled));
+		config.setProperty("netshot.snmptrap.enabled", Boolean.toString(!disabled));
 		config.setProperty("netshot.snmptrap.community", communities);
 		return config;
 	}

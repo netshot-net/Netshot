@@ -23,8 +23,10 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import lombok.extern.slf4j.Slf4j;
@@ -188,7 +190,7 @@ public final class SettingCatalog {
 			return unknown;
 		}
 		for (String key : configuredKeys(config)) {
-			if (!key.startsWith(KEY_PREFIX) || this.find(key) != null) {
+			if (!key.startsWith(KEY_PREFIX) || this.find(key) != null || this.isLegacyEnvironmentKey(key)) {
 				continue;
 			}
 			if (key.endsWith(FILE_SUFFIX)) {
@@ -200,6 +202,54 @@ public final class SettingCatalog {
 			unknown.add(key);
 		}
 		return unknown;
+	}
+
+	/**
+	 * Whether a key converted from the name of an environment variable is the legacy key of a setting
+	 * (or of its secret file): the conversion turns {@code NETSHOT_DB_DRIVER_CLASS} into {@code netshot.db.driver.class},
+	 * not {@code netshot.db.driver_class}.
+	 *
+	 * @param key the key converted from the name of an environment variable
+	 * @return true if it's a legacy key
+	 */
+	private boolean isLegacyEnvironmentKey(String key) {
+		for (Setting<?> setting : this.settings) {
+			if (setting.alias() != null) {
+				String legacyKey = keyOfEnvironmentName(Config.environmentName(setting.alias()));
+				if (key.equals(legacyKey) || (setting.isSecret() && key.equals(legacyKey + FILE_SUFFIX))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Gets the legacy keys set in a configuration (file or environment), with the key of their setting.
+	 *
+	 * @param config the configuration
+	 * @return the key of the setting, by legacy key
+	 */
+	public Map<String, String> legacyKeys(Config config) {
+		Map<String, String> keys = new TreeMap<>();
+		for (Setting<?> setting : this.settings) {
+			String alias = setting.alias();
+			if (alias != null && (config.get(alias) != null || (setting.isSecret() && config.get(alias + FILE_SUFFIX) != null))) {
+				keys.put(alias, setting.key());
+			}
+		}
+		return keys;
+	}
+
+	/**
+	 * Logs a warning for each legacy key set in the configuration.
+	 *
+	 * @param config the configuration
+	 */
+	public void warnLegacyItems(Config config) {
+		this.legacyKeys(config).forEach((legacyKey, key) ->
+			log.warn("Configuration item '{}' (or environment variable {}) is deprecated, use '{}' ({}) instead.",
+				legacyKey, Config.environmentName(legacyKey), key, Config.environmentName(key)));
 	}
 
 	/**
