@@ -21,6 +21,7 @@ package net.netshot.netshot.platform.config;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -134,6 +135,19 @@ public final class ConfigStore {
 	public static ConfigStore ofFiles(List<String> files) {
 		List<String> sources = List.copyOf(files);
 		return new ConfigStore(() -> Config.load(sources));
+	}
+
+	/**
+	 * Creates a store whose source is a configuration file, overridden by the given environment (the tests).
+	 *
+	 * @param files the configuration files to look at, in sequence (the first readable one is used), at each load
+	 * @param environment the environment variables
+	 * @return the store, empty until the configuration is {@link #load() loaded}
+	 */
+	static ConfigStore ofFiles(List<String> files, Map<String, String> environment) {
+		List<String> sources = List.copyOf(files);
+		Map<String, String> variables = Map.copyOf(environment);
+		return new ConfigStore(() -> Config.load(sources, variables));
 	}
 
 	/**

@@ -96,6 +96,51 @@ class ConfigStoreTest {
 	}
 
 	@Test
+	@DisplayName("The environment overrides the file at each load, a reload only brings the changes of the file")
+	void environmentOverridesOnReload() throws Exception {
+		Path file = this.tempDir.resolve("netshot.conf");
+		Files.writeString(file, "netshot.test.timeout = 7\nnetshot.test.port = 514\n", StandardCharsets.UTF_8);
+		ConfigStore store = ConfigStore.ofFiles(List.of(file.toString()), Map.of("NETSHOT_TEST_TIMEOUT", "3"));
+		store.load();
+		Assertions.assertEquals(3, store.current().get(Declared.TIMEOUT), "Overridden by the environment");
+		Assertions.assertEquals(514, store.current().get(Declared.PORT));
+		Assertions.assertEquals(file.toString(), store.current().fileName());
+		Files.writeString(file, "netshot.test.timeout = 9\nnetshot.test.port = 1514\n", StandardCharsets.UTF_8);
+		Assertions.assertTrue(store.reload());
+		Assertions.assertEquals(3, store.current().get(Declared.TIMEOUT), "Still overridden by the environment");
+		Assertions.assertEquals(1514, store.current().get(Declared.PORT), "Changed in the file");
+	}
+
+	@Test
+	@DisplayName("A secret file named by an environment variable is read again on reload")
+	void environmentSecretFileOnReload() throws Exception {
+		Path file = this.tempDir.resolve("netshot.conf");
+		Files.writeString(file, "netshot.test.port = 514\n", StandardCharsets.UTF_8);
+		Path secretFile = this.tempDir.resolve("secret");
+		Files.writeString(secretFile, "first\n", StandardCharsets.UTF_8);
+		Setting<String> secret = Declared.SECRET.at(1);
+		ConfigStore store = ConfigStore.ofFiles(List.of(file.toString()),
+			Map.of(Config.environmentName(secret.key()) + "_FILE", secretFile.toString()));
+		store.load();
+		Assertions.assertEquals("first", store.current().get(secret));
+		Files.writeString(secretFile, "second\n", StandardCharsets.UTF_8);
+		Assertions.assertTrue(store.reload());
+		Assertions.assertEquals("second", store.current().get(secret), "The rotated secret is read");
+	}
+
+	@Test
+	@DisplayName("An empty first file fails the load, the next files aren't tried")
+	void emptyFirstFile() throws Exception {
+		Path empty = this.tempDir.resolve("empty.conf");
+		Files.writeString(empty, "# Nothing\n", StandardCharsets.UTF_8);
+		Path file = this.tempDir.resolve("netshot.conf");
+		Files.writeString(file, "netshot.test.port = 514\n", StandardCharsets.UTF_8);
+		ConfigStore store = ConfigStore.ofFiles(List.of(empty.toString(), file.toString()), Map.of());
+		Assertions.assertThrows(ConfigException.class, store::load);
+		Assertions.assertNull(store.current().fileName(), "Still empty");
+	}
+
+	@Test
 	@DisplayName("A failed load or reload keeps the current configuration")
 	void failedReloadKeepsCurrent() throws Exception {
 		AtomicReference<ConfigStore.Loader> source = new AtomicReference<>(() -> config(Map.of("netshot.test.timeout", "7")));

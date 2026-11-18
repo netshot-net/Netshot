@@ -116,6 +116,18 @@ public final class Config {
 	 * @throws ConfigException if no file could be read, or the file is empty
 	 */
 	public static Config load(List<String> fileNames) throws ConfigException {
+		return load(fileNames, processEnvironment());
+	}
+
+	/**
+	 * Loads the configuration from the first readable file among the given ones, overridden by the given environment.
+	 *
+	 * @param fileNames the names of the files to try, in sequence
+	 * @param environment the environment variables
+	 * @return the configuration
+	 * @throws ConfigException if no file could be read, or the file is empty
+	 */
+	static Config load(List<String> fileNames, Map<String, String> environment) throws ConfigException {
 		for (String fileName : fileNames) {
 			Properties properties = new Properties();
 			try (InputStream fileStream = new FileInputStream(fileName)) {
@@ -128,7 +140,7 @@ public final class Config {
 			if (properties.isEmpty()) {
 				break;
 			}
-			return of(properties, processEnvironment(), fileName);
+			return of(properties, environment, fileName);
 		}
 		throw new ConfigException("No configuration file was found (tried %s)".formatted(String.join(", ", fileNames)));
 	}
