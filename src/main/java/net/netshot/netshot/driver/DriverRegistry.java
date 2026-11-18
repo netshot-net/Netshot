@@ -31,7 +31,7 @@ import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
  * The registry of the loaded device drivers: lookups by name or description, and the global hash of
- * the drivers. The drivers are read by a {@link DriverLoader} on {@link #refresh()}.
+ * the drivers. The drivers are read by a {@link DriverLoader} on {@link #reload()}.
  */
 public class DriverRegistry implements Service {
 
@@ -55,7 +55,7 @@ public class DriverRegistry implements Service {
 	/**
 	 * Creates a registry.
 	 *
-	 * @param loader the loader reading the drivers on refresh
+	 * @param loader the loader reading the drivers on reload
 	 */
 	public DriverRegistry(DriverLoader loader) {
 		this.loader = loader;
@@ -157,10 +157,9 @@ public class DriverRegistry implements Service {
 	/**
 	 * Reloads all the drivers from their sources.
 	 *
-	 * @throws Exception
-	 *                       something bad
+	 * @throws Exception if the drivers can't be read
 	 */
-	public void refresh() throws Exception {
+	public void reload() throws Exception {
 		DriverLoader.LoadedDrivers loaded;
 		try {
 			loaded = this.loader.load();
@@ -192,7 +191,7 @@ public class DriverRegistry implements Service {
 	 */
 	@Override
 	public void start() throws Exception {
-		this.refresh();
+		this.reload();
 	}
 
 	@Override
