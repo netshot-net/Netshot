@@ -32,7 +32,6 @@ import liquibase.command.core.helpers.ShowSummaryArgument;
 import liquibase.Scope;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
-import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
 
@@ -41,7 +40,6 @@ import net.netshot.netshot.platform.config.Setting;
  * schema migration, the raw connections. The wired components go through the {@link DatabaseService}; the static
  * methods are for the code which runs without the wiring (the Java migrations, the tests).
  */
-@Slf4j
 public final class Database {
 
 	/** The JDBC driver class. */
@@ -126,7 +124,7 @@ public final class Database {
 	 * opened).
 	 *
 	 * @param config the configuration (the database, and the settings the Java migrations read)
-	 * @throws Exception if the schema can't be migrated
+	 * @throws IllegalStateException if the schema can't be migrated (the message tells why, the cause is the error)
 	 */
 	public static void migrate(Config config) throws Exception {
 		try {
@@ -143,8 +141,8 @@ public final class Database {
 			}
 		}
 		catch (Exception e) {
-			log.error("Unable to perform initial schema update", e);
-			throw e;
+			// Logged by the caller (e.g. as the fatal error of the startup)
+			throw new IllegalStateException("Unable to update the database schema: " + e.getMessage(), e);
 		}
 	}
 
