@@ -81,7 +81,7 @@ export default function ScriptItem(props: ScriptItemProps) {
         <Spacer />
         {ctx.renderScriptChildren?.(script)}
         {ctx.showMenu && (
-          <Protected minLevel={Level.ExecureReadWrite}>
+          <Protected minLevel={Level.ExecuteReadWrite}>
             <Menu.Root>
               <Menu.Trigger asChild>
                 <IconButton
