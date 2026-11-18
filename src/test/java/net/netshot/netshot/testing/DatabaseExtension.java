@@ -41,7 +41,8 @@ import net.netshot.netshot.testing.DatabaseTest.Boot;
  * Extension of {@link DatabaseTest}, {@link ApiTest} and {@link ContractTest}: before the annotated class,
  * creates its database in the shared PostgreSQL container (a copy of the migrated template) and boots
  * Netshot on it (see
- * {@link DatabaseTest}); after it, deletes the folder of the binary snapshot files. Resolves the
+ * {@link DatabaseTest}); after it, closes the application (its services) and deletes the folder of the binary
+ * snapshot files. Resolves the
  * {@link TestDatabase} parameters.
  */
 public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver {
@@ -87,6 +88,9 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 		if (!Kinds.usesDatabase(context.getRequiredTestClass())) {
 			return;
 		}
+		// Stops the services of the class (the REST server and the task manager included, letting the running tasks
+		// end): they mustn't run with the database or the configuration of the next class
+		TestWiring.close();
 		TestDatabase database = context.getStore(Kinds.NAMESPACE).remove(TestDatabase.class, TestDatabase.class);
 		if (database != null) {
 			try (Stream<Path> files = Files.walk(database.binaryFolder())) {
