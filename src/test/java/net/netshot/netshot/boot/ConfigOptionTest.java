@@ -43,4 +43,14 @@ class ConfigOptionTest {
 		Assertions.assertEquals(List.of("/opt/netshot.conf"), parse("-c", "/opt/netshot.conf"));
 		Assertions.assertEquals(List.of("/opt/netshot.conf"), parse("--config", "/opt/netshot.conf"));
 	}
+
+	@Test
+	@DisplayName("The arguments of a tool: the configuration file, or a configuration error for invalid arguments")
+	void toolArguments() throws Exception {
+		Assertions.assertEquals(List.of("/opt/netshot.conf"), ConfigOption.files(new String[] { "-c", "/opt/netshot.conf" }));
+		Assertions.assertEquals(List.of("netshot.conf", "/etc/netshot.conf"), ConfigOption.files(new String[0]));
+		BootstrapException e = Assertions.assertThrows(BootstrapException.class, () -> ConfigOption.files(new String[] { "-x" }));
+		Assertions.assertEquals("Unable to parse the arguments: Unrecognized option: -x", e.getMessage());
+		Assertions.assertNull(e.getCause(), "No stack trace");
+	}
 }

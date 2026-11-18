@@ -21,7 +21,10 @@ package net.netshot.netshot.boot;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 /**
  * The configuration option of the command line of the server and the tools: {@code -c} (or {@code --config}) gives
@@ -53,5 +56,31 @@ public final class ConfigOption {
 	public static List<String> files(CommandLine commandLine) {
 		String file = commandLine.getOptionValue("c");
 		return file == null ? DEFAULT_FILES : List.of(file);
+	}
+
+	/**
+	 * Gets the configuration files to look at, from the arguments of a tool (whose only option is {@code -c}).
+	 *
+	 * @param args the arguments
+	 * @return the given file, or the default files
+	 * @throws BootstrapException if the arguments can't be parsed
+	 */
+	public static List<String> files(String[] args) throws BootstrapException {
+		try {
+			return files(new DefaultParser().parse(new Options().addOption(option()), args));
+		}
+		catch (ParseException e) {
+			throw invalidArguments(e);
+		}
+	}
+
+	/**
+	 * Gets the error of arguments which can't be parsed (a configuration error: no stack trace).
+	 *
+	 * @param e the parsing error
+	 * @return the error
+	 */
+	public static BootstrapException invalidArguments(ParseException e) {
+		return new BootstrapException("Unable to parse the arguments: " + e.getMessage());
 	}
 }
