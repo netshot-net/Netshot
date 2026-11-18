@@ -571,6 +571,14 @@ class FinderTest {
 	}
 
 	@Test
+	@DisplayName("An unknown field is named in the error, with its position")
+	void unknownField() {
+		FinderParseException unknown = Assertions.assertThrows(FinderParseException.class,
+			() -> new Finder("[Name] is \"a\" and [Nothing] is 1", TestDrivers.registry(), TestWiring.get().core().transactions()));
+		Assertions.assertEquals("Unknown field [Nothing] at character 18.", unknown.getMessage());
+	}
+
+	@Test
 	@DisplayName("Query device by attribute - IOS device by image file")
 	void queryByIosImageFile() throws Exception {
 		assertFinder("[Cisco IOS and IOS-XE > IOS image file] is \"ciscoios-advanced-16.1.6.bin\"",
