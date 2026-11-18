@@ -49,6 +49,18 @@ public final class TestWiring {
 	}
 
 	/**
+	 * Closes the application of the tests (at the end of a test class: its services, e.g. the connection pools and
+	 * the configuration listeners, mustn't outlive the class).
+	 */
+	public static synchronized void close() {
+		Application previous = current;
+		current = null;
+		if (previous != null) {
+			previous.close();
+		}
+	}
+
+	/**
 	 * Gets the application of the tests.
 	 *
 	 * @return the application

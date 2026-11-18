@@ -27,7 +27,6 @@ import java.util.Map;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.platform.database.schema.Tables;
-import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -40,12 +39,12 @@ import org.quartz.impl.SchedulerRepository;
 
 /**
  * Extension of {@link ApiTest} and {@link ContractTest}, registered after {@link DatabaseExtension}: before
- * the annotated class, starts the task manager and the REST server of the application (waiting for it to listen); after it,
- * closes the application. For an {@link ApiTest}, also replaces the users by the API
+ * the annotated class, starts the task manager and the REST server of the application (waiting for it to listen; the
+ * {@link DatabaseExtension} closes the application after the class). For an {@link ApiTest}, also replaces the users by the API
  * tokens of {@link TestServer#API_TOKENS} before each test, and removes the tokens after it. Resolves the
  * {@link TestServer} parameters (each API version builds its clients from it).
  */
-public final class RestServerExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback,
+public final class RestServerExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback,
 	ParameterResolver {
 
 	/** How long to wait for the REST server to listen, in milliseconds. */
@@ -66,17 +65,6 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			scheduler.clear();
 		}
 		waitUntilListening(TestServer.of(context).apiUri());
-	}
-
-	@Override
-	public void afterAll(ExtensionContext context) throws Exception {
-		Class<?> testClass = context.getRequiredTestClass();
-		if (!Kinds.usesRestServer(testClass)) {
-			return;
-		}
-		// Stops the REST server, the task manager (letting the running tasks end) and the database access of
-		// the class, before the next class initializes the database again
-		TestWiring.application().close();
 	}
 
 	@Override
