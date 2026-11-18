@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.platform.config;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -134,7 +135,11 @@ public final class Config {
 				properties.load(fileStream);
 			}
 			catch (Exception e) {
-				log.debug("Unable to read the configuration file {}.", fileName, e);
+				// Before the logging is set up (the console): only a file which exists but can't be read is told, in one
+				// line; the files tried are listed if none can be read
+				if (new File(fileName).exists()) {
+					log.warn("Unable to read the configuration file {}: {}", fileName, e.getMessage());
+				}
 				continue;
 			}
 			if (properties.isEmpty()) {
