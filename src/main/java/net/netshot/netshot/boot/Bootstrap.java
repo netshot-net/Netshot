@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.boot;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigException;
@@ -35,11 +37,14 @@ import net.netshot.netshot.platform.tls.Truststore;
 @Slf4j
 public final class Bootstrap {
 
+	/** Whether the process was initialized (its logging set up from a loaded configuration). */
+	private static final AtomicBoolean INITIALIZED = new AtomicBoolean();
+
 	private Bootstrap() {
 	}
 
 	/**
-	 * Initializes the process, once per JVM (a second call is a mistake: the crypto libraries, the logging and the
+	 * Initializes the process, once per JVM (a second call is refused: the crypto libraries, the logging and the
 	 * truststore are global to the JVM), in this order:
 	 * <ol>
 	 * <li>the configuration store is loaded from its source, and the logging is set up from it;</li>
@@ -56,9 +61,15 @@ public final class Bootstrap {
 	 * @param config the configuration store, with its source (e.g. {@link ConfigStore#ofFiles})
 	 * @throws BootstrapException if the configuration can't be read or checked, or the logging or the crypto
 	 *     libraries can't be set up
+	 * @throws IllegalStateException if the process was already initialized
 	 */
 	public static void initialize(ConfigStore config) throws BootstrapException {
+		if (INITIALIZED.get()) {
+			throw new IllegalStateException("The process is already initialized");
+		}
 		load(config);
+		// From here, the process is changed (logging): a configuration which can't be read can be fixed and tried again
+		INITIALIZED.set(true);
 		// The logging is set up: the next errors are logged too (the console is the only output of the ones before)
 		try {
 			registerCryptoLibraries(config.current());
