@@ -277,9 +277,9 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 	/**
 	 * Worker thread, executing the (potentially slow, database-bound) actions triggered by
 	 * cluster messages, so that the main cluster thread (hello messages, member expiry, master
-	 * election) never waits on the database connection pool.
+	 * election) never waits on the database connection pool. Created by {@link #start()}, as the main loop.
 	 */
-	private final ScheduledExecutorService worker;
+	private volatile ScheduledExecutorService worker;
 
 	/** Whether the service is running (the main loop runs until it's false). */
 	private volatile boolean running;
@@ -306,7 +306,7 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 	private volatile boolean connected;
 
 	/** Runs the main loop (hello messages, member expiry, master election). */
-	private ExecutorService mainLoop;
+	private volatile ExecutorService mainLoop;
 
 	/** Coalescable actions currently queued (not yet started) in the worker. */
 	private final Set<WorkerAction> pendingActions = ConcurrentHashMap.newKeySet();
@@ -345,7 +345,6 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 		this.members = new ConcurrentHashMap<>();
 		this.master = null;
 		this.lastSentHelloTime = 0L;
-		this.worker = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("NetshotClusterWorker"));
 	}
 
 	/**
@@ -403,6 +402,7 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 		this.initLocalMember();
 		this.node.setTaskMode(Mode.CLUSTER_MEMBER);
 		this.running = true;
+		this.worker = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("NetshotClusterWorker"));
 		this.mainLoop = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotClusterManager"));
 		this.mainLoop.execute(this::runLoop);
 		this.startPeriodicActions();
@@ -410,15 +410,23 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 
 	@Override
 	public void stop() throws InterruptedException {
+		// Not synchronized: the worker actions may need the lock of the manager while it waits for them
 		this.running = false;
-		if (this.mainLoop != null) {
-			this.mainLoop.shutdownNow();
+		// Either can be missing after a failed start
+		ExecutorService currentLoop = this.mainLoop;
+		ScheduledExecutorService currentWorker = this.worker;
+		if (currentLoop != null) {
+			currentLoop.shutdownNow();
 		}
-		this.worker.shutdownNow();
-		if (this.mainLoop != null) {
-			this.mainLoop.awaitTermination(10, TimeUnit.SECONDS);
+		if (currentWorker != null) {
+			currentWorker.shutdownNow();
 		}
-		this.worker.awaitTermination(10, TimeUnit.SECONDS);
+		if (currentLoop != null) {
+			currentLoop.awaitTermination(10, TimeUnit.SECONDS);
+		}
+		if (currentWorker != null) {
+			currentWorker.awaitTermination(10, TimeUnit.SECONDS);
+		}
 	}
 
 	@Override
@@ -482,8 +490,13 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 	 * @return true if the action was queued
 	 */
 	private boolean submit(String name, Runnable action) {
+		ScheduledExecutorService currentWorker = this.worker;
+		if (currentWorker == null) {
+			log.warn("The cluster manager isn't started: cluster action {} ignored", name);
+			return false;
+		}
 		try {
-			this.worker.execute(() -> {
+			currentWorker.execute(() -> {
 				long startTime = System.currentTimeMillis();
 				try {
 					action.run();
