@@ -522,6 +522,18 @@ class ClusterManagerTest {
 		}
 
 		@Test
+		@DisplayName("Stopped then started again, the node connects and becomes master again")
+		void restart() throws Exception {
+			ClusterManager manager = start(ID_2, 100, new RecordingNode());
+			await(() -> status(manager) == MastershipStatus.MASTER, "the node becomes master");
+			manager.stop();
+			Assertions.assertFalse(manager.isHealthy());
+			manager.start();
+			await(() -> (Long) manager.stats().get("connections") == 2L && manager.isHealthy(), "the node connects again");
+			await(() -> (Long) manager.stats().get("masterships") == 2L, "the node becomes master again");
+		}
+
+		@Test
 		@DisplayName("Invalid messages are counted and ignored")
 		void invalidMessages() throws Exception {
 			ClusterPeer peer = peer(ID_1, 100);
