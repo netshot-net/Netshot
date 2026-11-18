@@ -90,7 +90,7 @@ final class TaskRunner {
 				r.policy(), r.rule(), r.softwareRule(), r.hardwareRule(), r.device(),
 				r.config(), r.group()),
 			new CheckGroupSoftwareHandler(wiring.core().transactions(), r.softwareRule(), r.hardwareRule(), r.device(), r.group()),
-			new DiscoverDeviceTypeHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, wiring.core().dynamicGroups(), wiring.core().vaultManager(),
+			new DiscoverDeviceTypeHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, wiring.core().dynamicGroups(), connectors,
 				r.task(), r.credentialSet(), r.domain(), r.device()),
 			new PurgeDatabaseHandler(wiring.core().transactions(), r.task(), r.binaryFiles()),
 			new RunDeviceGroupScriptHandler(wiring.core().transactions(), orchestrator, TestDrivers.registry(), r.device(), r.group()),

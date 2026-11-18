@@ -62,6 +62,8 @@ import net.netshot.netshot.credentials.DeviceSnmpv1Community;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.SecretResolver;
@@ -76,6 +78,32 @@ public class Snmp extends Poller implements Client {
 
 	/** The port. */
 	public static final int DEFAULT_PORT = DriverProtocol.SNMPV2C.defaultPort();
+
+	/**
+	 * The settings of the SNMP client.
+	 *
+	 * @param timeout the timeout of a request (ms)
+	 * @param retries the number of retries of a request without response
+	 */
+	public record Settings(int timeout, int retries) {
+
+		/** Timeout of a request (ms). */
+		static final Setting<Integer> TIMEOUT = Setting.integer("netshot.snmp.timeout")
+			.defaultValue(1500).range(1, Integer.MAX_VALUE).live();
+
+		/** Number of retries of a request without response. */
+		static final Setting<Integer> RETRIES = Setting.integer("netshot.snmp.retries")
+			.defaultValue(2).range(0, 100).live();
+
+		/**
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		public static Settings from(Config config) {
+			return new Settings(config.get(TIMEOUT), config.get(RETRIES));
+		}
+	}
 
 	/** The snmp. */
 	private org.snmp4j.Snmp snmp;
@@ -92,16 +120,20 @@ public class Snmp extends Poller implements Client {
 	/** The SNMPv3 users of this object (null for SNMPv1/v2c). */
 	private USM usm;
 
+	/** The settings (timeout, retries). */
+	private final Settings settings;
+
 	/**
 	 * Instantiates a new SNMP object based on a target address and a Netshot community,
 	 * using the default SNMP port ({@link #DEFAULT_PORT}).
 	 * @param address The target
 	 * @param community The SNMP credentials
+	 * @param settings the settings of the SNMP client
 	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @throws IOException it can happen
 	 */
-	public Snmp(NetworkAddress address, DeviceSnmpCommunity community, SecretResolver secrets) throws IOException {
-		this(address, DEFAULT_PORT, community, secrets);
+	public Snmp(NetworkAddress address, DeviceSnmpCommunity community, Settings settings, SecretResolver secrets) throws IOException {
+		this(address, DEFAULT_PORT, community, settings, secrets);
 	}
 
 	/**
@@ -109,10 +141,12 @@ public class Snmp extends Poller implements Client {
 	 * @param address The target
 	 * @param port The target UDP port
 	 * @param community The SNMP credentials
+	 * @param settings the settings of the SNMP client
 	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @throws IOException it can happen
 	 */
-	public Snmp(NetworkAddress address, int port, DeviceSnmpCommunity community, SecretResolver secrets) throws IOException {
+	public Snmp(NetworkAddress address, int port, DeviceSnmpCommunity community, Settings settings, SecretResolver secrets) throws IOException {
+		this.settings = settings;
 		if (community instanceof DeviceSnmpv1Community) {
 			this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), port),
 				new OctetString(resolveSecret(secrets, community.community())));
@@ -129,7 +163,6 @@ public class Snmp extends Poller implements Client {
 			// Prepare target
 			log.debug("Prepare SNMPv3 context");
 			this.target = new UserTarget<>();
-			this.target.setTimeout(5000);
 			this.target.setVersion(SnmpConstants.version3);
 			this.target.setAddress(new UdpAddress(address.getInetAddress(), port));
 
@@ -205,20 +238,6 @@ public class Snmp extends Poller implements Client {
 	}
 
 	/**
-	 * Instantiates a new snmp.
-	 *
-	 * @param address the address
-	 * @param community the community
-	 * @param v1 the v1
-	 * @throws IOException Signals that an I/O exception has occurred.
-	 */
-	public Snmp(NetworkAddress address, String community, boolean v1) throws IOException {
-		this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), DEFAULT_PORT), new OctetString(community));
-		this.target.setVersion(v1 ? SnmpConstants.version1 : SnmpConstants.version2c);
-		start();
-	}
-
-	/**
 	 * Connect. A no-op: the UDP transport is already opened by the constructor
 	 * (via {@link #start()}), so there is nothing left to do lazily here.
 	 */
@@ -246,6 +265,8 @@ public class Snmp extends Poller implements Client {
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 */
 	private void start() throws IOException {
+		this.target.setTimeout(this.settings.timeout());
+		this.target.setRetries(this.settings.retries());
 		TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping();
 		this.snmp = new org.snmp4j.Snmp(SnmpSecurity.dispatcher(this.usm), transport);
 		transport.listen();
