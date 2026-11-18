@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * Starts the services in the given order, and stops them in the reverse order.
@@ -175,6 +176,22 @@ public final class ServiceManager {
 				managed.error = String.valueOf(e.getMessage());
 				log.error("Error while stopping the service '{}'.", name, e);
 			}
+		}
+	}
+
+	/**
+	 * Logs that a service is disabled by its enabled setting: as a warning when the service is enabled by default
+	 * (it was turned off), for information otherwise.
+	 *
+	 * @param name the name of the service (see {@link Service#name()})
+	 * @param enabled the setting enabling the service
+	 */
+	public static void logDisabled(String name, Setting<Boolean> enabled) {
+		if (Boolean.TRUE.equals(enabled.defaultValue())) {
+			log.warn("The service '{}' is disabled by configuration ({}).", name, enabled.key());
+		}
+		else {
+			log.info("The service '{}' is disabled by configuration ({}).", name, enabled.key());
 		}
 	}
 

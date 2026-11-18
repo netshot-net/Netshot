@@ -67,6 +67,9 @@ import net.netshot.netshot.platform.lifecycle.Service;
 @Slf4j
 public final class RestServer implements Service {
 
+	/** The name of the service (also while disabled, when it isn't built). */
+	public static final String NAME = "Web/REST server";
+
 	/** Whether the HTTP server is enabled. */
 	public static final Setting<Boolean> ENABLED = Setting.bool("netshot.http.enabled").defaultValue(true).restart();
 
@@ -173,7 +176,7 @@ public final class RestServer implements Service {
 
 	@Override
 	public String name() {
-		return "Web/REST server";
+		return NAME;
 	}
 
 	@Override

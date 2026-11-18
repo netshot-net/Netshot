@@ -43,6 +43,7 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 import org.snmp4j.CommandResponder;
@@ -84,6 +85,9 @@ import org.snmp4j.util.ThreadPool;
  */
 @Slf4j
 public final class SnmpTrapReceiver implements CommandResponder, AuthenticationFailureListener, Service {
+
+	/** The name of the service (also while disabled, when it isn't built). */
+	public static final String NAME = "SNMP trap receiver";
 
 	/** Where the scripts of the drivers log when they analyze a message. */
 	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SnmpTrapReceiver.class);
@@ -230,7 +234,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 
 	@Override
 	public String name() {
-		return "SNMP trap receiver";
+		return NAME;
 	}
 
 	@Override
@@ -285,7 +289,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 		Settings oldSettings = this.settings;
 		this.settings = newSettings;
 		if (!newSettings.enabled()) {
-			log.warn("The SNMP trap receiver is disabled by configuration.");
+			ServiceManager.logDisabled(NAME, ENABLED);
 			this.closeReceiver();
 			return;
 		}

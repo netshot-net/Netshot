@@ -43,6 +43,7 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 
@@ -57,6 +58,9 @@ import net.netshot.netshot.platform.net.Network4Address;
  */
 @Slf4j
 public final class SyslogServer implements Service {
+
+	/** The name of the service (also while disabled, when it isn't built). */
+	public static final String NAME = "Syslog server";
 
 	/** Where the scripts of the drivers log when they analyze a message. */
 	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SyslogServer.class);
@@ -163,7 +167,7 @@ public final class SyslogServer implements Service {
 
 	@Override
 	public String name() {
-		return "Syslog server";
+		return NAME;
 	}
 
 	@Override
@@ -225,7 +229,7 @@ public final class SyslogServer implements Service {
 				return;
 			}
 			if (!newSettings.enabled()) {
-				log.warn("The Syslog server is disabled by configuration.");
+				ServiceManager.logDisabled(NAME, ENABLED);
 			}
 			this.settings = newSettings;
 			this.generation++;
