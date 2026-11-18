@@ -21,7 +21,6 @@ package net.netshot.netshot.platform.http;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
 
@@ -45,10 +44,10 @@ public record HttpServerAddress(URI baseUri, boolean useSsl) {
 
 	/**
 	 * Read the HTTP server address from the configuration.
+	 * @param config the configuration
 	 * @return the configured HTTP server address
 	 */
-	public static HttpServerAddress fromConfig() {
-		Config config = Netshot.config().current();
+	public static HttpServerAddress from(Config config) {
 		boolean useSsl = config.get(SSL_ENABLED);
 		String baseUrl = config.get(BASE_URL);
 		if (baseUrl == null) {

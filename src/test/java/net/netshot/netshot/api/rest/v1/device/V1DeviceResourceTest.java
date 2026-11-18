@@ -164,9 +164,14 @@ class V1DeviceResourceTest {
 	}
 
 	@Test
-	@DisplayName("List: the Netshot search query, combined with the filters")
+	@DisplayName("List: the Netshot search query, combined with the filters, and given back in its canonical form")
 	void listQuery() throws Exception {
 		Assertions.assertEquals(List.of("router00002"), this.list("?query=%5BFamily%5D%20is%20%22Cisco%20ISR%22"));
+		Answer formatted = this.admin.get("/devices?query=%5BFamily%5D%20%20%20IS%20%22Cisco%20ISR%22&fields=name");
+		Assertions.assertEquals("[Family] is \"Cisco ISR\"", formatted.json().get("query").asText(), formatted.toString());
+		Assertions.assertFalse(this.admin.get("/devices").json().has("query"), "no query without search query");
+		Answer full = this.admin.get("/devices?query=%5BFamily%5D%20is%20%22Cisco%20ISR%22&view=full");
+		Assertions.assertEquals("[Family] is \"Cisco ISR\"", full.json().get("query").asText(), full.toString());
 		Assertions.assertEquals(List.of("router00001"),
 			this.list("?query=%5BLocation%5D%20contains%20%22Paris%22&tag=edge"));
 		Answer invalid = this.admin.get("/devices?query=%5BNothing%5D%20is%201");

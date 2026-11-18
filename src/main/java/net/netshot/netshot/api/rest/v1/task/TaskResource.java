@@ -42,23 +42,22 @@ import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
-import net.netshot.netshot.api.rest.v1.ListSchema;
-import net.netshot.netshot.platform.error.NetshotException;
-import net.netshot.netshot.platform.query.StatsRow;
-import net.netshot.netshot.api.rest.v1.group.GroupMapper;
-import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
-import net.netshot.netshot.api.rest.v1.StatsResponse;
-import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
+import net.netshot.netshot.api.rest.v1.StatsParams;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
+import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.task.TaskSummary;
@@ -74,6 +73,10 @@ public class TaskResource {
 	private final SearchService searchService;
 	private final GroupService groupService;
 	private final TaskResponses responses;
+	private final ListParams lists;
+	private final DeviceMapper deviceMapper;
+	private final GroupMapper groupMapper;
+	private final TaskMapper taskMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -90,14 +93,23 @@ public class TaskResource {
 	 * @param taskService the task use cases
 	 * @param searchService the device search use cases
 	 * @param groupService the group use cases
-	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
+	 * @param deviceMapper maps the device objects
+	 * @param groupMapper maps the group objects
+	 * @param taskMapper maps the task objects
+	 * @param responses builds the task responses
 	 */
 	@Inject
-	public TaskResource(TaskService taskService, SearchService searchService, GroupService groupService, DeviceRefs deviceRefs) {
+	public TaskResource(TaskService taskService, SearchService searchService, GroupService groupService, ListParams lists,
+		DeviceMapper deviceMapper, GroupMapper groupMapper, TaskMapper taskMapper, TaskResponses responses) {
 		this.taskService = taskService;
 		this.searchService = searchService;
 		this.groupService = groupService;
-		this.responses = new TaskResponses(taskService, groupService, deviceRefs);
+		this.responses = responses;
+		this.lists = lists;
+		this.deviceMapper = deviceMapper;
+		this.groupMapper = groupMapper;
+		this.taskMapper = taskMapper;
 	}
 
 	/**
@@ -111,12 +123,14 @@ public class TaskResource {
 	@Operation(summary = "List the tasks", description = "Lists the tasks, in their brief view by default, the latest first.")
 	@ListFilters(ListSchema.TASKS)
 	public ListResponse<TaskDto> listTasks() {
-		return list(this.taskService, this.responses, this.request, this.uriInfo, null);
+		return list(this.lists, this.taskMapper, this.taskService, this.responses, this.request, this.uriInfo, null);
 	}
 
 	/**
 	 * Answers a page of tasks (of the task list, or of a list of tasks of another object).
 	 *
+	 * @param lists the reader of the list parameters
+	 * @param taskMapper maps the task objects
 	 * @param taskService the task use cases
 	 * @param responses the builder of the task responses (loads the references)
 	 * @param request the current request
@@ -124,10 +138,10 @@ public class TaskResource {
 	 * @param scope a criterion the tasks must also match (the tasks of a device...), or null
 	 * @return the page of tasks
 	 */
-	public static ListResponse<TaskDto> list(TaskService taskService, TaskResponses responses, HttpServletRequest request,
-		UriInfo uriInfo, Criterion scope) {
+	public static ListResponse<TaskDto> list(ListParams lists, TaskMapper taskMapper, TaskService taskService, TaskResponses responses,
+		HttpServletRequest request, UriInfo uriInfo, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, ListSchema.TASKS.schema());
+		ListQuery listQuery = lists.parse(params, ListSchema.TASKS.schema());
 		Selection selection = Selection.of(params, TaskDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, TaskDto.class);
 		ListQuery query = scope == null ? listQuery : listQuery.and(scope);
@@ -136,12 +150,12 @@ public class TaskResource {
 			TaskMapper.Refs refs = responses.refs(selection, summaries.items().stream().map(TaskSummary::deviceId).toList(),
 				summaries.items().stream().map(TaskSummary::deviceGroupId).toList(),
 				summaries.items().stream().map(TaskSummary::parentTaskId).toList());
-			return ListResponse.of(uriInfo, listQuery, summaries, s -> TaskMapper.toDto(s, refs));
+			return ListResponse.of(uriInfo, listQuery, summaries, s -> taskMapper.toDto(s, refs));
 		}
 		ListResult<Task> tasks = taskService.list(query);
 		TaskMapper.Refs refs = responses.refs(selection, tasks.items().stream().map(TaskResponses::deviceId).toList(),
 			tasks.items().stream().map(TaskResponses::groupId).toList(), tasks.items().stream().map(Task::parentTaskId).toList());
-		return ListResponse.of(uriInfo, listQuery, tasks, t -> TaskMapper.toDto(t, refs));
+		return ListResponse.of(uriInfo, listQuery, tasks, t -> taskMapper.toDto(t, refs));
 	}
 
 	/**
@@ -194,7 +208,7 @@ public class TaskResource {
 	public TaskDto cancelTask(@PathParam("id") @Parameter(description = "Task ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		User user = (User) this.securityContext.getUserPrincipal();
-		return this.responses.respond(this.request, this.uriInfo, this.taskService.update(id, true, user.username()));
+		return this.responses.respond(this.request, this.uriInfo, this.taskService.cancel(id, user.username()));
 	}
 
 	/**
@@ -228,11 +242,11 @@ public class TaskResource {
 		+ "from/to, timeZone). Without execution date, a task isn't counted by executionDate.")
 	@ListFilters(ListSchema.TASKS)
 	public StatsResponse getTaskStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.TASKS.schema(), "executionDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.TASKS.schema(), "executionDate");
 		ListResult<StatsRow> rows = this.taskService.stats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
-			"device", DeviceMapper.resolver(this.searchService),
-			"group", GroupMapper.resolver(this.groupService)));
+			"device", this.deviceMapper.resolver(this.searchService),
+			"group", this.groupMapper.resolver(this.groupService)));
 	}
 
 	/**

@@ -86,7 +86,7 @@ class V1DeviceWriteResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.admin = new V1Client(server, UiUser.LEVEL_ADMIN);
 		TestDevices.deleteAll();
-		TestWiring.get().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
+		TestWiring.get().core().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
 		this.paris = TestDevices.addDomain("Paris-" + System.nanoTime(), "Paris DC");
 		this.lyon = TestDevices.addDomain("Lyon-" + System.nanoTime(), "Lyon DC");
 		this.router1 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(this.paris, null, 1));

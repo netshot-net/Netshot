@@ -18,10 +18,6 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.DSLContext;
@@ -31,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Transactions;
@@ -57,6 +52,7 @@ public class HardwareRuleService {
 	private final Transactions transactions;
 	private final HardwareRuleRepository repository;
 	private final DriverRegistry driverRegistry;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the service.
@@ -64,33 +60,14 @@ public class HardwareRuleService {
 	 * @param transactions the transaction support
 	 * @param repository the hardware rule repository
 	 * @param driverRegistry the loaded device drivers
+	 * @param groupRepository the group repository (to check the target group)
 	 */
-	public HardwareRuleService(Transactions transactions, HardwareRuleRepository repository, DriverRegistry driverRegistry) {
+	public HardwareRuleService(Transactions transactions, HardwareRuleRepository repository, DriverRegistry driverRegistry,
+		GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Lists the hardware rules, by ID.
-	 *
-	 * @return the rules
-	 * @throws NetshotException if the rules can't be read
-	 */
-	public List<HardwareRuleView> list() {
-		try {
-			return this.transactions.read(dsl -> {
-				List<HardwareRuleView> views = new ArrayList<>();
-				for (HardwareRule rule : this.repository.findAll(dsl)) {
-					views.add(new HardwareRuleView(rule, this.findGroup(dsl, rule.targetGroupId())));
-				}
-				return views;
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the hardware rules.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hardware rules.");
-		}
+		this.groupRepository = groupRepository;
 	}
 
 	/**
@@ -146,7 +123,7 @@ public class HardwareRuleService {
 	}
 
 	private void check(DSLContext dsl, HardwareRule rule) {
-		if (rule.targetGroupId() != null && new GroupRepository().find(dsl, rule.targetGroupId()) == null) {
+		if (rule.targetGroupId() != null && this.groupRepository.find(dsl, rule.targetGroupId()) == null) {
 			throw NetshotException.invalidParameter("group", "The group doesn't exist.");
 		}
 		if (rule.driver() != null && this.driverRegistry.getDriverByName(rule.driver()) == null) {
@@ -155,13 +132,13 @@ public class HardwareRuleService {
 	}
 
 	/**
-	 * Adds a hardware rule.
+	 * Creates a hardware rule.
 	 *
 	 * @param newRule the rule (its ID is ignored)
 	 * @return the new rule
 	 * @throws NetshotException if the group or the driver doesn't exist, or the rule can't be stored
 	 */
-	public HardwareRule add(HardwareRule newRule) {
+	public HardwareRule create(HardwareRule newRule) {
 		HardwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
@@ -188,7 +165,7 @@ public class HardwareRuleService {
 	 * @throws NetshotException if the rule, the group or the driver doesn't exist, the rule isn't at the expected
 	 *         version, or the rule can't be stored
 	 */
-	public HardwareRule replace(long id, Function<HardwareRule, HardwareRule> change, Long expectedVersion) {
+	public HardwareRule update(long id, Function<HardwareRule, HardwareRule> change, Long expectedVersion) {
 		HardwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
@@ -209,104 +186,24 @@ public class HardwareRuleService {
 		return rule;
 	}
 
-	private static Instant toInstant(Date date) {
-		return date == null ? null : date.toInstant();
-	}
-
-	private HardwareRule fromDefinition(long id, HardwareRuleDefinition definition) {
-		return new HardwareRule(id, 0, null, knownDriver(definition.driver()), definition.groupId(),
-			definition.family(), definition.familyRegExp(), definition.partNumber(),
-			definition.partNumberRegExp(), toInstant(definition.endOfSale()), toInstant(definition.endOfLife()));
-	}
-
-	/**
-	 * Adds a hardware rule.
-	 *
-	 * @param definition the rule
-	 * @return the new rule
-	 * @throws NetshotException if the group doesn't exist, or the rule can't be stored
-	 */
-	public HardwareRuleView create(HardwareRuleDefinition definition) {
-		HardwareRuleView rule;
-		try {
-			rule = this.transactions.write(dsl -> {
-				DeviceGroup group = this.findGroup(dsl, definition.groupId());
-				HardwareRule newRule = this.fromDefinition(0, definition);
-				return new HardwareRuleView(this.repository.find(dsl, this.repository.add(dsl, newRule)), group);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Error while saving the new rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the rule to the database");
-		}
-		AAA_LOG.info("{} has been created", rule.rule());
-		return rule;
-	}
-
-	/**
-	 * Edits a hardware rule.
-	 *
-	 * @param id the rule ID
-	 * @param definition the new properties
-	 * @return the rule
-	 * @throws NetshotException if the rule or the group doesn't exist, or the rule can't be stored
-	 */
-	public HardwareRuleView update(long id, HardwareRuleDefinition definition) {
-		HardwareRuleView rule;
-		try {
-			rule = this.transactions.write(dsl -> {
-				if (this.repository.lock(dsl, id) == null) {
-					log.error("Unable to find the rule {} to be edited.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
-				}
-				DeviceGroup group = this.findGroup(dsl, definition.groupId());
-				HardwareRule edited = this.fromDefinition(id, definition);
-				this.repository.save(dsl, edited);
-				return new HardwareRuleView(this.repository.find(dsl, id), group);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Error while saving the rule.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
-		}
-		AAA_LOG.info("{} has been edited", rule.rule());
-		return rule;
-	}
-
-	/**
-	 * Deletes a hardware rule.
-	 *
-	 * @param id the rule ID
-	 * @return true if the rule has been deleted, false if there was no such rule
-	 * @throws NetshotException if the rule can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
 	/**
 	 * Deletes a hardware rule, if it is at a given version.
 	 *
 	 * @param id the rule ID
 	 * @param expectedVersion the version the rule must be at, or null for any
-	 * @return true if the rule has been deleted, false if there was no such rule
-	 * @throws NetshotException if the rule isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the rule doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		try {
-			boolean deleted = this.transactions.write(dsl -> {
+			this.transactions.run(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such hardware rule of ID {}", id);
-					return false;
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The hardware rule doesn't exist.");
 				}
 				Versions.check("hardware rule", version, expectedVersion);
-				return this.repository.remove(dsl, id);
+				this.repository.remove(dsl, id);
 			});
-			if (deleted) {
-				AAA_LOG.info("Hardware rule of ID {} has been deleted", id);
-			}
-			return deleted;
+			AAA_LOG.info("Hardware rule of ID {} has been deleted", id);
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to delete the rule {}.", id, e);
@@ -314,30 +211,4 @@ public class HardwareRuleService {
 		}
 	}
 
-	/**
-	 * Finds a group.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param groupId the ID of the group, or null
-	 * @return the group, or null for no group
-	 * @throws NetshotException if there is no such group
-	 */
-	private DeviceGroup findGroup(DSLContext dsl, Long groupId) {
-		if (groupId == null) {
-			return null;
-		}
-		DeviceGroup group = new GroupRepository().find(dsl, groupId);
-		if (group == null) {
-			log.error("Unable to find the group {}.", groupId);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
-		}
-		return group;
-	}
-
-	private String knownDriver(String driver) {
-		if (this.driverRegistry.getDriverByName(driver) == null) {
-			return null;
-		}
-		return driver;
-	}
 }

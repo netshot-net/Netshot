@@ -19,10 +19,6 @@
 package net.netshot.netshot.api.rest;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +32,6 @@ import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.User;
 
@@ -50,64 +44,24 @@ public class LoggerFilter implements ContainerResponseFilter {
 	/** Authentication, Authorization, Accounting logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
-	/** Whether the client address is read from the X-Forwarded-For header (behind a reverse proxy). */
-	static final Setting<Boolean> TRUST_X_FORWARDED_FOR = Setting.bool("netshot.http.trustxforwardedfor").defaultValue(false).live();
-
 	@Context
 	private HttpServletRequest httpRequest;
 
 	/** The TACACS+ authentication (accounting of the requests). */
 	private final Tacacs tacacs;
+	/** The address of the client of a request. */
+	private final ClientAddress clientAddress;
 
 	/**
 	 * Creates the filter.
 	 *
 	 * @param tacacs the TACACS+ authentication (accounting of the requests)
+	 * @param clientAddress the address of the client of a request
 	 */
 	@Inject
-	public LoggerFilter(Tacacs tacacs) {
+	public LoggerFilter(Tacacs tacacs, ClientAddress clientAddress) {
 		this.tacacs = tacacs;
-	}
-
-	/**
-	 * Guess the client IP address based on X-Forwarded-For header (if present).
-	 * @param request = the http request
-	 * @return the probable client IP address
-	 */
-	public static String getClientAddress(HttpServletRequest request) {
-		String address = null;
-		if (Netshot.config().current().get(TRUST_X_FORWARDED_FOR)) {
-			String forwardedFor = request.getHeader("X-Forwarded-For");
-			if (forwardedFor != null) {
-				String[] addresses = forwardedFor.split(",");
-				address = addresses[0].trim();
-			}
-		}
-		if (address == null) {
-			address = request.getRemoteAddr();
-		}
-		return address;
-	}
-
-	public static URL getClientRequestUrl(HttpServletRequest request) throws MalformedURLException, URISyntaxException {
-		String scheme = request.getScheme();
-		if (Netshot.config().current().get(TRUST_X_FORWARDED_FOR)) {
-			String forwardedProto = request.getHeader("X-Forwarded-Proto");
-			if (forwardedProto != null) {
-				scheme = forwardedProto;
-			}
-		}
-		int port = request.getServerPort();
-		String serverName = request.getServerName();
-		if (Netshot.config().current().get(TRUST_X_FORWARDED_FOR)) {
-			String forwardedHost = request.getHeader("X-Forwarded-Host");
-			if (forwardedHost != null) {
-				serverName = forwardedHost;
-				port = -1;
-			}
-		}
-		String path = request.getRequestURI();
-		return new URI(scheme, null, serverName, port, path, null, null).toURL();
+		this.clientAddress = clientAddress;
 	}
 
 	@Override
@@ -121,7 +75,7 @@ public class LoggerFilter implements ContainerResponseFilter {
 			//
 		}
 		String method = requestContext.getMethod().toUpperCase();
-		String remoteAddr = LoggerFilter.getClientAddress(this.httpRequest);
+		String remoteAddr = this.clientAddress.of(this.httpRequest);
 		if ("GET".equals(method)) {
 			AAA_LOG.debug("Request from {} ({}) - {} - \"{} {}\" - {}.", remoteAddr,
 				requestContext.getHeaderString(HttpHeaders.USER_AGENT), user == null ? "<none>" : user.username(),

@@ -40,7 +40,7 @@ public final class TestDrivers {
 	 */
 	public static synchronized DriverRegistry registry() {
 		if (registry == null) {
-			DriverRegistry loading = new DriverRegistry(new DriverLoader());
+			DriverRegistry loading = new DriverRegistry(new DriverLoader(TestConfig.store()));
 			try {
 				loading.refresh();
 			}

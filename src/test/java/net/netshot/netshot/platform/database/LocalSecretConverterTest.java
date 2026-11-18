@@ -18,57 +18,50 @@
  */
 package net.netshot.netshot.platform.database;
 
-import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
-@DisplayName("Encrypted columns (jOOQ converter)")
+@DisplayName("Encrypted columns (converter)")
 class LocalSecretConverterTest {
 
-	@BeforeAll
-	static void config() {
-		TestConfig.init(new Properties());
-	}
+	/** The converter, with the default encryption password. */
+	private static final LocalSecretConverter CONVERTER = new LocalSecretConverter("NETSHOT");
 
 	@Test
 	@DisplayName("A value encrypted by the former Hibernate converter is read")
 	void readsHibernateValue() {
 		// Written by StringEncryptorConverter (Hibernate) with the default password, before it was removed
 		String stored = "gNLFia/O/0LTQDS0Xc1BOzqqRR1lfRgLNhqdWofbXagDZkrlNCQM2XC+JG2MmwBSIX8kXKyugKc=";
-		Assertions.assertEquals("S3cr3t-ẞ-value", new LocalSecretConverter().from(stored).reveal());
+		Assertions.assertEquals("S3cr3t-ẞ-value", CONVERTER.from(stored).reveal());
 	}
 
 	@Test
 	@DisplayName("A value is encrypted, and read back")
 	void roundTrip() {
-		LocalSecretConverter jooq = new LocalSecretConverter();
 		String secret = "S3cr3t-ẞ-value";
-		String stored = jooq.to(LocalSecret.of(secret));
+		String stored = CONVERTER.to(LocalSecret.of(secret));
 		Assertions.assertNotEquals(secret, stored, "the stored value is encrypted");
-		Assertions.assertEquals(secret, jooq.from(stored).reveal());
+		Assertions.assertEquals(secret, CONVERTER.from(stored).reveal());
 	}
 
 	@Test
 	@DisplayName("A value read is written back as it was read, not encrypted again")
 	void writtenBackAsRead() {
-		LocalSecretConverter jooq = new LocalSecretConverter();
-		String stored = jooq.to(LocalSecret.of("S3cr3t"));
-		Assertions.assertEquals(stored, jooq.to(jooq.from(stored)));
+		String stored = CONVERTER.to(LocalSecret.of("S3cr3t"));
+		Assertions.assertEquals(stored, CONVERTER.to(CONVERTER.from(stored)));
 	}
 
 	@Test
 	@DisplayName("A value is read without being decrypted")
 	void readWithoutDecrypting() {
 		// Not a valid encrypted value: reading it works, revealing it fails
-		LocalSecret secret = new LocalSecretConverter().from("not-encrypted");
+		LocalSecret secret = CONVERTER.from("not-encrypted");
 		Assertions.assertEquals("LocalSecret[***]", secret.toString());
 		Assertions.assertThrows(RuntimeException.class, secret::reveal);
 	}
@@ -76,8 +69,23 @@ class LocalSecretConverterTest {
 	@Test
 	@DisplayName("Null stays null")
 	void nullValue() {
-		LocalSecretConverter jooq = new LocalSecretConverter();
-		Assertions.assertNull(jooq.from(null));
-		Assertions.assertNull(jooq.to(null));
+		Assertions.assertNull(CONVERTER.from(null));
+		Assertions.assertNull(CONVERTER.to(null));
+	}
+
+	@Test
+	@DisplayName("Each converter uses its own password")
+	void ownPassword() {
+		String stored = CONVERTER.to(LocalSecret.of("S3cr3t"));
+		Assertions.assertEquals("S3cr3t", new LocalSecretConverter("NETSHOT").from(stored).reveal());
+		// Another password fails to decrypt, or (rarely, when the padding happens to be valid) gives another value
+		String other;
+		try {
+			other = new LocalSecretConverter("other").from(stored).reveal();
+		}
+		catch (RuntimeException e) {
+			other = null;
+		}
+		Assertions.assertNotEquals("S3cr3t", other);
 	}
 }

@@ -31,8 +31,7 @@ import org.jooq.meta.jaxb.Target;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.TestDatabase;
 
 /**
@@ -82,12 +81,7 @@ public final class JooqCodegen {
 						new ForcedType()
 							.withUserType("java.time.Instant")
 							.withConverter(UtcInstantConverter.class.getName())
-							.withIncludeTypes("timestamp(\\(\\d+\\))?( without time zone)?"),
-						new ForcedType()
-							.withUserType(LocalSecret.class.getName())
-							.withConverter(LocalSecretConverter.class.getName())
-							.withIncludeExpression("(.*\\.)?(device_credential_set\\.(auth_key|priv_key|private_key|community|password|super_password)"
-								+ "|vault_instance\\.(app_role_secret_id|jwt_client_secret))")))
+							.withIncludeTypes("timestamp(\\(\\d+\\))?( without time zone)?")))
 				.withGenerate(new Generate()
 					.withGeneratedAnnotation(false)
 					.withJavaTimeTypes(true)
@@ -122,7 +116,7 @@ public final class JooqCodegen {
 			config.setProperty("netshot.log.file", "CONSOLE");
 			config.setProperty("netshot.log.level", "WARN");
 			TestConfig.init(config);
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 			JooqCodegen.generate(container.getJdbcUrl(), container.getUsername(), container.getPassword(), Path.of(args[0]));
 		}
 	}

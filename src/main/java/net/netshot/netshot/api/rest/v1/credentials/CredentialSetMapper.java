@@ -24,13 +24,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.LongFunction;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.Secret;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceDto;
-import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -47,12 +49,27 @@ import net.netshot.netshot.vault.SecretChange;
  * Maps the credential sets between the domain records and their v1 representation. The representation never
  * holds a secret, only whether it is set and where a Vault-backed one is read from.
  */
-public final class CredentialSetMapper {
+public class CredentialSetMapper {
 
 	/** The path of the credential sets. */
 	public static final String PATH = "credential-sets";
 
-	private CredentialSetMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/** Maps the domain objects. */
+	private final DomainMapper domainMapper;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 * @param domainMapper maps the domain objects
+	 */
+	@Inject
+	public CredentialSetMapper(V1Links links, DomainMapper domainMapper) {
+		this.links = links;
+		this.domainMapper = domainMapper;
 	}
 
 	/**
@@ -61,7 +78,7 @@ public final class CredentialSetMapper {
 	 * @param credentialSet the credential set
 	 * @return the type name
 	 */
-	public static String typeOf(DeviceCredentialSet credentialSet) {
+	public String typeOf(DeviceCredentialSet credentialSet) {
 		return Kind.of(credentialSet).name();
 	}
 
@@ -71,7 +88,7 @@ public final class CredentialSetMapper {
 	 * @param credentialSet the credential set
 	 * @return the IDs (possibly repeated)
 	 */
-	public static List<Long> vaultInstanceIds(DeviceCredentialSet credentialSet) {
+	public List<Long> vaultInstanceIds(DeviceCredentialSet credentialSet) {
 		List<Long> ids = new ArrayList<>();
 		for (net.netshot.netshot.platform.secret.Secret secret : secrets(credentialSet)) {
 			Long id = net.netshot.netshot.platform.secret.Secret.vaultInstanceId(secret);
@@ -90,7 +107,7 @@ public final class CredentialSetMapper {
 	 * @param cs the credential set
 	 * @return the 7 fields, in that order
 	 */
-	private static List<net.netshot.netshot.platform.secret.Secret> secrets(DeviceCredentialSet cs) {
+	private List<net.netshot.netshot.platform.secret.Secret> secrets(DeviceCredentialSet cs) {
 		return switch (cs) {
 			case DeviceSshKeyAccount c -> Arrays.asList(c.username(), c.password(), c.superPassword(),
 				c.privateKey(), null, null, null);
@@ -106,11 +123,11 @@ public final class CredentialSetMapper {
 		};
 	}
 
-	private static Boolean has(Kind kind, String property, net.netshot.netshot.platform.secret.Secret secret) {
+	private Boolean has(Kind kind, String property, net.netshot.netshot.platform.secret.Secret secret) {
 		return applicable(kind).contains(property) ? secret != null : null;
 	}
 
-	private static VaultSecretDto vault(net.netshot.netshot.platform.secret.Secret secret, LongFunction<VaultInstanceDto> vaults) {
+	private VaultSecretDto vault(net.netshot.netshot.platform.secret.Secret secret, LongFunction<VaultInstanceDto> vaults) {
 		return secret instanceof net.netshot.netshot.platform.secret.VaultSecret v
 			? new VaultSecretDto(vaults.apply(v.vaultInstanceId()), v.vaultPath()) : null;
 	}
@@ -122,7 +139,7 @@ public final class CredentialSetMapper {
 	 * @param vaults gives the representation of a Vault instance by ID
 	 * @return the representation
 	 */
-	public static CredentialSetDto toDto(DeviceCredentialSet credentialSet, LongFunction<VaultInstanceDto> vaults) {
+	public CredentialSetDto toDto(DeviceCredentialSet credentialSet, LongFunction<VaultInstanceDto> vaults) {
 		if (credentialSet == null) {
 			return null;
 		}
@@ -130,9 +147,9 @@ public final class CredentialSetMapper {
 		Kind kind = Kind.of(credentialSet);
 		DeviceSnmpv3Community v3 = credentialSet instanceof DeviceSnmpv3Community c ? c : null;
 		return new CredentialSetDto(credentialSet.id(),
-			credentialSet.deviceSpecific() ? null : V1Links.of(PATH, credentialSet.id()),
+			credentialSet.deviceSpecific() ? null : this.links.of(PATH, credentialSet.id()),
 			credentialSet.name(), credentialSet.version(), credentialSet.changeDate(), credentialSet.name(),
-			typeOf(credentialSet), DomainMapper.toDto(credentialSet.mgmtDomain()), credentialSet.deviceSpecific(),
+			typeOf(credentialSet), this.domainMapper.toDto(credentialSet.mgmtDomain()), credentialSet.deviceSpecific(),
 			s.get(0) instanceof LocalSecret username ? username.reveal() : null, vault(s.get(0), vaults),
 			has(kind, "password", s.get(1)), vault(s.get(1), vaults),
 			has(kind, "superPassword", s.get(2)), vault(s.get(2), vaults),
@@ -149,7 +166,7 @@ public final class CredentialSetMapper {
 	 * @param credentialSet the credential set
 	 * @return the request
 	 */
-	public static CredentialSetRequest toRequest(DeviceCredentialSet credentialSet) {
+	public CredentialSetRequest toRequest(DeviceCredentialSet credentialSet) {
 		DeviceSnmpv3Community v3 = credentialSet instanceof DeviceSnmpv3Community c ? c : null;
 		return new CredentialSetRequest(credentialSet.name(), typeOf(credentialSet),
 			credentialSet.mgmtDomain() == null ? null : new RefId(credentialSet.mgmtDomain().id()),
@@ -163,7 +180,7 @@ public final class CredentialSetMapper {
 	 * @param kind the type of credential set
 	 * @return the names of the properties
 	 */
-	private static Set<String> applicable(Kind kind) {
+	private Set<String> applicable(Kind kind) {
 		return switch (kind) {
 			case SSH, TELNET -> Set.of("username", "password", "superPassword");
 			case SSH_KEY -> Set.of("username", "password", "superPassword", "privateKey");
@@ -183,7 +200,7 @@ public final class CredentialSetMapper {
 	 * @return the change
 	 * @throws NetshotException if the property doesn't apply to the type, or both a value and a Vault location are given
 	 */
-	private static SecretChange change(Kind kind, String property, Secret secret, VaultSecretRequest vault) {
+	private SecretChange change(Kind kind, String property, Secret secret, VaultSecretRequest vault) {
 		boolean given = vault != null || (secret != null && secret.value() != null);
 		if (given && !applicable(kind).contains(property)) {
 			throw NetshotException.invalidParameter(property, "The property '%s' doesn't apply to the type %s.".formatted(property, kind));
@@ -212,7 +229,7 @@ public final class CredentialSetMapper {
 	 * @return the definition
 	 * @throws NetshotException if the type is unknown, or a property doesn't apply to it
 	 */
-	public static CredentialSetDefinition toDefinition(CredentialSetRequest request) {
+	public CredentialSetDefinition toDefinition(CredentialSetRequest request) {
 		Kind kind;
 		try {
 			kind = request.type() == null ? null : Kind.valueOf(request.type());

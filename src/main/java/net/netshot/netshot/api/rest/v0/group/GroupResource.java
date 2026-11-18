@@ -44,7 +44,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the device groups: list, read, add, edit and delete.
@@ -114,7 +117,7 @@ public class GroupResource {
 	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
 	public List<DeviceGroupDto> getGroups(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, get groups.");
-		return GroupMapper.toDtos(this.groupService.list(paginationParams.toPage()));
+		return GroupMapper.toDtos(this.groupService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**
@@ -156,7 +159,7 @@ public class GroupResource {
 	public void deleteGroup(@PathParam("id") @Parameter(description = "Group ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete group {}.", id);
-		if (this.groupService.delete(id)) {
+		if (V0Errors.found(() -> this.groupService.delete(id, null), ErrorCode.NETSHOT_GROUP_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {
@@ -185,6 +188,6 @@ public class GroupResource {
 	public DeviceGroupDto setGroup(@PathParam("id") @Parameter(description = "Group ID") Long id, GroupRequest rsGroup)
 		throws WebApplicationException {
 		log.debug("REST request, edit group {}.", id);
-		return GroupMapper.toDto(this.groupService.update(id, GroupMapper.toDefinition(rsGroup)));
+		return GroupMapper.toDto(this.groupService.update(id, group -> GroupMapper.toUpdateDefinition(group, rsGroup), null));
 	}
 }

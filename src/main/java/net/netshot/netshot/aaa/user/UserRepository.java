@@ -26,7 +26,6 @@ import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.database.Versions;
@@ -75,17 +74,6 @@ public class UserRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query) {
 		return dsl.fetchCount(USER, LIST.condition(query));
-	}
-
-	/**
-	 * Lists the users.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the users
-	 */
-	public List<UiUser> list(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(USER.fields()).from(USER).orderBy(USER.ID)).fetch(UserRepository::toUser);
 	}
 
 	/**

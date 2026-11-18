@@ -46,7 +46,6 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.messages.AssignTasksMessage;
 import net.netshot.netshot.cluster.messages.AutoSnapshotMessage;
@@ -58,16 +57,19 @@ import net.netshot.netshot.cluster.messages.VaultInstanceChangedMessage;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.engine.ClusterCoordinator;
-import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
+import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.platform.runtime.BuildInfo;
+import net.netshot.netshot.platform.runtime.LocalHost;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 
@@ -75,7 +77,7 @@ import org.postgresql.PGNotification;
  * Cluster Manager - main component of clustering feature.
  */
 @Slf4j
-public class ClusterManager implements Service, ClusterCoordinator {
+public class ClusterManager implements Service, ClusterCoordinator, ClusterLink {
 
 	/** Name of the PSQL notification channel. */
 	private static final String NOTIFICATION_CHANNEL = "clustering";
@@ -133,11 +135,46 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	/** ID of the local member (20 lowercase hex digits; generated if not set). */
 	static final Setting<String> ID = Setting.text("netshot.cluster.id").restart();
 
+	/**
+	 * The settings of the local member.
+	 *
+	 * @param id the configured ID of the local member, null if not set or invalid (then generated)
+	 * @param masterPriority the priority of the local member in the master election
+	 * @param runnerPriority the priority of the local member to run the tasks
+	 * @param runnerWeight the weight of the local member to run the tasks
+	 * @param httpPort the port of the HTTP server (part of a generated ID)
+	 */
+	record Settings(String id, int masterPriority, int runnerPriority, int runnerWeight, int httpPort) {
+
+		/**
+		 * Reads the settings from a configuration (an invalid ID is logged and ignored).
+		 *
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			String id = config.get(ID);
+			if (id != null && !id.matches("^[0-9a-z]{20}$")) {
+				log.error("Invalid netshot.cluster.id parameter (invalid format), will generate one");
+				id = null;
+			}
+			// The port of the HTTP server is read from the configuration: the HTTP server isn't started yet
+			return new Settings(id, config.get(MASTER_PRIORITY), config.get(RUNNER_PRIORITY), config.get(RUNNER_WEIGHT),
+				HttpServerAddress.from(config).port());
+		}
+	}
+
 	/** What the cluster manager drives on the local node (tasks, drivers, automatic snapshots, Vault caches). */
 	private final LocalNode node;
 
 	/** The timers. */
 	private final Timers timers;
+
+	/** The configuration store. */
+	private final ConfigStore config;
+
+	/** The database (the connection of the cluster notifications). */
+	private final DatabaseService database;
 
 	/** Whether a driver reload was just requested. */
 	private boolean driverReloadRequested;
@@ -160,10 +197,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		return local == null ? null : local.getInstanceId();
 	}
 
-	/**
-	 * Gets the list of cluster members for external use.
-	 * @return the cluster members
-	 */
+	@Override
 	public List<ClusterMember> getClusterMembers() {
 		List<ClusterMember> list = new ArrayList<>();
 		for (ClusterMember member : this.members.values()) {
@@ -193,9 +227,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		return runners;
 	}
 
-	/**
-	 * Request driver reload on all cluster members.
-	 */
+	@Override
 	public void requestDriverReload() {
 		this.driverReloadRequested = true;
 	}
@@ -217,11 +249,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		}
 	}
 
-	/**
-	 * Request all cluster members to invalidate their local Vault cache
-	 * for the given Vault instance (e.g. after its connection settings changed).
-	 * @param vaultInstanceId the ID of the Vault instance
-	 */
+	@Override
 	public void requestVaultInstanceReload(long vaultInstanceId) {
 		synchronized (this.vaultInstanceReloadIds) {
 			this.vaultInstanceReloadIds.add(vaultInstanceId);
@@ -290,19 +318,26 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 * @param taskManager the task manager
 	 * @param vaultManager the Vault client (its caches are invalidated on request of the other members)
+	 * @param database the database (the connection of the cluster notifications)
+	 * @param config the configuration store
 	 */
-	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager, VaultManager vaultManager) {
-		this(LocalNode.of(driverRegistry, autoSnapshotScheduler, taskManager, vaultManager), Timers.DEFAULT);
+	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager, VaultManager vaultManager,
+		DatabaseService database, ConfigStore config) {
+		this(LocalNode.of(driverRegistry, autoSnapshotScheduler, taskManager, vaultManager), database, config, Timers.DEFAULT);
 	}
 
 	/**
 	 * Constructor.
 	 *
 	 * @param node what the cluster manager drives on the local node
+	 * @param database the database (the connection of the cluster notifications)
+	 * @param config the configuration store
 	 * @param timers the timers
 	 */
-	ClusterManager(LocalNode node, Timers timers) {
+	ClusterManager(LocalNode node, DatabaseService database, ConfigStore config, Timers timers) {
 		this.node = node;
+		this.database = database;
+		this.config = config;
 		this.timers = timers;
 		ObjectMapper jsonMapper = new ObjectMapper();
 		this.jsonReader = jsonMapper.readerWithView(ClusteringView.class);
@@ -318,23 +353,11 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	 */
 	private void initLocalMember() {
 		String jvmVersion = System.getProperty("java.vm.version");
-		Config config = Netshot.config().current();
-		int masterPriority = config.get(MASTER_PRIORITY);
-		int runnerPriority = config.get(RUNNER_PRIORITY);
-		int runnerWeight = config.get(RUNNER_WEIGHT);
-
-		String localId = config.get(ID);
-		if (localId != null) {
-			// First option: configured ID
-			if (!localId.matches("^[0-9a-z]{20}$")) {
-				log.error("Invalid netshot.cluster.id parameter (invalid format), will generate one");
-				localId = null;
-			}
-		}
+		Settings settings = Settings.from(this.config.current());
+		// First option: configured ID
+		String localId = settings.id();
 		if (localId == null) {
-			// Second option: based on MAC address and HTTP port (read from the configuration,
-			// the HTTP server isn't started yet)
-			final int restPort = HttpServerAddress.fromConfig().port();
+			// Second option: based on MAC address and HTTP port
 			try {
 				InetAddress mainAddress = InetAddress.getLocalHost();
 				NetworkInterface networkInterface = NetworkInterface.getByInetAddress(mainAddress);
@@ -342,7 +365,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 				if (mainMac != null && mainMac.length == 6 && (mainMac[0] != 0 || mainMac[1] != 0
 					|| mainMac[2] != 0 || mainMac[3] != 0 || mainMac[4] != 0 || mainMac[5] != 0)) {
 					localId = String.format("01ff%02x%02x%02x%02x%02x%02x%04x",
-						mainMac[0], mainMac[1], mainMac[2], mainMac[3], mainMac[4], mainMac[5], restPort);
+						mainMac[0], mainMac[1], mainMac[2], mainMac[3], mainMac[4], mainMac[5], settings.httpPort());
 					log.info("Cluster ID {} was automatically generated based on main local MAC address", localId);
 				}
 			}
@@ -360,14 +383,19 @@ public class ClusterManager implements Service, ClusterCoordinator {
 				localId);
 		}
 
-		this.localMember = new ClusterMember(localId, Netshot.getHostname(), ClusterManager.CLUSTERING_VERSION,
-			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, this.node.getDriverHash());
+		this.localMember = new ClusterMember(localId, LocalHost.name(), ClusterManager.CLUSTERING_VERSION,
+			settings.masterPriority(), settings.runnerPriority(), settings.runnerWeight(), BuildInfo.VERSION, jvmVersion, this.node.getDriverHash());
 		this.members.put(localId, this.localMember);
 	}
 
 	@Override
+	public String id() {
+		return "cluster-manager";
+	}
+
+	@Override
 	public String name() {
-		return "cluster manager";
+		return "Cluster manager";
 	}
 
 	@Override
@@ -588,7 +616,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 				// Stopping
 				break;
 			}
-			try (Connection dbConnection = Database.openUnpooledConnection()) {
+			try (Connection dbConnection = this.database.openUnpooledConnection()) {
 				PGConnection pgConnection = dbConnection.unwrap(PGConnection.class);
 
 				try (Statement listenStatement = dbConnection.createStatement()) {

@@ -7,7 +7,6 @@ package net.netshot.netshot.platform.database.schema.tables.records;
 import java.time.Instant;
 
 import net.netshot.netshot.platform.database.schema.tables.VaultInstance;
-import net.netshot.netshot.platform.secret.LocalSecret;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
@@ -206,15 +205,15 @@ public class VaultInstanceRecord extends UpdatableRecordImpl<VaultInstanceRecord
     /**
      * Setter for <code>vault_instance.app_role_secret_id</code>.
      */
-    public void setAppRoleSecretId(LocalSecret value) {
+    public void setAppRoleSecretId(String value) {
         set(13, value);
     }
 
     /**
      * Getter for <code>vault_instance.app_role_secret_id</code>.
      */
-    public LocalSecret getAppRoleSecretId() {
-        return (LocalSecret) get(13);
+    public String getAppRoleSecretId() {
+        return (String) get(13);
     }
 
     /**
@@ -262,15 +261,15 @@ public class VaultInstanceRecord extends UpdatableRecordImpl<VaultInstanceRecord
     /**
      * Setter for <code>vault_instance.jwt_client_secret</code>.
      */
-    public void setJwtClientSecret(LocalSecret value) {
+    public void setJwtClientSecret(String value) {
         set(17, value);
     }
 
     /**
      * Getter for <code>vault_instance.jwt_client_secret</code>.
      */
-    public LocalSecret getJwtClientSecret() {
-        return (LocalSecret) get(17);
+    public String getJwtClientSecret() {
+        return (String) get(17);
     }
 
     /**
@@ -324,7 +323,7 @@ public class VaultInstanceRecord extends UpdatableRecordImpl<VaultInstanceRecord
     /**
      * Create a detached, initialised VaultInstanceRecord
      */
-    public VaultInstanceRecord(String dtype, Long id, Instant changeDate, String name, Integer version, String baseUrl, String namespace, String httpsCaTrustMode, String httpsCustomCaCertificate, String kvMountPath, String authMethod, String appRoleMountPath, String appRoleId, LocalSecret appRoleSecretId, String jwtMountPath, String jwtIdpTokenEndpoint, String jwtClientId, LocalSecret jwtClientSecret, String jwtVaultRole, String jwtScope) {
+    public VaultInstanceRecord(String dtype, Long id, Instant changeDate, String name, Integer version, String baseUrl, String namespace, String httpsCaTrustMode, String httpsCustomCaCertificate, String kvMountPath, String authMethod, String appRoleMountPath, String appRoleId, String appRoleSecretId, String jwtMountPath, String jwtIdpTokenEndpoint, String jwtClientId, String jwtClientSecret, String jwtVaultRole, String jwtScope) {
         super(VaultInstance.VAULT_INSTANCE);
 
         setDtype(dtype);

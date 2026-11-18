@@ -168,7 +168,7 @@ class V1GroupResourceTest {
 	}
 
 	@Test
-	@DisplayName("Dynamic group: the members follow the query")
+	@DisplayName("Dynamic group: the members follow the query, which is required (empty for all the devices)")
 	void dynamic() throws Exception {
 		Answer created = this.admin.post("/groups", """
 			{"name": "Paris devices", "type": "DYNAMIC", "query": "[Location] is \\"Paris\\""}""");
@@ -180,5 +180,15 @@ class V1GroupResourceTest {
 		Assertions.assertEquals(List.of("router00003"), this.deviceNames(id));
 		Answer invalid = this.admin.patch("/groups/" + id, "{\"query\": \"[Nothing] is 1\"}");
 		Assertions.assertEquals(400, invalid.status(), invalid.toString());
+		// The query is required: there is no default one
+		Answer cleared = this.admin.patch("/groups/" + id, "{\"query\": null}");
+		Assertions.assertEquals(400, cleared.status(), cleared.toString());
+		Assertions.assertEquals("query", cleared.json().get("errors").get(0).get("field").asText());
+		Assertions.assertEquals(List.of("router00003"), this.deviceNames(id));
+		Answer missing = this.admin.post("/groups", "{\"name\": \"No query\", \"type\": \"DYNAMIC\"}");
+		Assertions.assertEquals(400, missing.status(), missing.toString());
+		Assertions.assertEquals("query", missing.json().get("errors").get(0).get("field").asText());
+		Answer all = this.admin.post("/groups", "{\"name\": \"All devices\", \"type\": \"DYNAMIC\", \"query\": \"\"}");
+		Assertions.assertEquals(201, all.status(), all.toString());
 	}
 }

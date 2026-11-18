@@ -30,7 +30,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.access.AccessManager.Resolution;
-import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
@@ -40,7 +39,6 @@ import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.DatabaseTest;
@@ -97,7 +95,7 @@ class AccessManagerTest {
 
 	// The auto-try pool of a stored device, read from the database
 	private static Supplier<List<DeviceCredentialSet>> autoPool(DeviceDraft device) {
-		return () -> TestWiring.get().transactions().read(dsl -> new CredentialSetRepository().findUsableInDomain(dsl, device.getMgmtDomain().id()));
+		return () -> TestWiring.get().core().transactions().read(dsl -> TestWiring.get().core().repositories().credentialSet().findUsableInDomain(dsl, device.getMgmtDomain().id()));
 	}
 
 	@Test
@@ -336,7 +334,7 @@ class AccessManagerTest {
 			Client client = resolution.ensureResolved(true);
 			Assertions.assertNotNull(client);
 			resolution.confirmCredentialWorks();
-			TestWiring.get().transactions().write(dsl -> new DeviceRepository().saveDraft(dsl, device));
+			TestWiring.get().core().transactions().write(dsl -> TestWiring.get().core().repositories().device().saveDraft(dsl, device));
 
 			Assertions.assertNotNull(device.getDeviceAccess("ssh"),
 				"A DeviceAccess row should have been created to hold the pin");

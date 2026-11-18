@@ -20,16 +20,13 @@ package net.netshot.netshot.devicescript;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Properties;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.inventory.config.ConfigDraft;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
@@ -37,6 +34,8 @@ import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
+import net.netshot.netshot.testing.TestConfig;
 
 @ScriptEngineTest
 @DisplayName("Snapshot configuration dump")
@@ -50,20 +49,13 @@ class SnapshotDumpTest {
 	@BeforeEach
 	void setDumpFolder() throws Exception {
 		this.dumpDir = Files.createDirectory(tempDir.resolve("dump"));
-		Properties config = new Properties();
-		config.setProperty("netshot.snapshots.dump", this.dumpDir.toString());
-		TestConfig.init(config);
-	}
-
-	@AfterEach
-	void resetConfig() {
-		TestConfig.init(new Properties());
 	}
 
 	private void dump(String deviceName) {
 		DeviceDraft device = new DeviceDraft(FakeDeviceFactory.getFakeCiscoIosDevice());
 		device.setName(deviceName);
-		new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, new FakeTaskContext()).dumpConfig(device, new ConfigDraft(device.getId()));
+		new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, new FakeTaskContext(), this.dumpDir.toString(), new BinaryFileStorage(TestConfig.store()))
+			.dumpConfig(device, new ConfigDraft(device.getId()));
 	}
 
 	@Test

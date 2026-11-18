@@ -77,7 +77,7 @@ class V1TaskStatsResourceTest {
 	void setUp(TestServer server) throws Exception {
 		this.reader = new V1Client(server, UiUser.LEVEL_READONLY);
 		TestDevices.deleteAll();
-		TestWiring.get().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
+		TestWiring.get().core().transactions().run(dsl -> dsl.execute("truncate table task cascade"));
 		Domain domain = TestDevices.addDomain("Paris", "Paris DC");
 		Device router = TestDevices.addFakeCiscoIos(domain, 1);
 		StaticDeviceGroup core = TestDevices.addStaticGroup("Core", router);

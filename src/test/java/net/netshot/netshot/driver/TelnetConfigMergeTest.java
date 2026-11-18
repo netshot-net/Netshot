@@ -28,6 +28,7 @@ import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestConfig;
 
 @UnitTest
 @DisplayName("Telnet config merge test")
@@ -51,7 +52,7 @@ class TelnetConfigMergeTest {
 	@Test
 	@DisplayName("applyTelnetConfig(...) merges non-null fields only, leaving the rest at their prior value")
 	void applyTelnetConfigMergesNonNullFieldsOnly() throws Exception {
-		Telnet telnet = new Telnet("127.0.0.1", 23, new FakeTaskContext());
+		Telnet telnet = new Telnet("127.0.0.1", 23, Telnet.Settings.from(TestConfig.store().current()), new FakeTaskContext());
 
 		// Fresh session: seeded with the historical defaults (vt100/80/24).
 		TelnetConfig initial = telnet.getTelnetConfig();

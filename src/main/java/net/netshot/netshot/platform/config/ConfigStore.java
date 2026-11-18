@@ -21,6 +21,7 @@ package net.netshot.netshot.platform.config;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -29,12 +30,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.slf4j.MarkerFactory;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Holds the current configuration snapshot, and replaces it as a whole on a reload.
+ *
+ * <p>The store owns the source of the configuration (e.g. the configuration files given at startup): it loads the
+ * configuration from it at startup ({@link #load()}), then again on each reload ({@link #reload()}).</p>
  *
  * <p>A reload is all or nothing: the new configuration is loaded and checked (configuration file,
  * secret files of the known secret settings) first; if anything fails, the current configuration is kept.
@@ -46,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class ConfigStore {
 
-	/** Loads a configuration. */
+	/** Loads a configuration from its source. */
 	@FunctionalInterface
 	public interface Loader {
 		/**
@@ -89,6 +91,9 @@ public final class ConfigStore {
 		}
 	}
 
+	/** The source of the configuration. */
+	private final Loader source;
+
 	/** The current configuration. */
 	private volatile Config current;
 
@@ -102,12 +107,47 @@ public final class ConfigStore {
 	private final List<Consumer<Config>> listeners = new CopyOnWriteArrayList<>();
 
 	/**
-	 * Creates a store.
+	 * Creates a store, empty until the configuration is {@link #load() loaded} from the source.
 	 *
-	 * @param initial the initial configuration
+	 * @param source the source of the configuration (e.g. the configuration files)
+	 */
+	public ConfigStore(Loader source) {
+		this.source = Objects.requireNonNull(source);
+		this.current = Config.empty();
+	}
+
+	/**
+	 * Creates a store holding a fixed configuration (the tools, the tests): it's also the source of a reload.
+	 *
+	 * @param initial the configuration
 	 */
 	public ConfigStore(Config initial) {
 		this.current = Objects.requireNonNull(initial);
+		this.source = () -> initial;
+	}
+
+	/**
+	 * Creates a store whose source is a configuration file.
+	 *
+	 * @param files the configuration files to look at, in sequence (the first readable one is used), at each load
+	 * @return the store, empty until the configuration is {@link #load() loaded}
+	 */
+	public static ConfigStore ofFiles(List<String> files) {
+		List<String> sources = List.copyOf(files);
+		return new ConfigStore(() -> Config.load(sources));
+	}
+
+	/**
+	 * Creates a store whose source is a configuration file, overridden by the given environment (the tests).
+	 *
+	 * @param files the configuration files to look at, in sequence (the first readable one is used), at each load
+	 * @param environment the environment variables
+	 * @return the store, empty until the configuration is {@link #load() loaded}
+	 */
+	static ConfigStore ofFiles(List<String> files, Map<String, String> environment) {
+		List<String> sources = List.copyOf(files);
+		Map<String, String> variables = Map.copyOf(environment);
+		return new ConfigStore(() -> Config.load(sources, variables));
 	}
 
 	/**
@@ -120,65 +160,57 @@ public final class ConfigStore {
 	}
 
 	/**
-	 * Sets the known settings: a new configuration is checked against them (secret files,
-	 * changes of the settings which need a restart, unknown items).
+	 * Sets the known settings (at startup, after the load), and checks the current configuration against them: the
+	 * secret files of the secret settings must be readable, the unknown and the deprecated (legacy) items are logged. The next configurations
+	 * (reloads) are checked against them too (secret files, changes of the settings which need a restart, unknown
+	 * and deprecated items).
 	 *
 	 * @param newCatalog the known settings
+	 * @throws ConfigException if a secret file of the current configuration can't be read
 	 */
-	public void setCatalog(SettingCatalog newCatalog) {
+	public synchronized void setCatalog(SettingCatalog newCatalog) throws ConfigException {
 		this.catalog = Objects.requireNonNull(newCatalog);
+		this.check(this.current);
+		this.catalog.warnUnknownItems(this.current);
+		this.catalog.warnLegacyItems(this.current);
 	}
 
 	/**
-	 * Gets the known settings.
-	 *
-	 * @return the known settings
-	 */
-	public SettingCatalog catalog() {
-		return this.catalog;
-	}
-
-	/**
-	 * Loads the initial configuration (at startup): it replaces the current one if it can be loaded.
+	 * Loads the initial configuration from the source (at startup): it replaces the current one if it can be loaded.
 	 * The unknown items aren't reported yet (see {@link SettingCatalog#warnUnknownItems(Config)}),
 	 * as the logging is set up from this configuration.
 	 *
-	 * @param loader the loader
-	 * @return true if the configuration was loaded
+	 * @throws ConfigException if the configuration can't be loaded (the current one is kept)
 	 */
-	public boolean load(Loader loader) {
-		Config config;
-		try {
-			config = this.check(loader.load());
-		}
-		catch (ConfigException e) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to load the configuration: {}", e.getMessage(), e);
-			return false;
-		}
-		this.replace(config);
-		return true;
+	public synchronized void load() throws ConfigException {
+		this.replace(this.check(this.source.load()));
 	}
 
 	/**
-	 * Reloads the configuration (HUP signal): on success, the new configuration replaces the current one,
-	 * otherwise the current one is kept.
+	 * Reloads the configuration from the source (HUP signal): on success, the new configuration replaces the current
+	 * one, otherwise the current one is kept (the error is logged).
 	 *
-	 * @param loader the loader
 	 * @return true if the configuration was reloaded
 	 */
-	public boolean reload(Loader loader) {
+	public synchronized boolean reload() {
 		Config config;
 		try {
-			config = this.check(loader.load());
+			config = this.check(this.source.load());
 		}
 		catch (ConfigException e) {
 			log.error("Unable to reload the configuration, the current configuration is kept: {}", e.getMessage(), e);
 			return false;
 		}
 		this.catalog.warnUnknownItems(config);
+		this.catalog.warnLegacyItems(config);
 		this.catalog.warnRestartChanges(this.current, config);
 		this.replace(config);
-		log.warn("The configuration was reloaded.");
+		if (config.fileName() == null) {
+			log.warn("The configuration was reloaded.");
+		}
+		else {
+			log.warn("The configuration was reloaded from {}.", config.fileName());
+		}
 		return true;
 	}
 
@@ -193,7 +225,7 @@ public final class ConfigStore {
 	 *
 	 * @param config the new configuration
 	 */
-	public void replace(Config config) {
+	public synchronized void replace(Config config) {
 		this.current = Objects.requireNonNull(config);
 		List<Binding<?>> toRefresh;
 		synchronized (this.bindings) {

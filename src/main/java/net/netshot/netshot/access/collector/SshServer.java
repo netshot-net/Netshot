@@ -106,12 +106,12 @@ import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 import org.apache.sshd.common.kex.KexProposalOption;
 
@@ -377,6 +377,11 @@ public final class SshServer implements Service {
 	 */
 	public Settings settings() {
 		return this.settings;
+	}
+
+	@Override
+	public String id() {
+		return "ssh-server";
 	}
 
 	@Override
@@ -986,7 +991,7 @@ public final class SshServer implements Service {
 		this.sshd.setHost(this.settings.listenHost().getHostAddress());
 
 		CoreModuleProperties.MAX_CONCURRENT_SESSIONS.set(this.sshd, this.settings.maxConcurrentSessions());
-		CoreModuleProperties.SERVER_IDENTIFICATION.set(this.sshd, "NETSHOT-%s".formatted(Netshot.VERSION));
+		CoreModuleProperties.SERVER_IDENTIFICATION.set(this.sshd, "NETSHOT-%s".formatted(BuildInfo.VERSION));
 		// The default value causes an error on Cisco ISE SFTP client: "Outbound message too long 262169"
 		SftpModuleProperties.MAX_WRITEDATA_PACKET_LENGTH.set(this.sshd, 255 * 1024);
 

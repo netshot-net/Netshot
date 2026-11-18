@@ -36,10 +36,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.access.DeviceHostKeyVerifier;
 import net.netshot.netshot.access.Ssh;
+import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.TransferProtocol;
 import net.netshot.netshot.domain.Domain;
@@ -51,6 +51,7 @@ import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 @UnitTest
 @DisplayName("Upload tickets of the configuration helper")
@@ -65,7 +66,8 @@ class JsConfigHelperUploadTest {
 	}
 
 	private JsConfigHelper helper(SshServer sshServer) {
-		return new JsConfigHelper(null, null, null, null, null, sshServer, new FakeTaskContext());
+		return new JsConfigHelper(null, null, null, null, null, sshServer, Collector.Settings.from(TestConfig.store().current()), new BinaryFileStorage(TestConfig.store()),
+			new FakeTaskContext());
 	}
 
 	/**
@@ -79,7 +81,8 @@ class JsConfigHelperUploadTest {
 		Domain domain = Domain.builder().id(1).name("Lab").description("Lab domain")
 			.server4Address(new Network4Address("127.0.0.1", 32)).build();
 		DeviceDraft device = new DeviceDraft(Device.create("CiscoIOS12", "10.0.0.1", domain, "tester"));
-		return new JsConfigHelper(null, device, null, null, null, sshServer, new FakeTaskContext());
+		return new JsConfigHelper(null, device, null, null, null, sshServer, Collector.Settings.from(TestConfig.store().current()), new BinaryFileStorage(TestConfig.store()),
+			new FakeTaskContext());
 	}
 
 	/**
@@ -95,7 +98,7 @@ class JsConfigHelperUploadTest {
 		config.setProperty("netshot.sshserver.hostkeypath", this.tempDir.toString());
 		config.setProperty("netshot.snapshots.binary.path", this.tempDir.toString());
 		TestConfig.init(config);
-		SshServer sshServer = new SshServer(Netshot.config());
+		SshServer sshServer = new SshServer(TestConfig.store());
 		sshServer.start();
 		return sshServer;
 	}
@@ -163,7 +166,7 @@ class JsConfigHelperUploadTest {
 			// A device trusting only these keys logs in with the ticket
 			StringBuilder trusted = new StringBuilder();
 			expected.forEach((algorithm, data) -> trusted.append(algorithm).append(' ').append(data).append('\n'));
-			Ssh device = new Ssh(TestConnectors.sshClient(), "127.0.0.1", port, (String) ticket.getMember("username"),
+			Ssh device = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1", port, (String) ticket.getMember("username"),
 				(String) ticket.getMember("password"), new FakeTaskContext());
 			device.setConnectionTimeout(5000);
 			device.setHostKeyVerifier(new DeviceHostKeyVerifier(SshHostKeyVerification.TRUST_KNOWN, trusted.toString(), null));

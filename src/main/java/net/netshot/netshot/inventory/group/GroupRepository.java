@@ -35,14 +35,13 @@ import org.jooq.InsertValuesStep3;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
 
-import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.database.schema.tables.records.DeviceGroupCachedDevicesRecord;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
-import net.netshot.netshot.platform.database.schema.tables.records.DeviceGroupCachedDevicesRecord;
 
 /**
  * The queries on device groups and their members. The {@link DSLContext} is always the first
@@ -128,18 +127,6 @@ public class GroupRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query) {
 		return dsl.fetchCount(DEVICE_GROUP, LIST.condition(query));
-	}
-
-	/**
-	 * Lists the groups, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the groups
-	 */
-	public List<DeviceGroup> findAll(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(DEVICE_GROUP.fields()).from(DEVICE_GROUP).orderBy(DEVICE_GROUP.ID.asc()))
-			.fetch(GroupRepository::toGroup);
 	}
 
 	/**
@@ -319,7 +306,7 @@ public class GroupRepository {
 	 * @param deviceId the ID of the device
 	 * @return the IDs of the groups
 	 */
-	public static Set<Long> findGroupIdsOfDevice(DSLContext dsl, long deviceId) {
+	public Set<Long> findGroupIdsOfDevice(DSLContext dsl, long deviceId) {
 		return new HashSet<>(dsl.select(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS).from(DEVICE_GROUP_CACHED_DEVICES)
 			.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId))
 			.fetch(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS));

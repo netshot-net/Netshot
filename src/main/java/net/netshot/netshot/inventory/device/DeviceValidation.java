@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
 import org.jooq.DSLContext;
 
+import net.netshot.netshot.credentials.CredentialSetAssembler;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSets;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -236,11 +237,12 @@ public final class DeviceValidation {
 
 	/**
 	 * Stores the specific credential sets of the accesses: each one is created, or merged into the current specific
-	 * credential set of the access of the same name when they are of the same type (a definition then keeps the
-	 * secrets it leaves out, a legacy credential set follows the rules of the legacy API). To call once the accesses
+	 * credential set of the access of the same name when they are of the same type (the definition then keeps the
+	 * secrets it leaves out). To call once the accesses
 	 * are validated: an access which gets no specific credential set here has none.
 	 *
 	 * @param credentialSetRepository the credential set repository
+	 * @param assembler the credential set assembler
 	 * @param dsl the jOOQ context
 	 * @param driver the device's driver
 	 * @param current the current accesses of the device (none for a new device)
@@ -249,7 +251,8 @@ public final class DeviceValidation {
 	 * @return the accesses, with their stored specific credential sets
 	 * @throws NetshotException if a credential set is invalid, doesn't match an access, or doesn't fit its access
 	 */
-	public static List<DeviceAccess> applySpecificCredentials(CredentialSetRepository credentialSetRepository, DSLContext dsl,
+	public static List<DeviceAccess> applySpecificCredentials(CredentialSetRepository credentialSetRepository,
+			CredentialSetAssembler assembler, DSLContext dsl,
 			DeviceDriver driver, List<DeviceAccess> current, List<DeviceAccess> accesses, List<AccessSpecificCredential> specifics) {
 		if (specifics == null || specifics.isEmpty()) {
 			return accesses;
@@ -285,17 +288,8 @@ public final class DeviceValidation {
 				.reduce((_, second) -> second)
 				.map(DeviceAccess::specificCredentialSet)
 				.orElse(null);
-			DeviceCredentialSet stored = switch (specific) {
-				case AccessSpecificCredential.Definition d -> CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, existing,
-					d.definition(), accessDef.getCredentialClass());
-				case AccessSpecificCredential.Legacy l -> {
-					if (!accessDef.getCredentialClass().isInstance(l.credentialSet())) {
-						throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
-							"The specific credential set is not compatible with access '" + access.accessName() + "'.");
-					}
-					yield CredentialSets.applySpecificCredentialSet(dsl, credentialSetRepository, existing, l.credentialSet());
-				}
-			};
+			DeviceCredentialSet stored = CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, assembler, access.accessName(), existing,
+				specific.definition(), accessDef.getCredentialClass());
 			result.set(index, access.toBuilder().specificCredentialSet(stored).build());
 		}
 		return result;

@@ -49,6 +49,8 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class PartNumberResource {
 
 	private final DeviceCatalogService catalogService;
+	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -60,10 +62,14 @@ public class PartNumberResource {
 	 * Instantiates the resource.
 	 *
 	 * @param catalogService the device reference list use cases
+	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public PartNumberResource(DeviceCatalogService catalogService) {
+	public PartNumberResource(DeviceCatalogService catalogService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.catalogService = catalogService;
+		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -79,9 +85,9 @@ public class PartNumberResource {
 	@ListFilters(ListSchema.PART_NUMBERS)
 	public ListResponse<PartNumberDto> listPartNumbers() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, ListSchema.PART_NUMBERS.schema());
+		ListQuery query = this.lists.parse(params, ListSchema.PART_NUMBERS.schema());
 		Selection selection = Selection.of(params, PartNumberDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, PartNumberDto.class);
-		return ListResponse.of(this.uriInfo, query, this.catalogService.listPartNumbers(query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.catalogService.listPartNumbers(query), this.deviceInventoryMapper::toDto);
 	}
 }

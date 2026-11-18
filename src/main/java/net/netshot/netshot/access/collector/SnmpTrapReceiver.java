@@ -32,11 +32,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.SnmpSecurity;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.Config;
@@ -52,8 +52,6 @@ import org.snmp4j.Snmp;
 import org.snmp4j.TransportMapping;
 import org.snmp4j.event.AuthenticationFailureEvent;
 import org.snmp4j.event.AuthenticationFailureListener;
-import org.snmp4j.mp.MPv1;
-import org.snmp4j.mp.MPv2c;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.AuthHMAC128SHA224;
@@ -69,8 +67,6 @@ import org.snmp4j.security.PrivAES256;
 import org.snmp4j.security.PrivDES;
 import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.SecurityModel;
-import org.snmp4j.security.SecurityModels;
-import org.snmp4j.security.SecurityProtocols;
 import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.Address;
@@ -93,8 +89,9 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SnmpTrapReceiver.class);
 
 
-	/** Whether the trap receiver is disabled. */
-	static final Setting<Boolean> DISABLED = Setting.bool("netshot.snmptrap.disabled").defaultValue(false).live();
+	/** Whether the trap receiver is enabled (legacy: {@code netshot.snmptrap.disabled}, inverted). */
+	static final Setting<Boolean> ENABLED = Setting.bool("netshot.snmptrap.enabled")
+		.alias("netshot.snmptrap.disabled", disabled -> !disabled).defaultValue(true).live();
 
 	/** The UDP port. */
 	static final Setting<Integer> PORT = Setting.integer("netshot.snmptrap.port").defaultValue(162).range(1, 65535).live();
@@ -114,50 +111,92 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	/** The SNMPv3 local engine ID (hex). */
 	static final Setting<String> ENGINE_ID = Setting.text("netshot.snmptrap.engineid").live();
 
+	/**
+	 * The settings of the trap receiver.
+	 *
+	 * @param enabled whether the receiver is enabled ({@code netshot.snmptrap.enabled})
+	 * @param port the UDP port
+	 * @param listenAddress the address to listen on
+	 * @param communities the accepted SNMPv1/v2c communities
+	 * @param threadCount the number of threads
+	 * @param users the SNMPv3 users
+	 * @param engineId the configured SNMPv3 local engine ID, null if not set or invalid
+	 */
+	record Settings(boolean enabled, int port, InetAddress listenAddress, Set<String> communities, int threadCount,
+			List<UsmUser> users, OctetString engineId) {
+
+		/**
+		 * Reads the settings from a configuration (an invalid listen address is logged and replaced by the loopback
+		 * address, invalid users are logged and ignored).
+		 *
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			String listenAddress = config.get(LISTEN_ADDRESS);
+			InetAddress host;
+			try {
+				host = InetAddress.getByName(listenAddress);
+			}
+			catch (UnknownHostException e) {
+				log.warn("Unable to parse IP address '{}' for SNMP listen address, using loopback instead",
+					listenAddress, e);
+				host = InetAddress.getLoopbackAddress();
+			}
+			Set<String> communities = new HashSet<>();
+			for (String community : config.get(COMMUNITY).split("\\s+")) {
+				if (!community.isBlank()) {
+					communities.add(community);
+				}
+			}
+			OctetString engineId = null;
+			String engineIdText = config.get(ENGINE_ID);
+			if (engineIdText != null) {
+				try {
+					engineId = OctetString.fromHexString(engineIdText);
+				}
+				catch (RuntimeException e) {
+					// Invalid: a random one is used
+				}
+			}
+			return new Settings(config.get(ENABLED), config.get(PORT), host, Set.copyOf(communities), config.get(THREAD_COUNT),
+				List.copyOf(parseUsers(config.get(USER))), engineId);
+		}
+
+		/**
+		 * Whether the receiver must be opened again to apply these settings, compared to the given ones.
+		 *
+		 * @param other the settings the receiver was opened with
+		 * @return true if the port, the listen address or the number of threads differ
+		 */
+		boolean needsRestart(Settings other) {
+			return this.port != other.port || !this.listenAddress.equals(other.listenAddress) || this.threadCount != other.threadCount;
+		}
+	}
+
 	/** The loaded device drivers. */
 	private final DriverRegistry driverRegistry;
 
 	/** Where the configuration changes are reported (the scheduler of the automatic snapshots). */
 	private final SnapshotRequester snapshotRequester;
 
-	/** The dispatcher. */
-	private MultiThreadedMessageDispatcher dispatcher;
-
 	/** The SNMP object. */
 	private volatile Snmp snmp;
-
-	/** The UDP port (e.g. 162)  */
-	private volatile int udpPort;
-
-	/** The listen address (e.g. 0.0.0.0 or 127.0.0.1) */
-	private InetAddress listenHost;
-
-	/** The UDP address. */
-	private UdpAddress udpAddress;
-
-	/** Number of threads. */
-	private int threadCount;
 
 	/** The thread pool. */
 	private ThreadPool threadPool;
 
-	/** The communities. */
-	private Set<String> communities = ConcurrentHashMap.newKeySet();
+	/** The settings (null before the first start). */
+	private volatile Settings settings;
 
-	/** The SNMPv3 engine ID. */
+	/** The SNMPv3 engine ID in use (the configured one, or a random one kept across the configuration changes). */
 	private OctetString engineId;
-
-	/** The USM users. */
-	private List<UsmUser> usmUsers;
 
 	/** The configuration store. */
 	private final ConfigStore config;
 
 	/** Applies the configuration changes (restarting the receiver if needed). */
-	private final Consumer<Config> listener = this::loadConfig;
-
-	/** Whether the receiver is disabled by the configuration. */
-	private volatile boolean disabled;
+	private final Consumer<Config> listener = this::applySettings;
 
 	/** The number of received (authenticated) traps. */
 	private final AtomicLong received = new AtomicLong();
@@ -182,13 +221,18 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	}
 
 	@Override
+	public String id() {
+		return "snmp-trap-receiver";
+	}
+
+	@Override
 	public String name() {
 		return "SNMP trap receiver";
 	}
 
 	@Override
 	public void start() {
-		this.loadConfig(this.config.current());
+		this.applySettings(this.config.current());
 		this.config.addListener(this.listener);
 	}
 
@@ -200,14 +244,16 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 
 	@Override
 	public boolean isHealthy() {
-		return this.disabled || this.snmp != null;
+		Settings current = this.settings;
+		return (current != null && !current.enabled()) || this.snmp != null;
 	}
 
 	@Override
 	public Map<String, Object> stats() {
 		Map<String, Object> stats = new LinkedHashMap<>();
-		stats.put("enabled", !this.disabled);
-		stats.put("port", this.udpPort);
+		Settings current = this.settings;
+		stats.put("enabled", current != null && current.enabled());
+		stats.put("port", current == null ? 0 : current.port());
 		stats.put("listening", this.snmp != null);
 		stats.put("received", this.received.get());
 		stats.put("matched", this.matched.get());
@@ -215,69 +261,27 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 		return stats;
 	}
 
-	private synchronized void loadConfig(Config newConfig) {
-		this.disabled = newConfig.get(DISABLED);
-		if (this.disabled) {
+	/**
+	 * Applies the configuration: opens the receiver again when the port, the listen address, the number of threads or
+	 * the SNMPv3 engine ID change, closes it when the receiver is disabled; the communities and the users are applied
+	 * in place.
+	 *
+	 * @param newConfig the configuration
+	 */
+	private synchronized void applySettings(Config newConfig) {
+		Settings newSettings = Settings.from(newConfig);
+		Settings oldSettings = this.settings;
+		this.settings = newSettings;
+		if (!newSettings.enabled()) {
 			log.warn("The SNMP trap receiver is disabled by configuration.");
 			this.closeReceiver();
 			return;
 		}
 
-		boolean restartNeeded = false;
+		boolean restartNeeded = oldSettings == null || newSettings.needsRestart(oldSettings);
 
-		int port = newConfig.get(PORT);
-		if (port != this.udpPort) {
-			this.udpPort = port;
-			restartNeeded = true;
-		}
-
-		String listenAddress = newConfig.get(LISTEN_ADDRESS);
-		InetAddress address;
-		try {
-			address = InetAddress.getByName(listenAddress);
-		}
-		catch (UnknownHostException e) {
-			log.warn("Unable to parse IP address '{}' for SNMP listen address, using loopback instead",
-				listenAddress, e);
-			address = InetAddress.getLoopbackAddress();
-		}
-		if (!address.equals(this.listenHost)) {
-			this.listenHost = address;
-			restartNeeded = true;
-		}
-
-		String communityConfig = newConfig.get(COMMUNITY);
-		communities.clear();
-		try {
-			for (String community : communityConfig.split("\\s+")) {
-				if (!community.isBlank()) {
-					communities.add(community);
-				}
-			}
-		}
-		catch (Exception e) {
-			log.warn("Error while parsing SNMP trap community option", e);
-		}
-
-		int count = newConfig.get(THREAD_COUNT);
-		if (count != this.threadCount) {
-			this.threadCount = count;
-			restartNeeded = true;
-		}
-
-		this.usmUsers = parseUsers(newConfig.get(USER));
-
-		if (this.usmUsers.size() > 0) {
-			OctetString newEngineId = null;
-			if (this.engineId != null) {
-				newEngineId = OctetString.fromByteArray(this.engineId.toByteArray());
-			}
-			try {
-				newEngineId = OctetString.fromHexString(newConfig.get(ENGINE_ID));
-			}
-			catch (Exception e) {
-				// Ignore
-			}
+		if (!newSettings.users().isEmpty()) {
+			OctetString newEngineId = newSettings.engineId() != null ? newSettings.engineId() : this.engineId;
 			if (newEngineId == null) {
 				newEngineId = OctetString.fromByteArray(MPv3.createLocalEngineID());
 				log.warn(
@@ -295,8 +299,9 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 			this.closeReceiver();
 		}
 		this.openReceiver();
-		if (this.snmp.getUSM() != null) {
-			this.snmp.getUSM().setUsers(this.usmUsers.toArray(UsmUser[]::new));
+		Snmp current = this.snmp;
+		if (current != null && current.getUSM() != null) {
+			current.getUSM().setUsers(newSettings.users().toArray(UsmUser[]::new));
 		}
 	}
 
@@ -434,37 +439,19 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 			return;
 		}
 		try {
-			threadPool = ThreadPool.create("SNMP Receiver Pool", this.threadCount);
-			MessageDispatcherImpl effDispatcher = new MessageDispatcherImpl();
-			effDispatcher.addAuthenticationFailureListener(this);
-			dispatcher = new MultiThreadedMessageDispatcher(threadPool, effDispatcher);
-			dispatcher.addMessageProcessingModel(new MPv1());
-			dispatcher.addMessageProcessingModel(new MPv2c());
+			Settings current = this.settings;
+			threadPool = ThreadPool.create("SNMP Receiver Pool", current.threadCount());
+			// Its own USM (SNMPv3 users), not the global one of SNMP4J that the device accesses use too
+			USM usm = null;
 			if (this.engineId != null) {
-				dispatcher.addMessageProcessingModel(new MPv3(this.engineId.getValue()));
+				usm = SnmpSecurity.usm(this.engineId);
+				usm.setUsers(current.users().toArray(UsmUser[]::new));
 			}
+			MessageDispatcherImpl effDispatcher = SnmpSecurity.dispatcher(usm);
+			effDispatcher.addAuthenticationFailureListener(this);
+			MultiThreadedMessageDispatcher dispatcher = new MultiThreadedMessageDispatcher(threadPool, effDispatcher);
 
-			SecurityProtocols securityProtocols = SecurityProtocols.getInstance();
-			securityProtocols.addPrivacyProtocol(new PrivDES());
-			securityProtocols.addPrivacyProtocol(new Priv3DES());
-			securityProtocols.addPrivacyProtocol(new PrivAES128());
-			securityProtocols.addPrivacyProtocol(new PrivAES192());
-			securityProtocols.addPrivacyProtocol(new PrivAES256());
-			securityProtocols.addPrivacyProtocol(new PrivAES256());
-			securityProtocols.addAuthenticationProtocol(new AuthMD5());
-			securityProtocols.addAuthenticationProtocol(new AuthSHA());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC128SHA224());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC192SHA256());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC256SHA384());
-			securityProtocols.addAuthenticationProtocol(new AuthHMAC384SHA512());
-
-			USM usm = new USM(securityProtocols, this.engineId, 0);
-			usm.setUsers(this.usmUsers.toArray(UsmUser[]::new));
-			SecurityModels securityModels = SecurityModels.getInstance();
-
-			securityModels.addSecurityModel(usm);
-
-			udpAddress = new UdpAddress(this.listenHost, this.udpPort);
+			UdpAddress udpAddress = new UdpAddress(current.listenAddress(), current.port());
 			TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping(
 				udpAddress);
 
@@ -472,7 +459,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 			snmp = new Snmp(dispatcher, transport);
 			snmp.addCommandResponder(this);
 			snmp.listen();
-			log.info("Now listening for SNMP traps on UDP port {}.", this.udpPort);
+			log.info("Now listening for SNMP traps on UDP port {}.", current.port());
 		}
 		catch (IOException e) {
 			log.error("I/O error with the SNMP trap receiver.", e);
@@ -542,7 +529,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 
 			String receivedCommunity = new String(event.getSecurityName());
 
-			if (communities.contains(receivedCommunity)) {
+			if (this.settings.communities().contains(receivedCommunity)) {
 				log.trace("SNMPv1/v2c community '{}'' is valid", receivedCommunity);
 				this.processAuthenticatedTrap(event);
 			}

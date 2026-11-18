@@ -34,6 +34,11 @@ import net.netshot.netshot.inventory.group.StaticDeviceGroup;
  */
 public final class GroupMapper {
 
+	private static final String DYNAMIC = "DynamicDeviceGroup";
+
+	/** The query the v0 API gives a new dynamic group without query. */
+	private static final String DEFAULT_QUERY = "[Name] is \"example\"";
+
 	private GroupMapper() {
 		// Static helpers only
 	}
@@ -70,13 +75,29 @@ public final class GroupMapper {
 	}
 
 	/**
-	 * Maps a request to add or edit a group to the definition given to the service.
+	 * Maps a request to add a group to the definition given to the service.
 	 *
 	 * @param request the request
 	 * @return the definition
 	 */
 	public static GroupDefinition toDefinition(GroupRequest request) {
+		String query = request.getQuery() == null && DYNAMIC.equals(request.getType()) ? DEFAULT_QUERY : request.getQuery();
 		return new GroupDefinition(request.getType(), request.getName(), request.getStaticDevices(),
-			request.getQuery(), request.getFolder(), request.isHiddenFromReports());
+			query, request.getFolder(), request.isHiddenFromReports());
+	}
+
+	/**
+	 * Maps a request to edit a group to the definition given to the service. As in v0, the posted type is ignored
+	 * (the group keeps its type), a static group without devices loses its members, and a dynamic group without
+	 * query keeps its query.
+	 *
+	 * @param group the group, as it is
+	 * @param request the request
+	 * @return the definition
+	 */
+	public static GroupDefinition toUpdateDefinition(DeviceGroup group, GroupRequest request) {
+		List<Long> devices = request.getStaticDevices() == null ? List.of() : request.getStaticDevices();
+		String query = request.getQuery() == null && group instanceof DynamicDeviceGroup dynamic ? dynamic.query() : request.getQuery();
+		return new GroupDefinition(null, request.getName(), devices, query, request.getFolder(), request.isHiddenFromReports());
 	}
 }

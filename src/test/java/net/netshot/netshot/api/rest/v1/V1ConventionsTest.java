@@ -30,7 +30,7 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import jakarta.ws.rs.core.MultivaluedHashMap;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.api.rest.v1.domain.DomainRequest;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.QuerySchema;
@@ -100,22 +100,22 @@ class V1ConventionsTest {
 		params.putSingle(ListParams.LIMIT, "100000");
 		try {
 			TestConfig.init(new Properties());
-			Assertions.assertNull(ListParams.settings().maxPageSize());
-			Assertions.assertEquals(100000, ListParams.parse(params, schema).page().limit());
+			Assertions.assertNull(new ListParams(TestConfig.store()).settings().maxPageSize());
+			Assertions.assertEquals(100000, new ListParams(TestConfig.store()).parse(params, schema).page().limit());
 			params.putSingle(ListParams.LIMIT, "0");
-			Assertions.assertNull(ListParams.parse(params, schema).page().limit(), "limit=0: all the items");
+			Assertions.assertNull(new ListParams(TestConfig.store()).parse(params, schema).page().limit(), "limit=0: all the items");
 			params.remove(ListParams.LIMIT);
-			Assertions.assertEquals(100, ListParams.parse(params, schema).page().limit());
+			Assertions.assertEquals(100, new ListParams(TestConfig.store()).parse(params, schema).page().limit());
 
 			Properties config = new Properties();
 			config.setProperty("netshot.http.api.pagesize.max", "50");
 			TestConfig.init(config);
-			Assertions.assertEquals(50, ListParams.parse(params, schema).page().limit(), "The default is capped to the maximum");
+			Assertions.assertEquals(50, new ListParams(TestConfig.store()).parse(params, schema).page().limit(), "The default is capped to the maximum");
 			params.putSingle(ListParams.LIMIT, "51");
-			NetshotException tooBig = Assertions.assertThrows(NetshotException.class, () -> ListParams.parse(params, schema));
+			NetshotException tooBig = Assertions.assertThrows(NetshotException.class, () -> new ListParams(TestConfig.store()).parse(params, schema));
 			Assertions.assertEquals(ListParams.LIMIT, tooBig.getTarget());
 			params.putSingle(ListParams.LIMIT, "0");
-			NetshotException all = Assertions.assertThrows(NetshotException.class, () -> ListParams.parse(params, schema), "No limit=0 with a maximum");
+			NetshotException all = Assertions.assertThrows(NetshotException.class, () -> new ListParams(TestConfig.store()).parse(params, schema), "No limit=0 with a maximum");
 			Assertions.assertEquals(ListParams.LIMIT, all.getTarget());
 		}
 		finally {

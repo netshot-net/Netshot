@@ -19,6 +19,7 @@
 package net.netshot.netshot.task.engine;
 
 import java.sql.SQLException;
+import java.util.function.Supplier;
 
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.Job;
@@ -26,13 +27,12 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.DeviceLockPolicy;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskRun;
@@ -57,13 +57,19 @@ public class TaskJob implements Job {
 
 	private final DomainEvents domainEvents;
 
-	/** The task manager (locks, clustering, repetition of the tasks). */
+	/** The task manager (clustering, statistics, repetition of the tasks). */
 	private final TaskManager taskManager;
 
-	private final TaskRepository repository = new TaskRepository();
+	/** The task and device locks. */
+	private final TaskLockManager lockManager;
+
+	private final TaskRepository repository;
 
 	/** The transaction support. */
 	private final Transactions transactions;
+
+	/** The interval (ms) between two checks of the lock of a device, from the configuration. */
+	private final Supplier<Integer> deviceLockPollInterval;
 
 	/**
 	 * Creates the job.
@@ -71,13 +77,21 @@ public class TaskJob implements Job {
 	 * @param transactions the transaction support
 	 * @param handlers the task handlers
 	 * @param domainEvents where the end of the tasks is published
-	 * @param taskManager the task manager (locks, clustering, repetition of the tasks)
+	 * @param taskManager the task manager (clustering, statistics, repetition of the tasks)
+	 * @param lockManager the task and device locks
+	 * @param repository the task repository
+	 * @param deviceLockPollInterval the interval (ms) between two checks of the lock of a device
+	 *        ({@link #DEVICE_LOCK_POLL_INTERVAL})
 	 */
-	public TaskJob(Transactions transactions, TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager) {
+	public TaskJob(Transactions transactions, TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager,
+		TaskLockManager lockManager, TaskRepository repository, Supplier<Integer> deviceLockPollInterval) {
 		this.transactions = transactions;
 		this.handlers = handlers;
 		this.domainEvents = domainEvents;
 		this.taskManager = taskManager;
+		this.lockManager = lockManager;
+		this.repository = repository;
+		this.deviceLockPollInterval = deviceLockPollInterval;
 	}
 
 	/*(non-Javadoc)
@@ -106,9 +120,8 @@ public class TaskJob implements Job {
 		log.trace("The task id is {}.", id);
 		// The task lock prevents the same task from running twice at the same time,
 		// on this instance or (cluster mode) on any other cluster member
-		TaskLockManager lockManager = this.taskManager.lockManager();
 		try {
-			if (!lockManager.tryLock(TaskLockManager.NS_TASK, id, id)) {
+			if (!this.lockManager.tryLock(TaskLockManager.NS_TASK, id, id)) {
 				log.warn("Task {} is already running (locally or on another cluster member), skipping.", id);
 				return;
 			}
@@ -118,11 +131,11 @@ public class TaskJob implements Job {
 			throw new JobExecutionException("Unable to lock the task.", e);
 		}
 		try {
-			this.executeLocked(id, lockManager);
+			this.executeLocked(id);
 		}
 		finally {
 			// Released last, so that the task is seen as running until its result is saved
-			lockManager.unlock(TaskLockManager.NS_TASK, id, id);
+			this.lockManager.unlock(TaskLockManager.NS_TASK, id, id);
 		}
 	}
 
@@ -133,32 +146,31 @@ public class TaskJob implements Job {
 	 *
 	 * @param run the run of the task
 	 * @param deviceId the device ID
-	 * @param lockManager the lock manager
 	 * @return true if the device was acquired, false if the cancellation was requested
 	 * @throws SQLException if the lock can't be taken
 	 * @throws InterruptedException if interrupted while waiting
 	 */
-	private boolean waitForDevice(TaskRun run, long deviceId, TaskLockManager lockManager)
+	private boolean waitForDevice(TaskRun run, long deviceId)
 		throws SQLException, InterruptedException {
 		long taskId = run.getTask().id();
-		if (lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, taskId)) {
+		if (this.lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, taskId)) {
 			return true;
 		}
-		Long holderTaskId = lockManager.getLocalOwner(TaskLockManager.NS_DEVICE, deviceId);
+		Long holderTaskId = this.lockManager.getLocalOwner(TaskLockManager.NS_DEVICE, deviceId);
 		if (holderTaskId == null) {
 			run.logger.info("Waiting for the device to be released by another task.");
 		}
 		else {
 			run.logger.info("Waiting for the device to be released by task {}.", holderTaskId);
 		}
-		int pollInterval = Netshot.config().current().get(DEVICE_LOCK_POLL_INTERVAL);
+		int pollInterval = this.deviceLockPollInterval.get();
 		long startTime = System.currentTimeMillis();
 		while (true) {
 			Thread.sleep(pollInterval);
 			if (this.transactions.read(dsl -> this.repository.isCancelRequested(dsl, taskId))) {
 				return false;
 			}
-			if (lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, taskId)) {
+			if (this.lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, taskId)) {
 				run.logger.info("Device acquired after {} s.", (System.currentTimeMillis() - startTime) / 1000);
 				return true;
 			}
@@ -191,7 +203,7 @@ public class TaskJob implements Job {
 		});
 	}
 
-	private void executeLocked(long id, TaskLockManager lockManager) throws JobExecutionException {
+	private void executeLocked(long id) throws JobExecutionException {
 		TaskRun run;
 		try {
 			Thread.sleep(1000);
@@ -231,14 +243,14 @@ public class TaskJob implements Job {
 			boolean runTask = true;
 			if (deviceId != null) {
 				if (lockPolicy == DeviceLockPolicy.CANCEL_IF_SAME_TYPE) {
-					typeLocked = lockManager.tryLock(lockTypeNamespace, deviceId, id);
+					typeLocked = this.lockManager.tryLock(lockTypeNamespace, deviceId, id);
 					if (!typeLocked) {
 						run.cancel("A task of the same type is already running or waiting on this device, cancelling this task.");
 						runTask = false;
 					}
 				}
 				if (runTask) {
-					deviceLocked = this.waitForDevice(run, deviceId, lockManager);
+					deviceLocked = this.waitForDevice(run, deviceId);
 					if (!deviceLocked) {
 						run.cancel("Cancelled while waiting for the device.");
 						runTask = false;
@@ -273,10 +285,10 @@ public class TaskJob implements Job {
 		}
 		finally {
 			if (deviceLocked) {
-				lockManager.unlock(TaskLockManager.NS_DEVICE, deviceId, id);
+				this.lockManager.unlock(TaskLockManager.NS_DEVICE, deviceId, id);
 			}
 			if (typeLocked) {
-				lockManager.unlock(lockTypeNamespace, deviceId, id);
+				this.lockManager.unlock(lockTypeNamespace, deviceId, id);
 			}
 		}
 

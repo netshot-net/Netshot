@@ -23,6 +23,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.OptionDefinition;
@@ -38,7 +40,7 @@ import net.netshot.netshot.platform.net.NetworkAddress;
  * Maps the sub-resources of the devices (interfaces, modules) and the reference lists built from the devices
  * (families, tags, part numbers, software versions, device types) to their v1 representation.
  */
-public final class DeviceInventoryMapper {
+public class DeviceInventoryMapper {
 
 	/** The path of the device families. */
 	public static final String FAMILIES_PATH = "device-families";
@@ -55,7 +57,11 @@ public final class DeviceInventoryMapper {
 	/** The path of the software versions. */
 	public static final String SOFTWARE_VERSIONS_PATH = "software-versions";
 
-	private DeviceInventoryMapper() {
+	/**
+	 * Instantiates the mapper.
+	 */
+	@Inject
+	public DeviceInventoryMapper() {
 	}
 
 	/**
@@ -64,7 +70,7 @@ public final class DeviceInventoryMapper {
 	 * @param networkInterface the interface
 	 * @return the representation
 	 */
-	public static DeviceInterfaceDto toDto(NetworkInterface networkInterface) {
+	public DeviceInterfaceDto toDto(NetworkInterface networkInterface) {
 		List<DeviceInterfaceDto.IpAddress> addresses = new ArrayList<>();
 		networkInterface.ip4Addresses().forEach(a -> addresses.add(toDto(a, 4)));
 		networkInterface.ip6Addresses().forEach(a -> addresses.add(toDto(a, 6)));
@@ -73,7 +79,7 @@ public final class DeviceInventoryMapper {
 			networkInterface.virtualDevice(), networkInterface.getMacAddress(), addresses);
 	}
 
-	private static DeviceInterfaceDto.IpAddress toDto(NetworkAddress address, int version) {
+	private DeviceInterfaceDto.IpAddress toDto(NetworkAddress address, int version) {
 		return new DeviceInterfaceDto.IpAddress(address.getIp(), address.getPrefixLength(), version, address.getAddressUsage());
 	}
 
@@ -83,7 +89,7 @@ public final class DeviceInventoryMapper {
 	 * @param module the module
 	 * @return the representation
 	 */
-	public static DeviceModuleDto toDto(Module module) {
+	public DeviceModuleDto toDto(Module module) {
 		String display = module.partNumber().isEmpty() ? module.slot() : "%s (%s)".formatted(module.slot(), module.partNumber());
 		return new DeviceModuleDto(module.id(), display, module.slot(), module.partNumber(), module.serialNumber(),
 			module.firstSeenDate(), module.lastSeenDate(), module.removed());
@@ -95,7 +101,7 @@ public final class DeviceInventoryMapper {
 	 * @param family the family and its number of devices
 	 * @return the representation
 	 */
-	public static DeviceFamilyDto toDto(DeviceFamilyCount family) {
+	public DeviceFamilyDto toDto(DeviceFamilyCount family) {
 		return new DeviceFamilyDto(family.driver(), family.family(), family.deviceCount());
 	}
 
@@ -105,7 +111,7 @@ public final class DeviceInventoryMapper {
 	 * @param tag the tag and its number of devices
 	 * @return the representation
 	 */
-	public static DeviceTagDto toDto(DeviceTagCount tag) {
+	public DeviceTagDto toDto(DeviceTagCount tag) {
 		return new DeviceTagDto(tag.name(), tag.deviceCount());
 	}
 
@@ -115,7 +121,7 @@ public final class DeviceInventoryMapper {
 	 * @param partNumber the part number and its number of modules
 	 * @return the representation
 	 */
-	public static PartNumberDto toDto(PartNumberCount partNumber) {
+	public PartNumberDto toDto(PartNumberCount partNumber) {
 		return new PartNumberDto(partNumber.partNumber(), partNumber.moduleCount());
 	}
 
@@ -125,7 +131,7 @@ public final class DeviceInventoryMapper {
 	 * @param version the software version and its number of devices
 	 * @return the representation
 	 */
-	public static SoftwareVersionDto toDto(SoftwareVersionCount version) {
+	public SoftwareVersionDto toDto(SoftwareVersionCount version) {
 		return new SoftwareVersionDto(version.version(), version.deviceCount());
 	}
 
@@ -135,7 +141,7 @@ public final class DeviceInventoryMapper {
 	 * @param driver the driver
 	 * @return the representation
 	 */
-	public static DeviceTypeDto toDto(DeviceDriver driver) {
+	public DeviceTypeDto toDto(DeviceDriver driver) {
 		List<DeviceTypeDto.Attribute> attributes = driver.getAttributes().stream()
 			.sorted(Comparator.comparing(AttributeDefinition::getLevel).thenComparing(AttributeDefinition::getName))
 			.map(a -> new DeviceTypeDto.Attribute(a.getName(), a.getTitle(), a.getType(), a.getLevel(), a.isComparable(),
@@ -144,7 +150,7 @@ public final class DeviceInventoryMapper {
 		List<DeviceTypeDto.Option> options = driver.getOptions().entrySet().stream()
 			.sorted(Map.Entry.comparingByKey())
 			.map(Map.Entry::getValue)
-			.map(DeviceInventoryMapper::toDto)
+			.map(this::toDto)
 			.toList();
 		List<DeviceTypeDto.Access> accesses = driver.getAccessDefinitions().entrySet().stream()
 			.sorted(Map.Entry.comparingByKey())
@@ -159,7 +165,7 @@ public final class DeviceInventoryMapper {
 			attributes, options, accesses);
 	}
 
-	private static DeviceTypeDto.Option toDto(OptionDefinition option) {
+	private DeviceTypeDto.Option toDto(OptionDefinition option) {
 		return new DeviceTypeDto.Option(option.getName(), option.getTitle(), option.getType(), option.getChoices(),
 			option.getDefaultValue());
 	}

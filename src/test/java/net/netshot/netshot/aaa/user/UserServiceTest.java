@@ -36,9 +36,11 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the user use cases (administration and change of the own password), against a real
@@ -64,8 +66,8 @@ class UserServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
-		this.service = new UserService(this.transactions, this.repository);
+		this.transactions = TestWiring.get().core().transactions();
+		this.service = new UserService(this.transactions, this.repository, TestConfig.store());
 	}
 
 	private String nextName() {
@@ -79,7 +81,7 @@ class UserServiceTest {
 	}
 
 	private UiUser create(String name, boolean local, String password, int level) {
-		return this.service.create(new UserCreation(name, local, password, level));
+		return this.service.create(new UserDefinition(name, local, password, level));
 	}
 
 	private UiUser reload(long id) {
@@ -135,7 +137,7 @@ class UserServiceTest {
 	@Test
 	@DisplayName("Create: blank name, then missing password of a local user, then duplicate name")
 	void createErrors() {
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.create(null, true, PASSWORD, 10));
 		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.create("   ", true, PASSWORD, 10));
 		// The name is checked before the password
@@ -146,7 +148,7 @@ class UserServiceTest {
 		this.create(name, false, null, 10);
 		NetshotException duplicate = assertError(ErrorCode.NETSHOT_DUPLICATE_USER, () -> this.create(" " + name, true, PASSWORD, 10));
 		Assertions.assertEquals("A user with this name already exists.", duplicate.getMessage());
-		Assertions.assertEquals(before + 1, this.service.list(Page.ALL).size(), "Failed creations leave nothing behind");
+		Assertions.assertEquals(before + 1, this.service.list(ListQuery.ALL).items().size(), "Failed creations leave nothing behind");
 	}
 
 	// ------------------------------------------------------------------
@@ -159,11 +161,11 @@ class UserServiceTest {
 		for (int i = 0; i < 3; i++) {
 			this.create(this.nextName(), false, null, 10);
 		}
-		List<UiUser> all = this.service.list(Page.ALL);
+		List<UiUser> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 3);
 		Assertions.assertNotNull(all.get(0).username());
-		Assertions.assertEquals(2, this.service.list(new Page(0, 2)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+		Assertions.assertEquals(2, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 2), false)).items().size());
+		Assertions.assertEquals(all.size() - 1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(1, null), false)).items().size());
 	}
 
 	// ------------------------------------------------------------------
@@ -175,7 +177,7 @@ class UserServiceTest {
 	void update() throws Exception {
 		UiUser user = this.create(this.nextName(), true, PASSWORD, 10);
 		String newName = this.nextName();
-		UiUser updated = this.service.update(user.id(), ADMIN, new UserUpdate(" " + newName + " ", true, "N3w-password", 500));
+		UiUser updated = this.service.update(user.id(), ADMIN, _ -> new UserDefinition(" " + newName + " ", true, "N3w-password", 500), null);
 		Assertions.assertEquals(newName, updated.username());
 		UiUser stored = this.reload(user.id());
 		Assertions.assertEquals(newName, stored.username());
@@ -188,7 +190,7 @@ class UserServiceTest {
 	@DisplayName("Update: a null password keeps the current one of a local user")
 	void updateKeepsPassword() throws Exception {
 		UiUser user = this.create(this.nextName(), true, PASSWORD, 10);
-		this.service.update(user.id(), ADMIN, new UserUpdate(user.username(), true, null, 100));
+		this.service.update(user.id(), ADMIN, _ -> new UserDefinition(user.username(), true, null, 100), null);
 		UiUser stored = this.reload(user.id());
 		Assertions.assertEquals(100, stored.level());
 		assertPassword(stored, PASSWORD);
@@ -198,7 +200,7 @@ class UserServiceTest {
 	@DisplayName("Update: turning a user into a remote one clears its password")
 	void updateToRemote() throws Exception {
 		UiUser user = this.create(this.nextName(), true, PASSWORD, 10);
-		this.service.update(user.id(), ADMIN, new UserUpdate(user.username(), false, PASSWORD, 10));
+		this.service.update(user.id(), ADMIN, _ -> new UserDefinition(user.username(), false, PASSWORD, 10), null);
 		UiUser stored = this.reload(user.id());
 		Assertions.assertFalse(stored.local());
 		Assertions.assertEquals("", stored.hashedPassword());
@@ -210,35 +212,35 @@ class UserServiceTest {
 		UiUser user = this.create(this.nextName(), false, null, 10);
 		String name = user.username();
 		NetshotException missing = assertError(ErrorCode.NETSHOT_INVALID_PASSWORD,
-			() -> this.service.update(user.id(), ADMIN, new UserUpdate("renamed", true, null, 500)));
+			() -> this.service.update(user.id(), ADMIN, _ -> new UserDefinition("renamed", true, null, 500), null));
 		Assertions.assertEquals("You must set a password.", missing.getMessage());
 		NetshotException weak = assertError(ErrorCode.NETSHOT_INVALID_PASSWORD,
-			() -> this.service.update(user.id(), ADMIN, new UserUpdate("renamed", true, "short", 500)));
+			() -> this.service.update(user.id(), ADMIN, _ -> new UserDefinition("renamed", true, "short", 500), null));
 		Assertions.assertTrue(weak.getMessage().startsWith("The password doesn't match the defined policy"), weak.getMessage());
 		UiUser stored = this.reload(user.id());
 		Assertions.assertEquals(name, stored.username(), "A failed update changes nothing");
 		Assertions.assertEquals(10, stored.level());
 		Assertions.assertFalse(stored.local());
-		this.service.update(user.id(), ADMIN, new UserUpdate(name, true, PASSWORD, 10));
+		this.service.update(user.id(), ADMIN, _ -> new UserDefinition(name, true, PASSWORD, 10), null);
 		Assertions.assertTrue(this.reload(user.id()).local());
 	}
 
 	@Test
 	@DisplayName("Update: unknown user, then the user making the request, then the name, in that order")
 	void updateErrors() {
-		NetshotException unknown = assertError(ErrorCode.NETSHOT_INVALID_USER,
-			() -> this.service.update(99_999_999L, ADMIN, new UserUpdate("x", false, null, 10)));
-		Assertions.assertEquals("Unable to find this user.", unknown.getMessage());
+		NetshotException unknown = assertError(ErrorCode.NETSHOT_USER_NOT_FOUND,
+			() -> this.service.update(99_999_999L, ADMIN, _ -> new UserDefinition("x", false, null, 10), null));
+		Assertions.assertEquals("The user doesn't exist.", unknown.getMessage());
 
 		UiUser self = this.create(this.nextName(), false, null, 1000);
 		// The self check comes before the validation of the name
 		NetshotException locked = assertError(ErrorCode.NETSHOT_LOCKED_USER,
-			() -> this.service.update(self.id(), self.username(), new UserUpdate(" ", false, null, 10)));
+			() -> this.service.update(self.id(), self.username(), _ -> new UserDefinition(" ", false, null, 10), null));
 		Assertions.assertEquals("Cannot edit the user who is making the request.", locked.getMessage());
 
 		UiUser other = this.create(this.nextName(), false, null, 10);
-		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.service.update(other.id(), ADMIN, new UserUpdate(null, false, null, 10)));
-		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.service.update(other.id(), ADMIN, new UserUpdate("  ", false, null, 10)));
+		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.service.update(other.id(), ADMIN, _ -> new UserDefinition(null, false, null, 10), null));
+		assertError(ErrorCode.NETSHOT_INVALID_USER_NAME, () -> this.service.update(other.id(), ADMIN, _ -> new UserDefinition("  ", false, null, 10), null));
 		Assertions.assertEquals(10, this.reload(other.id()).level());
 	}
 
@@ -248,7 +250,7 @@ class UserServiceTest {
 		UiUser first = this.create(this.nextName(), false, null, 10);
 		UiUser second = this.create(this.nextName(), false, null, 10);
 		assertError(ErrorCode.NETSHOT_DUPLICATE_USER,
-			() -> this.service.update(second.id(), ADMIN, new UserUpdate(first.username(), false, null, 1000)));
+			() -> this.service.update(second.id(), ADMIN, _ -> new UserDefinition(first.username(), false, null, 1000), null));
 		UiUser stored = this.reload(second.id());
 		Assertions.assertEquals(second.username(), stored.username());
 		Assertions.assertEquals(10, stored.level());
@@ -261,15 +263,15 @@ class UserServiceTest {
 	@Test
 	@DisplayName("Delete: false for an unknown user, an error for the user making the request, true otherwise")
 	void delete() {
-		Assertions.assertFalse(this.service.delete(99_999_999L, ADMIN));
+		assertError(ErrorCode.NETSHOT_USER_NOT_FOUND, () -> this.service.delete(99_999_999L, ADMIN, null));
 		UiUser self = this.create(this.nextName(), false, null, 1000);
-		NetshotException locked = assertError(ErrorCode.NETSHOT_LOCKED_USER, () -> this.service.delete(self.id(), self.username()));
+		NetshotException locked = assertError(ErrorCode.NETSHOT_LOCKED_USER, () -> this.service.delete(self.id(), self.username(), null));
 		Assertions.assertEquals("Cannot delete the user who is making the request.", locked.getMessage());
 		Assertions.assertNotNull(this.reload(self.id()));
 		UiUser other = this.create(this.nextName(), false, null, 10);
-		Assertions.assertTrue(this.service.delete(other.id(), self.username()));
+		this.service.delete(other.id(), self.username(), null);
 		Assertions.assertNull(this.reload(other.id()));
-		Assertions.assertFalse(this.service.delete(other.id(), self.username()), "Already deleted");
+		assertError(ErrorCode.NETSHOT_USER_NOT_FOUND, () -> this.service.delete(other.id(), self.username(), null));
 	}
 
 	// ------------------------------------------------------------------
@@ -332,8 +334,8 @@ class UserServiceTest {
 		String name = user.username();
 		this.transactions.run(dsl -> this.repository.save(dsl,
 			this.repository.findByUsername(dsl, name).withLastPasswordChangeDate(Instant.now().minus(60, ChronoUnit.DAYS))));
-		Assertions.assertThrows(PasswordPolicy.PasswordPolicyException.class, () -> this.reload(name).checkPassword(PASSWORD, PasswordPolicy.getMainPolicy()));
+		Assertions.assertThrows(PasswordPolicy.PasswordPolicyException.class, () -> this.reload(name).checkPassword(PASSWORD, PasswordPolicy.from(TestConfig.store().current())));
 		this.service.changeOwnPassword(name, name, PASSWORD, "Fresh-passw0rd");
-		this.reload(name).checkPassword("Fresh-passw0rd", PasswordPolicy.getMainPolicy());
+		this.reload(name).checkPassword("Fresh-passw0rd", PasswordPolicy.from(TestConfig.store().current()));
 	}
 }

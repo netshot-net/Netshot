@@ -24,6 +24,8 @@ import java.util.Set;
 import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.StatsResponse;
@@ -38,12 +40,22 @@ import net.netshot.netshot.platform.query.ListQuery;
 /**
  * Maps the compliance policies to their v1 representation, and the requests to the definitions the service takes.
  */
-public final class PolicyMapper {
+public class PolicyMapper {
 
 	/** The path of the policies. */
 	public static final String PATH = "compliance/policies";
 
-	private PolicyMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public PolicyMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -53,11 +65,11 @@ public final class PolicyMapper {
 	 * @param groups the target groups, already mapped, by ID
 	 * @return the representation
 	 */
-	public static PolicyDto toDto(Policy policy, LongFunction<GroupDto> groups) {
+	public PolicyDto toDto(Policy policy, LongFunction<GroupDto> groups) {
 		if (policy == null) {
 			return null;
 		}
-		return new PolicyDto(policy.id(), V1Links.of(PATH, policy.id()), policy.name(), policy.version(), policy.changeDate(), policy.name(),
+		return new PolicyDto(policy.id(), this.links.of(PATH, policy.id()), policy.name(), policy.version(), policy.changeDate(), policy.name(),
 			policy.targetGroupIds().stream().sorted().map(groups::apply).toList());
 	}
 
@@ -67,8 +79,8 @@ public final class PolicyMapper {
 	 * @param policy the policy
 	 * @return the representation
 	 */
-	public static PolicyDto toDto(Policy policy) {
-		return toDto(policy, PolicyMapper::groupRef);
+	public PolicyDto toDto(Policy policy) {
+		return toDto(policy, this::groupRef);
 	}
 
 	/**
@@ -77,8 +89,8 @@ public final class PolicyMapper {
 	 * @param id the group ID
 	 * @return the reference
 	 */
-	static GroupDto groupRef(long id) {
-		return new GroupDto(id, V1Links.of(GroupMapper.PATH, id), null, 0, null, null, null, null, false, null);
+	GroupDto groupRef(long id) {
+		return new GroupDto(id, this.links.of(GroupMapper.PATH, id), null, 0, null, null, null, null, false, null);
 	}
 
 	/**
@@ -87,7 +99,7 @@ public final class PolicyMapper {
 	 * @param policy the policy
 	 * @return the request
 	 */
-	public static PolicyRequest toRequest(Policy policy) {
+	public PolicyRequest toRequest(Policy policy) {
 		return new PolicyRequest(policy.name(), policy.targetGroupIds().stream().sorted().map(RefId::new).toList());
 	}
 
@@ -97,7 +109,7 @@ public final class PolicyMapper {
 	 * @param request the request
 	 * @return the definition
 	 */
-	public static PolicyDefinition toDefinition(PolicyRequest request) {
+	public PolicyDefinition toDefinition(PolicyRequest request) {
 		List<Long> groups = request.targetGroups() == null ? List.of() : request.targetGroups().stream().map(RefId::id).toList();
 		Set<Long> ids = new LinkedHashSet<>(groups);
 		return new PolicyDefinition(request.name(), ids);
@@ -109,8 +121,8 @@ public final class PolicyMapper {
 	 * @param service the policy use cases
 	 * @return the resolver
 	 */
-	public static StatsResponse.Resolver resolver(PolicyService service) {
+	public StatsResponse.Resolver resolver(PolicyService service) {
 		return ids -> service.list(ListQuery.byIds(ids)).items().stream()
-			.collect(Collectors.toMap(Policy::id, o -> new RefDto(o.id(), V1Links.of(PATH, o.id()), o.name())));
+			.collect(Collectors.toMap(Policy::id, o -> new RefDto(o.id(), this.links.of(PATH, o.id()), o.name())));
 	}
 }

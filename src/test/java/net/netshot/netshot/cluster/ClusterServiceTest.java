@@ -24,13 +24,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.aaa.auth.LoginService;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.ClusterService.MasterStatus;
 import net.netshot.netshot.system.ServerInfo;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.platform.runtime.BuildInfo;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the cluster and server information use cases.
@@ -84,8 +86,9 @@ class ClusterServiceTest {
 	@Test
 	@DisplayName("The server information is read when asked, from the version and the loaded settings")
 	void serverInfo() {
-		ServerInfo info = new ServerInfoService().get();
-		Assertions.assertEquals(Netshot.VERSION, info.serverVersion());
-		Assertions.assertEquals(UiUser.settings().maxIdleTime(), info.maxIdleTimeout());
+		// The login service only reads its settings here
+		ServerInfo info = new ServerInfoService(new LoginService(null, null, null, TestConfig.store())).get();
+		Assertions.assertEquals(BuildInfo.VERSION, info.serverVersion());
+		Assertions.assertEquals(UiUser.Settings.from(TestConfig.store().current()).maxIdleTime(), info.maxIdleTimeout());
 	}
 }

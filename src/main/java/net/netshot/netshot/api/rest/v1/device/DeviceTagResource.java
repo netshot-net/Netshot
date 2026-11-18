@@ -49,6 +49,8 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class DeviceTagResource {
 
 	private final DeviceCatalogService catalogService;
+	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -60,10 +62,14 @@ public class DeviceTagResource {
 	 * Instantiates the resource.
 	 *
 	 * @param catalogService the device reference list use cases
+	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public DeviceTagResource(DeviceCatalogService catalogService) {
+	public DeviceTagResource(DeviceCatalogService catalogService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.catalogService = catalogService;
+		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -79,9 +85,9 @@ public class DeviceTagResource {
 	@ListFilters(ListSchema.DEVICE_TAGS)
 	public ListResponse<DeviceTagDto> listDeviceTags() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_TAGS.schema());
+		ListQuery query = this.lists.parse(params, ListSchema.DEVICE_TAGS.schema());
 		Selection selection = Selection.of(params, DeviceTagDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceTagDto.class);
-		return ListResponse.of(this.uriInfo, query, this.catalogService.listTags(query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.catalogService.listTags(query), this.deviceInventoryMapper::toDto);
 	}
 }

@@ -38,8 +38,8 @@ import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
+import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.platform.database.Transactions;
 
 /**
@@ -48,7 +48,6 @@ import net.netshot.netshot.platform.database.Transactions;
 @Slf4j
 public final class DynamicGroups {
 
-	private static final GroupRepository REPOSITORY = new GroupRepository();
 
 	/**
 	 * How many groups are refreshed by one statement: the statement grows with the queries of its groups
@@ -61,6 +60,7 @@ public final class DynamicGroups {
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final GroupRepository repository;
 
 	/** Serializes the refreshes of all the groups. */
 	private final Object refreshAllLock = new Object();
@@ -70,10 +70,12 @@ public final class DynamicGroups {
 	 *
 	 * @param transactions the transaction support
 	 * @param driverRegistry the loaded device drivers, to parse the queries against
+	 * @param repository the group repository
 	 */
-	public DynamicGroups(Transactions transactions, DriverRegistry driverRegistry) {
+	public DynamicGroups(Transactions transactions, DriverRegistry driverRegistry, GroupRepository repository) {
 		this.transactions = transactions;
 		this.driverRegistry = driverRegistry;
+		this.repository = repository;
 	}
 
 	/**
@@ -172,7 +174,7 @@ public final class DynamicGroups {
 	 */
 	private Map<Long, Condition> parseAll(DSLContext dsl) {
 		Map<Long, Condition> conditions = new LinkedHashMap<>();
-		for (DynamicDeviceGroup group : REPOSITORY.findDynamic(dsl)) {
+		for (DynamicDeviceGroup group : this.repository.findDynamic(dsl)) {
 			try {
 				conditions.put(group.id(), this.finder(group).getCondition());
 			}

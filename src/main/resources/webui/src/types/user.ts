@@ -7,9 +7,9 @@ export type User = {
 };
 
 export enum Level {
-  Visitor = 10,
+  ReadOnly = 10,
   Operator = 50,
   ReadWrite = 100,
-  ExecureReadWrite = 500,
+  ExecuteReadWrite = 500,
   Admin = 1000,
 };

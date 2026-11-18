@@ -30,7 +30,6 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -48,7 +47,6 @@ import net.netshot.netshot.driver.DriverRegistry;
 public class SearchService {
 
 	private final Transactions transactions;
-	private final SearchRepository repository;
 	private final DeviceRepository deviceRepository;
 
 	/** The loaded device drivers, to parse the queries against. */
@@ -58,15 +56,12 @@ public class SearchService {
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
-	 * @param repository the search repository
 	 * @param deviceRepository the device repository
 	 * @param driverRegistry the loaded device drivers, to parse the queries against
 	 */
-	public SearchService(Transactions transactions, SearchRepository repository, DeviceRepository deviceRepository,
-		DriverRegistry driverRegistry) {
+	public SearchService(Transactions transactions, DeviceRepository deviceRepository, DriverRegistry driverRegistry) {
 		this.driverRegistry = driverRegistry;
 		this.transactions = transactions;
-		this.repository = repository;
 		this.deviceRepository = deviceRepository;
 	}
 
@@ -176,29 +171,22 @@ public class SearchService {
 	}
 
 	/**
-	 * Searches the devices.
+	 * Formats a device search query: gives the query as it is applied, in its canonical form.
 	 *
-	 * @param query the string-based query
-	 * @param page the window on the result
-	 * @return the matching devices, and the normalized query
-	 * @throws NetshotException if the query is invalid, or the devices can't be read
+	 * @param query the search query, or null
+	 * @return the formatted query, or null for no query
+	 * @throws NetshotException if the query is invalid
 	 */
-	public SearchResult searchDevices(String query, Page page) {
+	public String formatQuery(String query) {
+		if (query == null) {
+			return null;
+		}
 		try {
-			Finder finder = new Finder(query, this.driverRegistry, this.transactions);
-			try {
-				// Read-write session, as it has always been used for this query
-				return this.transactions.write(dsl -> new SearchResult(
-					finder.getFormattedQuery(), this.repository.findDevices(dsl, finder, page)));
-			}
-			catch (DataAccessException e) {
-				log.error("Error while searching for the devices.", e);
-				throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the devices");
-			}
+			return new Finder(query, this.driverRegistry, this.transactions).getFormattedQuery();
 		}
 		catch (FinderParseException e) {
 			log.warn("User's query is invalid.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_SEARCH_STRING, "Invalid search string. " + e.getMessage());
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_SEARCH_STRING, "Invalid search string. " + e.getMessage(), "query");
 		}
 	}
 }

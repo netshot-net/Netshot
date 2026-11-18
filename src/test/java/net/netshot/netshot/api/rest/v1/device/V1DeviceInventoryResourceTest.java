@@ -75,7 +75,7 @@ class V1DeviceInventoryResourceTest {
 		Domain domain = TestDevices.addDomain("Paris-" + System.nanoTime(), "Paris DC");
 		this.router1 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1));
 		this.router2 = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 2));
-		TestWiring.get().transactions().run(dsl -> dsl.update(MODULE).set(MODULE.REMOVED, true)
+		TestWiring.get().core().transactions().run(dsl -> dsl.update(MODULE).set(MODULE.REMOVED, true)
 			.where(MODULE.DEVICE.eq(this.router1.id()), MODULE.SLOT.eq("slot")).execute());
 	}
 

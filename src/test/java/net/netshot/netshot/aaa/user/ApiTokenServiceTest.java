@@ -32,6 +32,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestWiring;
 
@@ -52,7 +53,7 @@ class ApiTokenServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new ApiTokenService(this.transactions, this.repository);
 	}
 
@@ -110,12 +111,12 @@ class ApiTokenServiceTest {
 	@Test
 	@DisplayName("Create: the token must be 32 alphanumeric characters")
 	void createInvalidToken() {
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		for (String invalid : new String[] {null, "", "short", TOKEN + "x", TOKEN.substring(1), "!" + TOKEN.substring(1), TOKEN.substring(1) + " "}) {
 			NetshotException error = assertError(ErrorCode.NETSHOT_INVALID_API_TOKEN_FORMAT, () -> this.service.create("d", invalid, 10));
 			Assertions.assertEquals("Invalid token format.", error.getMessage());
 		}
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -123,9 +124,9 @@ class ApiTokenServiceTest {
 	void createDuplicate() {
 		String token = this.newToken();
 		ApiToken first = this.service.create("one", token, 10);
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, () -> this.service.create("two", token, 1000));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 		Assertions.assertEquals(first.id(), this.service.authenticate(token, "127.0.0.1").id());
 	}
 
@@ -135,18 +136,18 @@ class ApiTokenServiceTest {
 		for (int i = 0; i < 3; i++) {
 			this.service.create("list" + i, this.newToken(), 10);
 		}
-		List<ApiToken> all = this.service.list(Page.ALL);
+		List<ApiToken> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 3);
-		Assertions.assertEquals(2, this.service.list(new Page(0, 2)).size());
+		Assertions.assertEquals(2, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 2), false)).items().size());
 	}
 
 	@Test
-	@DisplayName("Delete: true when deleted, false when there is no such token")
+	@DisplayName("Delete removes the token, and reports an unknown one")
 	void delete() {
 		ApiToken created = this.service.create("to delete", this.newToken(), 10);
-		Assertions.assertTrue(this.service.delete(created.id()));
+		this.service.delete(created.id());
 		Assertions.assertNull(this.reload(created.id()));
-		Assertions.assertFalse(this.service.delete(created.id()));
-		Assertions.assertFalse(this.service.delete(99_999_999L));
+		assertError(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, () -> this.service.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, () -> this.service.delete(99_999_999L));
 	}
 }

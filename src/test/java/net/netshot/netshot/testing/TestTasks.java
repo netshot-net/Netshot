@@ -39,7 +39,7 @@ public final class TestTasks {
 	 * @return the transaction support
 	 */
 	private static Transactions transactions() {
-		return TestWiring.get().transactions();
+		return TestWiring.get().core().transactions();
 	}
 
 	private static final TaskRepository REPOSITORY = new TaskRepository();

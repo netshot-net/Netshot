@@ -22,11 +22,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.diagnostic.DiagnosticDefinition;
-import net.netshot.netshot.diagnostic.DiagnosticView;
+import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
@@ -68,12 +70,13 @@ public final class DiagnosticMapper {
 	 * Maps a diagnostic to its representation.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param view the diagnostic, with its target group
+	 * @param diagnostic the diagnostic
+	 * @param targetGroup the target group of the diagnostic, or null
 	 * @return the DTO, of the kind of the diagnostic
 	 */
-	public static DiagnosticDto toDto(DriverRegistry driverRegistry, DiagnosticView view) {
-		DeviceGroupDto group = view.targetGroup() == null ? null : GroupMapper.toDto(view.targetGroup());
-		return switch (view.diagnostic()) {
+	public static DiagnosticDto toDto(DriverRegistry driverRegistry, Diagnostic diagnostic, DeviceGroup targetGroup) {
+		DeviceGroupDto group = targetGroup == null ? null : GroupMapper.toDto(targetGroup);
+		return switch (diagnostic) {
 			case SimpleDiagnostic simple -> new DiagnosticDto.Simple(simple.cliMode(), simple.command(), simple.deviceDriver(),
 				deviceDriverDescription(driverRegistry, simple), simple.enabled(), simple.id(), simple.modifierPattern(),
 				simple.modifierReplacement(), simple.name(), simple.resultType(), group);
@@ -87,12 +90,14 @@ public final class DiagnosticMapper {
 	 * Maps the diagnostics to their representation.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param diagnostics the diagnostics, with their target group loaded
+	 * @param diagnostics the diagnostics
+	 * @param groups the target groups of the diagnostics, by ID
 	 * @return the DTOs, in the same order
 	 */
-	public static List<DiagnosticDto> toDtos(DriverRegistry driverRegistry, List<DiagnosticView> diagnostics) {
+	public static List<DiagnosticDto> toDtos(DriverRegistry driverRegistry, List<Diagnostic> diagnostics, Map<Long, DeviceGroup> groups) {
 		List<DiagnosticDto> dtos = new ArrayList<>(diagnostics.size());
-		diagnostics.forEach(diagnostic -> dtos.add(toDto(driverRegistry, diagnostic)));
+		diagnostics.forEach(diagnostic -> dtos.add(toDto(driverRegistry, diagnostic,
+			diagnostic.targetGroupId() == null ? null : groups.get(diagnostic.targetGroupId()))));
 		return dtos;
 	}
 

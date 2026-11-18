@@ -19,8 +19,8 @@
 package net.netshot.netshot.domain;
 
 import net.netshot.netshot.platform.secret.Secret;
-import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -37,6 +37,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 
 /**
@@ -53,7 +54,7 @@ class DomainServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new DomainService(this.transactions, new DomainRepository());
 	}
 
@@ -67,7 +68,7 @@ class DomainServiceTest {
 		return "Domain " + (this.counter++);
 	}
 
-	private static DomainDefinition definition(String name, String address) throws Exception {
+	private static DomainDefinition definition(String name, String address) {
 		return new DomainDefinition(name, "Some description", address);
 	}
 
@@ -92,7 +93,7 @@ class DomainServiceTest {
 		Domain noDescription = this.service.create(new DomainDefinition(this.nextName(), null, "10.255.5.1"));
 		Assertions.assertEquals("", noDescription.description(), "a null description is stored as empty");
 		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME,
-			() -> this.service.update(noDescription.id(), new DomainDefinition(null, null, "10.255.5.1")));
+			() -> this.service.update(noDescription.id(), _ -> new DomainDefinition(null, null, "10.255.5.1"), null));
 	}
 
 	@Test
@@ -109,9 +110,9 @@ class DomainServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.create(definition(this.nextName(), null)));
 		Domain created = this.service.create(definition(this.nextName(), "10.255.4.1"));
 		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS,
-			() -> this.service.update(created.id(), definition(created.name(), "10.255.4.300")));
-		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.id(), definition(created.name(), null)));
-		Assertions.assertEquals("10.255.4.1", this.service.list(Page.ALL).stream()
+			() -> this.service.update(created.id(), _ -> definition(created.name(), "10.255.4.300"), null));
+		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.id(), _ -> definition(created.name(), null), null));
+		Assertions.assertEquals("10.255.4.1", this.service.list(ListQuery.ALL).items().stream()
 			.filter(d -> d.id() == created.id()).findFirst().orElseThrow().server4Address().getIp());
 	}
 
@@ -120,9 +121,9 @@ class DomainServiceTest {
 	void createDuplicate() throws Exception {
 		String name = this.nextName();
 		this.service.create(definition(name, "10.255.1.1"));
-		int before = this.service.list(Page.ALL).size();
+		int before = this.service.list(ListQuery.ALL).items().size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, () -> this.service.create(definition(name, "10.255.1.2")));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(before, this.service.list(ListQuery.ALL).items().size());
 	}
 
 	@Test
@@ -130,14 +131,14 @@ class DomainServiceTest {
 	void list() throws Exception {
 		Domain first = this.service.create(definition(this.nextName(), "10.255.2.1"));
 		Domain second = this.service.create(definition(this.nextName(), "10.255.2.2"));
-		List<Domain> all = this.service.list(Page.ALL);
+		List<Domain> all = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(all.size() >= 2);
 		for (int i = 1; i < all.size(); i++) {
 			Assertions.assertTrue(all.get(i - 1).id() < all.get(i).id());
 		}
-		Assertions.assertEquals(all.get(0).id(), this.service.list(new Page(0, 1)).get(0).id());
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
+		Assertions.assertEquals(all.get(0).id(), this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().get(0).id());
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
+		Assertions.assertEquals(all.size() - 1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(1, null), false)).items().size());
 		Assertions.assertTrue(all.stream().anyMatch(d -> d.id() == first.id()));
 		Assertions.assertTrue(all.stream().anyMatch(d -> d.id() == second.id()));
 	}
@@ -147,7 +148,7 @@ class DomainServiceTest {
 	void update() throws Exception {
 		Domain created = this.service.create(definition(this.nextName(), "10.255.3.1"));
 		String name = this.nextName();
-		Domain updated = this.service.update(created.id(), new DomainDefinition(" " + name + " ", " new ", "10.255.3.9"));
+		Domain updated = this.service.update(created.id(), _ -> new DomainDefinition(" " + name + " ", " new ", "10.255.3.9"), null);
 		Assertions.assertEquals(created.id(), updated.id());
 		Domain stored = this.transactions.read(dsl -> new DomainRepository().find(dsl, created.id()));
 		Assertions.assertEquals(name, stored.name());
@@ -156,11 +157,12 @@ class DomainServiceTest {
 	}
 
 	@Test
-	@DisplayName("update() checks the name, then the address, before looking for the domain")
+	@DisplayName("update() refuses an unknown domain, then checks the name, then the address")
 	void updateValidation() throws Exception {
-		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, () -> this.service.update(99999999L, definition("", "10.255.4.1")));
-		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(99999999L, definition("name", "0.0.0.0")));
-		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.update(99999999L, definition("name", "10.255.4.1")));
+		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.update(99999999L, _ -> definition("", "0.0.0.0"), null));
+		Domain created = this.service.create(definition(this.nextName(), "10.255.4.1"));
+		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, () -> this.service.update(created.id(), _ -> definition("", "0.0.0.0"), null));
+		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.id(), _ -> definition("name", "0.0.0.0"), null));
 	}
 
 	@Test
@@ -169,7 +171,7 @@ class DomainServiceTest {
 		String name = this.nextName();
 		this.service.create(definition(name, "10.255.5.1"));
 		Domain other = this.service.create(definition(this.nextName(), "10.255.5.2"));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, () -> this.service.update(other.id(), definition(name, "10.255.5.3")));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, () -> this.service.update(other.id(), _ -> definition(name, "10.255.5.3"), null));
 		Domain stored = this.transactions.read(dsl -> new DomainRepository().find(dsl, other.id()));
 		Assertions.assertNotEquals(name, stored.name());
 		Assertions.assertEquals("10.255.5.2", stored.server4Address().getIp());
@@ -179,9 +181,9 @@ class DomainServiceTest {
 	@DisplayName("delete() removes the domain, and reports an unknown one")
 	void delete() throws Exception {
 		Domain created = this.service.create(definition(this.nextName(), "10.255.6.1"));
-		this.service.delete(created.id());
+		this.service.delete(created.id(), null);
 		Assertions.assertNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, created.id())));
-		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.delete(created.id()));
+		assertError(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, () -> this.service.delete(created.id(), null));
 	}
 
 	@Test
@@ -189,13 +191,13 @@ class DomainServiceTest {
 	void deleteInUse() throws Exception {
 		Domain withDevice = this.service.create(definition(this.nextName(), "10.255.7.1"));
 		TestDevices.add(Device.create("CiscoIOS12", "10.99.7.1", withDevice, "tester"));
-		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withDevice.id()));
+		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withDevice.id(), null));
 		Assertions.assertNotNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, withDevice.id())));
 
 		Domain withCredentials = this.service.create(definition(this.nextName(), "10.255.7.2"));
 		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("Community of a domain")
 			.mgmtDomain(withCredentials).build());
-		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withCredentials.id()));
+		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withCredentials.id(), null));
 		Assertions.assertNotNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, withCredentials.id())));
 	}
 }

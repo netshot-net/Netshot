@@ -20,20 +20,21 @@ package net.netshot.netshot.access;
 
 import org.apache.sshd.client.SshClient;
 
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * What the device accesses and the device scripts need from the server: the resolver of the secrets of
- * the credentials (local or Vault-backed), the shared SSH client and the transaction support.
+ * the credentials (local or Vault-backed), the shared SSH client, the reads of the database and the settings of the
+ * accesses.
  *
  * @param secrets resolves the secrets of the credentials
  * @param sshClient the shared SSH client (see {@link SshClientService}), or null when no device is contacted
- * @param transactions the transaction support (the credential sets usable on a device, the data the scripts
+ * @param reads the reads of the database (the credential sets usable on a device, the data the scripts
  *        read), or null without database
+ * @param settings the settings of the accesses (SSH, Telnet, HTTP, collector)
  */
-public record Connectors(SecretResolver secrets, SshClient sshClient, Transactions transactions) {
+public record Connectors(SecretResolver secrets, SshClient sshClient, DeviceReads reads, AccessSettings settings) {
 
-	/** For the code which contacts no device: the local secrets only, no SSH client and no database. */
-	public static final Connectors OFFLINE = new Connectors(SecretResolver.LOCAL, null, null);
+	/** For the code which contacts no device: the local secrets only, no SSH client, no database, default settings. */
+	public static final Connectors OFFLINE = new Connectors(SecretResolver.LOCAL, null, null, AccessSettings.defaults());
 }

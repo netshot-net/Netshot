@@ -52,6 +52,7 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.domain.DomainDefinition;
 import net.netshot.netshot.domain.DomainService;
 import net.netshot.netshot.platform.query.ListQuery;
 
@@ -64,6 +65,9 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class DomainResource {
 
 	private final DomainService domainService;
+	private final ListParams lists;
+	private final V1Links links;
+	private final DomainMapper domainMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -78,10 +82,16 @@ public class DomainResource {
 	 * Instantiates the resource.
 	 *
 	 * @param domainService the domain use cases
+	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param domainMapper maps the domain objects
 	 */
 	@Inject
-	public DomainResource(DomainService domainService) {
+	public DomainResource(DomainService domainService, ListParams lists, V1Links links, DomainMapper domainMapper) {
 		this.domainService = domainService;
+		this.lists = lists;
+		this.links = links;
+		this.domainMapper = domainMapper;
 	}
 
 	/**
@@ -95,10 +105,10 @@ public class DomainResource {
 	@Operation(summary = "List the domains", description = "Lists the device domains, in their brief view by default.")
 	@ListFilters(ListSchema.DOMAINS)
 	public ListResponse<DomainDto> listDomains() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DOMAINS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DOMAINS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.BRIEF),
 			DomainDto.class);
-		return ListResponse.of(this.uriInfo, query, this.domainService.list(query), DomainMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.domainService.list(query), this.domainMapper::toDto);
 	}
 
 	/**
@@ -131,8 +141,8 @@ public class DomainResource {
 	@Operation(summary = "Create a domain")
 	public DomainDto createDomain(DomainRequest domainRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Domain domain = this.domainService.create(DomainMapper.toDefinition(domainRequest));
-		V1Response.created(this.request, V1Links.of(DomainMapper.PATH, domain.id()));
+		Domain domain = this.domainService.create(this.domainMapper.toDefinition(domainRequest));
+		V1Response.created(this.request, this.links.of(DomainMapper.PATH, domain.id()));
 		return this.respond(domain, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.FULL));
 	}
 
@@ -152,7 +162,8 @@ public class DomainResource {
 		+ "With If-Match, the domain must still be at the given version (ETag).")
 	public DomainDto replaceDomain(@PathParam("id") @Parameter(description = "Domain ID") long id, DomainRequest domainRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Domain domain = this.domainService.update(id, DomainMapper.toDefinition(domainRequest), V1Response.ifMatch(this.headers));
+		DomainDefinition definition = this.domainMapper.toDefinition(domainRequest);
+		Domain domain = this.domainService.update(id, _ -> definition, V1Response.ifMatch(this.headers));
 		return this.respond(domain, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.FULL));
 	}
 
@@ -174,7 +185,7 @@ public class DomainResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		Domain domain = this.domainService.update(id, MergePatch.of(patch, this.headers.getMediaType(), DomainRequest.class,
-			DomainMapper::toRequest, DomainMapper::toDefinition), V1Response.ifMatch(this.headers));
+			this.domainMapper::toRequest, this.domainMapper::toDefinition), V1Response.ifMatch(this.headers));
 		return this.respond(domain, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.FULL));
 	}
 
@@ -197,6 +208,6 @@ public class DomainResource {
 	private DomainDto respond(Domain domain, Selection selection) {
 		V1Response.select(this.request, selection, DomainDto.class);
 		V1Response.etag(this.request, domain.version());
-		return DomainMapper.toDto(domain);
+		return this.domainMapper.toDto(domain);
 	}
 }

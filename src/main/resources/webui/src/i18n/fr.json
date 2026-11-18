@@ -850,13 +850,13 @@
       "role": {
         "admin": "Administrateur",
         "adminDescription": "Accès complet incluant la gestion des utilisateurs et la configuration du système",
-        "operatorDescription": "Droits visiteur, plus déclencher des snapshots et scans de sous-réseaux",
+        "operatorDescription": "Droits lecture seule, plus déclencher des snapshots et scans de sous-réseaux",
+        "readOnly": "Lecture seule",
+        "readOnlyDescription": "Consulter les équipements, configurations et tâches, sans rien modifier",
         "readWrite": "Lecture, écriture",
         "readWriteDescription": "Droits opérateur, plus gérer les équipements, groupes et politiques",
         "readWritePlusScripts": "Lecture, écriture et exécution de scripts",
-        "readWritePlusScriptsDescription": "Droits lecture, écriture, plus créer et exécuter des scripts sur les équipements",
-        "visitor": "Visiteur",
-        "visitorDescription": "Consulter les équipements, configurations et tâches (lecture seule)"
+        "readWritePlusScriptsDescription": "Droits lecture, écriture, plus créer et exécuter des scripts sur les équipements"
       },
       "create": "Créer un utilisateur",
       "edit": "Modifier l'utilisateur",

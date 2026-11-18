@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -55,6 +56,19 @@ public class ExportFilter implements ContainerRequestFilter, ContainerResponseFi
 	@Context
 	private ResourceInfo resourceInfo;
 
+	/** The reader of the list parameters (the maximum number of rows of an export). */
+	private final ListParams lists;
+
+	/**
+	 * Creates the filter.
+	 *
+	 * @param lists the reader of the list parameters
+	 */
+	@Inject
+	public ExportFilter(ListParams lists) {
+		this.lists = lists;
+	}
+
 	@Override
 	public void filter(ContainerRequestContext requestContext) {
 		if (ListExport.format(this.httpRequest) == null) {
@@ -72,9 +86,9 @@ public class ExportFilter implements ContainerRequestFilter, ContainerResponseFi
 			|| !(responseContext.getEntity() instanceof ListResponse<?> list)) {
 			return;
 		}
-		if (ListExport.body(this.httpRequest) == null && list.results().size() > ListParams.exportMaxRows()) {
+		if (ListExport.body(this.httpRequest) == null && list.results().size() > this.lists.exportMaxRows()) {
 			throw NetshotException.invalidParameter(ListParams.LIMIT,
-				"The export can't have more than %d rows: filter the list or use limit and offset".formatted(ListParams.exportMaxRows()));
+				"The export can't have more than %d rows: filter the list or use limit and offset".formatted(this.lists.exportMaxRows()));
 		}
 		responseContext.setEntity(list, responseContext.getEntityAnnotations(), mediaType(format));
 		responseContext.getHeaders().putSingle(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"%s-%s.%s\"".formatted(

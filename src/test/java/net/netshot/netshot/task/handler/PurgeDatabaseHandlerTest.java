@@ -141,7 +141,7 @@ class PurgeDatabaseHandlerTest {
 	}
 
 	private static long count(String sql) {
-		return TestWiring.get().transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
+		return TestWiring.get().core().transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
 	}
 
 	private void assertDeviceCount(long expected) {
@@ -354,7 +354,8 @@ class PurgeDatabaseHandlerTest {
 	private void purge(int days, int configDays, int configSize, int configKeepDays, int moduleDays, Long groupId, List<Long> deviceIds) {
 		PurgeDatabaseTask spec = new PurgeDatabaseTask(groupId, deviceIds, days, configDays, configSize, configKeepDays, moduleDays, false);
 		Task task = Task.of(spec, "Test", "Global", "tester");
-		new PurgeDatabaseHandler(TestWiring.get().transactions()).run(task, spec, new TaskRun(task));
+		new PurgeDatabaseHandler(TestWiring.get().core().transactions(), TestWiring.get().core().repositories().task(),
+			TestWiring.get().core().repositories().binaryFiles()).run(task, spec, new TaskRun(task));
 	}
 
 	@Test

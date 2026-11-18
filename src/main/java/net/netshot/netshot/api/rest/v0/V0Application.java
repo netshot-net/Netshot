@@ -30,6 +30,7 @@ import com.fasterxml.jackson.jakarta.rs.json.JacksonXmlBindJsonProvider;
 import com.fasterxml.jackson.jakarta.rs.xml.JacksonXmlBindXMLProvider;
 import com.fasterxml.jackson.jakarta.rs.yaml.JacksonXmlBindYAMLProvider;
 
+import net.netshot.netshot.api.rest.ApiEndpoint;
 import net.netshot.netshot.api.rest.AuthenticationFilter;
 import net.netshot.netshot.api.rest.LoggerFilter;
 
@@ -46,8 +47,9 @@ public class V0Application extends ResourceConfig {
 	 * @param binder the dependency injection binder exposing the services (transactions, feature services)
 	 *        to the REST resources; given by the composition root ({@code boot.Wiring}), so that the
 	 *        REST channel does not depend on {@code boot}
+	 * @param api the path the API is served on and the name of the session cookie (for the OpenAPI document)
 	 */
-	public V0Application(AbstractBinder binder) {
+	public V0Application(AbstractBinder binder, ApiEndpoint api) {
 		// Resources (@Path classes) are discovered by scanning the package of the legacy API (v0) and its
 		// sub-packages. Filters, providers and the exception mapper are not
 		// annotated with @Provider and thus registered explicitly below, so that they cannot be
@@ -65,6 +67,12 @@ public class V0Application extends ResourceConfig {
 
 		// Dependency injection: the objects of the composition root, injectable into the resources
 		register(binder);
+		register(new AbstractBinder() {
+			@Override
+			protected void configure() {
+				bind(api).to(ApiEndpoint.class);
+			}
+		});
 
 		// JSON
 		JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();

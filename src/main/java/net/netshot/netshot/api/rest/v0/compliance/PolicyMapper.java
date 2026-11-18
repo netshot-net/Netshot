@@ -23,7 +23,6 @@ import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
-import net.netshot.netshot.compliance.PolicyView;
 import net.netshot.netshot.compliance.PolicyDefinition;
 
 /**

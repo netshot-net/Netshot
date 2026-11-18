@@ -18,7 +18,12 @@
  */
 package net.netshot.netshot.api.rest.v0.compliance;
 
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,8 +49,22 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.compliance.DeviceCheckResult;
+import net.netshot.netshot.compliance.Exemption;
+import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.device.DeviceSummary;
+import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The REST resource of the compliance rules (text and script rules): list, read, add, edit,
@@ -59,6 +78,8 @@ import net.netshot.netshot.driver.DriverRegistry;
 public class RuleResource {
 
 	private final RuleService ruleService;
+	private final PolicyService policyService;
+	private final SearchService searchService;
 	private final DriverRegistry driverRegistry;
 
 	@Context
@@ -68,11 +89,15 @@ public class RuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param ruleService the rule use cases
+	 * @param policyService the policy use cases (to check the policy of a rule of an unknown type, as v0 always did)
+	 * @param searchService the device search use cases
 	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public RuleResource(RuleService ruleService, DriverRegistry driverRegistry) {
+	public RuleResource(RuleService ruleService, PolicyService policyService, SearchService searchService, DriverRegistry driverRegistry) {
 		this.ruleService = ruleService;
+		this.policyService = policyService;
+		this.searchService = searchService;
 		this.driverRegistry = driverRegistry;
 	}
 
@@ -94,7 +119,9 @@ public class RuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public List<RuleSummaryDto> getRules(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, get rules.");
-		return RuleMapper.toSummaryDtos(this.ruleService.list(paginationParams.toPage()));
+		return RuleMapper.toSummaryDtos(this.ruleService.list(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(rule -> new RuleSummary(rule.id(), rule.name(), rule.getClass(), rule.enabled(), rule.policyId()))
+			.toList());
 	}
 
 	/**
@@ -118,7 +145,10 @@ public class RuleResource {
 		@BeanParam PaginationParams paginationParams,
 		@PathParam("id") @Parameter(description = "Policy ID") Long id) throws WebApplicationException {
 		log.debug("REST request, get rules for policy {}.", id);
-		return RuleMapper.toDtos(this.driverRegistry, this.ruleService.listOfPolicy(id, paginationParams.toPage()));
+		V0Errors.translate(() -> this.policyService.get(id),
+			V0Errors.code(ErrorCode.NETSHOT_POLICY_NOT_FOUND, ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy"));
+		return RuleMapper.toDtos(this.driverRegistry, this.ruleService.list(
+			V0Lists.query(paginationParams.toPage(), new Criterion("policy", Lookup.EXACT, List.of(id)))).items());
 	}
 
 	/**
@@ -143,7 +173,14 @@ public class RuleResource {
 		@PathParam("id") @Parameter(description = "Rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, get rule {}, policy {}.", id, pid);
-		return RuleMapper.toDto(this.driverRegistry, this.ruleService.getOfPolicy(pid, id));
+		V0Errors.translate(() -> this.policyService.get(pid),
+			V0Errors.code(ErrorCode.NETSHOT_POLICY_NOT_FOUND, ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unknown policy"));
+		Rule rule = V0Errors.translate(() -> this.ruleService.get(id),
+			V0Errors.code(ErrorCode.NETSHOT_RULE_NOT_FOUND, ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unknown rule"));
+		if (rule.policyId() != pid) {
+			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unknown rule");
+		}
+		return RuleMapper.toDto(this.driverRegistry, rule);
 	}
 
 	/**
@@ -165,9 +202,22 @@ public class RuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public RuleDto addRule(RuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add rule.");
-		RuleDto rule = RuleMapper.toDto(this.driverRegistry, this.ruleService.create(RuleMapper.toDefinition(rsRule)));
+		RuleDefinition definition = RuleMapper.toDefinition(rsRule);
+		if (definition.name() == null || definition.name().trim().isEmpty()) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
+		}
+		V0Errors.Translation invalidPolicy = V0Errors.code(ErrorCode.NETSHOT_POLICY_NOT_FOUND, ErrorCode.NETSHOT_INVALID_POLICY,
+			"Invalid policy.");
+		Rule newRule = RuleMapper.toNewRule(definition);
+		if (newRule == null) {
+			// The policy is checked before the type of rule
+			V0Errors.translate(() -> this.policyService.get(definition.policyId()), invalidPolicy);
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type.");
+		}
+		Rule added = V0Errors.translate(() -> this.ruleService.create(newRule),
+			V0Errors.target("policy", ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy."));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return rule;
+		return RuleMapper.toDto(this.driverRegistry, added);
 	}
 
 	/**
@@ -191,7 +241,11 @@ public class RuleResource {
 	public RuleDto setRule(@PathParam("id") @Parameter(description = "Rule ID") Long id, RuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit rule {}.", id);
-		return RuleMapper.toDto(this.driverRegistry, this.ruleService.update(id, RuleMapper.toDefinition(rsRule)));
+		RuleDefinition definition = RuleMapper.toDefinition(rsRule);
+		Rule rule = V0Errors.translate(() -> this.ruleService.update(id, existing -> RuleMapper.toReplacement(existing, definition), null),
+			V0Errors.code(ErrorCode.NETSHOT_RULE_NOT_FOUND, ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule."),
+			V0Errors.target("exemptions", ErrorCode.NETSHOT_INVALID_DEVICE, null));
+		return RuleMapper.toDto(this.driverRegistry, rule);
 	}
 
 	/**
@@ -212,7 +266,7 @@ public class RuleResource {
 	public void deleteRule(@PathParam("id") @Parameter(description = "Rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete rule {}.", id);
-		if (this.ruleService.delete(id)) {
+		if (V0Errors.found(() -> this.ruleService.delete(id, null), ErrorCode.NETSHOT_RULE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {
@@ -239,7 +293,8 @@ public class RuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public RuleTestResultDto testRule(RuleTestRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, rule test.");
-		return RuleMapper.toDto(this.ruleService.test(rsRule.device(), RuleMapper.toDefinition(rsRule)));
+		Rule rule = RuleMapper.toTestRule(RuleMapper.toDefinition(rsRule));
+		return RuleMapper.toDto(RuleMapper.toTestResult(() -> this.ruleService.test(rsRule.device(), rule)));
 	}
 
 	/**
@@ -262,7 +317,16 @@ public class RuleResource {
 	public List<ExemptedDeviceDto> getExemptedDevices(@BeanParam PaginationParams paginationParams,
 		@PathParam("id") @Parameter(description = "Rule ID") Long id) throws WebApplicationException {
 		log.debug("REST request, get exemptions for rule {}.", id);
-		return RuleMapper.toExemptedDtos(this.ruleService.listExemptedDevices(id, paginationParams.toPage()));
+		// An unknown rule has no exempted device
+		List<Exemption> exemptions = V0Lists.orEmpty(() -> this.ruleService.listExemptions(id, V0Lists.query(paginationParams.toPage())).items(),
+			ErrorCode.NETSHOT_RULE_NOT_FOUND);
+		Map<Long, DeviceSummary> devices = new HashMap<>();
+		if (!exemptions.isEmpty()) {
+			this.searchService.listDeviceSummaries(ListQuery.byIds(exemptions.stream().map(Exemption::deviceId).toList()), null).items()
+				.forEach(device -> devices.put(device.id(), device));
+		}
+		return RuleMapper.toExemptedDtos(exemptions.stream()
+			.map(exemption -> new ExemptedDevice(devices.get(exemption.deviceId()), date(exemption.expirationDate()))).toList());
 	}
 
 	/**
@@ -286,6 +350,25 @@ public class RuleResource {
 	public List<DeviceRuleResultDto> getDeviceComplianceResults(@BeanParam PaginationParams paginationParams,
 		@PathParam("id") @Parameter(description = "Device ID") Long id) throws WebApplicationException {
 		log.debug("REST request, get compliance results for device {}.", id);
-		return RuleMapper.toResultDtos(this.ruleService.listDeviceResults(id, paginationParams.toPage()));
+		// An unknown device has no compliance result
+		List<DeviceCheckResult> results = V0Lists.orEmpty(() -> this.ruleService.listDeviceResults(id,
+			V0Lists.sorted(paginationParams.toPage(), List.of(SortOrder.asc("policy")))).items(), ErrorCode.NETSHOT_DEVICE_NOT_FOUND);
+		Map<Long, String> ruleNames = new HashMap<>();
+		Map<Long, String> policyNames = new HashMap<>();
+		if (!results.isEmpty()) {
+			this.ruleService.list(ListQuery.byIds(results.stream().map(DeviceCheckResult::ruleId).collect(Collectors.toSet()))).items()
+				.forEach(rule -> ruleNames.put(rule.id(), rule.name()));
+			this.policyService.list(ListQuery.byIds(results.stream().map(DeviceCheckResult::policyId).collect(Collectors.toSet()))).items()
+				.forEach(policy -> policyNames.put(policy.id(), policy.name()));
+		}
+		return RuleMapper.toResultDtos(results.stream()
+			.map(result -> new DeviceRuleResult(result.ruleId(), ruleNames.get(result.ruleId()), result.policyId(),
+				policyNames.get(result.policyId()), result.result(), result.comment(), date(result.checkDate()),
+				date(result.exemptionExpirationDate())))
+			.toList());
+	}
+
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
 	}
 }

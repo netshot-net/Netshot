@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<SubList>
+  <item>
+    <description>Downlink</description>
+    <enabled>false</enabled>
+    <id>2</id>
+    <interfaceName>GigabitEthernet0/1</interfaceName>
+    <ip4Addresses>
+      <ip4Addresses>
+        <addressUsage>PRIMARY</addressUsage>
+        <ip>10.0.1.1</ip>
+        <prefixLength>25</prefixLength>
+      </ip4Addresses>
+    </ip4Addresses>
+    <ip6Addresses/>
+    <level3>true</level3>
+    <macAddress>0000.0000.0000</macAddress>
+    <virtualDevice/>
+    <vrfInstance>VRF2</vrfInstance>
+  </item>
+</SubList>

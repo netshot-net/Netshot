@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 
 /**
@@ -52,16 +52,16 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 	private final DriverRegistry driverRegistry;
 
 	/** The transaction support, for the device helpers. */
-	private final Transactions transactions;
+	private final DeviceReads reads;
 
 	/**
 	 * Builds the evaluator.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param transactions the transaction support, for the device helpers
+	 * @param reads the reads of the database, for the device helpers
 	 */
-	public TextRuleEvaluator(DriverRegistry driverRegistry, Transactions transactions) {
-		this.transactions = transactions;
+	public TextRuleEvaluator(DriverRegistry driverRegistry, DeviceReads reads) {
+		this.reads = reads;
 		this.driverRegistry = driverRegistry;
 	}
 
@@ -169,7 +169,7 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 		boolean matchAll = rule.matchAll();
 		Pattern pattern = compiled.pattern();
 		try {
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.transactions, device, null, taskContext, true);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.reads, device, null, taskContext, true);
 			String content = deviceHelper.get(field).toString();
 			content = content.replace("\r", "");
 			if (rule.normalize()) {

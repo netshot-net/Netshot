@@ -52,47 +52,47 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListFilters;
-import net.netshot.netshot.api.rest.v1.ListSchema;
-import net.netshot.netshot.api.rest.v1.export.ExportFormat;
-import net.netshot.netshot.api.rest.v1.export.ListExport;
-import net.netshot.netshot.inventory.device.DeviceSummary;
-import net.netshot.netshot.report.ReportExportSelection;
-import net.netshot.netshot.report.ReportService;
-import net.netshot.netshot.report.XlsxReportWriter;
 import net.netshot.netshot.api.rest.v1.ListParams;
-import net.netshot.netshot.platform.query.StatsRow;
-import net.netshot.netshot.platform.query.ListResult;
-import net.netshot.netshot.domain.DomainService;
-import net.netshot.netshot.api.rest.v1.group.GroupMapper;
-import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
-import net.netshot.netshot.api.rest.v1.StatsResponse;
-import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.Selection;
+import net.netshot.netshot.api.rest.v1.StatsParams;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
+import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
+import net.netshot.netshot.api.rest.v1.export.ExportFormat;
+import net.netshot.netshot.api.rest.v1.export.ListExport;
+import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.api.rest.v1.task.TaskDto;
 import net.netshot.netshot.api.rest.v1.task.TaskRequest;
 import net.netshot.netshot.api.rest.v1.task.TaskResponses;
 import net.netshot.netshot.api.rest.v1.task.TaskScheduling;
+import net.netshot.netshot.domain.DomainService;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.StatsRow;
+import net.netshot.netshot.report.ReportExportSelection;
+import net.netshot.netshot.report.ReportService;
+import net.netshot.netshot.report.XlsxReportWriter;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 @Path("/" + DeviceMapper.PATH)
 @Tag(name = "Devices", description = "Devices (network or security equipment)")
@@ -126,6 +126,10 @@ public class DeviceResource {
 	private final ScriptService scriptService;
 	private final ReportService reportService;
 	private final TaskResponses taskResponses;
+	private final ListParams lists;
+	private final DeviceMapper deviceMapper;
+	private final DomainMapper domainMapper;
+	private final GroupMapper groupMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -146,16 +150,21 @@ public class DeviceResource {
 	 * @param deviceCreationService the use case which adds a device
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
-	 * @param taskService the task use cases
 	 * @param groupService the group use cases
 	 * @param scriptService the saved script use cases
 	 * @param domainService the domain use cases
 	 * @param reportService the report use cases (the export of the devices as a workbook)
+	 * @param lists the reader of the list parameters
+	 * @param deviceMapper maps the device objects
+	 * @param domainMapper maps the domain objects
+	 * @param groupMapper maps the group objects
+	 * @param taskResponses builds the task responses
 	 */
 	@Inject
 	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, SearchService searchService,
-		DeviceRefs deviceRefs, TaskService taskService, GroupService groupService, ScriptService scriptService,
-		DomainService domainService, ReportService reportService) {
+		DeviceRefs deviceRefs, GroupService groupService, ScriptService scriptService, DomainService domainService,
+		ReportService reportService, ListParams lists, DeviceMapper deviceMapper, DomainMapper domainMapper, GroupMapper groupMapper,
+		TaskResponses taskResponses) {
 		this.deviceService = deviceService;
 		this.reportService = reportService;
 		this.groupService = groupService;
@@ -164,7 +173,11 @@ public class DeviceResource {
 		this.searchService = searchService;
 		this.deviceRefs = deviceRefs;
 		this.scriptService = scriptService;
-		this.taskResponses = new TaskResponses(taskService, groupService, deviceRefs);
+		this.taskResponses = taskResponses;
+		this.lists = lists;
+		this.deviceMapper = deviceMapper;
+		this.domainMapper = domainMapper;
+		this.groupMapper = groupMapper;
 	}
 
 	/**
@@ -191,7 +204,7 @@ public class DeviceResource {
 		if (this.uriInfo.getQueryParameters().containsKey(INCLUDE)) {
 			return this.exportWorkbook(query);
 		}
-		return list(this.searchService, this.deviceRefs, this.request, this.uriInfo, query, null);
+		return list(this.lists, this.searchService, this.deviceRefs, this.request, this.uriInfo, query, null);
 	}
 
 	/**
@@ -221,11 +234,11 @@ public class DeviceResource {
 				include.add(name);
 			}
 		}
-		ListQuery listQuery = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(), QUERY, INCLUDE);
+		ListQuery listQuery = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(), QUERY, INCLUDE);
 		ListResult<DeviceSummary> devices = this.searchService.listDeviceSummaries(listQuery, query);
-		if (devices.items().size() > ListParams.exportMaxRows()) {
+		if (devices.items().size() > this.lists.exportMaxRows()) {
 			throw NetshotException.invalidParameter(ListParams.LIMIT,
-				"The export can't have more than %d devices: filter the list or use limit and offset".formatted(ListParams.exportMaxRows()));
+				"The export can't have more than %d devices: filter the list or use limit and offset".formatted(this.lists.exportMaxRows()));
 		}
 		Set<Long> ids = new HashSet<>();
 		devices.items().forEach(device -> ids.add(device.id()));
@@ -237,7 +250,7 @@ public class DeviceResource {
 		ListExport.write(this.request, output -> {
 			SXSSFWorkbook workBook = new SXSSFWorkbook(100);
 			try {
-				this.reportService.export(selection, new XlsxReportWriter(workBook, Netshot.VERSION, userName));
+				this.reportService.export(selection, new XlsxReportWriter(workBook, BuildInfo.VERSION, userName));
 				workBook.write(output);
 			}
 			finally {
@@ -264,17 +277,18 @@ public class DeviceResource {
 	@ListFilters(ListSchema.DEVICES)
 	public StatsResponse getDeviceStats(
 		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query) {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(),
+		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(),
 			"createdDate", QUERY);
 		ListResult<StatsRow> rows = this.searchService.deviceStats(parsed.query(), parsed.stats(), query);
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
-			"mgmtDomain", DomainMapper.resolver(this.domainService),
-			"group", GroupMapper.resolver(this.groupService)));
+			"mgmtDomain", this.domainMapper.resolver(this.domainService),
+			"group", this.groupMapper.resolver(this.groupService)));
 	}
 
 	/**
 	 * Answers a page of devices (of the device list, or of a list of devices of another object).
 	 *
+	 * @param lists the reader of the list parameters
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
 	 * @param request the current request
@@ -284,15 +298,17 @@ public class DeviceResource {
 	 * @return the page of devices
 	 * @throws NetshotException if a parameter is invalid
 	 */
-	public static ListResponse<DeviceDto> list(SearchService searchService, DeviceRefs deviceRefs,
+	public static ListResponse<DeviceDto> list(ListParams lists, SearchService searchService, DeviceRefs deviceRefs,
 		HttpServletRequest request, UriInfo uriInfo, String query, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, ListSchema.DEVICES.schema(), QUERY);
+		ListQuery listQuery = lists.parse(params, ListSchema.DEVICES.schema(), QUERY);
 		Selection selection = Selection.of(params, DeviceDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, DeviceDto.class);
 		ListQuery scoped = scope == null ? listQuery : listQuery.and(scope);
+		String formattedQuery = searchService.formatQuery(query);
 		if (selection.onlyIncludes(DeviceDto.SUMMARY_PROPERTIES)) {
-			return ListResponse.of(uriInfo, listQuery, searchService.listDeviceSummaries(scoped, query), deviceRefs::toDto);
+			return ListResponse.of(uriInfo, listQuery, searchService.listDeviceSummaries(scoped, query), deviceRefs::toDto)
+				.withQuery(formattedQuery);
 		}
 		Set<Device.Part> parts = EnumSet.noneOf(Device.Part.class);
 		PART_PROPERTIES.forEach((part, property) -> {
@@ -301,7 +317,7 @@ public class DeviceResource {
 			}
 		});
 		ListResult<Device> devices = searchService.listDevices(scoped, query, parts);
-		return ListResponse.of(uriInfo, listQuery, devices, deviceRefs.mapper(devices.items()));
+		return ListResponse.of(uriInfo, listQuery, devices, deviceRefs.mapper(devices.items())).withQuery(formattedQuery);
 	}
 
 	/**
@@ -338,7 +354,7 @@ public class DeviceResource {
 	public TaskDto addDevice(DeviceCreationRequest deviceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		User user = (User) this.securityContext.getUserPrincipal();
-		Task task = this.deviceCreationService.create(DeviceMapper.toCreation(deviceRequest, user.username()));
+		Task task = this.deviceCreationService.create(this.deviceMapper.toCreation(deviceRequest, user.username()));
 		return this.taskResponses.accepted(this.request, this.uriInfo, task);
 	}
 
@@ -360,7 +376,8 @@ public class DeviceResource {
 		+ "With If-Match, the device must still be at the given version (ETag).")
 	public DeviceDto replaceDevice(@PathParam("id") @Parameter(description = "Device ID") long id, DeviceRequest deviceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Device device = this.deviceService.update(id, DeviceMapper.toChange(deviceRequest), V1Response.ifMatch(this.headers));
+		DeviceChange change = this.deviceMapper.toChange(deviceRequest);
+		Device device = this.deviceService.update(id, _ -> change, V1Response.ifMatch(this.headers));
 		return this.respond(device, Selection.of(this.uriInfo.getQueryParameters(), DeviceDto.class, Selection.View.FULL));
 	}
 
@@ -383,7 +400,7 @@ public class DeviceResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		Device device = this.deviceService.update(id, MergePatch.of(patch, this.headers.getMediaType(), DeviceRequest.class,
-			DeviceMapper::toRequest, DeviceMapper::toChange), V1Response.ifMatch(this.headers));
+			this.deviceMapper::toRequest, this.deviceMapper::toChange), V1Response.ifMatch(this.headers));
 		return this.respond(device, Selection.of(this.uriInfo.getQueryParameters(), DeviceDto.class, Selection.View.FULL));
 	}
 
@@ -399,9 +416,7 @@ public class DeviceResource {
 		+ "With If-Match, the device must still be at the given version (ETag).")
 	public void deleteDevice(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.deviceService.delete(id, V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
-		}
+		this.deviceService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 
@@ -497,8 +512,14 @@ public class DeviceResource {
 			if (script != null || driver != null) {
 				throw NetshotException.invalidParameter("savedScript", "Give either 'savedScript', or 'script' and 'deviceDriver'.");
 			}
-			DeviceJsScript saved = this.scriptService.get(scriptRunRequest.savedScript().id());
-			if (saved == null) {
+			DeviceJsScript saved;
+			try {
+				saved = this.scriptService.get(scriptRunRequest.savedScript().id());
+			}
+			catch (NetshotException e) {
+				if (e.getErrorCode() != ErrorCode.NETSHOT_SCRIPT_NOT_FOUND) {
+					throw e;
+				}
 				throw NetshotException.invalidParameter("savedScript", "The saved script doesn't exist.");
 			}
 			script = saved.script();

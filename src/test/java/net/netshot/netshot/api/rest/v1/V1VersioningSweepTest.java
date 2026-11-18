@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import jakarta.ws.rs.core.MediaType;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
 import net.netshot.netshot.api.rest.v1.compliance.HardwareRuleMapper;
 import net.netshot.netshot.api.rest.v1.compliance.HardwareRuleRequest;
 import net.netshot.netshot.api.rest.v1.compliance.PolicyMapper;
@@ -66,6 +67,8 @@ import net.netshot.netshot.api.rest.v1.vault.VaultInstanceMapper;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceRequest;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.RankedSoftwareRule;
+import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.testing.ApiTest;
@@ -73,10 +76,10 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.testing.api.v1.V1Client;
 import net.netshot.netshot.testing.api.v1.V1Client.Answer;
-import net.netshot.netshot.testing.api.v1.V1Resources;
+import net.netshot.netshot.testing.api.v1.V1Client;
 import net.netshot.netshot.testing.api.v1.V1Resources.Endpoint;
+import net.netshot.netshot.testing.api.v1.V1Resources;
 
 /**
  * Checks the versions of the v1 API on every object which can be changed, found by scanning the resources (an
@@ -249,35 +252,50 @@ class V1VersioningSweepTest {
 	}
 
 	private static Map<String, Change> changes() {
+		V1Links links = new V1Links("/api");
+		DomainMapper domainMapper = new DomainMapper(links);
+		GroupMapper groupMapper = new GroupMapper(links);
+		CredentialSetMapper credentialSetMapper = new CredentialSetMapper(links, domainMapper);
+		DeviceMapper deviceMapper = new DeviceMapper(links, credentialSetMapper, domainMapper, groupMapper);
+		VaultInstanceMapper vaultInstanceMapper = new VaultInstanceMapper(links);
+		DiagnosticMapper diagnosticMapper = new DiagnosticMapper(links);
+		ScriptMapper scriptMapper = new ScriptMapper(links);
+		HookMapper hookMapper = new HookMapper(links);
+		UserMapper userMapper = new UserMapper(links, new AuthMapper(links));
+		PolicyMapper policyMapper = new PolicyMapper(links);
+		RuleMapper ruleMapper = new RuleMapper(links);
+		HardwareRuleMapper hardwareRuleMapper = new HardwareRuleMapper(links);
 		Map<String, Change> changes = new LinkedHashMap<>();
-		changes.put("/devices/{id}", (w, id, wrap) -> w.deviceService().update(id,
-			unchanged(wrap, DeviceRequest.class, DeviceMapper::toRequest, DeviceMapper::toChange), null));
-		changes.put("/groups/{id}", (w, id, wrap) -> w.groupService().update(id,
-			unchanged(wrap, GroupRequest.class, GroupMapper::toRequest, GroupMapper::toDefinition), null));
-		changes.put("/domains/{id}", (w, id, wrap) -> w.domainService().update(id,
-			unchanged(wrap, DomainRequest.class, DomainMapper::toRequest, DomainMapper::toDefinition), null));
-		changes.put("/credential-sets/{id}", (w, id, wrap) -> w.credentialSetService().update(id,
-			unchanged(wrap, CredentialSetRequest.class, CredentialSetMapper::toRequest, CredentialSetMapper::toDefinition), null));
-		changes.put("/vault-instances/{id}", (w, id, wrap) -> w.vaultInstanceService().update(id,
-			unchanged(wrap, VaultInstanceRequest.class, VaultInstanceMapper::toRequest, VaultInstanceMapper::toDefinition), null));
-		changes.put("/diagnostics/{id}", (w, id, wrap) -> w.diagnosticService().update(id,
-			unchanged(wrap, DiagnosticRequest.class, DiagnosticMapper::toRequest, DiagnosticMapper::toDefinition), null));
-		changes.put("/scripts/{id}", (w, id, wrap) -> w.scriptService().update(id,
-			unchanged(wrap, ScriptRequest.class, ScriptMapper::toRequest, r -> ScriptMapper.toCreation(r, null)), null));
-		changes.put("/hooks/{id}", (w, id, wrap) -> w.hookService().update(id,
-			unchanged(wrap, HookRequest.class, HookMapper::toRequest, HookMapper::toHook), null));
-		changes.put("/users/{id}", (w, id, wrap) -> w.userService().update(id, "nobody",
-			unchanged(wrap, UserRequest.class, UserMapper::toRequest, UserMapper::toUpdate), null));
-		changes.put("/compliance/policies/{id}", (w, id, wrap) -> w.policyService().replace(id,
-			unchanged(wrap, PolicyRequest.class, PolicyMapper::toRequest, PolicyMapper::toDefinition), null));
-		changes.put("/compliance/rules/{id}", (w, id, wrap) -> w.ruleService().replace(id,
-			unchanged(wrap, RuleRequest.class, RuleMapper::toRequest, RuleMapper::toRule), null));
+		changes.put("/devices/{id}", (w, id, wrap) -> w.inventory().deviceService().update(id,
+			unchanged(wrap, DeviceRequest.class, deviceMapper::toRequest, deviceMapper::toChange), null));
+		changes.put("/groups/{id}", (w, id, wrap) -> w.inventory().groupService().update(id,
+			unchanged(wrap, GroupRequest.class, groupMapper::toRequest, groupMapper::toDefinition), null));
+		changes.put("/domains/{id}", (w, id, wrap) -> w.inventory().domainService().update(id,
+			unchanged(wrap, DomainRequest.class, domainMapper::toRequest, domainMapper::toDefinition), null));
+		changes.put("/credential-sets/{id}", (w, id, wrap) -> w.credentials().credentialSetService().update(id,
+			unchanged(wrap, CredentialSetRequest.class, credentialSetMapper::toRequest, credentialSetMapper::toDefinition), null));
+		changes.put("/vault-instances/{id}", (w, id, wrap) -> w.credentials().vaultInstanceService().update(id,
+			unchanged(wrap, VaultInstanceRequest.class, vaultInstanceMapper::toRequest, vaultInstanceMapper::toDefinition), null));
+		changes.put("/diagnostics/{id}", (w, id, wrap) -> w.inventory().diagnosticService().update(id,
+			unchanged(wrap, DiagnosticRequest.class, diagnosticMapper::toRequest, diagnosticMapper::toDefinition), null));
+		changes.put("/scripts/{id}", (w, id, wrap) -> w.inventory().scriptService().update(id,
+			unchanged(wrap, ScriptRequest.class, scriptMapper::toRequest, r -> scriptMapper.toDefinition(r, null)), null));
+		changes.put("/hooks/{id}", (w, id, wrap) -> w.api().hookService().update(id,
+			unchanged(wrap, HookRequest.class, hookMapper::toRequest, hookMapper::toHook), null));
+		changes.put("/users/{id}", (w, id, wrap) -> w.aaa().userService().update(id, "nobody",
+			unchanged(wrap, UserRequest.class, userMapper::toRequest, userMapper::toDefinition), null));
+		changes.put("/compliance/policies/{id}", (w, id, wrap) -> w.compliance().policyService().update(id,
+			unchanged(wrap, PolicyRequest.class, policyMapper::toRequest, policyMapper::toDefinition), null));
+		changes.put("/compliance/rules/{id}", (w, id, wrap) -> {
+			Function<Rule, Rule> same = unchanged(wrap, RuleRequest.class, ruleMapper::toRequest, ruleMapper::toRule);
+			w.compliance().ruleService().update(id, same.andThen(RuleService.Replacement::of), null);
+		});
 		changes.put("/compliance/software-rules/{id}", (w, id, wrap) -> {
 			Function<RankedSoftwareRule, RankedSoftwareRule> same = same(wrap);
-			w.softwareRuleService().replace(id, same.andThen(r -> new Replacement(r.rule(), null)), null);
+			w.compliance().softwareRuleService().update(id, same.andThen(r -> new Replacement(r.rule(), null)), null);
 		});
-		changes.put("/compliance/hardware-rules/{id}", (w, id, wrap) -> w.hardwareRuleService().replace(id,
-			unchanged(wrap, HardwareRuleRequest.class, HardwareRuleMapper::toRequest, HardwareRuleMapper::toRule), null));
+		changes.put("/compliance/hardware-rules/{id}", (w, id, wrap) -> w.compliance().hardwareRuleService().update(id,
+			unchanged(wrap, HardwareRuleRequest.class, hardwareRuleMapper::toRequest, hardwareRuleMapper::toRule), null));
 		return changes;
 	}
 
@@ -299,7 +317,7 @@ class V1VersioningSweepTest {
 			AtomicReference<Thread> concurrent = new AtomicReference<>();
 			entry.getValue().run(TestWiring.get(), id, change -> current -> {
 				// Another transaction tries to change the object while it is being changed
-				Thread thread = new Thread(() -> TestWiring.get().transactions().run(dsl ->
+				Thread thread = new Thread(() -> TestWiring.get().core().transactions().run(dsl ->
 					dsl.execute("update \"%s\" set version = version + 1 where id = %d".formatted(table, id))));
 				thread.start();
 				try {

@@ -1,0 +1,16 @@
+{
+  "anyBlock": true,
+  "context": "",
+  "deviceDriver": "CiscoIOS12",
+  "deviceDriverDescription": "Cisco IOS and IOS-XE",
+  "enabled": true,
+  "field": "runningConfig",
+  "id": 5,
+  "invert": true,
+  "matchAll": false,
+  "name": "New text rule renamed",
+  "normalize": true,
+  "regExp": true,
+  "text": "ntp server .*",
+  "type": "TextRule"
+}

@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.userscript;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
@@ -32,6 +33,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
@@ -53,7 +55,7 @@ class ScriptServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new ScriptService(this.transactions, new ScriptRepository(), TestDrivers.registry());
 	}
 
@@ -67,8 +69,8 @@ class ScriptServiceTest {
 		return exception;
 	}
 
-	private ScriptCreation creation(String name) {
-		return new ScriptCreation(name, "CiscoIOS12", SCRIPT, "tester", "Folder");
+	private ScriptDefinition creation(String name) {
+		return new ScriptDefinition(name, "CiscoIOS12", SCRIPT, "tester", "Folder");
 	}
 
 	private long count() {
@@ -97,7 +99,7 @@ class ScriptServiceTest {
 	@Test
 	@DisplayName("create() keeps a null folder as posted")
 	void createNullFolder() {
-		DeviceJsScript script = this.service.create(new ScriptCreation(this.name("No folder"), "CiscoIOS12", SCRIPT, "tester", null));
+		DeviceJsScript script = this.service.create(new ScriptDefinition(this.name("No folder"), "CiscoIOS12", SCRIPT, "tester", null));
 		Assertions.assertNull(script.folder());
 	}
 
@@ -117,17 +119,17 @@ class ScriptServiceTest {
 	void createErrors() {
 		long before = this.count();
 		NetshotException driver = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation(null, "NoSuchDriver", null, "tester", "")));
+			() -> this.service.create(new ScriptDefinition(null, "NoSuchDriver", null, "tester", "")));
 		Assertions.assertEquals("Invalid driver name.", driver.getMessage());
-		assertError(ErrorCode.NETSHOT_INVALID_SCRIPT, () -> this.service.create(new ScriptCreation(null, null, SCRIPT, "tester", "")));
+		assertError(ErrorCode.NETSHOT_INVALID_SCRIPT, () -> this.service.create(new ScriptDefinition(null, null, SCRIPT, "tester", "")));
 		NetshotException blank = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation("  ", "CiscoIOS12", null, "tester", "")));
+			() -> this.service.create(new ScriptDefinition("  ", "CiscoIOS12", null, "tester", "")));
 		Assertions.assertEquals("Invalid script name.", blank.getMessage());
 		NetshotException empty = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation(this.name("Empty"), "CiscoIOS12", null, "tester", "")));
+			() -> this.service.create(new ScriptDefinition(this.name("Empty"), "CiscoIOS12", null, "tester", "")));
 		Assertions.assertEquals("The script content can't be empty.", empty.getMessage());
 		NetshotException syntax = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation(this.name("Syntax"), "CiscoIOS12", "function run( {", "tester", "")));
+			() -> this.service.create(new ScriptDefinition(this.name("Syntax"), "CiscoIOS12", "function run( {", "tester", "")));
 		Assertions.assertTrue(syntax.getMessage().contains("SyntaxError"), syntax.getMessage());
 		Assertions.assertEquals(before, this.count(), "nothing was stored");
 	}
@@ -138,36 +140,35 @@ class ScriptServiceTest {
 		String name = this.name("Duplicate");
 		this.service.create(this.creation(name));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_SCRIPT, () -> this.service.create(this.creation(name)));
-		this.service.create(new ScriptCreation(name, "CiscoIOS12", SCRIPT, "tester", "Other folder"));
+		this.service.create(new ScriptDefinition(name, "CiscoIOS12", SCRIPT, "tester", "Other folder"));
 	}
 
 	@Test
-	@DisplayName("get() returns null for an unknown script")
+	@DisplayName("get() reports an unknown script")
 	void getUnknown() {
-		Assertions.assertNull(this.service.get(99999999L));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.get(99999999L));
 	}
 
 	@Test
-	@DisplayName("list() returns the scripts without their content, applies the page, and does not blank the stored scripts")
+	@DisplayName("list() returns the scripts with their content, and applies the page")
 	void list() {
 		DeviceJsScript first = this.service.create(this.creation(this.name("Listed")));
 		this.service.create(this.creation(this.name("Listed")));
-		var listed = this.service.list(Page.ALL);
+		var listed = this.service.list(ListQuery.ALL).items();
 		Assertions.assertTrue(listed.size() >= 2);
 		DeviceJsScript item = listed.stream().filter(s -> s.id() == first.id()).findFirst().orElseThrow();
-		Assertions.assertNull(item.script());
+		Assertions.assertEquals(SCRIPT, item.script());
 		Assertions.assertEquals(first.name(), item.name());
-		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(SCRIPT, this.service.get(first.id()).script(), "the stored script is untouched");
+		Assertions.assertEquals(1, this.service.list(new ListQuery(List.of(), null, List.of(), new Page(0, 1), false)).items().size());
 	}
 
 	@Test
 	@DisplayName("delete() removes the script, and reports an unknown script")
 	void delete() {
 		DeviceJsScript script = this.service.create(this.creation(this.name("To delete")));
-		this.service.delete(script.id());
-		Assertions.assertNull(this.service.get(script.id()));
-		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(script.id()));
-		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(99999999L));
+		this.service.delete(script.id(), null);
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.get(script.id()));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(script.id(), null));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(99999999L, null));
 	}
 }

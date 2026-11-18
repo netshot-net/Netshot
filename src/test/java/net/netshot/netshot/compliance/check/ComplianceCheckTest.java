@@ -32,7 +32,6 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.Policy;
@@ -45,6 +44,7 @@ import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the compliance check components: the registry of the rule evaluators
@@ -58,7 +58,7 @@ class ComplianceCheckTest {
 
 	@BeforeAll
 	static void init() throws Exception {
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(), null);
 	}
 
 	@SuppressWarnings("unchecked")

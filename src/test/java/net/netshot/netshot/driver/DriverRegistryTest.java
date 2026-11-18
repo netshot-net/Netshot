@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
 
 @ScriptEngineTest
@@ -52,7 +52,7 @@ class DriverRegistryTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.drivers.path", this.driversFolder.toString());
 		TestConfig.init(config);
-		this.registry = new DriverRegistry(new DriverLoader());
+		this.registry = new DriverRegistry(new DriverLoader(TestConfig.store()));
 	}
 
 	@AfterEach
@@ -78,6 +78,7 @@ class DriverRegistryTest {
 		Assertions.assertEquals("", this.registry.getAllDriverHash());
 		Assertions.assertEquals(0L, this.registry.stats().get("loads"));
 		Assertions.assertNull(this.registry.getDriverByName(BUNDLED_DRIVER));
+		Assertions.assertFalse(this.registry.isHealthy(), "Healthy without loaded drivers");
 	}
 
 	@Test
@@ -85,6 +86,7 @@ class DriverRegistryTest {
 	void lookups() throws Exception {
 		this.writeUserDriver("1.0");
 		this.registry.start();
+		Assertions.assertTrue(this.registry.isHealthy(), "Unhealthy with loaded drivers");
 		Assertions.assertEquals(1L, this.registry.stats().get("loads"));
 		Assertions.assertEquals(this.registry.getAllDrivers().size(), this.registry.stats().get("drivers"));
 		Assertions.assertNotNull(this.registry.stats().get("lastLoad"));

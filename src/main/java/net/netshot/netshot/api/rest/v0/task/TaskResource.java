@@ -19,8 +19,15 @@
 package net.netshot.netshot.api.rest.v0.task;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,13 +56,19 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.NetshotNotAuthorizedException;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.TaskFilter;
 import net.netshot.netshot.task.TaskService;
+import net.netshot.netshot.task.type.TaskSpec;
 
 /**
  * The REST resource of the tasks: list, read, create, cancel, debug log and statistics, and the
@@ -68,6 +81,13 @@ import net.netshot.netshot.task.TaskService;
 @Path("/")
 @Slf4j
 public class TaskResource {
+
+	/** The names of the types of task. */
+	private static final Set<String> TYPE_NAMES = Arrays.stream(TaskSpec.class.getPermittedSubclasses())
+		.map(Class::getSimpleName).collect(Collectors.toSet());
+
+	/** The final (completed) statuses, the ones of the statistics. */
+	private static final List<Task.Status> FINAL_STATUSES = List.of(Task.Status.SUCCESS, Task.Status.FAILURE, Task.Status.CANCELLED);
 
 	private final TaskService taskService;
 	private final DriverRegistry driverRegistry;
@@ -121,7 +141,11 @@ public class TaskResource {
 	public List<TaskSummaryDto> getDeviceTasks(@PathParam("id") @Parameter(description = "Device ID") Long id,
 		@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, get device {} tasks.", id);
-		return TaskMapper.toSummaryDtos(this.taskService.listByDevice(id, paginationParams.getOffset(), paginationParams.getLimit()));
+		// As before, any failure (even an invalid window) is reported as a database access error
+		return TaskMapper.toSummaryDtos(V0Errors.translate(() -> this.taskService.listSummaries(V0Lists.sorted(
+			window(paginationParams.getOffset(), paginationParams.getLimit()), List.of(SortOrder.asc("activity"), SortOrder.desc("date"),
+				SortOrder.desc("id")), new Criterion("device", Lookup.EXACT, List.of(id)))).items(),
+			V0Errors.code(null, ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks")));
 	}
 
 	/**
@@ -141,10 +165,8 @@ public class TaskResource {
 	@Tag(name = "Tasks", description = "Task management")
 	public TaskDto getTask(@PathParam("id") @Parameter(description = "Task ID") Long id) {
 		log.debug("REST request, get task {}", id);
-		Task task = this.taskService.find(id);
-		if (task == null) {
-			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found.");
-		}
+		Task task = V0Errors.translate(() -> this.taskService.get(id),
+			V0Errors.code(ErrorCode.NETSHOT_TASK_NOT_FOUND, ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found."));
 		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
@@ -203,7 +225,31 @@ public class TaskResource {
 		@QueryParam("parentTaskId") @Parameter(description = "Only include child tasks of the given parent task ID") Long parentTaskId) {
 		log.debug("REST request, get tasks.");
 		Page page = paginationParams.toPage();
-		return TaskMapper.toSummaryDtos(this.taskService.list(new TaskFilter(statuses, types, startDate, endDate, parentTaskId), page));
+		List<Criterion> criteria = new ArrayList<>();
+		if (statuses != null && !statuses.isEmpty()) {
+			criteria.add(new Criterion("status", Lookup.EXACT, statuses.stream().map(status -> (Object) status.name()).toList()));
+		}
+		if (types != null && !types.isEmpty()) {
+			// The unknown type names are ignored
+			List<Object> known = types.stream().filter(TYPE_NAMES::contains).map(type -> (Object) type).toList();
+			if (known.isEmpty()) {
+				return new ArrayList<>();
+			}
+			criteria.add(new Criterion("type", Lookup.EXACT, known));
+		}
+		if (startDate != null) {
+			criteria.add(new Criterion("date", Lookup.GTE, List.of(Instant.ofEpochMilli(startDate))));
+		}
+		if (endDate != null) {
+			criteria.add(new Criterion("date", Lookup.LTE, List.of(Instant.ofEpochMilli(endDate))));
+		}
+		List<SortOrder> sort = List.of();
+		if (parentTaskId != null) {
+			criteria.add(new Criterion("parentTask", Lookup.EXACT, List.of(parentTaskId)));
+			sort = List.of(SortOrder.asc("childOrder"));
+		}
+		return TaskMapper.toSummaryDtos(this.taskService.listSummaries(V0Lists.sorted(window(page.offset(), page.limit()), sort,
+			criteria.toArray(Criterion[]::new))).items());
 	}
 
 	/**
@@ -227,7 +273,11 @@ public class TaskResource {
 	public TaskDto setTask(@PathParam("id") @Parameter(description = "Task ID") Long id, TaskRequest rsTask)
 		throws WebApplicationException {
 		log.debug("REST request, edit task {}.", id);
-		return TaskMapper.toDto(this.driverRegistry, this.taskService.update(id, rsTask.isCancelled(), this.getUsername()));
+		// Cancelling is the only change; without it, the task is returned as it is
+		Task task = rsTask.isCancelled() ? this.taskService.cancel(id, this.getUsername())
+			: V0Errors.translate(() -> this.taskService.get(id),
+				V0Errors.code(ErrorCode.NETSHOT_TASK_NOT_FOUND, ErrorCode.NETSHOT_TASK_NOT_FOUND, "Unable to find the task."));
+		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	/**
@@ -278,7 +328,7 @@ public class TaskResource {
 		@QueryParam("buckets") @Parameter(description = "Number of time buckets to split the range into") Integer buckets)
 		throws WebApplicationException {
 		log.debug("REST request, get task stats.");
-		return TaskMapper.toDto(this.taskService.getStats(startDate, endDate, buckets));
+		return TaskMapper.toDto(this.stats(startDate, endDate, buckets));
 	}
 
 	/**
@@ -323,5 +373,47 @@ public class TaskResource {
 				throw new NetshotNotAuthorizedException("Insufficient permissions to purge database.", 0);
 			}
 		}
+	}
+
+	// The window of a v0 task list: at most DEFAULT_LIMIT tasks unless a limit is given
+	private static Page window(Integer offset, Integer limit) {
+		return new Page(offset, limit == null ? TaskService.DEFAULT_LIMIT : limit);
+	}
+
+	// The completed tasks of a range, counted by status in equal buckets, and by status and type over the range
+	private TaskStats stats(Long after, Long before, Integer buckets) {
+		long from = after == null ? 0L : after;
+		long to = before == null ? System.currentTimeMillis() : before;
+		int binCount = buckets == null ? 48 : Math.max(1, Math.min(366, buckets));
+		double step = ((double) Math.max(1L, to - from)) / binCount;
+		Map<Task.Status, Long> statusCounts = new HashMap<>();
+		FINAL_STATUSES.forEach(status -> statusCounts.put(status, 0L));
+		List<TaskStats.Bin> bins = new ArrayList<>();
+		for (int i = 0; i < binCount; i++) {
+			Instant bucketStart = Instant.ofEpochMilli(from + Math.round(i * step));
+			Instant bucketEnd = Instant.ofEpochMilli(i == binCount - 1 ? to : from + Math.round((i + 1) * step));
+			Map<Task.Status, Long> countByStatus = new HashMap<>();
+			FINAL_STATUSES.forEach(status -> countByStatus.put(status, 0L));
+			for (StatsRow row : this.count("status", bucketStart, bucketEnd)) {
+				Task.Status status = Task.Status.valueOf(row.keys().get(0).toString());
+				countByStatus.put(status, row.count());
+				statusCounts.merge(status, row.count(), Long::sum);
+			}
+			bins.add(new TaskStats.Bin(Date.from(bucketStart), Date.from(bucketEnd), countByStatus));
+		}
+		Map<String, Long> typeCounts = new HashMap<>();
+		TYPE_NAMES.forEach(type -> typeCounts.put(type, 0L));
+		for (StatsRow row : this.count("type", Instant.ofEpochMilli(from), Instant.ofEpochMilli(to))) {
+			typeCounts.put(row.keys().get(0).toString(), row.count());
+		}
+		return new TaskStats(bins, statusCounts, typeCounts);
+	}
+
+	// Counts the completed tasks dated in a range (the execution date, or the change date if not run), by a field
+	private List<StatsRow> count(String field, Instant start, Instant end) {
+		return this.taskService.stats(V0Lists.query(Page.ALL,
+			new Criterion("status", Lookup.EXACT, FINAL_STATUSES.stream().map(status -> (Object) status.name()).toList()),
+			new Criterion("date", Lookup.GTE, List.of(start)), new Criterion("date", Lookup.LT, List.of(end))),
+			new StatsQuery(List.of(field), null, null, null, null, null)).items();
 	}
 }

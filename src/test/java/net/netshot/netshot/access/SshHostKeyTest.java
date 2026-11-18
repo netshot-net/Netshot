@@ -49,14 +49,15 @@ import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * The verification of the SSH host keys on real connections, against an SSH server on the loopback interface
@@ -151,7 +152,7 @@ class SshHostKeyTest {
 	}
 
 	private static Ssh ssh(int port, String password, DeviceHostKeyVerifier verifier) {
-		Ssh ssh = new Ssh(TestConnectors.sshClient(), "127.0.0.1", port, "admin", password, new FakeTaskContext());
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1", port, "admin", password, new FakeTaskContext());
 		ssh.setConnectionTimeout(5000);
 		ssh.setHostKeyVerifier(verifier);
 		return ssh;
@@ -226,6 +227,22 @@ class SshHostKeyTest {
 		IOException sftp = Assertions.assertThrows(IOException.class,
 			() -> ssh.sftpDownload("/etc/config", new ByteArrayOutputStream(), true));
 		Assertions.assertTrue(sftp.getMessage().startsWith("SSH host key verification failed: "), sftp.getMessage());
+	}
+
+	@Test
+	@DisplayName("The negotiation of the first key exchange is traced")
+	void tracesNegotiation() throws IOException {
+		FakeTaskContext context = new FakeTaskContext();
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1",
+			this.startServer(HOST_KEY), "admin", "good", context);
+		ssh.setConnectionTimeout(5000);
+		try {
+			ssh.connect(false);
+		}
+		finally {
+			ssh.disconnect();
+		}
+		Assertions.assertTrue(context.getLog().contains("SSH Protocol Negotiation Results:"), context.getLog());
 	}
 
 	@Test

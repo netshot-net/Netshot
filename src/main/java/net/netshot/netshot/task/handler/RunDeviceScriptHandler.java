@@ -27,8 +27,8 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
@@ -47,7 +47,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 	private final TaskSubmitter taskSubmitter;
 	/** The transaction support. */
 	private final Transactions transactions;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
@@ -62,13 +62,16 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
+	 * @param deviceRepository the device repository
 	 */
-	public RunDeviceScriptHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors) {
+	public RunDeviceScriptHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors,
+		DeviceRepository deviceRepository) {
 		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
+		this.deviceRepository = deviceRepository;
 	}
 
 	@Override

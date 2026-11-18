@@ -35,13 +35,12 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListFilters;
+import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
-import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.task.TaskService;
@@ -56,6 +55,8 @@ public class DeviceTaskResource {
 	private final DeviceCatalogService deviceCatalogService;
 	private final TaskService taskService;
 	private final TaskResponses responses;
+	private final ListParams lists;
+	private final TaskMapper taskMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -68,15 +69,18 @@ public class DeviceTaskResource {
 	 *
 	 * @param deviceCatalogService the device sub-resource use cases (to check that the device exists)
 	 * @param taskService the task use cases
-	 * @param groupService the group use cases
-	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
+	 * @param responses builds the task responses
+	 * @param taskMapper maps the task objects
 	 */
 	@Inject
-	public DeviceTaskResource(DeviceCatalogService deviceCatalogService, TaskService taskService, GroupService groupService,
-		DeviceRefs deviceRefs) {
+	public DeviceTaskResource(DeviceCatalogService deviceCatalogService, TaskService taskService, ListParams lists,
+		TaskResponses responses, TaskMapper taskMapper) {
 		this.deviceCatalogService = deviceCatalogService;
 		this.taskService = taskService;
-		this.responses = new TaskResponses(taskService, groupService, deviceRefs);
+		this.responses = responses;
+		this.lists = lists;
+		this.taskMapper = taskMapper;
 	}
 
 	/**
@@ -93,7 +97,7 @@ public class DeviceTaskResource {
 	@ListFilters(ListSchema.TASKS)
 	public ListResponse<TaskDto> listDeviceTasks(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
-		return TaskResource.list(this.taskService, this.responses, this.request, this.uriInfo,
+		return TaskResource.list(this.lists, this.taskMapper, this.taskService, this.responses, this.request, this.uriInfo,
 			new Criterion("device", Lookup.EXACT, List.of(id)));
 	}
 }

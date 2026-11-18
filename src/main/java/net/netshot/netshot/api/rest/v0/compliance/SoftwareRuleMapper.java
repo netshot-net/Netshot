@@ -23,8 +23,6 @@ import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.compliance.SoftwareRuleDefinition;
-import net.netshot.netshot.compliance.SoftwareRuleView;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 
@@ -102,5 +100,19 @@ public final class SoftwareRuleMapper {
 			request.partNumber(),
 			request.partNumberRegExp(),
 			request.level());
+	}
+
+	/**
+	 * Builds the software rule to add or to replace from a request, as the v0 API always did: an unknown driver is
+	 * taken for no driver (any driver). Its priority is given by the service.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param definition the request
+	 * @return the rule
+	 */
+	public static SoftwareRule toRule(DriverRegistry driverRegistry, SoftwareRuleDefinition definition) {
+		return new SoftwareRule(0, 0, null, 0, definition.groupId(), TargetGroups.knownDriver(driverRegistry, definition.driver()),
+			definition.family(), definition.familyRegExp(), definition.softwareVersion(), definition.softwareVersionRegExp(),
+			definition.partNumber(), definition.partNumberRegExp(), definition.level());
 	}
 }

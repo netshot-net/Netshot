@@ -1,15 +1,13 @@
-HashicorpVaultKv2Instance
+VaultInstanceDefinition
 appRoleId=rid
 appRoleMountPath=ar
-appRoleSecretId=rsec
+appRoleSecretId=Local[value=rsec]
 authMethod=JWT
 baseUrl=https://v
-changeDate=null
 httpsCaTrustMode=CUSTOM_CA
 httpsCustomCaCertificate=PEM
-id=9
 jwtClientId=cid
-jwtClientSecret=csec
+jwtClientSecret=Local[value=csec]
 jwtIdpTokenEndpoint=https://idp
 jwtMountPath=jw
 jwtScope=scp
@@ -17,4 +15,3 @@ jwtVaultRole=role
 kvMountPath=kv2
 name=full
 namespace=ns
-version=0

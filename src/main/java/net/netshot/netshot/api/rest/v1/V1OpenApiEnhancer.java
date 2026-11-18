@@ -70,6 +70,9 @@ import net.netshot.netshot.platform.query.QuerySchema;
  */
 final class V1OpenApiEnhancer {
 
+	/** The name of the schema of the devices, whose lists can have a search query. */
+	private static final String DEVICE_SCHEMA = "Device";
+
 	/** The extension listing the properties of the brief view of a representation. */
 	static final String BRIEF_EXTENSION = "x-netshot-brief";
 
@@ -127,6 +130,9 @@ final class V1OpenApiEnhancer {
 			Schema<?> schema = schemas.get(answer.getKey());
 			if (schema != null) {
 				complete(schema, answer.getValue());
+				if (answer.getValue() == ListResponse.class) {
+					listQuery(schema, answer.getKey());
+				}
 				if (answer.getValue() != ListResponse.class && DtoModel.isModel(answer.getValue())) {
 					schema.addExtension(BRIEF_EXTENSION, List.copyOf(DtoModel.of(answer.getValue()).briefNames()));
 				}
@@ -186,6 +192,22 @@ final class V1OpenApiEnhancer {
 			for (JsonSubTypes.Type subType : subTypes.value()) {
 				collect(subType.value(), answers, polymorphic, seen);
 			}
+		}
+	}
+
+	/**
+	 * Keeps the search query of the lists only in the device lists, where it is optional (written when given).
+	 *
+	 * @param schema the schema of a list
+	 * @param name the name of the schema
+	 */
+	@SuppressWarnings("rawtypes")
+	private static void listQuery(Schema schema, String name) {
+		if (schema.getRequired() != null) {
+			schema.getRequired().remove("query");
+		}
+		if (!("ListResponse" + DEVICE_SCHEMA).equals(name) && schema.getProperties() != null) {
+			schema.getProperties().remove("query");
 		}
 	}
 

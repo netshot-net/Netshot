@@ -60,7 +60,7 @@ public @interface DatabaseTest {
 		MANUAL,
 		/** The configuration points at the database of the class, already migrated (copied from the template). */
 		MIGRATED,
-		/** As {@link #MIGRATED}, plus the wiring ({@code Wiring.init}) with the test drivers. */
+		/** As {@link #MIGRATED}, plus the application ({@code Application.create} with the test drivers, its database access started). */
 		WIRED
 	}
 

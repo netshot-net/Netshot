@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicLongArray;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.servlet.ServletContainer;
 
 import io.undertow.Handlers;
@@ -53,10 +52,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.api.rest.v0.V0Application;
 import net.netshot.netshot.api.rest.v1.V1Application;
 import net.netshot.netshot.api.rest.v1.V1Links;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.lifecycle.Service;
 
@@ -96,30 +94,50 @@ public final class RestServer implements Service {
 	static final Setting<Boolean> SECURE_COOKIE = Setting.bool("netshot.http.securecookie").restart();
 
 	/**
-	 * Gets the path the REST API is served on.
+	 * The settings of the server, read when it starts.
 	 *
-	 * @return the path, e.g. {@code /api}
+	 * @param address the address the server listens on, and whether it serves HTTPS
+	 * @param keystore the keystore of the HTTPS certificate (null with plain HTTP)
+	 * @param staticPath the path the web UI is served on
+	 * @param api the path the REST API is served on, and the name of the session cookie
+	 * @param v0Enabled whether the legacy (v0) REST API is served
+	 * @param secureCookie whether the session cookie is marked as Secure, null for the default (with HTTPS, or behind a
+	 *        reverse proxy)
 	 */
-	public static String apiPath() {
-		return Netshot.config().current().get(API_PATH);
+	public record Settings(HttpServerAddress address, Keystore keystore, String staticPath, ApiEndpoint api, boolean v0Enabled,
+			Boolean secureCookie) {
+
+		/**
+		 * Reads the settings from a configuration.
+		 *
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		public static Settings from(Config config) {
+			HttpServerAddress address = HttpServerAddress.from(config);
+			Keystore keystore = address.useSsl() ? new Keystore(config.get(KEYSTORE_FILE), config.get(KEYSTORE_PASS)) : null;
+			return new Settings(address, keystore, config.get(STATIC_PATH),
+				new ApiEndpoint(config.get(API_PATH), config.get(SESSION_COOKIE_NAME)), config.get(V0_ENABLED), config.get(SECURE_COOKIE));
+		}
 	}
 
 	/**
-	 * Gets the name of the session cookie.
+	 * The keystore of the HTTPS certificate.
 	 *
-	 * @return the name of the cookie
+	 * @param file the keystore file (JKS if its name ends with {@code .jks}, PKCS12 otherwise)
+	 * @param password the password of the keystore
 	 */
-	public static String sessionCookieName() {
-		return Netshot.config().current().get(SESSION_COOKIE_NAME);
+	public record Keystore(String file, String password) {
+
+		@Override
+		public String toString() {
+			return "Keystore[file=%s, password=***]".formatted(this.file);
+		}
 	}
 
-	private URI httpBaseUri;
-	private boolean httpUseSsl;
-	private String httpSslKeystoreFile;
-	private String httpSslKeystorePass;
-
-	/** The dependency injection binder for the web application. */
-	private final AbstractBinder binder;
+	/** What the resources of the web applications may inject. */
+	private final RestDependencies dependencies;
+	private final ConfigStore config;
 
 	/** The number of handled requests. */
 	private final AtomicLong requests = new AtomicLong();
@@ -139,11 +157,18 @@ public final class RestServer implements Service {
 	/**
 	 * Creates the server.
 	 *
-	 * @param binder the dependency injection binder exposing the services to the REST resources
+	 * @param dependencies what the resources of the web applications may inject
 	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
+	 * @param config the configuration store
 	 */
-	public RestServer(AbstractBinder binder) {
-		this.binder = binder;
+	public RestServer(RestDependencies dependencies, ConfigStore config) {
+		this.dependencies = dependencies;
+		this.config = config;
+	}
+
+	@Override
+	public String id() {
+		return "rest-server";
 	}
 
 	@Override
@@ -153,67 +178,61 @@ public final class RestServer implements Service {
 
 	@Override
 	public synchronized void start() throws Exception {
-		HttpServerAddress address = HttpServerAddress.fromConfig();
-		this.httpBaseUri = address.baseUri();
-		httpUseSsl = address.useSsl();
-		if (httpUseSsl) {
-			httpSslKeystoreFile = Netshot.config().current().get(KEYSTORE_FILE);
-			httpSslKeystorePass = Netshot.config().current().get(KEYSTORE_PASS);
-		}
+		Settings settings = Settings.from(this.config.current());
+		URI baseUri = settings.address().baseUri();
+		boolean useSsl = settings.address().useSsl();
 		Undertow.Builder builder = Undertow.builder()
 			.setServerOption(UndertowOptions.ENABLE_HTTP2, true);
 
 		// === SSL Setup ===
-		if (httpUseSsl) {
+		if (useSsl) {
+			Keystore keystore = settings.keystore();
 			KeyStore keyStore = KeyStore.getInstance(
-				httpSslKeystoreFile.endsWith(".jks") ? "JKS" : "PKCS12"
+				keystore.file().endsWith(".jks") ? "JKS" : "PKCS12"
 			);
-			try (InputStream is = new FileInputStream(httpSslKeystoreFile)) {
-				keyStore.load(is, httpSslKeystorePass.toCharArray());
+			try (InputStream is = new FileInputStream(keystore.file())) {
+				keyStore.load(is, keystore.password().toCharArray());
 			}
 			KeyManagerFactory kmf = KeyManagerFactory.getInstance(
 				KeyManagerFactory.getDefaultAlgorithm()
 			);
-			kmf.init(keyStore, httpSslKeystorePass.toCharArray());
+			kmf.init(keyStore, keystore.password().toCharArray());
 
 			SSLContext sslContext = SSLContext.getInstance("TLS");
 			sslContext.init(kmf.getKeyManagers(), null, null);
 
-			builder.addHttpsListener(httpBaseUri.getPort(), httpBaseUri.getHost(), sslContext);
+			builder.addHttpsListener(baseUri.getPort(), baseUri.getHost(), sslContext);
 		}
 		else {
-			builder.addHttpListener(httpBaseUri.getPort(), httpBaseUri.getHost());
+			builder.addHttpListener(baseUri.getPort(), baseUri.getHost());
 		}
 
 		// === Session cookie ===
 		// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
-		Config config = Netshot.config().current();
-		boolean behindProxy = config.get(LoggerFilter.TRUST_X_FORWARDED_FOR);
-		Boolean configuredSecureCookie = config.get(SECURE_COOKIE);
-		boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
-		String apiPath = config.get(API_PATH);
-		String staticPath = config.get(STATIC_PATH);
+		boolean behindProxy = this.dependencies.clientAddress().trustsForwardedFor();
+		boolean secureCookie = settings.secureCookie() == null ? useSsl || behindProxy : settings.secureCookie();
+		ApiEndpoint api = settings.api();
 		if (!secureCookie) {
 			log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
 				+ "via a reverse proxy, set netshot.http.securecookie to true.");
 		}
-		else if (!httpUseSsl) {
+		else if (!useSsl) {
 			log.info("The session cookie is marked as Secure while Netshot serves plain HTTP (expecting a HTTPS reverse proxy). "
 				+ "If users access Netshot over plain HTTP, set netshot.http.securecookie to false.");
 		}
 
 		// === Servlet (Jersey REST API) Deployment ===
 		DeploymentInfo deployment = Servlets.deployment()
-			.setClassLoader(Netshot.class.getClassLoader())
-			.setContextPath(apiPath) // same as Grizzly context path
+			.setClassLoader(RestServer.class.getClassLoader())
+			.setContextPath(api.path()) // same as Grizzly context path
 			.setDeploymentName("NetshotREST")
 			.addServlet(Servlets.servlet("JerseyV1", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.binder))))
+					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.dependencies.binder(), api))))
 				.setLoadOnStartup(1)
 				.addMapping(V1Links.VERSION_PATH + "/*"));
-		if (config.get(V0_ENABLED)) {
+		if (settings.v0Enabled()) {
 			ServletInfo v0 = Servlets.servlet("Jersey", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.binder))))
+					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.dependencies.binder(), api))))
 				.setLoadOnStartup(1)
 				.addMapping("/*");
 			deployment.addServlet(v0);
@@ -223,12 +242,12 @@ public final class RestServer implements Service {
 		}
 		deployment
 			.setServletSessionConfig(new ServletSessionConfig()
-				.setName(config.get(SESSION_COOKIE_NAME))
+				.setName(api.sessionCookieName())
 				.setHttpOnly(true)
 				.setSecure(secureCookie)
 				.setAttribute("SameSite", "Strict")
 			)
-			.setDefaultSessionTimeout(UiUser.settings().maxIdleTime());
+			.setDefaultSessionTimeout(this.dependencies.loginService().sessionMaxIdleTime());
 
 		DeploymentManager deploymentManager = Servlets
 			.defaultContainer()
@@ -238,7 +257,7 @@ public final class RestServer implements Service {
 
 		// === Static files from /www/ (classpath) ===
 		ClassPathResourceManager staticResourceManager =
-			new ClassPathResourceManager(Netshot.class.getClassLoader(), "www");
+			new ClassPathResourceManager(RestServer.class.getClassLoader(), "www");
 		// The WebUI uses client-side routing (React Router), so a direct request or a
 		// refresh on a route like /devices/42 won't match any file on disk. Fall back to
 		// index.html for such requests (i.e. those without a file extension), and leave
@@ -259,8 +278,8 @@ public final class RestServer implements Service {
 
 		// === Routing ===
 		PathHandler pathHandler = Handlers.path()
-			.addPrefixPath(staticPath, staticHandler)
-			.addPrefixPath(apiPath, servletHandler);
+			.addPrefixPath(settings.staticPath(), staticHandler)
+			.addPrefixPath(api.path(), servletHandler);
 
 		// Counts the requests by status class (statistics of the service)
 		builder.setHandler(exchange -> {
@@ -276,7 +295,7 @@ public final class RestServer implements Service {
 		this.server.start();
 		this.manager = deploymentManager;
 		this.servletBuilder = deployment;
-		log.info("The Web/REST server listens on {}.", this.httpBaseUri);
+		log.info("The Web/REST server listens on {}.", baseUri);
 	}
 
 	@Override

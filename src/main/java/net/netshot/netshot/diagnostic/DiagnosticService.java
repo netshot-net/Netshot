@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.DSLContext;
@@ -34,7 +32,6 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -54,39 +51,23 @@ public class DiagnosticService {
 
 	private final Transactions transactions;
 	private final DiagnosticRepository repository;
+	private final DiagnosticResultRepository resultRepository;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the diagnostic repository
+	 * @param resultRepository the diagnostic result repository
+	 * @param groupRepository the group repository (to check the target group)
 	 */
-	public DiagnosticService(Transactions transactions, DiagnosticRepository repository) {
+	public DiagnosticService(Transactions transactions, DiagnosticRepository repository, DiagnosticResultRepository resultRepository,
+		GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the diagnostics, with their target group.
-	 *
-	 * @param page the window on the result
-	 * @return the diagnostics
-	 * @throws NetshotException if the diagnostics can't be read
-	 */
-	public List<DiagnosticView> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> {
-				List<DiagnosticView> views = new ArrayList<>();
-				for (Diagnostic diagnostic : this.repository.findAll(dsl, page)) {
-					views.add(this.view(dsl, diagnostic));
-				}
-				return views;
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the diagnostics.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the diagnostics");
-		}
+		this.resultRepository = resultRepository;
+		this.groupRepository = groupRepository;
 	}
 
 	/**
@@ -134,9 +115,8 @@ public class DiagnosticService {
 	 */
 	public ListResult<DiagnosticResult> listResults(ListQuery query) {
 		try {
-			DiagnosticResultRepository results = new DiagnosticResultRepository();
-			return this.transactions.read(dsl -> new ListResult<>(results.findAll(dsl, query),
-				query.count() ? results.count(dsl, query) : null));
+			return this.transactions.read(dsl -> new ListResult<>(this.resultRepository.findAll(dsl, query),
+				query.count() ? this.resultRepository.count(dsl, query) : null));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the diagnostic results.", e);
@@ -145,13 +125,13 @@ public class DiagnosticService {
 	}
 
 	/**
-	 * Gets a diagnostic, with its target group.
+	 * Gets a diagnostic.
 	 *
 	 * @param id the diagnostic ID
 	 * @return the diagnostic
 	 * @throws NetshotException if the diagnostic doesn't exist or can't be read
 	 */
-	public DiagnosticView get(long id) {
+	public Diagnostic get(long id) {
 		try {
 			return this.transactions.read(dsl -> {
 				Diagnostic diagnostic = this.repository.find(dsl, id);
@@ -159,7 +139,7 @@ public class DiagnosticService {
 					log.warn("Unable to find the diagnostic object.");
 					throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "Unable to find the diagnostic");
 				}
-				return this.view(dsl, diagnostic);
+				return diagnostic;
 			});
 		}
 		catch (DataAccessException e) {
@@ -169,29 +149,17 @@ public class DiagnosticService {
 	}
 
 	/**
-	 * Gets the view of a diagnostic: the diagnostic with its target group.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param diagnostic the diagnostic
-	 * @return the view
-	 */
-	private DiagnosticView view(DSLContext dsl, Diagnostic diagnostic) {
-		return new DiagnosticView(diagnostic,
-			diagnostic.targetGroupId() == null ? null : this.requireGroup(dsl, diagnostic.targetGroupId()));
-	}
-
-	/**
 	 * Adds a diagnostic.
 	 *
 	 * @param definition the diagnostic
-	 * @return the new diagnostic, with its target group
+	 * @return the new diagnostic
 	 * @throws NetshotException if the name, the result type, the type or the type-specific
 	 *         properties are invalid, if the name is already used, or if the diagnostic can't be stored
 	 */
-	public DiagnosticView create(DiagnosticDefinition definition) {
+	public Diagnostic create(DiagnosticDefinition definition) {
 		String name = checkName(definition);
 		AttributeType resultType = parseResultType(definition);
-		DiagnosticView diagnostic;
+		Diagnostic diagnostic;
 		try {
 			diagnostic = this.transactions.write(dsl -> {
 				DeviceGroup group = null;
@@ -199,7 +167,7 @@ public class DiagnosticService {
 					group = this.requireGroup(dsl, definition.targetGroup());
 				}
 				Diagnostic newDiagnostic = build(definition, 0, name, group == null ? null : group.id(), resultType);
-				return new DiagnosticView(this.repository.find(dsl, this.repository.add(dsl, newDiagnostic)), group);
+				return this.repository.find(dsl, this.repository.add(dsl, newDiagnostic));
 			});
 		}
 		catch (DataAccessException e) {
@@ -209,50 +177,30 @@ public class DiagnosticService {
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the diagnostic to the database.");
 		}
-		AAA_LOG.info("{} has been created", diagnostic.diagnostic());
+		AAA_LOG.info("{} has been created", diagnostic);
 		return diagnostic;
 	}
 
 	/**
-	 * Edits a diagnostic. The kind of the diagnostic cannot change. The results of the diagnostic
-	 * are deleted when its target group changes (unless it had none).
-	 *
-	 * @param id the diagnostic ID
-	 * @param definition the new properties
-	 * @return the diagnostic, with its target group
-	 * @throws NetshotException if the diagnostic doesn't exist, the properties are invalid or of
-	 *         another kind of diagnostic, the name is already used, or the diagnostic can't be stored
-	 */
-	public DiagnosticView update(long id, DiagnosticDefinition definition) {
-		return this.update(id, _ -> definition, null,
-			new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, "Unable to find this diagnostic."));
-	}
-
-	/**
 	 * Edits a diagnostic, if it is at a given version: the new properties are computed from the diagnostic as it is,
-	 * which can't change meanwhile (to apply a patch). See {@link #update(long, DiagnosticDefinition)}.
+	 * which can't change meanwhile (to apply a patch). The kind of the diagnostic cannot change. The results of the
+	 * diagnostic are deleted when its target group changes (unless it had none).
 	 *
 	 * @param id the diagnostic ID
 	 * @param change gives the new properties from the current diagnostic
 	 * @param expectedVersion the version the diagnostic must be at, or null for any
-	 * @return the diagnostic, with its target group
+	 * @return the diagnostic, as saved
 	 * @throws NetshotException if the diagnostic doesn't exist or isn't at the expected version, the properties are
 	 *         invalid or of another kind of diagnostic, the name is already used, or the diagnostic can't be stored
 	 */
-	public DiagnosticView update(long id, Function<Diagnostic, DiagnosticDefinition> change, Long expectedVersion) {
-		return this.update(id, change, expectedVersion,
-			new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "Unable to find the diagnostic"));
-	}
-
-	private DiagnosticView update(long id, Function<Diagnostic, DiagnosticDefinition> change, Long expectedVersion,
-		NetshotException notFound) {
-		DiagnosticView diagnostic;
+	public Diagnostic update(long id, Function<Diagnostic, DiagnosticDefinition> change, Long expectedVersion) {
+		Diagnostic diagnostic;
 		try {
 			diagnostic = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
 					log.error("Unable to find the diagnostic {} to be edited.", id);
-					throw notFound;
+					throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "Unable to find the diagnostic");
 				}
 				Versions.check("diagnostic", version, expectedVersion);
 				Diagnostic existing = this.repository.find(dsl, id);
@@ -286,7 +234,7 @@ public class DiagnosticService {
 					}
 				};
 				this.repository.save(dsl, edited);
-				return new DiagnosticView(this.repository.find(dsl, id), group);
+				return this.repository.find(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -296,19 +244,8 @@ public class DiagnosticService {
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the diagnostic.");
 		}
-		AAA_LOG.info("{} has been edited", diagnostic.diagnostic());
+		AAA_LOG.info("{} has been edited", diagnostic);
 		return diagnostic;
-	}
-
-	/**
-	 * Deletes a diagnostic, with its results.
-	 *
-	 * @param id the diagnostic ID
-	 * @return true if the diagnostic has been deleted, false if there was no such diagnostic
-	 * @throws NetshotException if the diagnostic can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
 	}
 
 	/**
@@ -316,16 +253,14 @@ public class DiagnosticService {
 	 *
 	 * @param id the diagnostic ID
 	 * @param expectedVersion the version the diagnostic must be at, or null for any
-	 * @return true if the diagnostic has been deleted, false if there was no such diagnostic
-	 * @throws NetshotException if the diagnostic isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the diagnostic doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		try {
 			Diagnostic deleted = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such diagnostic of ID {}", id);
-					return null;
+					throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "The diagnostic doesn't exist.");
 				}
 				Versions.check("diagnostic", version, expectedVersion);
 				Diagnostic diagnostic = this.repository.find(dsl, id);
@@ -333,32 +268,11 @@ public class DiagnosticService {
 				this.repository.remove(dsl, id);
 				return diagnostic;
 			});
-			if (deleted != null) {
-				AAA_LOG.info("{} has been deleted", deleted);
-			}
-			return deleted != null;
+			AAA_LOG.info("{} has been deleted", deleted);
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to delete the diagnostic {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the diagnostic");
-		}
-	}
-
-	/**
-	 * Lists the diagnostic results of a device (the device is not checked to exist).
-	 *
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the results, with their diagnostic
-	 * @throws NetshotException if the results can't be read
-	 */
-	public List<DiagnosticResult> listResults(long deviceId, Page page) {
-		try {
-			return this.transactions.read(dsl -> new DiagnosticResultRepository().findByDevice(dsl, deviceId, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the diagnostic results.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the diagnostic results");
 		}
 	}
 
@@ -425,7 +339,7 @@ public class DiagnosticService {
 	}
 
 	private DeviceGroup requireGroup(DSLContext dsl, long groupId) {
-		DeviceGroup group = new GroupRepository().find(dsl, groupId);
+		DeviceGroup group = this.groupRepository.find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");

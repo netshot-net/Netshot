@@ -35,7 +35,7 @@ export default function DeviceBulkActionScreen() {
         </Stack>
 
         <Stack gap="2">
-          <Protected minLevel={Level.ExecureReadWrite}>
+          <Protected minLevel={Level.ExecuteReadWrite}>
             <RunDeviceScriptTrigger devices={selected}>
               <Button justifyContent="start">
                 {TASK_TYPE_ICONS[TaskType.RunDeviceGroupScript]}

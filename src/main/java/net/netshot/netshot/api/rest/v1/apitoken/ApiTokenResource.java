@@ -47,7 +47,6 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
-import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 
@@ -59,6 +58,9 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class ApiTokenResource {
 
 	private final ApiTokenService apiTokenService;
+	private final ListParams lists;
+	private final V1Links links;
+	private final ApiTokenMapper apiTokenMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -70,10 +72,16 @@ public class ApiTokenResource {
 	 * Instantiates the resource.
 	 *
 	 * @param apiTokenService the API token use cases
+	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param apiTokenMapper maps the api token objects
 	 */
 	@Inject
-	public ApiTokenResource(ApiTokenService apiTokenService) {
+	public ApiTokenResource(ApiTokenService apiTokenService, ListParams lists, V1Links links, ApiTokenMapper apiTokenMapper) {
 		this.apiTokenService = apiTokenService;
+		this.lists = lists;
+		this.links = links;
+		this.apiTokenMapper = apiTokenMapper;
 	}
 
 	/**
@@ -88,10 +96,10 @@ public class ApiTokenResource {
 		+ "view by default.")
 	@ListFilters(ListSchema.API_TOKENS)
 	public ListResponse<ApiTokenDto> listApiTokens() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.API_TOKENS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.API_TOKENS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ApiTokenDto.class, Selection.View.BRIEF),
 			ApiTokenDto.class);
-		return ListResponse.of(this.uriInfo, query, this.apiTokenService.list(query), ApiTokenMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.apiTokenService.list(query), this.apiTokenMapper::toDto);
 	}
 
 	/**
@@ -109,7 +117,7 @@ public class ApiTokenResource {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ApiTokenDto.class, Selection.View.FULL),
 			ApiTokenDto.class);
-		return ApiTokenMapper.toDto(this.apiTokenService.get(id));
+		return this.apiTokenMapper.toDto(this.apiTokenService.get(id));
 	}
 
 	/**
@@ -132,9 +140,9 @@ public class ApiTokenResource {
 			throw NetshotException.invalidParameter("token", "The token value can't be null");
 		}
 		ApiToken token = this.apiTokenService.create(tokenRequest.description(), value, tokenRequest.level());
-		V1Response.created(this.request, V1Links.of(AuthMapper.API_TOKENS_PATH, token.id()));
+		V1Response.created(this.request, this.links.of(AuthMapper.API_TOKENS_PATH, token.id()));
 		V1Response.noStore(this.request);
-		return ApiTokenMapper.toCreatedDto(token, value);
+		return this.apiTokenMapper.toCreatedDto(token, value);
 	}
 
 	/**
@@ -148,9 +156,7 @@ public class ApiTokenResource {
 	@Operation(summary = "Delete an API token", description = "Deletes an API token, which can't authenticate anymore.")
 	public void deleteApiToken(@PathParam("id") @Parameter(description = "API token ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.apiTokenService.delete(id)) {
-			throw new NetshotException(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, "The API token doesn't exist.");
-		}
+		this.apiTokenService.delete(id);
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 }

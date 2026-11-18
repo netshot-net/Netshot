@@ -51,6 +51,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 public class MeResource {
 
 	private final UserService userService;
+	private final AuthMapper authMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -65,10 +66,12 @@ public class MeResource {
 	 * Instantiates the resource.
 	 *
 	 * @param userService the user use cases
+	 * @param authMapper maps the auth objects
 	 */
 	@Inject
-	public MeResource(UserService userService) {
+	public MeResource(UserService userService, AuthMapper authMapper) {
 		this.userService = userService;
+		this.authMapper = authMapper;
 	}
 
 	/**
@@ -112,6 +115,6 @@ public class MeResource {
 	private CurrentUserDto respond() {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), CurrentUserDto.class, Selection.View.FULL),
 			CurrentUserDto.class);
-		return AuthMapper.toDto((User) this.securityContext.getUserPrincipal(), this.securityContext.getAuthenticationScheme());
+		return this.authMapper.toDto((User) this.securityContext.getUserPrincipal(), this.securityContext.getAuthenticationScheme());
 	}
 }

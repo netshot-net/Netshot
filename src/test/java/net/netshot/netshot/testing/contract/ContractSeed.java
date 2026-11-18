@@ -19,6 +19,7 @@
 package net.netshot.netshot.testing.contract;
 
 import static net.netshot.netshot.platform.database.schema.Tables.DEBUG_LOG;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
 import static net.netshot.netshot.platform.database.schema.Tables.TASK;
 
 import java.io.IOException;
@@ -30,7 +31,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,29 +42,28 @@ import org.jooq.DSLContext;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.aaa.user.UserCreation;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.compliance.HardwareRuleDefinition;
+import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleService;
+import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.RuleDefinition;
+import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.RuleRepository;
+import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.compliance.SoftwareRuleDefinition;
+import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.credentials.DeviceHttpAccount;
-import net.netshot.netshot.credentials.DeviceSnmpv1Community;
-import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
-import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.credentials.DeviceSshKeyAccount;
-import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticDefinition;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
@@ -113,6 +112,9 @@ import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.Task;
@@ -129,11 +131,13 @@ import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.userscript.ScriptCreation;
+import net.netshot.netshot.userscript.ScriptDefinition;
 import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
-import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
+import net.netshot.netshot.vault.SecretChange;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Deterministic dataset used by the contract tests (API responses, webhook payloads), created through the
@@ -212,7 +216,7 @@ public final class ContractSeed {
 
 	private void seedAuth() {
 		ApiTokenRepository repository = new ApiTokenRepository();
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			// Remove default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			Object[][] tokens = {
@@ -230,57 +234,52 @@ public final class ContractSeed {
 	}
 
 	private void seedDomains() {
-		DomainService domains = TestWiring.get().domainService();
+		DomainService domains = TestWiring.get().inventory().domainService();
 		this.created("domain.paris", domains.create(new DomainDefinition("Paris DC", "Paris data center", "10.255.0.1")).id());
 		this.created("domain.lyon", domains.create(new DomainDefinition("Lyon DC", "Lyon data center", "10.255.1.1")).id());
 	}
 
 	private void seedVault() {
-		VaultInstanceService vaults = TestWiring.get().vaultInstanceService();
-		this.created("vault.main", vaults.create(HashicorpVaultKv2Instance.builder("Main vault")
-			.baseUrl("https://vault.example.net:8200").namespace("netshot").kvMountPath("kv")
-			.authMethod(AuthMethod.APPROLE).appRoleMountPath("approle").appRoleId("role-1234")
-			.appRoleSecretId(Secret.local("secret-5678")).jwtClientSecret(Secret.local(null))
-			.build()).id());
-		this.created("vault.jwt", vaults.create(HashicorpVaultKv2Instance.builder("JWT vault")
-			.baseUrl("https://vault2.example.net:8200").httpsCaTrustMode(HttpsCaTrustMode.TRUST_ANY)
-			.authMethod(AuthMethod.JWT).jwtMountPath("jwt").jwtIdpTokenEndpoint("https://idp.example.net/token")
-			.jwtClientId("netshot").jwtClientSecret(Secret.local("client-secret")).jwtVaultRole("netshot-role").jwtScope("vault")
-			.appRoleSecretId(Secret.local(null))
-			.build()).id());
+		VaultInstanceService vaults = TestWiring.get().credentials().vaultInstanceService();
+		this.created("vault.main", vaults.create(new VaultInstanceDefinition("Main vault", "https://vault.example.net:8200", "netshot",
+			null, null, "kv", AuthMethod.APPROLE, "approle", "role-1234", local("secret-5678"), null, null, null,
+			SecretChange.UNCHANGED, null, null)).id());
+		this.created("vault.jwt", vaults.create(new VaultInstanceDefinition("JWT vault", "https://vault2.example.net:8200", null,
+			HttpsCaTrustMode.TRUST_ANY, null, null, AuthMethod.JWT, null, null, SecretChange.UNCHANGED, "jwt",
+			"https://idp.example.net/token", "netshot", local("client-secret"), "netshot-role", "vault")).id());
 	}
 
 	private void seedCredentialSets() {
-		CredentialSetService credentialSets = TestWiring.get().credentialSetService();
-		Domain paris = Domain.builder().id(this.id("domain.paris")).build();
-		Domain lyon = Domain.builder().id(this.id("domain.lyon")).build();
-		this.created("cred.snmp1", credentialSets.create(new DeviceSnmpv1Community(0, 0, null, "SNMP v1 community", null, false,
-			local("public-v1"))).id());
-		this.created("cred.snmp2", credentialSets.create(new DeviceSnmpv2cCommunity(0, 0, null, "SNMP v2 community", paris, false,
-			local("public-v2"))).id());
-		this.created("cred.snmp3", credentialSets.create(new DeviceSnmpv3Community(0, 0, null, "SNMP v3 account", null, false,
-			local(null), local("snmpuser"), AuthProtocol.SHA, local("authkey123"), PrivProtocol.AES128, local("privkey456"))).id());
-		this.created("cred.ssh", credentialSets.create(new DeviceSshAccount(0, 0, null, "SSH account", null, false,
-			local("admin"), local("ssh-pass"), local("ssh-enable"))).id());
-		this.created("cred.sshkey", credentialSets.create(new DeviceSshKeyAccount(0, 0, null, "SSH key account", lyon, false,
-			local("keyuser"), local("key-pass"), local("key-enable"), local("-----BEGIN KEY-----"))).id());
-		this.created("cred.telnet", credentialSets.create(new DeviceTelnetAccount(0, 0, null, "Telnet account", null, false,
-			local("telnetuser"), local("telnet-pass"), local("telnet-enable"))).id());
-		this.created("cred.http", credentialSets.create(new DeviceHttpAccount(0, 0, null, "HTTP account", null, false,
-			local("apiuser"), local("http-pass"))).id());
+		CredentialSetService credentialSets = TestWiring.get().credentials().credentialSetService();
+		long paris = this.id("domain.paris");
+		long lyon = this.id("domain.lyon");
+		this.created("cred.snmp1", credentialSets.create(new CredentialSetDefinition(Kind.SNMP_V1, "SNMP v1 community", null,
+			null, null, null, null, local("public-v1"), null, null, null, null)).id());
+		this.created("cred.snmp2", credentialSets.create(new CredentialSetDefinition(Kind.SNMP_V2C, "SNMP v2 community", paris,
+			null, null, null, null, local("public-v2"), null, null, null, null)).id());
+		this.created("cred.snmp3", credentialSets.create(new CredentialSetDefinition(Kind.SNMP_V3, "SNMP v3 account", null,
+			local("snmpuser"), null, null, null, null, AuthProtocol.SHA, local("authkey123"), PrivProtocol.AES128, local("privkey456"))).id());
+		this.created("cred.ssh", credentialSets.create(new CredentialSetDefinition(Kind.SSH, "SSH account", null,
+			local("admin"), local("ssh-pass"), local("ssh-enable"), null, null, null, null, null, null)).id());
+		this.created("cred.sshkey", credentialSets.create(new CredentialSetDefinition(Kind.SSH_KEY, "SSH key account", lyon,
+			local("keyuser"), local("key-pass"), local("key-enable"), local("-----BEGIN KEY-----"), null, null, null, null, null)).id());
+		this.created("cred.telnet", credentialSets.create(new CredentialSetDefinition(Kind.TELNET, "Telnet account", null,
+			local("telnetuser"), local("telnet-pass"), local("telnet-enable"), null, null, null, null, null, null)).id());
+		this.created("cred.http", credentialSets.create(new CredentialSetDefinition(Kind.HTTP, "HTTP account", null,
+			local("apiuser"), local("http-pass"), null, null, null, null, null, null, null)).id());
 		long vault = this.id("vault.main");
-		this.created("cred.sshvault", credentialSets.create(new DeviceSshAccount(0, 0, null, "SSH account from vault", null, false,
-			Secret.of(Secret.local(null), vault, "netshot/ssh/username"), Secret.of(Secret.local(null), vault, "netshot/ssh/password"),
-			local(null))).id());
+		this.created("cred.sshvault", credentialSets.create(new CredentialSetDefinition(Kind.SSH, "SSH account from vault", null,
+			new SecretChange.Referenced(vault, "netshot/ssh/username"), new SecretChange.Referenced(vault, "netshot/ssh/password"),
+			null, null, null, null, null, null, null)).id());
 	}
 
 	/**
-	 * Builds a secret with a local value.
-	 * @param value the value (or null)
-	 * @return the secret
+	 * Builds the change of a secret to a local value.
+	 * @param value the value
+	 * @return the change
 	 */
-	private static Secret local(String value) {
-		return Secret.of(Secret.local(value), null, null);
+	private static SecretChange local(String value) {
+		return new SecretChange.Local(value);
 	}
 
 	// -------------------------------------------------------------------
@@ -360,17 +359,17 @@ public final class ContractSeed {
 		for (Config config : configs) {
 			ids.add(configRepository.add(dsl, config.toBuilder().deviceId(device.id()).build()));
 		}
-		DeviceRepository deviceRepository = new DeviceRepository();
+		DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 		Device stored = deviceRepository.find(dsl, device.id());
 		deviceRepository.save(dsl, stored, stored.toBuilder().lastConfigId(ids.get(ids.size() - 1)).build());
 		return ids;
 	}
 
 	private void seedDevices() {
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			DomainRepository domainRepository = new DomainRepository();
-			CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
-			DeviceRepository deviceRepository = new DeviceRepository();
+			CredentialSetRepository credentialSetRepository = TestWiring.get().core().repositories().credentialSet();
+			DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 			Domain paris = domainRepository.find(dsl, this.id("domain.paris"));
 			Domain lyon = domainRepository.find(dsl, this.id("domain.lyon"));
 
@@ -460,8 +459,9 @@ public final class ContractSeed {
 	 * @param deviceId the ID of the device holding the attributes
 	 */
 	private void writeBinaryFiles(long deviceId) {
-		Path folder = ConfigBinaryFileAttribute.settings().storageFolderPath();
-		List<Config> configs = TestWiring.get().transactions().read(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
+		Path folder = ConfigBinaryFileAttribute.Settings.from(TestConfig.store().current()).storageFolderPath();
+		List<Config> configs = TestWiring.get().core().transactions().read(dsl -> new ConfigRepository().findAll(dsl,
+			new ListQuery(List.of(new Criterion("device", Lookup.EXACT, List.of(deviceId))), null, List.of(), Page.ALL, false), true));
 		for (Config config : configs) {
 			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.attributes()) {
 				if (attribute instanceof ConfigBinaryFileAttribute file) {
@@ -477,7 +477,7 @@ public final class ContractSeed {
 	}
 
 	private void seedGroups() {
-		GroupService groups = TestWiring.get().groupService();
+		GroupService groups = TestWiring.get().inventory().groupService();
 		this.created("group.static", groups.create(new GroupDefinition("StaticDeviceGroup", "Core routers",
 			List.of(this.id("device.router1"), this.id("device.router2")), null, "Production/Core", false)).id());
 		this.created("group.dynamic", groups.create(new GroupDefinition("DynamicDeviceGroup", "All Cisco devices",
@@ -489,65 +489,54 @@ public final class ContractSeed {
 	}
 
 	private void seedPolicies() {
-		PolicyService policies = TestWiring.get().policyService();
+		PolicyService policies = TestWiring.get().compliance().policyService();
 		this.created("policy.security", policies.create(new PolicyDefinition("Security baseline",
-			Set.of(this.id("group.dynamic")))).policy().id());
+			Set.of(this.id("group.dynamic")))).id());
 		this.created("policy.routing", policies.create(new PolicyDefinition("Routing policy",
-			new LinkedHashSet<>(List.of(this.id("group.static"), this.id("group.dynamic"))))).policy().id());
-		this.created("policy.empty", policies.create(new PolicyDefinition("Empty policy", Set.of())).policy().id());
+			new LinkedHashSet<>(List.of(this.id("group.static"), this.id("group.dynamic"))))).id());
+		this.created("policy.empty", policies.create(new PolicyDefinition("Empty policy", Set.of())).id());
 
-		RuleService rules = TestWiring.get().ruleService();
-		this.created("rule.text", rules.create(textRule(this.id("policy.security"), false, null)).id());
-		this.created("rule.regex", rules.create(new RuleDefinition("TextRule", "Hostname set", this.id("policy.security"), false,
-			null, null, "^hostname .+$", true, null, null, "runningConfig", true, true, false, false)).id());
-		this.created("rule.js", rules.create(new RuleDefinition("JavaScriptRule", "JS check", this.id("policy.routing"), false,
-			null, "function check(device) {\n  return { result: CONFORMING, comment: 'ok' };\n}",
-			null, null, null, null, null, null, null, null, null)).id());
-		this.created("rule.python", rules.create(new RuleDefinition("PythonRule", "Python check", this.id("policy.routing"), false,
-			null, "def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}",
-			null, null, null, null, null, null, null, null, null)).id());
+		RuleService rules = TestWiring.get().compliance().ruleService();
+		this.created("rule.text", rules.create(TextRule.builder("No telnet", this.id("policy.security"))
+			.text("transport input telnet").regExp(false).context("line vty").deviceDriver("CiscoIOS12").field("runningConfig")
+			.anyBlock(false).matchAll(false).invert(true).normalize(true).build()).id());
+		this.created("rule.regex", rules.create(TextRule.builder("Hostname set", this.id("policy.security"))
+			.text("^hostname .+$").regExp(true).field("runningConfig").anyBlock(true).matchAll(true).invert(false).normalize(false)
+			.build()).id());
+		this.created("rule.js", rules.create(new JavaScriptRule(0, 0, null, "JS check", false, this.id("policy.routing"),
+			"function check(device) {\n  return { result: CONFORMING, comment: 'ok' };\n}")).id());
+		this.created("rule.python", rules.create(new PythonRule(0, 0, null, "Python check", false, this.id("policy.routing"),
+			"def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}")).id());
 
-		SoftwareRuleService softwareRules = TestWiring.get().softwareRuleService();
-		this.created("rule.software.gold", softwareRules.create(new SoftwareRuleDefinition(this.id("group.dynamic"),
-			"CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.GOLD)).rule().id());
-		this.created("rule.software.silver", softwareRules.create(new SoftwareRuleDefinition(null,
-			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER)).rule().id());
-		HardwareRuleService hardwareRules = TestWiring.get().hardwareRuleService();
-		this.created("rule.hardware.1", hardwareRules.create(new HardwareRuleDefinition(this.id("group.dynamic"),
-			"CiscoIOS12", "", false, "CISCO2911/K9", false, new Date(D2040), new Date(D2040 + 365L * 24 * 3600 * 1000))).rule().id());
-		this.created("rule.hardware.2", hardwareRules.create(new HardwareRuleDefinition(null,
-			"", "Cisco 1900.*", true, "", false, new Date(D2022), null)).rule().id());
-	}
-
-	/**
-	 * Builds the definition of the "No telnet" text rule.
-	 * @param policyId the ID of the policy
-	 * @param enabled whether the rule is enabled
-	 * @param exemptions the exemptions (or null)
-	 * @return the definition
-	 */
-	private static RuleDefinition textRule(long policyId, boolean enabled, Map<Long, Date> exemptions) {
-		return new RuleDefinition("TextRule", "No telnet", policyId, enabled, exemptions, null, "transport input telnet", false,
-			"line vty", "CiscoIOS12", "runningConfig", false, false, true, true);
+		SoftwareRuleService softwareRules = TestWiring.get().compliance().softwareRuleService();
+		this.created("rule.software.gold", softwareRules.create(new SoftwareRule(0, 0, null, 0, this.id("group.dynamic"),
+			"CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.GOLD), null).rule().id());
+		this.created("rule.software.silver", softwareRules.create(new SoftwareRule(0, 0, null, 0, null,
+			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER), null).rule().id());
+		HardwareRuleService hardwareRules = TestWiring.get().compliance().hardwareRuleService();
+		this.created("rule.hardware.1", hardwareRules.create(new HardwareRule(0, 0, null, "CiscoIOS12", this.id("group.dynamic"),
+			"", false, "CISCO2911/K9", false, Instant.ofEpochMilli(D2040), Instant.ofEpochMilli(D2040 + 365L * 24 * 3600 * 1000))).id());
+		this.created("rule.hardware.2", hardwareRules.create(new HardwareRule(0, 0, null, null, null,
+			"Cisco 1900.*", true, "", false, Instant.ofEpochMilli(D2022), null)).id());
 	}
 
 	private void seedDiagnostics() {
-		DiagnosticService diagnostics = TestWiring.get().diagnosticService();
+		DiagnosticService diagnostics = TestWiring.get().inventory().diagnosticService();
 		this.created("diag.simple.text", diagnostics.create(new DiagnosticDefinition("SimpleDiagnostic", "Reload reason",
 			this.id("group.dynamic"), true, "TEXT", null, "CiscoIOS12", "enable", "show version | include reason",
-			"(?s).*reason: (.+?)\\n.*", "$1")).diagnostic().id());
+			"(?s).*reason: (.+?)\\n.*", "$1")).id());
 		this.created("diag.js.longtext", diagnostics.create(new DiagnosticDefinition("JavaScriptDiagnostic", "Full inventory",
 			-1, true, "LONGTEXT", "function diagnose(cli, device, diagnostic) {\n  diagnostic.set('x');\n}",
-			null, null, null, null, null)).diagnostic().id());
+			null, null, null, null, null)).id());
 		this.created("diag.python.numeric", diagnostics.create(new DiagnosticDefinition("PythonDiagnostic", "CPU load",
 			this.id("group.static"), false, "NUMERIC", "def diagnose(cli, device, diagnostic):\n  diagnostic.set(1)",
-			null, null, null, null, null)).diagnostic().id());
+			null, null, null, null, null)).id());
 		this.created("diag.simple.binary", diagnostics.create(new DiagnosticDefinition("SimpleDiagnostic", "Config saved",
-			-1, true, "BINARY", null, "CiscoIOS12", "enable", "show startup-config", "", "")).diagnostic().id());
+			-1, true, "BINARY", null, "CiscoIOS12", "enable", "show startup-config", "", "")).id());
 	}
 
 	private void seedHooks() {
-		HookService hooks = TestWiring.get().hookService();
+		HookService hooks = TestWiring.get().api().hookService();
 		Set<HookTrigger> triggers = new LinkedHashSet<>(List.of(new HookTrigger(TriggerType.POST_TASK, "TakeSnapshotTask"),
 			new HookTrigger(TriggerType.POST_TASK, "CheckComplianceTask")));
 		this.created("hook.web1", hooks.create(new WebHook(0, 0, null, "Notify on tasks", true, triggers, Action.POST_JSON,
@@ -557,20 +546,20 @@ public final class ContractSeed {
 	}
 
 	private void seedScripts() {
-		ScriptService scripts = TestWiring.get().scriptService();
-		this.created("script.1", scripts.create(new ScriptCreation("Show version", "CiscoIOS12",
+		ScriptService scripts = TestWiring.get().inventory().scriptService();
+		this.created("script.1", scripts.create(new ScriptDefinition("Show version", "CiscoIOS12",
 			"function run(cli, device) {\n  cli.macro(\"enable\");\n  cli.command(\"show version\");\n}", SCRIPT_AUTHOR,
 			"Maintenance")).id());
-		this.created("script.2", scripts.create(new ScriptCreation("Other script", "CiscoIOS12",
+		this.created("script.2", scripts.create(new ScriptDefinition("Other script", "CiscoIOS12",
 			"function run(cli, device) {\n  cli.command(\"show clock\");\n}", SCRIPT_AUTHOR, "")).id());
 	}
 
 	private void seedUsers() {
-		UserService users = TestWiring.get().userService();
-		this.created("user.readonly", users.create(new UserCreation("reader", true, USER_PASSWORD, UiUser.LEVEL_READONLY)).id());
-		this.created("user.rw", users.create(new UserCreation("writer", true, USER_PASSWORD, UiUser.LEVEL_READWRITE)).id());
-		this.created("user.admin", users.create(new UserCreation("boss", true, USER_PASSWORD, UiUser.LEVEL_ADMIN)).id());
-		this.created("user.remote", users.create(new UserCreation("radius-user", false, null, UiUser.LEVEL_OPERATOR)).id());
+		UserService users = TestWiring.get().aaa().userService();
+		this.created("user.readonly", users.create(new UserDefinition("reader", true, USER_PASSWORD, UiUser.LEVEL_READONLY)).id());
+		this.created("user.rw", users.create(new UserDefinition("writer", true, USER_PASSWORD, UiUser.LEVEL_READWRITE)).id());
+		this.created("user.admin", users.create(new UserDefinition("boss", true, USER_PASSWORD, UiUser.LEVEL_ADMIN)).id());
+		this.created("user.remote", users.create(new UserDefinition("radius-user", false, null, UiUser.LEVEL_OPERATOR)).id());
 	}
 
 	// -------------------------------------------------------------------
@@ -579,10 +568,10 @@ public final class ContractSeed {
 
 	private void seedComplianceAndDiagnosticResults() {
 		// Exemption, through the service
-		TestWiring.get().ruleService().update(this.id("rule.text"), textRule(this.id("policy.security"), true,
-			Map.of(this.id("device.router2"), new Date(D2040))));
-		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = new DeviceRepository();
+		TestWiring.get().compliance().ruleService().update(this.id("rule.text"), rule -> new Replacement(((TextRule) rule).toBuilder().enabled(true).build(),
+			Map.of(this.id("device.router2"), Instant.ofEpochMilli(D2040))), null);
+		TestWiring.get().core().transactions().run(dsl -> {
+			DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			Device proxy = deviceRepository.find(dsl, this.id("device.proxy"));
@@ -650,8 +639,8 @@ public final class ContractSeed {
 	}
 
 	private void seedTasks() {
-		TestWiring.get().transactions().run(dsl -> {
-			DeviceRepository deviceRepository = new DeviceRepository();
+		TestWiring.get().core().transactions().run(dsl -> {
+			DeviceRepository deviceRepository = TestWiring.get().core().repositories().device();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
 			long paris = this.id("domain.paris");
@@ -667,6 +656,9 @@ public final class ContractSeed {
 			Task failedSnapshot = this.taskData(dsl, TakeSnapshotTask.of(router2, "Failing snapshot", "tester", false, true, true),
 				Task.Status.FAILURE, D2021 + 10000, "Unable to connect");
 			this.remember("task.failed", failedSnapshot.id());
+			// The snapshot dates of the devices, as the snapshot tasks maintain them
+			dsl.update(DEVICE).set(DEVICE.LAST_SNAPSHOT_SUCCESS_DATE, snapshot.executionDate()).where(DEVICE.ID.eq(router1.id())).execute();
+			dsl.update(DEVICE).set(DEVICE.LAST_SNAPSHOT_FAILURE_DATE, failedSnapshot.executionDate()).where(DEVICE.ID.eq(router2.id())).execute();
 
 			Task compliance = this.taskData(dsl, CheckComplianceTask.of(router1, "Check compliance", "tester"),
 				Task.Status.SUCCESS, D2021 + 20000, "Done");

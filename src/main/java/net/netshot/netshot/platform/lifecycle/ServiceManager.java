@@ -19,9 +19,13 @@
 package net.netshot.netshot.platform.lifecycle;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>If a service fails to start, the services already started are stopped (in the reverse order) and
  * {@link #start()} throws: the server doesn't run half started. {@link #stop()} stops every running service,
- * even if some of them fail to stop. Typically called by a shutdown hook (see {@link #shutdownHook()}).</p>
+ * even if some of them fail to stop. Typically called by a JVM shutdown hook.</p>
  */
 @Slf4j
 public final class ServiceManager {
@@ -61,30 +65,73 @@ public final class ServiceManager {
 	}
 
 	/**
+	 * Adds a service, started after the ones added before it (while building the application: the services which need
+	 * the manager, such as the report of their health, are built before the manager is complete).
+	 *
+	 * @param service the service
+	 * @throws IllegalStateException if a service was already started
+	 */
+	public synchronized void add(Service service) {
+		if (this.services.stream().anyMatch(managed -> managed.state != ServiceState.NEW)) {
+			throw new IllegalStateException("The services are started: no service can be added");
+		}
+		this.services.add(new Managed(service));
+	}
+
+	/**
 	 * Starts the services, in order.
 	 *
 	 * @throws ServiceStartException if a service fails to start (the started ones are stopped then)
 	 */
-	public synchronized void start() throws ServiceStartException {
+	public void start() throws ServiceStartException {
+		this.start(_ -> true);
+	}
+
+	/**
+	 * Starts some of the services, in the order of the manager (for the tools and the tests, which need only some
+	 * of them).
+	 *
+	 * @param ids the IDs of the services to start
+	 * @throws ServiceStartException if a service fails to start (the started ones are stopped then)
+	 * @throws IllegalArgumentException if no service has one of the IDs
+	 */
+	public void start(Collection<String> ids) throws ServiceStartException {
+		Set<String> known = new HashSet<>();
+		this.services.forEach(managed -> known.add(managed.service.id()));
+		for (String id : ids) {
+			if (!known.contains(id)) {
+				throw new IllegalArgumentException("No service '%s'".formatted(id));
+			}
+		}
+		this.start(service -> ids.contains(service.id()));
+	}
+
+	/**
+	 * Starts the services matching a filter, in order.
+	 *
+	 * @param filter the filter of the services to start
+	 * @throws ServiceStartException if a service fails to start (the started ones are stopped then)
+	 */
+	private synchronized void start(Predicate<Service> filter) throws ServiceStartException {
 		for (Managed managed : this.services) {
-			if (managed.state != ServiceState.NEW) {
+			if (managed.state != ServiceState.NEW || !filter.test(managed.service)) {
 				continue;
 			}
 			String name = managed.service.name();
-			log.info("Starting the {}.", name);
+			log.info("Starting the service '{}'.", name);
 			managed.state = ServiceState.STARTING;
 			long startTime = System.currentTimeMillis();
 			try {
 				managed.service.start();
 				managed.state = ServiceState.RUNNING;
-				log.debug("The {} was started in {}ms.", name, System.currentTimeMillis() - startTime);
+				log.debug("The service '{}' was started in {}ms.", name, System.currentTimeMillis() - startTime);
 			}
 			catch (Exception | LinkageError e) {
 				managed.state = ServiceState.FAILED;
 				managed.error = String.valueOf(e.getMessage());
-				log.error("Unable to start the {}, stopping the started services.", name, e);
+				log.error("Unable to start the service '{}', stopping the started services.", name, e);
 				this.stop();
-				throw new ServiceStartException("Unable to start the %s".formatted(name), e);
+				throw new ServiceStartException("Unable to start the service '%s'".formatted(name), e);
 			}
 		}
 	}
@@ -99,18 +146,18 @@ public final class ServiceManager {
 				continue;
 			}
 			String name = managed.service.name();
-			log.info("Stopping the {}.", name);
+			log.info("Stopping the service '{}'.", name);
 			managed.state = ServiceState.STOPPING;
 			long startTime = System.currentTimeMillis();
 			try {
 				managed.service.stop();
 				managed.state = ServiceState.STOPPED;
-				log.debug("The {} was stopped in {}ms.", name, System.currentTimeMillis() - startTime);
+				log.debug("The service '{}' was stopped in {}ms.", name, System.currentTimeMillis() - startTime);
 			}
 			catch (Exception | LinkageError e) {
 				managed.state = ServiceState.FAILED;
 				managed.error = String.valueOf(e.getMessage());
-				log.error("Error while stopping the {}.", name, e);
+				log.error("Error while stopping the service '{}'.", name, e);
 			}
 		}
 	}
@@ -131,10 +178,10 @@ public final class ServiceManager {
 					stats = new LinkedHashMap<>(managed.service.stats());
 				}
 				catch (RuntimeException e) {
-					log.warn("Unable to get the status of the {}", managed.service.name(), e);
+					log.warn("Unable to get the status of the service '{}'.", managed.service.name(), e);
 				}
 			}
-			status.add(new ServiceStatus(managed.service.name(), managed.state, healthy, managed.error, stats));
+			status.add(new ServiceStatus(managed.service.id(), managed.service.name(), managed.state, healthy, managed.error, stats));
 		}
 		return status;
 	}
@@ -146,19 +193,5 @@ public final class ServiceManager {
 	 */
 	public boolean isHealthy() {
 		return this.status().stream().allMatch(ServiceStatus::healthy);
-	}
-
-	/**
-	 * Creates a thread which stops the services, to be registered as a JVM shutdown hook
-	 * (run on SIGTERM/SIGINT, or when the JVM exits).
-	 *
-	 * @return the thread
-	 */
-	public Thread shutdownHook() {
-		return new Thread(() -> {
-			log.warn("Netshot is stopping.");
-			this.stop();
-			log.warn("Netshot is stopped.");
-		}, "NetshotShutdown");
 	}
 }

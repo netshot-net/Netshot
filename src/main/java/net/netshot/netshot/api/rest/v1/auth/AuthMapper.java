@@ -20,6 +20,8 @@ package net.netshot.netshot.api.rest.v1.auth;
 
 import java.time.Instant;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
@@ -28,7 +30,7 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 /**
  * Maps the principals and the sessions to their v1 representation.
  */
-public final class AuthMapper {
+public class AuthMapper {
 
 	/** The path of the users. */
 	public static final String USERS_PATH = "users";
@@ -39,7 +41,17 @@ public final class AuthMapper {
 	/** The path of the authentication resources. */
 	public static final String AUTH_PATH = "auth";
 
-	private AuthMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 */
+	@Inject
+	public AuthMapper(V1Links links) {
+		this.links = links;
 	}
 
 	/**
@@ -49,7 +61,7 @@ public final class AuthMapper {
 	 * @return the name of the role ({@code read-only}, {@code operator}, {@code read-write}, {@code execute-read-write}
 	 *         or {@code admin}), or null if the level is lower than the one of the lowest role
 	 */
-	public static String roleOf(int level) {
+	public String roleOf(int level) {
 		String role = null;
 		for (User.Role candidate : User.Role.values()) {
 			if (level >= candidate.getLevel()) {
@@ -66,11 +78,11 @@ public final class AuthMapper {
 	 * @param authMethod the authentication scheme ({@code SESSION}, {@code JWT} or {@code API_TOKEN})
 	 * @return the representation
 	 */
-	public static CurrentUserDto toDto(User principal, String authMethod) {
+	public CurrentUserDto toDto(User principal, String authMethod) {
 		return switch (principal) {
-			case UiUser user -> new CurrentUserDto(user.id(), user.id() > 0 ? V1Links.of(USERS_PATH, user.id()) : null,
+			case UiUser user -> new CurrentUserDto(user.id(), user.id() > 0 ? this.links.of(USERS_PATH, user.id()) : null,
 				user.username(), "USER", authMethod, user.username(), user.local(), user.level(), roleOf(user.level()));
-			case ApiToken token -> new CurrentUserDto(token.id(), V1Links.of(API_TOKENS_PATH, token.id()),
+			case ApiToken token -> new CurrentUserDto(token.id(), this.links.of(API_TOKENS_PATH, token.id()),
 				ApiTokenNames.display(token), "API_TOKEN", authMethod, null, null, token.level(), roleOf(token.level()));
 		};
 	}
@@ -83,8 +95,8 @@ public final class AuthMapper {
 	 * @param maxIdleTime the maximum idle time of the session, in seconds
 	 * @return the representation
 	 */
-	public static SessionDto toSessionDto(UiUser user, long creationTime, int maxIdleTime) {
-		return new SessionDto(V1Links.of(AUTH_PATH, "session"), Instant.ofEpochMilli(creationTime), maxIdleTime,
+	public SessionDto toSessionDto(UiUser user, long creationTime, int maxIdleTime) {
+		return new SessionDto(this.links.of(AUTH_PATH, "session"), Instant.ofEpochMilli(creationTime), maxIdleTime,
 			toDto(user, "SESSION"));
 	}
 }

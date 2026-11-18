@@ -29,10 +29,10 @@ import org.graalvm.polyglot.HostAccess.Export;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessAuthenticationException;
-import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.AccessManager.Resolution;
-import net.netshot.netshot.access.Cli;
+import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.Cli.WithBufferIOException;
+import net.netshot.netshot.access.Cli;
 import net.netshot.netshot.access.Client;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.access.Telnet;
@@ -40,9 +40,9 @@ import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.protocol.SshConfig;
 import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.platform.log.TaskContext;
@@ -123,13 +123,13 @@ public class JsCliHelper {
 		if (accessDef.getProtocol() == DriverProtocol.SSH) {
 			Ssh ssh;
 			if (credentialSet instanceof DeviceSshKeyAccount sshKeyAccount) {
-				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshKeyAccount.username()),
+				ssh = new Ssh(this.accessManager.sshClient(), this.accessManager.settings().ssh(), host, port, resolveSecret(sshKeyAccount.username()),
 					resolveSecret(sshKeyAccount.privateKey()),
 					resolveSecret(sshKeyAccount.password()), this.taskContext);
 			}
 			else {
 				DeviceSshAccount sshAccount = (DeviceSshAccount) credentialSet;
-				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshAccount.username()),
+				ssh = new Ssh(this.accessManager.sshClient(), this.accessManager.settings().ssh(), host, port, resolveSecret(sshAccount.username()),
 					resolveSecret(sshAccount.password()), this.taskContext);
 			}
 			ssh.applySshConfig(accessDef.getSshConfig());
@@ -139,7 +139,7 @@ public class JsCliHelper {
 			ssh.setHostKeyVerifier(this.accessManager.resolveSshHostKeyVerifier(accessDef));
 			return ssh;
 		}
-		Telnet telnet = new Telnet(host, port, this.taskContext);
+		Telnet telnet = new Telnet(host, port, this.accessManager.settings().telnet(), this.taskContext);
 		telnet.applyTelnetConfig(accessDef.getTelnetConfig());
 		if (this.telnetConfigOverride != null) {
 			telnet.applyTelnetConfig(this.telnetConfigOverride);

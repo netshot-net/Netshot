@@ -2821,6 +2821,8 @@ export interface components {
             previous: string | null;
             /** @description The items of the page */
             results: components["schemas"]["Device"][] | null;
+            /** @description The search query of a device list, as it is applied (canonical form); absent without query */
+            query?: string | null;
         };
         /** @description Editable properties of a device */
         DeviceRequest: {
@@ -11534,7 +11536,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, childOrder */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, date, activity, childOrder */
                 sort?: string;
                 /** @description Free text search; fields: author, target, comments */
                 q?: string;
@@ -11726,6 +11728,34 @@ export interface operations {
                 executionDate__gte?: string[];
                 /** @description Filter: executionDate is empty (null, or an empty string) for true, isn't for false */
                 executionDate__empty?: boolean;
+                /** @description Filter: date equal to */
+                date?: string[];
+                /** @description Filter: date not equal to */
+                date__n?: string[];
+                /** @description Filter: date lower than */
+                date__lt?: string[];
+                /** @description Filter: date lower than or equal to */
+                date__lte?: string[];
+                /** @description Filter: date greater than */
+                date__gt?: string[];
+                /** @description Filter: date greater than or equal to */
+                date__gte?: string[];
+                /** @description Filter: date is empty (null, or an empty string) for true, isn't for false */
+                date__empty?: boolean;
+                /** @description Filter: activity equal to */
+                activity?: number[];
+                /** @description Filter: activity not equal to */
+                activity__n?: number[];
+                /** @description Filter: activity lower than */
+                activity__lt?: number[];
+                /** @description Filter: activity lower than or equal to */
+                activity__lte?: number[];
+                /** @description Filter: activity greater than */
+                activity__gt?: number[];
+                /** @description Filter: activity greater than or equal to */
+                activity__gte?: number[];
+                /** @description Filter: activity is empty (null, or an empty string) for true, isn't for false */
+                activity__empty?: boolean;
                 /** @description Filter: device equal to */
                 device?: number[];
                 /** @description Filter: device not equal to */
@@ -11874,7 +11904,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, childOrder */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, date, activity, childOrder */
                 sort?: string;
                 /** @description Free text search; fields: author, target, comments */
                 q?: string;
@@ -12068,6 +12098,34 @@ export interface operations {
                 executionDate__gte?: string[];
                 /** @description Filter: executionDate is empty (null, or an empty string) for true, isn't for false */
                 executionDate__empty?: boolean;
+                /** @description Filter: date equal to */
+                date?: string[];
+                /** @description Filter: date not equal to */
+                date__n?: string[];
+                /** @description Filter: date lower than */
+                date__lt?: string[];
+                /** @description Filter: date lower than or equal to */
+                date__lte?: string[];
+                /** @description Filter: date greater than */
+                date__gt?: string[];
+                /** @description Filter: date greater than or equal to */
+                date__gte?: string[];
+                /** @description Filter: date is empty (null, or an empty string) for true, isn't for false */
+                date__empty?: boolean;
+                /** @description Filter: activity equal to */
+                activity?: number[];
+                /** @description Filter: activity not equal to */
+                activity__n?: number[];
+                /** @description Filter: activity lower than */
+                activity__lt?: number[];
+                /** @description Filter: activity lower than or equal to */
+                activity__lte?: number[];
+                /** @description Filter: activity greater than */
+                activity__gt?: number[];
+                /** @description Filter: activity greater than or equal to */
+                activity__gte?: number[];
+                /** @description Filter: activity is empty (null, or an empty string) for true, isn't for false */
+                activity__empty?: boolean;
                 /** @description Filter: device equal to */
                 device?: number[];
                 /** @description Filter: device not equal to */
@@ -12275,7 +12333,7 @@ export interface operations {
                 groupBy?: string;
                 /** @description Size of the time buckets */
                 interval?: "hour" | "day" | "week" | "month";
-                /** @description Date field of the time buckets; fields: scheduleReference, creationDate, changeDate, executionDate */
+                /** @description Date field of the time buckets; fields: scheduleReference, creationDate, changeDate, executionDate, date */
                 on?: string;
                 /** @description Start of the range (included) */
                 from?: Date;
@@ -12463,6 +12521,34 @@ export interface operations {
                 executionDate__gte?: string[];
                 /** @description Filter: executionDate is empty (null, or an empty string) for true, isn't for false */
                 executionDate__empty?: boolean;
+                /** @description Filter: date equal to */
+                date?: string[];
+                /** @description Filter: date not equal to */
+                date__n?: string[];
+                /** @description Filter: date lower than */
+                date__lt?: string[];
+                /** @description Filter: date lower than or equal to */
+                date__lte?: string[];
+                /** @description Filter: date greater than */
+                date__gt?: string[];
+                /** @description Filter: date greater than or equal to */
+                date__gte?: string[];
+                /** @description Filter: date is empty (null, or an empty string) for true, isn't for false */
+                date__empty?: boolean;
+                /** @description Filter: activity equal to */
+                activity?: number[];
+                /** @description Filter: activity not equal to */
+                activity__n?: number[];
+                /** @description Filter: activity lower than */
+                activity__lt?: number[];
+                /** @description Filter: activity lower than or equal to */
+                activity__lte?: number[];
+                /** @description Filter: activity greater than */
+                activity__gt?: number[];
+                /** @description Filter: activity greater than or equal to */
+                activity__gte?: number[];
+                /** @description Filter: activity is empty (null, or an empty string) for true, isn't for false */
+                activity__empty?: boolean;
                 /** @description Filter: device equal to */
                 device?: number[];
                 /** @description Filter: device not equal to */

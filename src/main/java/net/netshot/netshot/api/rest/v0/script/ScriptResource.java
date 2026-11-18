@@ -47,9 +47,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.api.rest.v0.V0Errors;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
 
@@ -100,9 +101,9 @@ public class ScriptResource {
 		Principal principal = this.securityContext.getUserPrincipal();
 		String author = principal instanceof User user ? user.username() : null;
 		if (validateOnly) {
-			return ScriptMapper.toDto(this.driverRegistry, this.scriptService.validate(ScriptMapper.toCreation(rsScript, author)));
+			return ScriptMapper.toDto(this.driverRegistry, this.scriptService.validate(ScriptMapper.toDefinition(rsScript, author)));
 		}
-		DeviceJsScript script = this.scriptService.create(ScriptMapper.toCreation(rsScript, author));
+		DeviceJsScript script = this.scriptService.create(ScriptMapper.toDefinition(rsScript, author));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return ScriptMapper.toDto(this.driverRegistry, script);
 	}
@@ -119,7 +120,7 @@ public class ScriptResource {
 	public void deleteScript(@PathParam("id") @Parameter(description = "Script ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete script {}.", id);
-		this.scriptService.delete(id);
+		this.scriptService.delete(id, null);
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 	}
 
@@ -134,10 +135,8 @@ public class ScriptResource {
 	@Tag(name = "Scripts", description = "Script management (push changes to devices)")
 	public ScriptDto getScript(@PathParam("id") @Parameter(description = "Script ID") Long id) {
 		log.debug("REST request, get script {}", id);
-		DeviceJsScript script = this.scriptService.get(id);
-		if (script == null) {
-			throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "Script not found.");
-		}
+		DeviceJsScript script = V0Errors.translate(() -> this.scriptService.get(id),
+			V0Errors.code(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "Script not found."));
 		return ScriptMapper.toDto(this.driverRegistry, script);
 	}
 
@@ -157,6 +156,8 @@ public class ScriptResource {
 	@Tag(name = "Scripts", description = "Script management (push changes to devices)")
 	public List<ScriptDto> getScripts(@BeanParam PaginationParams paginationParams) {
 		log.debug("REST request, get scripts.");
-		return ScriptMapper.toDtos(this.driverRegistry, this.scriptService.list(paginationParams.toPage()));
+		// The lists don't give the content of the scripts
+		return ScriptMapper.toDtos(this.driverRegistry, this.scriptService.list(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(DeviceJsScript::withoutScript).toList());
 	}
 }

@@ -66,7 +66,7 @@ class V1DomainResourceTest {
 	void setUp(TestServer testServer) {
 		this.server = testServer;
 		this.admin = new V1Client(testServer, UiUser.LEVEL_ADMIN);
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.DEVICE_CREDENTIAL_SET).execute();
 			dsl.deleteFrom(Tables.DEVICE).execute();
 			dsl.deleteFrom(Tables.DOMAIN).execute();

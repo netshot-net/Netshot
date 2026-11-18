@@ -55,12 +55,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.ConnectionPools;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.task.AutoSnapshotQueue;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskEngine;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.ChildOrchestratingTask;
@@ -195,6 +195,9 @@ public final class TaskManager implements Service, TaskEngine {
 	/** The configuration store. */
 	private final ConfigStore config;
 
+	/** The database (the size of its connection pool, against the number of task threads). */
+	private final DatabaseService database;
+
 	/** The devices with a queued automatic snapshot. */
 	private final AutoSnapshotQueue autoSnapshots;
 
@@ -216,28 +219,33 @@ public final class TaskManager implements Service, TaskEngine {
 	/** The number of tasks marked as failed when this instance stopped. */
 	private final AtomicLong interruptedTasks = new AtomicLong();
 
-	/** The task queries. */
-	private static final TaskRepository REPOSITORY = new TaskRepository();
-
 	/** The transaction support. */
 	private final Transactions transactions;
+
+	/** The task queries. */
+	private final TaskRepository repository;
 
 	/**
 	 * Creates the task manager.
 	 *
 	 * @param transactions the transaction support
 	 * @param config the configuration store
+	 * @param database the database (the size of its connection pool)
 	 * @param autoSnapshots the devices with a queued automatic snapshot
 	 * @param lockManager the task and device locks
+	 * @param repository the task repository
 	 */
-	public TaskManager(Transactions transactions, ConfigStore config, AutoSnapshotQueue autoSnapshots, TaskLockManager lockManager) {
+	public TaskManager(Transactions transactions, ConfigStore config, DatabaseService database, AutoSnapshotQueue autoSnapshots,
+		TaskLockManager lockManager, TaskRepository repository) {
 		this.transactions = transactions;
 		this.config = config;
+		this.database = database;
 		this.autoSnapshots = autoSnapshots;
 		this.lockManager = lockManager;
 		for (Status status : Status.values()) {
 			this.finishedTasks.put(status, new AtomicLong());
 		}
+		this.repository = repository;
 	}
 
 	/**
@@ -269,6 +277,15 @@ public final class TaskManager implements Service, TaskEngine {
 	}
 
 	/**
+	 * Gets the task queries (for the master jobs, built by Quartz).
+	 *
+	 * @return the task repository
+	 */
+	TaskRepository repository() {
+		return this.repository;
+	}
+
+	/**
 	 * Gets the transaction support of the task engine.
 	 *
 	 * @return the transaction support
@@ -287,8 +304,13 @@ public final class TaskManager implements Service, TaskEngine {
 	}
 
 	@Override
+	public String id() {
+		return "task-manager";
+	}
+
+	@Override
 	public String name() {
-		return "task manager";
+		return "Task manager";
 	}
 
 	@Override
@@ -301,6 +323,24 @@ public final class TaskManager implements Service, TaskEngine {
 	@Override
 	public void stop() {
 		this.shutdown();
+	}
+
+	/**
+	 * Whether the task manager runs: its schedulers are started and not shut down.
+	 *
+	 * @return true if healthy
+	 */
+	@Override
+	public boolean isHealthy() {
+		Scheduler master = this.masterScheduler;
+		Scheduler runner = this.runnerScheduler;
+		try {
+			return master != null && runner != null && master.isStarted() && !master.isShutdown()
+				&& runner.isStarted() && !runner.isShutdown();
+		}
+		catch (SchedulerException e) {
+			return false;
+		}
 	}
 
 	@Override
@@ -366,7 +406,7 @@ public final class TaskManager implements Service, TaskEngine {
 		this.threadCount = current.get(THREAD_COUNT);
 		// Running device tasks hold a DB connection from the main pool, so the pool must be
 		// comfortably larger than the number of task threads
-		int maxPoolSize = current.get(ConnectionPools.MAX_POOL_SIZE);
+		int maxPoolSize = this.database.maxPoolSize();
 		if (this.threadCount > maxPoolSize - MIN_SPARE_DB_CONNECTIONS) {
 			log.warn("The task thread count ({}) is too close to the DB pool max size ({}): "
 				+ "tasks may starve the connection pool. Set netshot.db.pooler.maxpoolsize to at least {}.",
@@ -433,7 +473,7 @@ public final class TaskManager implements Service, TaskEngine {
 			for (JobExecutionContext job : running) {
 				Object taskId = job.getJobDetail().getJobDataMap().get(TaskJob.NETSHOT_TASK);
 				if (taskId instanceof Long id) {
-					Task task = this.transactions.read(dsl -> REPOSITORY.find(dsl, id));
+					Task task = this.transactions.read(dsl -> this.repository.find(dsl, id));
 					if (task != null && this.failInterrupted(task, "Netshot was stopped while the task was running.")) {
 						this.interruptedTasks.incrementAndGet();
 					}
@@ -477,7 +517,7 @@ public final class TaskManager implements Service, TaskEngine {
 		}
 		boolean failed;
 		try {
-			failed = this.transactions.write(dsl -> REPOSITORY.failRunning(dsl, task.id(), reason));
+			failed = this.transactions.write(dsl -> this.repository.failRunning(dsl, task.id(), reason));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to mark the interrupted task {} as failed.", task.id(), e);
@@ -576,10 +616,10 @@ public final class TaskManager implements Service, TaskEngine {
 	public void scheduleNewTasks() {
 		try {
 			inSystemTransaction(dsl -> {
-				for (Task task : REPOSITORY.findByStatus(dsl, Task.Status.NEW)) {
+				for (Task task : this.repository.findByStatus(dsl, Task.Status.NEW)) {
 					log.trace("Scheduling new task {}.", task.id());
 					onSchedule(task);
-					REPOSITORY.changeStatus(dsl, task.id(), Status.SCHEDULED);
+					this.repository.changeStatus(dsl, task.id(), Status.SCHEDULED);
 					try {
 						addTaskToScheduler(task, false, true, false);
 					}
@@ -605,7 +645,7 @@ public final class TaskManager implements Service, TaskEngine {
 		long hash = task.runnerHash();
 		String runnerId = this.runnerSet.getRunnerId(hash);
 		log.info("Task {} (hash {}) is being assigned to runner {}.", task.id(), hash, runnerId);
-		REPOSITORY.assignRunner(dsl, task.id(), runnerId);
+		this.repository.assignRunner(dsl, task.id(), runnerId);
 	}
 
 	/**
@@ -646,7 +686,7 @@ public final class TaskManager implements Service, TaskEngine {
 	 */
 	public void requestCancel(long taskId) {
 		try {
-			this.transactions.run(dsl -> REPOSITORY.requestCancel(dsl, taskId));
+			this.transactions.run(dsl -> this.repository.requestCancel(dsl, taskId));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while requesting cancellation of task {}.", taskId, e);
@@ -668,7 +708,7 @@ public final class TaskManager implements Service, TaskEngine {
 		try {
 			this.transactions.run(dsl -> {
 				onCancel(task);
-				REPOSITORY.cancel(dsl, task.id(), reason);
+				this.repository.cancel(dsl, task.id(), reason);
 			});
 		}
 		catch (DataAccessException e) {
@@ -728,9 +768,9 @@ public final class TaskManager implements Service, TaskEngine {
 					onSchedule(task);
 				}
 				if (task.id() == 0) {
-					return REPOSITORY.add(dsl, task.withStatus(status));
+					return this.repository.add(dsl, task.withStatus(status));
 				}
-				REPOSITORY.changeStatus(dsl, task.id(), status);
+				this.repository.changeStatus(dsl, task.id(), status);
 				return task.withStatus(status);
 			});
 		}
@@ -792,7 +832,7 @@ public final class TaskManager implements Service, TaskEngine {
 	public void scheduleLocalTasks() {
 		synchronized (this.localTasksLock) {
 			try {
-				List<Task> tasks = this.transactions.read(dsl -> REPOSITORY.findWhere(dsl,
+				List<Task> tasks = this.transactions.read(dsl -> this.repository.findWhere(dsl,
 					TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(this.cluster.localInstanceId()))));
 				for (Task task : tasks) {
 					log.debug("Scheduling task {} for local runner {}.", task.id(), task.runnerId());
@@ -833,7 +873,7 @@ public final class TaskManager implements Service, TaskEngine {
 					return 0;
 				}
 				int count = 0;
-				for (Task task : REPOSITORY.findWhere(dsl, active.and(TASK.RUNNER_ID.in(runnerIds).or(TASK.RUNNER_ID.isNull())))) {
+				for (Task task : this.repository.findWhere(dsl, active.and(TASK.RUNNER_ID.in(runnerIds).or(TASK.RUNNER_ID.isNull())))) {
 					// A member considered as gone may actually still be running the task (e.g. it was
 					// just unable to send hello messages for a while): only reassign the task if its
 					// lock isn't held anymore (released by the database when the member really died)
@@ -885,7 +925,7 @@ public final class TaskManager implements Service, TaskEngine {
 				case CLUSTER_MEMBER -> TaskRepository.statusIn(Status.WAITING, Status.RUNNING).and(TASK.RUNNER_ID.eq(myId));
 				default -> TaskRepository.statusIn(Status.SCHEDULED, Status.WAITING, Status.RUNNING);
 			};
-			tasks = inSystemTransaction(dsl -> REPOSITORY.findWhere(dsl, condition));
+			tasks = inSystemTransaction(dsl -> this.repository.findWhere(dsl, condition));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to retrieve the tasks from the database.", e);
@@ -935,7 +975,7 @@ public final class TaskManager implements Service, TaskEngine {
 	 */
 	public void cancelOrphanedDelayedTasks() {
 		try {
-			int count = this.transactions.write(dsl -> REPOSITORY.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
+			int count = this.transactions.write(dsl -> this.repository.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
 				Status.CANCELLED, Status.DELAYED));
 			log.info("{} orphaned DELAYED task(s) cancelled at startup", count);
 		}

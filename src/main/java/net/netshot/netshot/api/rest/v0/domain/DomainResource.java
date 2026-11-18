@@ -44,6 +44,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.domain.DomainDefinition;
 import net.netshot.netshot.domain.DomainService;
 
 /**
@@ -89,7 +91,7 @@ public class DomainResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public List<DomainSummaryDto> getDomains(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, domains.");
-		return DomainMapper.toSummaryDtos(this.domainService.list(paginationParams.toPage()));
+		return DomainMapper.toSummaryDtos(this.domainService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**
@@ -137,7 +139,8 @@ public class DomainResource {
 	public DomainSummaryDto setDomain(@PathParam("id") @Parameter(description = "Domain ID") Long id, DomainRequest rsDomain)
 		throws WebApplicationException {
 		log.debug("REST request, edit domain {}.", id);
-		return DomainMapper.toSummaryDto(this.domainService.update(id, DomainMapper.toDefinition(rsDomain)));
+		DomainDefinition definition = DomainMapper.toDefinition(rsDomain);
+		return DomainMapper.toSummaryDto(this.domainService.update(id, _ -> definition, null));
 	}
 
 	/**
@@ -158,7 +161,7 @@ public class DomainResource {
 	public void deleteDomain(@PathParam("id") @Parameter(description = "Domain ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete domain {}.", id);
-		this.domainService.delete(id);
+		this.domainService.delete(id, null);
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 	}
 }

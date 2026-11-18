@@ -39,8 +39,8 @@ import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
@@ -91,14 +91,14 @@ class OrphanBinaryFilePurgeTest {
 		long configId = device.lastConfigId();
 
 		// attrA: fully finalized, real referenced file - must survive.
-		Files.write(attrA.getPendingFilePath(device.id()), "real-data-a".getBytes());
-		attrA.finalizeStorage(device.id(), configId);
-		Path attrAFinalPath = attrA.getFilePath(device.id(), configId);
+		Files.write(TestWiring.get().core().repositories().binaryFiles().pendingFilePath(attrA, device.id()), "real-data-a".getBytes());
+		TestWiring.get().core().repositories().binaryFiles().finalizeStorage(attrA, device.id(), configId);
+		Path attrAFinalPath = TestWiring.get().core().repositories().binaryFiles().filePath(attrA, device.id(), configId);
 
 		// attrB: real, referenced, but stuck at its pending name and old -
 		// simulates a crash between commit() and finalizeStorage(). Must
 		// survive: its uid is known, so it's not an orphan.
-		Path attrBPendingPath = attrB.getPendingFilePath(device.id());
+		Path attrBPendingPath = TestWiring.get().core().repositories().binaryFiles().pendingFilePath(attrB, device.id());
 		Files.write(attrBPendingPath, "real-data-b".getBytes());
 		this.setOldMtime(attrBPendingPath);
 
@@ -122,7 +122,8 @@ class OrphanBinaryFilePurgeTest {
 		PurgeDatabaseTask spec = PurgeDatabaseTask.builder().configDays(0).moduleDays(0).removeOrphanFiles(true).build();
 		Task task = Task.of(spec, "Test", "Global", "tester");
 		TaskRun run = new TaskRun(task);
-		new PurgeDatabaseHandler(TestWiring.get().transactions()).run(task, spec, run);
+		new PurgeDatabaseHandler(TestWiring.get().core().transactions(), TestWiring.get().core().repositories().task(),
+			TestWiring.get().core().repositories().binaryFiles()).run(task, spec, run);
 
 		Assertions.assertEquals(Status.SUCCESS, run.getStatus());
 		Assertions.assertTrue(Files.exists(attrAFinalPath), "The real, finalized attribute file must survive");

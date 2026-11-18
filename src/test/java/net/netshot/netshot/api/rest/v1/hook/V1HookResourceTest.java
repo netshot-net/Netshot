@@ -59,7 +59,7 @@ class V1HookResourceTest {
 	void setUp(TestServer testServer) {
 		this.server = testServer;
 		this.admin = new V1Client(testServer, UiUser.LEVEL_ADMIN);
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.HOOK_TRIGGER).execute();
 			dsl.deleteFrom(Tables.HOOK).execute();
 		});

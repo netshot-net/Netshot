@@ -44,8 +44,12 @@ import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the users (administrators only): list, add, edit and delete.
@@ -93,7 +97,7 @@ public class UserResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public List<UserDto> getUsers(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, get user list.");
-		return UserMapper.toUserDtos(this.userService.list(paginationParams.toPage()));
+		return UserMapper.toUserDtos(this.userService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**
@@ -114,7 +118,7 @@ public class UserResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public UserDto addUser(UserRequest rsUser) {
 		log.debug("REST request, add user");
-		UserDto user = UserMapper.toDto(this.userService.create(UserMapper.toCreation(rsUser)));
+		UserDto user = UserMapper.toDto(this.userService.create(UserMapper.toDefinition(rsUser)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return user;
 	}
@@ -142,7 +146,9 @@ public class UserResource {
 		UserRequest rsUser) throws WebApplicationException {
 		log.debug("REST request, edit user {}.", id);
 		User currentUser = (User) this.securityContext.getUserPrincipal();
-		return UserMapper.toDto(this.userService.update(id, currentUser.username(), UserMapper.toUpdate(rsUser)));
+		UserDefinition update = UserMapper.toDefinition(rsUser);
+		return UserMapper.toDto(V0Errors.translate(() -> this.userService.update(id, currentUser.username(), _ -> update, null),
+			V0Errors.code(ErrorCode.NETSHOT_USER_NOT_FOUND, ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user.")));
 	}
 
 	/**
@@ -165,7 +171,7 @@ public class UserResource {
 		throws WebApplicationException {
 		log.debug("REST request, delete user {}.", id);
 		User currentUser = (User) this.securityContext.getUserPrincipal();
-		if (this.userService.delete(id, currentUser.username())) {
+		if (V0Errors.found(() -> this.userService.delete(id, currentUser.username(), null), ErrorCode.NETSHOT_USER_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {

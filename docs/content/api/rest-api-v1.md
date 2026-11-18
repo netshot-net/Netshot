@@ -157,6 +157,8 @@ curl -H "X-Netshot-API-Token: <token>" \
   'https://<server:port>/api/v1/devices?query=%5BFamily%5D%20is%20%22Cisco%20ISR%22&location__isw=paris&fields=name,mgmtAddress'
 ```
 
+With a `query`, the list (`/devices`, `/groups/{id}/devices`) also gives the query as it is applied, in its canonical form, as `query` next to `results` (`"query": "[Family] is \"Cisco ISR\""`); an invalid query is a 400 (`NETSHOT_INVALID_SEARCH_STRING`, on the `query` parameter).
+
 `GET /api/v1/devices/stats` counts the devices (see [Statistics](#statistics)): `groupBy` `status`, `mgmtDomain`, `family`, `driver`, `networkClass`, `softwareVersion`, `softwareLevel`, `location`, `eolDate`, `eosDate`, `group`, `tag`, `compliant`; time buckets on `createdDate` (default), `changeDate`, `eolDate`, `eosDate`, `lastSnapshotSuccessDate` or `lastSnapshotFailureDate`. For instance the compliance of the devices of each group: `/api/v1/devices/stats?groupBy=group,compliant`.
 
 `lastSnapshotSuccessDate` and `lastSnapshotFailureDate` (full view; null if never) tell when the last snapshot of the device succeeded and failed. They are maintained by the snapshot tasks (a cancelled snapshot changes neither) and read-only; at upgrade, they are initialized from the task history. They can be filtered and sorted on, for instance the devices in production without successful snapshot for a week: `/api/v1/devices?status=INPRODUCTION&lastSnapshotSuccessDate__lt=2026-10-25T00:00:00Z&sort=lastSnapshotSuccessDate`.
@@ -209,7 +211,7 @@ Read-only lists of the values found in the inventory (read-only level), with fil
 
 ### Groups
 
-`/api/v1/groups`: list and get (read-only level), create, replace, update and delete (read-write level). `type` is `STATIC` or `DYNAMIC` and can't change. The devices of a static group are given by `devices` (their IDs, in order), which is write-only: it isn't part of the group representation, and when it is absent from a `PUT` or a `PATCH` the members are unchanged. The members of a dynamic group follow its `query`.
+`/api/v1/groups`: list and get (read-only level), create, replace, update and delete (read-write level). `type` is `STATIC` or `DYNAMIC` and can't change. The devices of a static group are given by `devices` (their IDs, in order), which is write-only: it isn't part of the group representation, and when it is absent from a `PUT` or a `PATCH` the members are unchanged. The members of a dynamic group follow its `query`, which is required (400 when it is absent or `null`); an empty query selects all the devices.
 
 `GET /api/v1/groups/{id}/devices` lists the devices of a group, with the parameters of the device list (it is the device list filtered on `group={id}`).
 
@@ -225,7 +227,7 @@ Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDa
 - `GET /api/v1/tasks/stats` counts the tasks (see [Statistics](#statistics)): `groupBy` `type`, `status`, `author`, `scheduleType`, `device`, `group`, `runnerId`; time buckets on `executionDate` (default; the tasks which haven't run aren't counted), `creationDate`, `changeDate` or `scheduleReference`. For instance the finished tasks of the last day, by hour and status: `/api/v1/tasks/stats?interval=hour&groupBy=status&status=SUCCESS&status=FAILURE&status=CANCELLED`.
 - `GET /api/v1/tasks/status-counts?parentTask=`: `{"countByStatus" (every status), "threadCount"}`; with `parentTask`, only the children of that task.
 
-Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `scheduleType`, `scheduleReference`, `creationDate`, `changeDate`, `executionDate`, `device`, `group`, `parentTask`, `childOrder`, `runnerId`, `debugEnabled`; `q` searches the author, target and comments.
+Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `scheduleType`, `scheduleReference`, `creationDate`, `changeDate`, `executionDate`, `date`, `activity`, `device`, `group`, `parentTask`, `childOrder`, `runnerId`, `debugEnabled`; `q` searches the author, target and comments. `date` is the execution date of a task, or its change date if it hasn't run; `activity` ranks the status, the active tasks first (0 running, 1 waiting, 2 scheduled, 3 new, 4 done): `sort=activity,-date` lists the active tasks first, then the latest ones.
 
 ### Diagnostics
 
@@ -337,5 +339,5 @@ The v1 API has no report endpoints: the reports of the legacy API are queries on
 - `GET /api/v1/system/info` (read-only level): `version`, `serverTime`, `sessionMaxIdleTime`.
 - `GET /api/v1/system/cluster/members` (admin level): the members of the cluster (empty without clustering), in a single page (selection parameters only: no paging, sort, search or filter).
 - `GET /api/v1/system/cluster/master` (no authentication): `clusterEnabled`, `master`, `currentMasterId`; `200` on the master (or without clustering), `503` on another member, so a load balancer can use it to reach the master only.
-- `GET /api/v1/system/services` (admin level): the services of the server (task manager, Syslog server, web server...) with their `state`, `healthy` and `stats`, in a single page (selection parameters only).
+- `GET /api/v1/system/services` (admin level): the services of the server (task manager, Syslog server, web server...) with their `state`, `healthy` and `stats`, in a single page (selection parameters only). The `name` of a service is its stable identifier (`database`, `device-drivers`, `oidc-discovery`, `task-lock-manager`, `cluster-manager`, `vault-token-refresher`, `ssh-client`, `task-manager`, `syslog-server`, `snmp-trap-receiver`, `ssh-server`, `rest-server`), `display` its label.
 - `GET /api/v1/health` (no authentication): `{"status": "UP"}` (`200`) when all the services run and are healthy, `{"status": "DOWN"}` (`503`) otherwise, including while the server starts or stops. It tells nothing else. For a Kubernetes probe: `httpGet: {path: /api/v1/health, port: 8443, scheme: HTTPS}`.

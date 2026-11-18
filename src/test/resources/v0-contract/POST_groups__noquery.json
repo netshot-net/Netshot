@@ -1,0 +1,9 @@
+{
+  "changeDate": "<now>",
+  "folder": "Tests",
+  "hiddenFromReports": false,
+  "id": 8,
+  "name": "No query",
+  "query": "[Name] is \"example\"",
+  "type": "DynamicDeviceGroup"
+}

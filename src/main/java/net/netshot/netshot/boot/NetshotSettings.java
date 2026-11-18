@@ -20,26 +20,25 @@ package net.netshot.netshot.boot;
 
 import java.util.List;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.auth.Radius;
 import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.Http;
+import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
-import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.ClientAddress;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
-import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
@@ -51,9 +50,11 @@ import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJob;
 import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.task.handler.TakeSnapshotHandler;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultTokenRefresher;
 import net.netshot.netshot.platform.config.SettingCatalog;
+import net.netshot.netshot.platform.tls.Truststore;
 
 /**
  * The catalog of all the configuration settings: the classes declaring {@code Setting} fields
@@ -72,7 +73,7 @@ public final class NetshotSettings {
 	 */
 	public static List<Class<?>> declaringClasses() {
 		return List.of(
-			Netshot.class,
+			Truststore.class,
 			Oidc.class,
 			Radius.class,
 			Tacacs.class,
@@ -81,18 +82,18 @@ public final class NetshotSettings {
 			Ssh.class,
 			Telnet.class,
 			Http.class,
+			Snmp.class,
 			Collector.class,
 			SnmpTrapReceiver.class,
 			SshServer.class,
 			SyslogServer.class,
-			LoggerFilter.class,
+			ClientAddress.class,
 			RestServer.class,
 			ListParams.class,
 			LoggingSetup.class,
 			ClusterManager.class,
 			JsRuleRuntime.class,
 			PyRuleRuntime.class,
-			SnapshotDeviceScript.class,
 			PythonFileSystem.class,
 			DriverLoader.class,
 			ConfigBinaryFileAttribute.class,
@@ -104,6 +105,7 @@ public final class NetshotSettings {
 			ChildTaskOrchestrator.class,
 			TaskJob.class,
 			TaskManager.class,
+			TakeSnapshotHandler.class,
 			VaultManager.class,
 			VaultTokenRefresher.class);
 	}

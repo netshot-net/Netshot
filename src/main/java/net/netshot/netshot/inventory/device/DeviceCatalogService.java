@@ -26,7 +26,6 @@ import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -71,86 +70,17 @@ public class DeviceCatalogService {
 		Column.<SoftwareVersionCount>integer("deviceCount", SoftwareVersionCount::deviceCount));
 
 	private final Transactions transactions;
-	private final DeviceRepository repository;
-	private final DeviceInventoryRepository inventoryRepository = new DeviceInventoryRepository();
+	private final DeviceInventoryRepository inventoryRepository;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
-	 * @param repository the device repository
+	 * @param inventoryRepository the device inventory repository
 	 */
-	public DeviceCatalogService(Transactions transactions, DeviceRepository repository) {
+	public DeviceCatalogService(Transactions transactions, DeviceInventoryRepository inventoryRepository) {
 		this.transactions = transactions;
-		this.repository = repository;
-	}
-
-	/**
-	 * Lists the device families.
-	 *
-	 * @param page the window on the result
-	 * @return the driver and family of each device
-	 * @throws NetshotException if the families can't be read
-	 */
-	public List<DeviceFamily> getFamilies(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findFamilies(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Error while loading device families.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
-		}
-	}
-
-	/**
-	 * Lists the part numbers of the modules.
-	 *
-	 * @param page the window on the result
-	 * @return the part number of each module
-	 * @throws NetshotException if the part numbers can't be read
-	 */
-	public List<String> getPartNumbers(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findPartNumbers(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Error while loading part numbers.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
-		}
-	}
-
-	/**
-	 * Lists the tags attached to at least one device.
-	 *
-	 * @param page the window on the result
-	 * @return the tags, sorted, with the number of devices having each
-	 * @throws NetshotException if the tags can't be read
-	 */
-	public List<DeviceTagCount> getTags(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findTagCounts(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Error while loading device tags.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
-		}
-	}
-
-	/**
-	 * Lists the software versions of the devices.
-	 *
-	 * @param page the window on the result
-	 * @return the software version of each device which has one
-	 * @throws NetshotException if the software versions can't be read
-	 */
-	public List<String> getSoftwareVersions(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findSoftwareVersions(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Error while loading software versions.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
-		}
+		this.inventoryRepository = inventoryRepository;
 	}
 
 	/**

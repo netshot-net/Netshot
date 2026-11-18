@@ -36,8 +36,8 @@ import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.domain.Domain;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
@@ -49,6 +49,8 @@ import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
+import net.netshot.netshot.testing.TestConfig;
 
 @SimulatorTest
 @DisplayName("HPE ArubaOS-Switch driver test")
@@ -75,7 +77,7 @@ class HPEArubaOSSwitchDriverTest {
 		sshAccess.port(container.getMappedPort(22));
 		deviceAccesses.add(sshAccess.build());
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, new BinaryFileStorage(TestConfig.store()));
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, Set.of(credentials));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);

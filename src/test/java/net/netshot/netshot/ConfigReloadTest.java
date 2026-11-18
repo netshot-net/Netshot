@@ -39,11 +39,11 @@ import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * The configuration reload (what the HUP signal applies): the settings of the modules are read again
@@ -57,12 +57,12 @@ class ConfigReloadTest {
 	Path tempDir;
 
 	private static Config current() {
-		return Netshot.config().current();
+		return TestConfig.store().current();
 	}
 
 	@AfterEach
 	void resetConfig() {
-		Netshot.initConfig(new Properties());
+		TestConfig.init(new Properties());
 	}
 
 	/**
@@ -72,7 +72,7 @@ class ConfigReloadTest {
 	private static void reload(Map<String, String> values) {
 		Properties config = new Properties();
 		config.putAll(values);
-		Netshot.initConfig(config);
+		TestConfig.init(config);
 	}
 
 	@Test
@@ -88,25 +88,25 @@ class ConfigReloadTest {
 			Map.entry("netshot.vault.http.readtimeoutms", "2222"),
 			Map.entry("netshot.snapshots.binary.path", this.tempDir.toString()),
 			Map.entry("netshot.python.virtualenv", this.tempDir.toString())));
-		Assertions.assertEquals(7, PasswordPolicy.getMainPolicy().getMaxHistory());
-		Assertions.assertEquals(600, UiUser.settings().maxIdleTime());
-		Assertions.assertEquals(1234, Ssh.settings().connectionTimeout());
-		Assertions.assertEquals(List.of("aes256-ctr", "aes128-ctr"), Ssh.settings().ciphers());
-		Assertions.assertEquals(4321, Telnet.settings().receiveTimeout());
+		Assertions.assertEquals(7, PasswordPolicy.from(TestConfig.store().current()).getMaxHistory());
+		Assertions.assertEquals(600, UiUser.Settings.from(TestConfig.store().current()).maxIdleTime());
+		Assertions.assertEquals(1234, Ssh.Settings.from(TestConfig.store().current()).connectionTimeout());
+		Assertions.assertEquals(List.of("aes256-ctr", "aes128-ctr"), Ssh.Settings.from(TestConfig.store().current()).ciphers());
+		Assertions.assertEquals(4321, Telnet.Settings.from(TestConfig.store().current()).receiveTimeout());
 		Assertions.assertEquals(NetworkAddress.getNetworkAddress("192.168.0.1"),
-			Collector.settings().clusterIpOverrides().get(InetAddress.getByName("10.0.0.1")));
-		Assertions.assertEquals(2222, new VaultManager(Netshot.config(), (Transactions) null).settings().httpReadTimeoutMs());
-		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.settings().storageFolderPath());
-		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.settings().venvFolder());
+			Collector.Settings.from(TestConfig.store().current()).clusterIpOverrides().get(InetAddress.getByName("10.0.0.1")));
+		Assertions.assertEquals(2222, new VaultManager(TestConfig.store(), _ -> null).settings().httpReadTimeoutMs());
+		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.Settings.from(TestConfig.store().current()).storageFolderPath());
+		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.Settings.from(TestConfig.store().current()).venvFolder());
 
 		reload(Map.of());
-		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory());
-		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime());
-		Assertions.assertEquals(5000, Ssh.settings().connectionTimeout());
-		Assertions.assertEquals(60000, Telnet.settings().receiveTimeout());
-		Assertions.assertTrue(Collector.settings().clusterIpOverrides().isEmpty());
-		Assertions.assertEquals(10000, new VaultManager(Netshot.config(), (Transactions) null).settings().httpReadTimeoutMs());
-		Assertions.assertNull(PythonFileSystem.settings().venvFolder());
+		Assertions.assertEquals(0, PasswordPolicy.from(TestConfig.store().current()).getMaxHistory());
+		Assertions.assertEquals(1800, UiUser.Settings.from(TestConfig.store().current()).maxIdleTime());
+		Assertions.assertEquals(5000, Ssh.Settings.from(TestConfig.store().current()).connectionTimeout());
+		Assertions.assertEquals(60000, Telnet.Settings.from(TestConfig.store().current()).receiveTimeout());
+		Assertions.assertTrue(Collector.Settings.from(TestConfig.store().current()).clusterIpOverrides().isEmpty());
+		Assertions.assertEquals(10000, new VaultManager(TestConfig.store(), _ -> null).settings().httpReadTimeoutMs());
+		Assertions.assertNull(PythonFileSystem.Settings.from(TestConfig.store().current()).venvFolder());
 	}
 
 	@Test
@@ -115,7 +115,7 @@ class ConfigReloadTest {
 		reload(Map.of(
 			"netshot.aaa.radius1.ip", "127.0.0.1",
 			"netshot.aaa.radius1.secret", "secret"));
-		Radius radius = new Radius(Netshot.config());
+		Radius radius = new Radius(TestConfig.store());
 		Assertions.assertTrue(radius.isAvailable());
 		reload(Map.of());
 		Assertions.assertFalse(radius.isAvailable());
@@ -127,7 +127,7 @@ class ConfigReloadTest {
 		reload(Map.of(
 			"netshot.aaa.tacacs1.ip", "127.0.0.1",
 			"netshot.aaa.tacacs1.secret", "secret"));
-		Tacacs tacacs = new Tacacs(Netshot.config());
+		Tacacs tacacs = new Tacacs(TestConfig.store());
 		Assertions.assertTrue(tacacs.isAvailable());
 		reload(Map.of());
 		Assertions.assertFalse(tacacs.isAvailable());
@@ -140,9 +140,9 @@ class ConfigReloadTest {
 			"netshot.aaa.passwordpolicy.maxhistory", "seven",
 			"netshot.aaa.maxidletime", "1",
 			"netshot.cli.ssh.rekeydatalimit", "big"));
-		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory(), "Not a number");
-		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime(), "Out of range");
-		Assertions.assertEquals(1024L * 1024L * 1024L, Ssh.settings().rekeyDataLimit(), "Not a long");
+		Assertions.assertEquals(0, PasswordPolicy.from(TestConfig.store().current()).getMaxHistory(), "Not a number");
+		Assertions.assertEquals(1800, UiUser.Settings.from(TestConfig.store().current()).maxIdleTime(), "Out of range");
+		Assertions.assertEquals(1024L * 1024L * 1024L, Ssh.Settings.from(TestConfig.store().current()).rekeyDataLimit(), "Not a long");
 	}
 
 	@Test
@@ -153,7 +153,7 @@ class ConfigReloadTest {
 		config.setProperty("netshot.test.badbool", "yes");
 		config.setProperty("netshot.test.int", "42");
 		config.setProperty("netshot.test.badint", "4x2");
-		Netshot.initConfig(config);
+		TestConfig.init(config);
 		Assertions.assertTrue(current().getBoolean("netshot.test.bool", false));
 		Assertions.assertFalse(current().getBoolean("netshot.test.badbool", false), "Only true/false are booleans");
 		Assertions.assertTrue(current().getBoolean("netshot.test.missing", true));
