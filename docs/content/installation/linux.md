@@ -51,12 +51,13 @@ Compatibility matrix:
 | 0.19.x | 17.0.8-graal | - |
 | 0.20.x | 21.0.4-graal | 23.1.5 |
 | 0.21.x - 0.23.x | 21.0.6-graal | 24.1.2 |
-| 0.24.0 and newer | 21.0.9-graal | 24.1.2 |
+| 0.24.0 - 0.25.1 | 21.0.9-graal | 24.1.2 |
+| 0.25.2 and newer | 21.0.12-graal | 24.1.2 |
 
 For modern GraalVM versions:
 
 ```bash
-GRAALVM_VERSION="21.0.9"
+GRAALVM_VERSION="21.0.12"
 wget --quiet https://download.oracle.com/graalvm/${GRAALVM_VERSION%%.*}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     tar xvzf graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     rm -f graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
