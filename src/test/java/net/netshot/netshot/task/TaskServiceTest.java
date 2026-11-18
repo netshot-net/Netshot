@@ -18,8 +18,10 @@
  */
 package net.netshot.netshot.task;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +42,11 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
@@ -48,7 +55,6 @@ import net.netshot.netshot.task.type.RunDeviceScriptTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
-import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -82,8 +88,7 @@ class TaskServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		net.netshot.netshot.boot.Wiring.init(TestDrivers.registry());
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
 				throw this.schedulerFailure;
@@ -113,7 +118,8 @@ class TaskServiceTest {
 				return 7;
 			}
 		};
-		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, TestDrivers.registry());
+		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, TestDrivers.registry(),
+			TestWiring.get().core().repositories().device(), TestWiring.get().core().repositories().domain(), TestWiring.get().core().repositories().group());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.domainId = domain.id();
 		Device device = TestDevices.add(Device.create("CiscoIOS12", "10.30.0.1", domain, AUTHOR).toBuilder().name("router-1").build());
@@ -162,12 +168,13 @@ class TaskServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("find() returns the task, or null for an unknown one")
-	void find() {
-		Task task = this.service.find(this.snapshotId);
+	@DisplayName("get() returns the task, and reports an unknown one")
+	void get() {
+		Task task = this.service.get(this.snapshotId);
 		Assertions.assertInstanceOf(TakeSnapshotTask.class, task.spec());
 		Assertions.assertEquals("with debug log", task.comments());
-		Assertions.assertNull(this.service.find(99_999_999L));
+		NetshotException e = Assertions.assertThrows(NetshotException.class, () -> this.service.get(99_999_999L));
+		Assertions.assertEquals(ErrorCode.NETSHOT_TASK_NOT_FOUND, e.getErrorCode());
 	}
 
 	@Test
@@ -178,11 +185,18 @@ class TaskServiceTest {
 		assertError(ErrorCode.NETSHOT_TASK_NOT_FOUND, () -> this.service.getDebugLog(99_999_999L));
 	}
 
+	private List<TaskSummary> summaries(Page page, List<SortOrder> sort, Criterion... criteria) {
+		return this.service.listSummaries(new ListQuery(List.of(criteria), null, sort, page, false)).items();
+	}
+
+	private static Criterion of(String field, Lookup lookup, Object... values) {
+		return new Criterion(field, lookup, List.of(values));
+	}
+
 	@Test
-	@DisplayName("list() filters, orders and pages the summaries")
+	@DisplayName("listSummaries() filters, orders and pages the summaries, on their date (execution date, else change date) too")
 	void list() {
-		TaskFilter all = new TaskFilter(Set.of(), Set.of(), null, null, null);
-		List<TaskSummary> summaries = this.service.list(all, Page.ALL);
+		List<TaskSummary> summaries = this.summaries(Page.ALL, List.of());
 		Assertions.assertTrue(summaries.size() >= 2);
 		Assertions.assertTrue(summaries.get(0).id() > summaries.get(1).id(), "most recent first");
 		TaskSummary failed = summaries.stream().filter(s -> s.id() == this.failedId).findFirst().orElseThrow();
@@ -190,31 +204,33 @@ class TaskServiceTest {
 		Assertions.assertEquals(this.deviceId, failed.deviceId());
 		Assertions.assertNull(failed.deviceGroupId());
 
-		List<TaskSummary> failures = this.service.list(new TaskFilter(Set.of(Task.Status.FAILURE), Set.of(), null, null, null), Page.ALL);
+		List<TaskSummary> failures = this.summaries(Page.ALL, List.of(), of("status", Lookup.EXACT, "FAILURE"));
 		Assertions.assertTrue(failures.stream().allMatch(s -> s.status() == Task.Status.FAILURE));
 		Assertions.assertTrue(failures.stream().anyMatch(s -> s.id() == this.failedId));
+		Assertions.assertTrue(this.summaries(Page.ALL, List.of(), of("type", Lookup.EXACT, "CheckComplianceTask")).stream()
+			.noneMatch(s -> s.id() == this.failedId));
 
-		Assertions.assertTrue(this.service.list(new TaskFilter(Set.of(), Set.of("NoSuchTask"), null, null, null), Page.ALL).isEmpty());
-		Assertions.assertTrue(this.service.list(new TaskFilter(Set.of(), Set.of("CheckComplianceTask"), null, null, null), Page.ALL)
-			.stream().noneMatch(s -> s.id() == this.failedId));
-
-		List<TaskSummary> dated = this.service.list(new TaskFilter(Set.of(), Set.of(), 1_600_000_050_000L, 1_600_000_150_000L, null), Page.ALL);
+		List<TaskSummary> dated = this.summaries(Page.ALL, List.of(), of("date", Lookup.GTE, Instant.ofEpochMilli(1_600_000_050_000L)),
+			of("date", Lookup.LTE, Instant.ofEpochMilli(1_600_000_150_000L)));
 		Assertions.assertTrue(dated.stream().anyMatch(s -> s.id() == this.failedId));
 		Assertions.assertTrue(dated.stream().noneMatch(s -> s.id() == this.snapshotId));
 
-		Assertions.assertEquals(1, this.service.list(all, new Page(0, 1)).size());
-		Assertions.assertTrue(this.service.list(new TaskFilter(null, null, null, null, 99_999_999L), Page.ALL).isEmpty());
+		Assertions.assertEquals(1, this.summaries(new Page(0, 1), List.of()).size());
+		Assertions.assertTrue(this.summaries(Page.ALL, List.of(), of("parentTask", Lookup.EXACT, 99_999_999L)).isEmpty());
 	}
 
 	@Test
-	@DisplayName("listByDevice() lists the tasks of the device only, and reports any failure as a database error")
-	void listByDevice() {
-		List<TaskSummary> tasks = this.service.listByDevice(this.deviceId, null, null);
-		Assertions.assertTrue(tasks.stream().anyMatch(s -> s.id() == this.snapshotId));
-		Assertions.assertTrue(this.service.listByDevice(this.otherDeviceId, null, null).isEmpty());
-		Assertions.assertEquals(1, this.service.listByDevice(this.deviceId, 0, 1).size());
-		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> this.service.listByDevice(this.deviceId, -1, null));
-		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> this.service.listByDevice(this.deviceId, null, 0));
+	@DisplayName("listSummaries() sorts on the activity of the status: the active tasks first")
+	void listByActivity() {
+		long scheduled = this.persistTask(this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled"));
+		List<TaskSummary> tasks = this.summaries(Page.ALL, List.of(SortOrder.asc("activity"), SortOrder.desc("date")),
+			of("device", Lookup.EXACT, this.deviceId));
+		List<Long> ids = tasks.stream().map(TaskSummary::id).toList();
+		Assertions.assertTrue(ids.indexOf(scheduled) < ids.indexOf(this.snapshotId), "the scheduled task before the completed ones");
+		List<Task.Status> active = List.of(Task.Status.RUNNING, Task.Status.WAITING, Task.Status.SCHEDULED, Task.Status.NEW);
+		List<Integer> ranks = tasks.stream().map(t -> active.contains(t.status()) ? active.indexOf(t.status()) : active.size()).toList();
+		Assertions.assertEquals(ranks.stream().sorted().toList(), ranks, "the tasks by activity");
+		Assertions.assertTrue(this.summaries(Page.ALL, List.of(), of("device", Lookup.EXACT, this.otherDeviceId)).isEmpty());
 	}
 
 	@Test
@@ -229,68 +245,66 @@ class TaskServiceTest {
 	}
 
 	@Test
-	@DisplayName("getStats() buckets the completed tasks of the range")
+	@DisplayName("stats() counts the completed tasks of a range of dates (execution date, else change date)")
 	void stats() {
-		TaskStats stats = this.service.getStats(1_600_000_000_000L - 1, 1_600_000_200_000L, 2);
-		Assertions.assertEquals(2, stats.bins().size());
-		Assertions.assertEquals(Set.of(Task.Status.SUCCESS, Task.Status.FAILURE, Task.Status.CANCELLED), stats.statusCounts().keySet());
-		Assertions.assertEquals(1L, stats.statusCounts().get(Task.Status.SUCCESS));
-		Assertions.assertEquals(1L, stats.statusCounts().get(Task.Status.FAILURE));
-		Assertions.assertEquals(2L, stats.typeCounts().get("TakeSnapshotTask"));
-		Assertions.assertEquals(TaskSpec.class.getPermittedSubclasses().length, stats.typeCounts().size());
-		Assertions.assertEquals(new Date(1_600_000_200_000L), stats.bins().get(1).to());
-		Assertions.assertEquals(48, this.service.getStats(0L, 1_000L, null).bins().size());
-		Assertions.assertEquals(366, this.service.getStats(0L, 1_000_000L, 1_000).bins().size());
-		Assertions.assertEquals(1, this.service.getStats(0L, 1_000_000L, -5).bins().size());
+		ListQuery range = new ListQuery(List.of(of("status", Lookup.EXACT, "SUCCESS", "FAILURE", "CANCELLED"),
+			of("date", Lookup.GTE, Instant.ofEpochMilli(1_600_000_000_000L - 1)), of("date", Lookup.LT, Instant.ofEpochMilli(1_600_000_200_000L))),
+			null, List.of(), Page.ALL, false);
+		Map<Object, Long> byStatus = new HashMap<>();
+		this.service.stats(range, new StatsQuery(List.of("status"), null, null, null, null, null)).items()
+			.forEach(row -> byStatus.put(row.keys().get(0), row.count()));
+		Assertions.assertEquals(Map.of("SUCCESS", 1L, "FAILURE", 1L), byStatus);
+		Map<Object, Long> byType = new HashMap<>();
+		this.service.stats(range, new StatsQuery(List.of("type"), null, null, null, null, null)).items()
+			.forEach(row -> byType.put(row.keys().get(0), row.count()));
+		Assertions.assertEquals(2L, byType.get("TakeSnapshotTask"));
 	}
 
 	// ------------------------------------------------------------------
-	// update
+	// cancel
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("update() reports an unknown task, and does nothing when not cancelling")
-	void updateUnknown() {
-		assertError(ErrorCode.NETSHOT_TASK_NOT_FOUND, () -> this.service.update(99_999_999L, true, AUTHOR));
-		Task task = this.service.update(this.failedId, false, AUTHOR);
-		Assertions.assertEquals(this.failedId, task.id());
+	@DisplayName("cancel() reports an unknown task")
+	void cancelUnknown() {
+		assertError(ErrorCode.NETSHOT_TASK_NOT_FOUND, () -> this.service.cancel(99_999_999L, AUTHOR));
 		Assertions.assertTrue(this.cancelledTasks.isEmpty());
 		Assertions.assertTrue(this.cancelRequests.isEmpty());
 	}
 
 	@Test
-	@DisplayName("update() cancels a scheduled task through the engine, and only a scheduled one")
-	void updateCancel() {
-		assertError(ErrorCode.NETSHOT_TASK_NOT_CANCELLABLE, () -> this.service.update(this.failedId, true, AUTHOR));
+	@DisplayName("cancel() cancels a scheduled task through the engine, and only a scheduled one")
+	void cancel() {
+		assertError(ErrorCode.NETSHOT_TASK_NOT_CANCELLABLE, () -> this.service.cancel(this.failedId, AUTHOR));
 		Task scheduled = this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled");
 		long id = this.persistTask(scheduled);
-		this.service.update(id, true, AUTHOR);
+		this.service.cancel(id, AUTHOR);
 		Assertions.assertEquals(1, this.cancelledTasks.size());
 		Assertions.assertEquals(id, this.cancelledTasks.get(0).id());
 		Assertions.assertTrue(this.cancelRequests.isEmpty());
 	}
 
 	@Test
-	@DisplayName("update() only requests the cancellation of a running task")
-	void updateCancelRunning() {
+	@DisplayName("cancel() only requests the cancellation of a running task")
+	void cancelRunning() {
 		long runningDevice = this.persistTask(this.deviceTask(Task.Status.RUNNING, new Date(), "running"));
-		this.service.update(runningDevice, true, AUTHOR);
+		this.service.cancel(runningDevice, AUTHOR);
 		Assertions.assertEquals(List.of(runningDevice), this.cancelRequests);
 		Assertions.assertTrue(this.cancelledTasks.isEmpty());
 
 		Task group = GroupBasedTask.of(new TakeGroupSnapshotTask(null, List.of(this.deviceId), -1, false, false), null,
 			"running group", AUTHOR);
 		long runningGroup = this.persistTask(group.withStatus(Task.Status.RUNNING));
-		this.service.update(runningGroup, true, AUTHOR);
+		this.service.cancel(runningGroup, AUTHOR);
 		Assertions.assertEquals(List.of(runningDevice, runningGroup), this.cancelRequests);
 	}
 
 	@Test
-	@DisplayName("update() reports a failing engine as a cancel error")
-	void updateCancelFailure() {
+	@DisplayName("cancel() reports a failing engine as a cancel error")
+	void cancelFailure() {
 		long id = this.persistTask(this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled"));
 		this.engineFailure = true;
-		assertError(ErrorCode.NETSHOT_TASK_CANCEL_ERROR, () -> this.service.update(id, true, AUTHOR));
+		assertError(ErrorCode.NETSHOT_TASK_CANCEL_ERROR, () -> this.service.cancel(id, AUTHOR));
 	}
 
 	// ------------------------------------------------------------------

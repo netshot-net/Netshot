@@ -37,7 +37,7 @@ import org.junit.jupiter.api.function.Executable;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.aaa.user.UserCreation;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.platform.database.Transactions;
@@ -46,6 +46,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the authentication of the users who log in (local password, expired password, remote
@@ -113,9 +114,9 @@ class LoginServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
-		this.users = new UserService(this.transactions, this.repository);
-		this.service = new LoginService(this.transactions, this.repository, this.remote);
+		this.transactions = TestWiring.get().core().transactions();
+		this.users = new UserService(this.transactions, this.repository, TestConfig.store());
+		this.service = new LoginService(this.transactions, this.repository, this.remote, TestConfig.store());
 	}
 
 	@BeforeEach
@@ -134,7 +135,7 @@ class LoginServiceTest {
 	}
 
 	private UiUser createLocal(int level) {
-		return this.users.create(new UserCreation(this.nextName(), true, PASSWORD, level));
+		return this.users.create(new UserDefinition(this.nextName(), true, PASSWORD, level));
 	}
 
 	private UiUser reload(String name) {
@@ -173,7 +174,7 @@ class LoginServiceTest {
 		this.remote.bearerUser = UiUser.remote(local.username(), User.LEVEL_ADMIN);
 		Assertions.assertNull(this.service.authenticateBearer("token", ADDRESS));
 
-		UiUser configured = this.users.create(new UserCreation(this.nextName(), false, null, User.LEVEL_READONLY));
+		UiUser configured = this.users.create(new UserDefinition(this.nextName(), false, null, User.LEVEL_READONLY));
 		this.remote.bearerUser = UiUser.remote(configured.username(), User.LEVEL_ADMIN);
 		Assertions.assertEquals(User.LEVEL_READONLY, this.service.authenticateBearer("token", ADDRESS).level());
 
@@ -227,7 +228,7 @@ class LoginServiceTest {
 
 		UiUser result = this.service.authenticate(new LoginAttempt(name, PASSWORD, "New-passw0rd", null, null, ADDRESS));
 		Assertions.assertNotNull(result);
-		this.reload(name).checkPassword("New-passw0rd", PasswordPolicy.getMainPolicy());
+		this.reload(name).checkPassword("New-passw0rd", PasswordPolicy.from(TestConfig.store().current()));
 		Assertions.assertNotNull(this.service.authenticate(password(name, "New-passw0rd")));
 	}
 
@@ -239,7 +240,7 @@ class LoginServiceTest {
 		NetshotException failed = assertError(ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY,
 			() -> this.service.authenticate(new LoginAttempt(name, PASSWORD, "short", null, null, ADDRESS)));
 		Assertions.assertTrue(failed.getMessage().startsWith("The password doesn't match the defined policy"), failed.getMessage());
-		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.getMainPolicy());
+		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.from(TestConfig.store().current()));
 	}
 
 	@Test
@@ -248,7 +249,7 @@ class LoginServiceTest {
 		UiUser user = this.createLocal(User.LEVEL_READONLY);
 		String name = user.username();
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(name, "wrong", "New-passw0rd", null, null, ADDRESS)));
-		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.getMainPolicy());
+		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.from(TestConfig.store().current()));
 	}
 
 	@Test
@@ -292,13 +293,13 @@ class LoginServiceTest {
 	@Test
 	@DisplayName("Remote: a user known as non local keeps its local level, over the remote one")
 	void remoteLevelOverride() {
-		UiUser known = this.users.create(new UserCreation(this.nextName(), false, null, User.LEVEL_OPERATOR));
+		UiUser known = this.users.create(new UserDefinition(this.nextName(), false, null, User.LEVEL_OPERATOR));
 		this.remote.radiusUser = UiUser.remote(known.username(), User.LEVEL_ADMIN);
 		UiUser result = this.service.authenticate(password(known.username(), "secret"));
 		Assertions.assertEquals(this.remote.radiusUser.withLevel(User.LEVEL_OPERATOR), result);
 
 		// A level of 0 set locally is a way to deny a remote user
-		UiUser denied = this.users.create(new UserCreation(this.nextName(), false, null, 0));
+		UiUser denied = this.users.create(new UserDefinition(this.nextName(), false, null, 0));
 		this.remote.radiusUser = UiUser.remote(denied.username(), User.LEVEL_ADMIN);
 		Assertions.assertNull(this.service.authenticate(password(denied.username(), "secret")));
 	}

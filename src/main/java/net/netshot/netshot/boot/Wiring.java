@@ -21,755 +21,196 @@ package net.netshot.netshot.boot;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
-import net.netshot.netshot.aaa.auth.LoginService;
-import net.netshot.netshot.aaa.auth.Oidc;
-import net.netshot.netshot.aaa.auth.OidcDiscovery;
-import net.netshot.netshot.aaa.auth.Radius;
-import net.netshot.netshot.aaa.auth.Tacacs;
-import net.netshot.netshot.aaa.user.ApiTokenRepository;
-import net.netshot.netshot.aaa.user.ApiTokenService;
-import net.netshot.netshot.aaa.user.UserRepository;
-import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.access.Connectors;
-import net.netshot.netshot.access.SshClientService;
-import net.netshot.netshot.access.collector.SnmpTrapReceiver;
-import net.netshot.netshot.access.collector.SshServer;
-import net.netshot.netshot.access.collector.SyslogServer;
-import net.netshot.netshot.api.hook.HookDispatcher;
-import net.netshot.netshot.api.hook.WebHookSender;
-import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.cluster.ClusterService;
-import net.netshot.netshot.compliance.HardwareRuleRepository;
-import net.netshot.netshot.compliance.HardwareRuleService;
-import net.netshot.netshot.compliance.PolicyRepository;
-import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.RuleRepository;
-import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.compliance.SoftwareRuleRepository;
-import net.netshot.netshot.compliance.SoftwareRuleService;
-import net.netshot.netshot.compliance.check.ComplianceChecker;
-import net.netshot.netshot.compliance.check.JsRuleRuntime;
-import net.netshot.netshot.compliance.check.PyRuleRuntime;
-import net.netshot.netshot.compliance.check.RuleEvaluators;
-import net.netshot.netshot.credentials.CredentialSetRepository;
-import net.netshot.netshot.credentials.CredentialSetService;
-import net.netshot.netshot.diagnostic.DiagnosticRepository;
-import net.netshot.netshot.diagnostic.DiagnosticService;
-import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
-import net.netshot.netshot.domain.DomainRepository;
-import net.netshot.netshot.domain.DomainService;
-import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.hook.HookRepository;
-import net.netshot.netshot.hook.HookService;
-import net.netshot.netshot.inventory.config.ConfigRepository;
-import net.netshot.netshot.inventory.config.ConfigService;
-import net.netshot.netshot.inventory.device.DeviceCatalogService;
-import net.netshot.netshot.inventory.device.DeviceRepository;
-import net.netshot.netshot.inventory.device.DeviceService;
-import net.netshot.netshot.inventory.group.DynamicGroups;
-import net.netshot.netshot.inventory.group.GroupRepository;
-import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.SearchRepository;
-import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.database.DatabaseService;
-import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.report.ReportRepository;
-import net.netshot.netshot.report.ReportService;
-import net.netshot.netshot.system.ServerInfoService;
-import net.netshot.netshot.system.ServiceHealthService;
-import net.netshot.netshot.task.AutoSnapshotQueue;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
-import net.netshot.netshot.task.DeviceCreationService;
-import net.netshot.netshot.task.TaskHandlers;
-import net.netshot.netshot.task.TaskRepository;
-import net.netshot.netshot.task.TaskService;
-import net.netshot.netshot.task.TaskSubmitter;
-import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
-import net.netshot.netshot.task.engine.TaskJobFactory;
-import net.netshot.netshot.task.engine.TaskLockManager;
-import net.netshot.netshot.task.engine.TaskManager;
-import net.netshot.netshot.task.handler.CheckComplianceHandler;
-import net.netshot.netshot.task.handler.CheckGroupComplianceHandler;
-import net.netshot.netshot.task.handler.CheckGroupSoftwareHandler;
-import net.netshot.netshot.task.handler.DiscoverDeviceTypeHandler;
-import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
-import net.netshot.netshot.task.handler.RunDeviceGroupScriptHandler;
-import net.netshot.netshot.task.handler.RunDeviceScriptHandler;
-import net.netshot.netshot.task.handler.RunDiagnosticsHandler;
-import net.netshot.netshot.task.handler.RunGroupDiagnosticsHandler;
-import net.netshot.netshot.task.handler.ScanSubnetsHandler;
-import net.netshot.netshot.task.handler.TakeGroupSnapshotHandler;
-import net.netshot.netshot.task.handler.TakeSnapshotHandler;
-import net.netshot.netshot.userscript.ScriptRepository;
-import net.netshot.netshot.userscript.ScriptService;
-import net.netshot.netshot.vault.VaultInstanceRepository;
-import net.netshot.netshot.vault.VaultInstanceService;
-import net.netshot.netshot.vault.VaultManager;
-import net.netshot.netshot.vault.VaultTokenRefresher;
+import net.netshot.netshot.platform.lifecycle.ServiceManager;
 
 /**
- * The composition root: builds the long-lived objects of the application
- * (transaction support, the repositories and the services) and holds them.
+ * The composition root: builds the long-lived objects of the application, as modules (each one built from the
+ * modules before it), and holds them.
  *
- * <p>{@link #init()} initializes the database access and builds the wiring;
- * it must be called once the database schema is up to date, and before
- * anything that uses a service (the REST application, the task manager...).
- * It is the single entry point for the server startup as well as for the
- * tests which need a working database.</p>
+ * <p>The wiring is built without side effect, by {@link Application} (the server, the tools and the tests),
+ * which starts its {@link #services()}.</p>
  *
- * <p>The REST resources receive the objects of the wiring through dependency
- * injection: {@link #binder()} is handed to the web application, which registers
- * it into Jersey. Code which is
- * not created by an injection container (Quartz jobs, cluster code, entities)
- * gets what it needs from the entry point ({@code Netshot.main}) or from the handlers.</p>
+ * <p>The REST resources receive what they may inject through the {@code RestDependencies} of the {@link ApiModule},
+ * given to the REST server. The other objects receive their dependencies by constructor.</p>
  */
 @Slf4j
 public final class Wiring {
 
-	private final DatabaseService database;
-	private final Transactions transactions;
-	// Configuration
-	private final ConfigStore config;
-	// Drivers
-	private final DriverRegistry driverRegistry;
-	private final DynamicGroups dynamicGroups;
-	// Vault client
-	private final VaultManager vaultManager;
-	// SSH client of the device accesses
-	private final SshClientService sshClientService;
-	// Device
-	private final DeviceService deviceService;
-	private final DeviceCreationService deviceCreationService;
-	// Compliance
-	private final PolicyService policyService;
-	private final RuleService ruleService;
-	private final SoftwareRuleService softwareRuleService;
-	private final HardwareRuleService hardwareRuleService;
-	private final JsRuleRuntime jsRuleRuntime;
-	private final PyRuleRuntime pyRuleRuntime;
-	private final RuleEvaluators ruleEvaluators;
-	private final ComplianceChecker complianceChecker;
-	// Tasks
-	private final TaskService taskService;
-	// Reports
-	private final ReportService reportService;
-	// Inventory
-	private final DeviceCatalogService deviceCatalogService;
-	private final DeviceDriverService deviceDriverService;
-	private final DomainService domainService;
-	private final GroupService groupService;
-	private final SearchService searchService;
-	private final ConfigService configService;
-	// AAA and system
-	private final Oidc oidc;
-	private final Tacacs tacacs;
-	private final UserService userService;
-	private final ApiTokenService apiTokenService;
-	private final LoginService loginService;
-	private final ClusterService clusterService;
-	private final ServerInfoService serverInfoService;
-	private final ServiceHealthService serviceHealthService;
-	// Diagnostics
-	private final DiagnosticService diagnosticService;
-	private final DiagnosticAdapters diagnosticAdapters;
-	// Scripts
-	private final ScriptService scriptService;
-	// Credentials
-	private final CredentialSetService credentialSetService;
-	// Vault
-	private final VaultInstanceService vaultInstanceService;
-	// Hooks
-	private final HookService hookService;
-	// Events
-	private final DomainEvents domainEvents;
-	// Task engine and clustering
-	private final TaskLockManager lockManager;
-	private final TaskManager taskManager;
-	private final AutoSnapshotScheduler autoSnapshotScheduler;
-	private final ClusterManager clusterManager;
-	// Receivers
-	private final SshServer sshServer;
-	// Task handlers
-	private final TaskHandlers taskHandlers;
-	private final TaskJobFactory taskJobFactory;
+	private final CoreModule core;
+	private final AccessModule access;
+	private final ComplianceModule compliance;
+	private final TaskModule tasks;
+	private final InventoryModule inventory;
+	private final CredentialsModule credentials;
+	private final AaaModule aaa;
+	private final ApiModule api;
+	private final ServiceManager services;
+	private final SystemModule system;
 
 	/**
-	 * Builds the objects of the application. Each feature adds its own block
-	 * (repositories, then services).
+	 * Builds the objects of the application, module by module (each one from the modules built before it).
 	 *
 	 * @param driverRegistry the registry of the device drivers
 	 * @param config the configuration store
 	 */
 	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
-		this.database = new DatabaseService();
-		this.transactions = new Transactions(this.database);
-		this.config = config;
-		// Drivers
-		this.driverRegistry = driverRegistry;
-		this.dynamicGroups = new DynamicGroups(this.transactions, driverRegistry);
-		// Vault (the secret resolver of the device accesses)
-		this.vaultManager = new VaultManager(config, this.transactions);
-		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
-		boolean clustered = config.current().get(ClusterManager.ENABLED);
-		this.lockManager = TaskLockManager.create(clustered);
-		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
-		this.taskManager = new TaskManager(this.transactions, config, autoSnapshots, this.lockManager);
-		TaskSubmitter taskSubmitter = this.taskManager::addTask;
-		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots);
-		if (clustered) {
-			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager, this.vaultManager);
-			this.taskManager.setCluster(this.clusterManager);
-		}
-		else {
-			this.clusterManager = null;
-		}
-		// Device
-		DeviceRepository deviceRepository = new DeviceRepository();
-		this.deviceService = new DeviceService(this.transactions, deviceRepository, this.driverRegistry, this.dynamicGroups);
-		this.deviceCreationService = new DeviceCreationService(this.transactions, deviceRepository, taskSubmitter,
-			this.driverRegistry, this.dynamicGroups);
-		// Compliance
-		PolicyRepository policyRepository = new PolicyRepository();
-		this.policyService = new PolicyService(this.transactions, policyRepository);
-		this.jsRuleRuntime = new JsRuleRuntime(config);
-		this.pyRuleRuntime = new PyRuleRuntime(config);
-		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry, this.transactions);
-		this.complianceChecker = new ComplianceChecker(this.ruleEvaluators);
-		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository, this.ruleEvaluators);
-		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), this.driverRegistry);
-		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), this.driverRegistry);
-		// Tasks
-		TaskRepository taskRepository = new TaskRepository();
-		this.taskService = new TaskService(this.transactions, taskRepository, taskSubmitter, this.taskManager,
-			this.driverRegistry);
-		// Reports
-		this.reportService = new ReportService(this.transactions, new ReportRepository(), this.driverRegistry);
-		// Inventory
-		this.deviceCatalogService = new DeviceCatalogService(this.transactions, deviceRepository);
-		this.deviceDriverService = new DeviceDriverService(this.driverRegistry, () -> {
-			if (this.clusterManager != null) {
-				this.clusterManager.requestDriverReload();
-			}
-		});
-		this.domainService = new DomainService(this.transactions, new DomainRepository());
-		this.groupService = new GroupService(this.transactions, new GroupRepository(), this.dynamicGroups);
-		this.searchService = new SearchService(this.transactions, new SearchRepository(), new DeviceRepository(), this.driverRegistry);
-		this.configService = new ConfigService(this.transactions, new ConfigRepository(), this.driverRegistry);
-		// AAA and system
-		this.oidc = new Oidc(config);
-		this.tacacs = new Tacacs(config);
-		UserRepository userRepository = new UserRepository();
-		this.userService = new UserService(this.transactions, userRepository);
-		this.apiTokenService = new ApiTokenService(this.transactions, new ApiTokenRepository());
-		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs));
-		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
-		this.serverInfoService = new ServerInfoService();
-		this.serviceHealthService = new ServiceHealthService();
-		// Diagnostics
-		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
-		this.diagnosticAdapters = DiagnosticAdapters.standard();
-		// Scripts
-		this.scriptService = new ScriptService(this.transactions, new ScriptRepository(), this.driverRegistry);
-		// Credentials
-		this.credentialSetService = new CredentialSetService(this.transactions, new CredentialSetRepository());
-		// Vault
-		this.vaultInstanceService = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
-			vaultInstanceId -> {
-				this.vaultManager.invalidate(vaultInstanceId);
-				if (this.clusterManager != null) {
-					this.clusterManager.requestVaultInstanceReload(vaultInstanceId);
-				}
-			},
-			this.vaultManager::testConnection);
-		// Hooks
-		this.hookService = new HookService(this.transactions, new HookRepository());
-		// Events
-		this.domainEvents = new DomainEvents();
-		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
-		// Task handlers
-		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask);
-		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
-		this.sshClientService = new SshClientService(config);
-		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), this.transactions);
-		this.taskHandlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups),
-			new CheckGroupComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups),
-			new CheckGroupSoftwareHandler(this.transactions),
-			new DiscoverDeviceTypeHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
-			new PurgeDatabaseHandler(this.transactions),
-			new RunDeviceGroupScriptHandler(this.transactions, childTaskOrchestrator, this.driverRegistry),
-			new RunDeviceScriptHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors),
-			new RunDiagnosticsHandler(this.transactions, this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, connectors),
-			new RunGroupDiagnosticsHandler(this.transactions, childTaskOrchestrator),
-			new ScanSubnetsHandler(this.transactions, childTaskOrchestrator),
-			new TakeGroupSnapshotHandler(this.transactions, childTaskOrchestrator),
-			new TakeSnapshotHandler(this.transactions, this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
-				connectors)));
-		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
-		this.taskManager.setJobFactory(this.taskJobFactory);
+		this.core = CoreModule.create(config, driverRegistry);
+		this.access = AccessModule.create(this.core);
+		this.compliance = ComplianceModule.create(this.core);
+		this.tasks = TaskModule.create(this.core, this.access, this.compliance);
+		this.inventory = InventoryModule.create(this.core, this.tasks);
+		this.credentials = CredentialsModule.create(this.core, this.tasks);
+		this.aaa = AaaModule.create(this.core);
+		// The lifecycle of the services (filled once they are all built), and the report of their state
+		this.services = new ServiceManager(List.of());
+		this.system = SystemModule.create(this.core, this.tasks, this.aaa, this.services);
+		this.api = ApiModule.create(this.core, this.compliance, this.tasks, this.inventory, this.credentials, this.aaa, this.system);
+		this.serviceList().forEach(this.services::add);
 	}
 
 	/**
-	 * Initializes the database access and builds the wiring.
-	 *
-	 * @return the new wiring
-	 */
-	public static synchronized Wiring init() {
-		return init(new DriverRegistry(new DriverLoader()));
-	}
-
-	/**
-	 * Initializes the database access and builds the wiring around an existing registry of drivers.
-	 *
-	 * @param driverRegistry the registry of the device drivers (loaded or not)
-	 * @return the new wiring
-	 */
-	public static synchronized Wiring init(DriverRegistry driverRegistry) {
-		Wiring wiring = new Wiring(driverRegistry, Netshot.config());
-		wiring.database.start();
-		return wiring;
-	}
-
-	/**
-	 * Builds the wiring, without side effect: the database access is initialized by the first of the
-	 * {@link #services()}.
+	 * Builds the wiring, without side effect: the database access is initialized by the first of the services.
 	 *
 	 * @param config the configuration store
 	 * @return the new wiring
 	 */
-	public static synchronized Wiring create(ConfigStore config) {
-		return new Wiring(new DriverRegistry(new DriverLoader()), config);
+	public static Wiring create(ConfigStore config) {
+		return new Wiring(new DriverRegistry(new DriverLoader(config)), config);
 	}
 
 	/**
-	 * Gets the services of the server, in start order (they're stopped in the reverse order).
-	 * The services disabled by the configuration aren't part of the list.
+	 * Builds the wiring around an existing registry of drivers (loaded or not), without side effect.
+	 *
+	 * @param config the configuration store
+	 * @param driverRegistry the registry of the device drivers
+	 * @return the new wiring
+	 */
+	public static Wiring create(ConfigStore config, DriverRegistry driverRegistry) {
+		return new Wiring(driverRegistry, config);
+	}
+
+	/**
+	 * Lists the services of the server, in start order (they're stopped in the reverse order).
+	 * The services disabled by the configuration with a restart (the cluster manager, the SSH server, the REST server)
+	 * aren't part of the list; the Syslog server and the SNMP trap receiver, which apply their settings live, are
+	 * (idle while disabled).
 	 *
 	 * @return the services
 	 */
-	public List<Service> services() {
-		Config current = this.config.current();
-		List<Service> services = new ArrayList<>();
-		services.add(this.database);
-		services.add(this.driverRegistry);
-		services.add(new OidcDiscovery(this.oidc, this.config));
+	private List<Service> serviceList() {
+		List<Service> list = new ArrayList<>();
+		list.add(this.core.database());
+		list.add(this.core.driverRegistry());
+		list.add(this.aaa.oidcDiscovery());
 		// Before the clustering manager, which can start running tasks
-		services.add(this.lockManager);
-		if (this.clusterManager != null) {
-			services.add(this.clusterManager);
-		}
-		else {
-			log.info("High Availability is not enabled.");
-		}
-		services.add(new VaultTokenRefresher(this.transactions, this.vaultManager, this.config));
+		list.add(this.tasks.lockManager());
+		this.tasks.clusterManager().ifPresentOrElse(list::add, () -> log.info("High Availability is not enabled."));
+		list.add(this.credentials.vaultTokenRefresher());
 		// Before the task manager, which runs the tasks connecting to the devices
-		services.add(this.sshClientService);
-		services.add(this.taskManager);
+		list.add(this.access.sshClientService());
+		list.add(this.tasks.taskManager());
 		// The receivers submit tasks: after the task manager
-		if (current.get(SyslogServer.DISABLED)) {
-			log.warn("The Syslog server is disabled by configuration.");
-		}
-		else {
-			services.add(new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
-		}
-		services.add(new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
-		if (this.sshServer != null) {
-			services.add(this.sshServer);
-		}
-		else {
-			log.warn("The SSH server is disabled by configuration.");
-		}
+		list.add(this.tasks.syslogServer());
+		list.add(this.tasks.snmpTrapReceiver());
+		this.access.sshServer().ifPresentOrElse(list::add, () -> log.warn("The SSH server is disabled by configuration."));
 		// Last: the server is ready when it accepts the requests
-		if (current.get(RestServer.ENABLED)) {
-			services.add(new RestServer(this.binder()));
-		}
-		else {
-			log.info("HTTP server is not enabled.");
-		}
-		return services;
+		this.api.restServer().ifPresentOrElse(list::add, () -> log.info("HTTP server is not enabled."));
+		return list;
 	}
 
 	/**
-	 * Gets the dependency injection binder exposing the objects of this wiring
-	 * to the REST resources. To be handed to the web application.
+	 * Gets the manager of the services of the server (started by {@link Application}).
 	 *
-	 * @return a new binder
+	 * @return the service manager
 	 */
-	public AbstractBinder binder() {
-		return new WiringBinder(this);
+	public ServiceManager services() {
+		return this.services;
 	}
 
 	/**
-	 * Gets the transaction support.
+	 * Gets the module of the objects every feature uses (configuration, database, repositories, drivers...).
 	 *
-	 * @return the transactions
+	 * @return the module
 	 */
-	public Transactions transactions() {
-		return this.transactions;
+	public CoreModule core() {
+		return this.core;
 	}
 
 	/**
-	 * Gets the database access (the connection pools), started by {@link #init()} or as the first of the
-	 * {@link #services()}.
+	 * Gets the module of the access to the devices.
 	 *
-	 * @return the database service
+	 * @return the module
 	 */
-	public DatabaseService database() {
-		return this.database;
+	public AccessModule access() {
+		return this.access;
 	}
 
 	/**
-	 * Gets the device use cases.
+	 * Gets the module of the compliance.
 	 *
-	 * @return the device service
+	 * @return the module
 	 */
-	public DeviceService deviceService() {
-		return this.deviceService;
+	public ComplianceModule compliance() {
+		return this.compliance;
 	}
 
 	/**
-	 * Gets the use case which adds a device.
+	 * Gets the module of the tasks (engine, cluster, handlers, receivers).
 	 *
-	 * @return the device creation service
+	 * @return the module
 	 */
-	public DeviceCreationService deviceCreationService() {
-		return this.deviceCreationService;
+	public TaskModule tasks() {
+		return this.tasks;
 	}
 
 	/**
-	 * Gets the compliance policy use cases.
+	 * Gets the module of the inventory use cases.
 	 *
-	 * @return the policy service
+	 * @return the module
 	 */
-	public PolicyService policyService() {
-		return this.policyService;
+	public InventoryModule inventory() {
+		return this.inventory;
 	}
 
 	/**
-	 * Gets the compliance rule use cases.
+	 * Gets the module of the credentials (credential sets, Vault).
 	 *
-	 * @return the rule service
+	 * @return the module
 	 */
-	public RuleService ruleService() {
-		return this.ruleService;
+	public CredentialsModule credentials() {
+		return this.credentials;
 	}
 
 	/**
-	 * Gets the software compliance rule use cases.
+	 * Gets the module of the authentication and the authorization.
 	 *
-	 * @return the software rule service
+	 * @return the module
 	 */
-	public SoftwareRuleService softwareRuleService() {
-		return this.softwareRuleService;
+	public AaaModule aaa() {
+		return this.aaa;
 	}
 
 	/**
-	 * Gets the hardware compliance rule use cases.
+	 * Gets the module of the API channels (hooks, REST server).
 	 *
-	 * @return the hardware rule service
+	 * @return the module
 	 */
-	public HardwareRuleService hardwareRuleService() {
-		return this.hardwareRuleService;
+	public ApiModule api() {
+		return this.api;
 	}
 
 	/**
-	 * Gets the checker of devices against the compliance policies.
+	 * Gets the module of the system (cluster members, server information, health).
 	 *
-	 * @return the compliance checker
+	 * @return the module
 	 */
-	public ComplianceChecker complianceChecker() {
-		return this.complianceChecker;
-	}
-
-	/**
-	 * Gets the task use cases.
-	 *
-	 * @return the task service
-	 */
-	public TaskService taskService() {
-		return this.taskService;
-	}
-
-	/**
-	 * Gets the OIDC authentication.
-	 *
-	 * @return the OIDC authentication
-	 */
-	public Oidc oidc() {
-		return this.oidc;
-	}
-
-	/**
-	 * Gets the TACACS+ authentication.
-	 *
-	 * @return the TACACS+ authentication
-	 */
-	public Tacacs tacacs() {
-		return this.tacacs;
-	}
-
-	/**
-	 * Gets the Vault client (the secret resolver of the device accesses).
-	 *
-	 * @return the Vault client
-	 */
-	public VaultManager vaultManager() {
-		return this.vaultManager;
-	}
-
-	/**
-	 * Gets the refresher of the dynamic groups.
-	 *
-	 * @return the dynamic groups
-	 */
-	public DynamicGroups dynamicGroups() {
-		return this.dynamicGroups;
-	}
-
-	/**
-	 * Gets the task manager.
-	 *
-	 * @return the task manager
-	 */
-	public TaskManager taskManager() {
-		return this.taskManager;
-	}
-
-	/**
-	 * Gets the task and device locks.
-	 *
-	 * @return the lock manager
-	 */
-	public TaskLockManager lockManager() {
-		return this.lockManager;
-	}
-
-	/**
-	 * Gets the scheduler of the automatic snapshots.
-	 *
-	 * @return the automatic snapshot scheduler
-	 */
-	public AutoSnapshotScheduler autoSnapshotScheduler() {
-		return this.autoSnapshotScheduler;
-	}
-
-	/**
-	 * Gets the registry of the task handlers.
-	 *
-	 * @return the task handlers
-	 */
-	public TaskHandlers taskHandlers() {
-		return this.taskHandlers;
-	}
-
-	/**
-	 * Gets the factory of the Quartz task jobs.
-	 *
-	 * @return the task job factory
-	 */
-	public TaskJobFactory taskJobFactory() {
-		return this.taskJobFactory;
-	}
-
-	/**
-	 * Gets the reference lists built from the devices.
-	 *
-	 * @return the device catalog service
-	 */
-	public DeviceCatalogService deviceCatalogService() {
-		return this.deviceCatalogService;
-	}
-
-	/**
-	 * Gets the registry of the loaded device drivers.
-	 *
-	 * @return the driver registry
-	 */
-	public DriverRegistry driverRegistry() {
-		return this.driverRegistry;
-	}
-
-	/**
-	 * Gets the device driver (device type) use case.
-	 *
-	 * @return the device driver service
-	 */
-	public DeviceDriverService deviceDriverService() {
-		return this.deviceDriverService;
-	}
-
-	/**
-	 * Gets the domain use cases.
-	 *
-	 * @return the domain service
-	 */
-	public DomainService domainService() {
-		return this.domainService;
-	}
-
-	/**
-	 * Gets the device group use cases.
-	 *
-	 * @return the group service
-	 */
-	public GroupService groupService() {
-		return this.groupService;
-	}
-
-	/**
-	 * Gets the device search use case.
-	 *
-	 * @return the search service
-	 */
-	public SearchService searchService() {
-		return this.searchService;
-	}
-
-	/**
-	 * Gets the configuration use cases.
-	 *
-	 * @return the config service
-	 */
-	public ConfigService configService() {
-		return this.configService;
-	}
-
-	/**
-	 * Gets the user use cases.
-	 *
-	 * @return the user service
-	 */
-	public UserService userService() {
-		return this.userService;
-	}
-
-	/**
-	 * Gets the API token use cases.
-	 *
-	 * @return the API token service
-	 */
-	public ApiTokenService apiTokenService() {
-		return this.apiTokenService;
-	}
-
-	/**
-	 * Gets the login use case.
-	 *
-	 * @return the login service
-	 */
-	public LoginService loginService() {
-		return this.loginService;
-	}
-
-	/**
-	 * Gets the cluster use cases.
-	 *
-	 * @return the cluster service
-	 */
-	public ClusterService clusterService() {
-		return this.clusterService;
-	}
-
-	/**
-	 * Gets the server information use case.
-	 *
-	 * @return the server information service
-	 */
-	public ServerInfoService serverInfoService() {
-		return this.serverInfoService;
-	}
-
-	/**
-	 * Gets the use cases reporting the state of the services of the server. The startup code attaches the
-	 * {@link net.netshot.netshot.platform.lifecycle.ServiceManager} to it.
-	 *
-	 * @return the service health service
-	 */
-	public ServiceHealthService serviceHealthService() {
-		return this.serviceHealthService;
-	}
-
-	/**
-	 * Gets the diagnostic use cases.
-	 *
-	 * @return the diagnostic service
-	 */
-	public DiagnosticService diagnosticService() {
-		return this.diagnosticService;
-	}
-
-	/**
-	 * Gets the adapters of the diagnostics to the device scripts running them.
-	 *
-	 * @return the diagnostic adapters
-	 */
-	public DiagnosticAdapters diagnosticAdapters() {
-		return this.diagnosticAdapters;
-	}
-
-	/**
-	 * Gets the command script use cases.
-	 *
-	 * @return the script service
-	 */
-	public ScriptService scriptService() {
-		return this.scriptService;
-	}
-
-	/**
-	 * Gets the report use cases.
-	 *
-	 * @return the report service
-	 */
-	public ReportService reportService() {
-		return this.reportService;
-	}
-
-	/**
-	 * Gets the global credential set use cases.
-	 *
-	 * @return the credential set service
-	 */
-	public CredentialSetService credentialSetService() {
-		return this.credentialSetService;
-	}
-
-	/**
-	 * Gets the Vault instance use cases.
-	 *
-	 * @return the Vault instance service
-	 */
-	public VaultInstanceService vaultInstanceService() {
-		return this.vaultInstanceService;
-	}
-
-	/**
-	 * Gets the hook use cases.
-	 *
-	 * @return the hook service
-	 */
-	public HookService hookService() {
-		return this.hookService;
-	}
-
-	/**
-	 * Gets the domain events, to publish them from the code which cannot receive them by injection.
-	 *
-	 * @return the domain events
-	 */
-	public DomainEvents domainEvents() {
-		return this.domainEvents;
+	public SystemModule system() {
+		return this.system;
 	}
 }

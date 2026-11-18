@@ -22,12 +22,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import net.netshot.netshot.access.AccessSettings;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.AutoSnapshotQueue;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
@@ -38,6 +39,8 @@ import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
+import net.netshot.netshot.boot.Repositories;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -67,31 +70,41 @@ final class TaskRunner {
 	 */
 	TaskRunner() {
 		Wiring wiring = TestWiring.get();
+		Repositories r = wiring.core().repositories();
 		TaskSubmitter submitter = task -> {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(TestWiring.get().transactions(), child -> {
+		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(wiring.core().transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
-		});
+		}, r.task(), TestConfig.store());
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
-		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), wiring.transactions());
+		Connectors connectors = new Connectors(wiring.core().vaultManager(), TestConnectors.sshClient(), r.deviceReads(),
+			new AccessSettings(wiring.core().config()));
 		TaskHandlers handlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups()),
-			new CheckGroupComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups()),
-			new CheckGroupSoftwareHandler(TestWiring.get().transactions()),
-			new DiscoverDeviceTypeHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
-			new PurgeDatabaseHandler(TestWiring.get().transactions()),
-			new RunDeviceGroupScriptHandler(TestWiring.get().transactions(), orchestrator, TestDrivers.registry()),
-			new RunDeviceScriptHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors),
-			new RunDiagnosticsHandler(TestWiring.get().transactions(), TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors),
-			new RunGroupDiagnosticsHandler(TestWiring.get().transactions(), orchestrator),
-			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator),
-			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator),
-			new TakeSnapshotHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
-				connectors)));
-		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager());
+			new CheckComplianceHandler(wiring.core().transactions(), wiring.compliance().complianceChecker(), wiring.core().dynamicGroups(),
+				r.policy(), r.rule(), r.softwareRule(), r.hardwareRule(), r.device(),
+				r.config(), r.group()),
+			new CheckGroupComplianceHandler(wiring.core().transactions(), wiring.compliance().complianceChecker(), wiring.core().dynamicGroups(),
+				r.policy(), r.rule(), r.softwareRule(), r.hardwareRule(), r.device(),
+				r.config(), r.group()),
+			new CheckGroupSoftwareHandler(wiring.core().transactions(), r.softwareRule(), r.hardwareRule(), r.device(), r.group()),
+			new DiscoverDeviceTypeHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, wiring.core().dynamicGroups(), connectors,
+				r.task(), r.credentialSet(), r.domain(), r.device()),
+			new PurgeDatabaseHandler(wiring.core().transactions(), r.task(), r.binaryFiles()),
+			new RunDeviceGroupScriptHandler(wiring.core().transactions(), orchestrator, TestDrivers.registry(), r.device(), r.group()),
+			new RunDeviceScriptHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, wiring.core().dynamicGroups(), connectors,
+				r.device()),
+			new RunDiagnosticsHandler(wiring.core().transactions(), TestDrivers.registry(), wiring.tasks().diagnosticAdapters(), submitter, wiring.core().dynamicGroups(), connectors,
+				r.device(), r.diagnostic()),
+			new RunGroupDiagnosticsHandler(wiring.core().transactions(), orchestrator, r.device(), r.group()),
+			new ScanSubnetsHandler(wiring.core().transactions(), orchestrator, r.credentialSet()),
+			new TakeGroupSnapshotHandler(wiring.core().transactions(), orchestrator, r.device(), r.group()),
+			new TakeSnapshotHandler(wiring.core().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.core().dynamicGroups(),
+				connectors, r.device(), TestConfig.store(), r.binaryFiles())));
+		this.taskJob = new TaskJob(wiring.core().transactions(), handlers, wiring.core().domainEvents(), wiring.tasks().taskManager(),
+			wiring.tasks().lockManager(), r.task(), () -> 3000);
 	}
 
 	/**
@@ -158,7 +171,7 @@ final class TaskRunner {
 	 * Empties every table of the schema of the test class (except the bookkeeping tables of Liquibase).
 	 */
 	static void cleanDatabase() {
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			List<String> tables = new ArrayList<>();
 			for (org.jooq.Record row : dsl.fetch("select tablename from pg_tables where schemaname = current_schema() "
 					+ "and tablename not like 'databasechangelog%'")) {

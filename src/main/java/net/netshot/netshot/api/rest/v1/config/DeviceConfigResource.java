@@ -35,6 +35,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListFilters;
+import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
@@ -55,6 +56,8 @@ public class DeviceConfigResource {
 	private final DeviceCatalogService deviceCatalogService;
 	private final ConfigService configService;
 	private final DeviceRefs deviceRefs;
+	private final ListParams lists;
+	private final ConfigMapper configMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -68,12 +71,17 @@ public class DeviceConfigResource {
 	 * @param deviceCatalogService the device sub-resource use cases (to check that the device exists)
 	 * @param configService the configuration use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
+	 * @param configMapper maps the config objects
 	 */
 	@Inject
-	public DeviceConfigResource(DeviceCatalogService deviceCatalogService, ConfigService configService, DeviceRefs deviceRefs) {
+	public DeviceConfigResource(DeviceCatalogService deviceCatalogService, ConfigService configService, DeviceRefs deviceRefs,
+		ListParams lists, ConfigMapper configMapper) {
 		this.deviceCatalogService = deviceCatalogService;
 		this.configService = configService;
 		this.deviceRefs = deviceRefs;
+		this.lists = lists;
+		this.configMapper = configMapper;
 	}
 
 	/**
@@ -90,7 +98,7 @@ public class DeviceConfigResource {
 	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listDeviceConfigs(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
-		return ConfigResource.list(this.configService, this.deviceRefs, this.request, this.uriInfo,
+		return ConfigResource.list(this.lists, this.configMapper, this.configService, this.deviceRefs, this.request, this.uriInfo,
 			new Criterion("device", Lookup.EXACT, List.of(id)));
 	}
 }

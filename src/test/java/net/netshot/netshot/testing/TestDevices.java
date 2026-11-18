@@ -21,6 +21,7 @@ package net.netshot.netshot.testing;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -30,7 +31,7 @@ import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
-import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -54,11 +55,10 @@ public final class TestDevices {
 	 * @return the transaction support
 	 */
 	private static Transactions transactions() {
-		return TestWiring.get().transactions();
+		return TestWiring.get().core().transactions();
 	}
 
-	private static final DeviceRepository DEVICES = new DeviceRepository();
-
+	
 	private static final ConfigRepository CONFIGS = new ConfigRepository();
 
 	private static final GroupRepository GROUPS = new GroupRepository();
@@ -94,7 +94,7 @@ public final class TestDevices {
 	 * @return the stored credential set
 	 */
 	public static DeviceCredentialSet addCredentialSet(DeviceCredentialSet credentialSet) {
-		return transactions().write(dsl -> new CredentialSetRepository().add(dsl, credentialSet));
+		return transactions().write(dsl -> TestWiring.get().core().repositories().credentialSet().add(dsl, credentialSet));
 	}
 
 	/**
@@ -104,7 +104,7 @@ public final class TestDevices {
 	 * @return the credential set, or null if there is none
 	 */
 	public static DeviceCredentialSet findCredentialSet(long id) {
-		return transactions().read(dsl -> new CredentialSetRepository().find(dsl, id));
+		return transactions().read(dsl -> TestWiring.get().core().repositories().credentialSet().find(dsl, id));
 	}
 
 	/**
@@ -124,7 +124,7 @@ public final class TestDevices {
 	 */
 	public static Device add(Device device) {
 		return transactions().write(dsl -> {
-			CredentialSetRepository credentialSets = new CredentialSetRepository();
+			CredentialSetRepository credentialSets = TestWiring.get().core().repositories().credentialSet();
 			List<DeviceAccess> accesses = new ArrayList<>();
 			for (DeviceAccess access : device.accesses()) {
 				DeviceCredentialSet specific = access.specificCredentialSet();
@@ -133,7 +133,7 @@ public final class TestDevices {
 				}
 				accesses.add(access);
 			}
-			return DEVICES.add(dsl, device.toBuilder().accesses(accesses).build());
+			return TestWiring.get().core().repositories().device().add(dsl, device.toBuilder().accesses(accesses).build());
 		});
 	}
 
@@ -178,8 +178,8 @@ public final class TestDevices {
 	public static long addConfig(Device device, Config config) {
 		return transactions().write(dsl -> {
 			long configId = CONFIGS.add(dsl, config.toBuilder().deviceId(device.id()).build());
-			Device stored = DEVICES.find(dsl, device.id());
-			DEVICES.save(dsl, stored, stored.toBuilder().lastConfigId(configId).build());
+			Device stored = TestWiring.get().core().repositories().device().find(dsl, device.id());
+			TestWiring.get().core().repositories().device().save(dsl, stored, stored.toBuilder().lastConfigId(configId).build());
 			return configId;
 		});
 	}
@@ -203,9 +203,24 @@ public final class TestDevices {
 	 */
 	public static Device save(Device device) {
 		return transactions().write(dsl -> {
-			DEVICES.save(dsl, DEVICES.find(dsl, device.id()), device);
-			return DEVICES.find(dsl, device.id());
+			TestWiring.get().core().repositories().device().save(dsl, TestWiring.get().core().repositories().device().find(dsl, device.id()), device);
+			return TestWiring.get().core().repositories().device().find(dsl, device.id());
 		});
+	}
+
+	/**
+	 * Builds the change which gives a device the editable properties of an edited copy of it (for
+	 * {@code DeviceService.update}): the specific credential sets are not given, so the accesses lose theirs.
+	 *
+	 * @param device the device as it is
+	 * @param edit the edition of the device
+	 * @return the change
+	 */
+	public static DeviceChange change(Device device, UnaryOperator<Device.DeviceBuilder> edit) {
+		Device edited = edit.apply(device.toBuilder()).build();
+		return new DeviceChange(edited.status(), edited.comments(), edited.mgmtAddress(), edited.mgmtDomain().id(),
+			edited.accesses().stream().map(a -> a.toBuilder().specificCredentialSet(null).build()).toList(), List.of(),
+			edited.options(), edited.tags());
 	}
 
 	/**
@@ -229,7 +244,7 @@ public final class TestDevices {
 	 * @param date the date
 	 */
 	public static void setSnapshotDate(long deviceId, boolean success, Instant date) {
-		transactions().run(dsl -> DEVICES.saveSnapshotDate(dsl, deviceId, success, date));
+		transactions().run(dsl -> TestWiring.get().core().repositories().device().saveSnapshotDate(dsl, deviceId, success, date));
 	}
 
 	/**
@@ -238,7 +253,7 @@ public final class TestDevices {
 	 * @param id the device ID
 	 */
 	public static void delete(long id) {
-		transactions().run(dsl -> DEVICES.remove(dsl, id));
+		transactions().run(dsl -> TestWiring.get().core().repositories().device().remove(dsl, id));
 	}
 
 	/**
@@ -276,7 +291,7 @@ public final class TestDevices {
 	 * @return the device, or null if there is no such device
 	 */
 	public static Device find(long id) {
-		return transactions().read(dsl -> DEVICES.find(dsl, id));
+		return transactions().read(dsl -> TestWiring.get().core().repositories().device().find(dsl, id));
 	}
 
 	/**
@@ -330,7 +345,7 @@ public final class TestDevices {
 			DynamicDeviceGroup group = (DynamicDeviceGroup) GROUPS.add(dsl,
 				DynamicDeviceGroup.builder().name(name).folder("").query(query).build());
 			try {
-				new DynamicGroups(transactions(), TestDrivers.registry()).refresh(dsl, group);
+				new DynamicGroups(transactions(), TestDrivers.registry(), TestWiring.get().core().repositories().group()).refresh(dsl, group);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalArgumentException("Invalid query", e);

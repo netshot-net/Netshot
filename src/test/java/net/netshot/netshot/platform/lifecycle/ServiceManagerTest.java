@@ -38,6 +38,11 @@ class ServiceManagerTest {
 	private Service service(String name, boolean failStart, boolean failStop) {
 		return new Service() {
 			@Override
+			public String id() {
+				return name;
+			}
+
+			@Override
 			public String name() {
 				return name;
 			}
@@ -110,13 +115,34 @@ class ServiceManagerTest {
 	}
 
 	@Test
-	@DisplayName("The shutdown hook stops the services")
-	void shutdownHook() throws Exception {
-		ServiceManager manager = new ServiceManager(List.of(service("a", false, false)));
+	@DisplayName("Some services are started, in the order of the manager; the others can be started later")
+	void startSome() throws Exception {
+		ServiceManager manager = new ServiceManager(List.of(
+			service("a", false, false), service("b", false, false), service("c", false, false)));
+		manager.start(List.of("c", "a"));
+		Assertions.assertEquals(List.of(ServiceState.RUNNING, ServiceState.NEW, ServiceState.RUNNING),
+			manager.status().stream().map(ServiceStatus::state).toList());
 		manager.start();
-		Thread hook = manager.shutdownHook();
-		hook.start();
-		hook.join();
-		Assertions.assertEquals(List.of("start a", "stop a"), this.calls);
+		manager.stop();
+		Assertions.assertEquals(List.of("start a", "start c", "start b", "stop c", "stop b", "stop a"), this.calls);
+	}
+
+	@Test
+	@DisplayName("Starting an unknown service is refused, before anything is started")
+	void startUnknown() {
+		ServiceManager manager = new ServiceManager(List.of(service("a", false, false)));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> manager.start(List.of("a", "z")));
+		Assertions.assertEquals(List.of(), this.calls);
+	}
+
+	@Test
+	@DisplayName("Services are added before the start, in start order; adding is refused once started")
+	void add() throws Exception {
+		ServiceManager manager = new ServiceManager(List.of(service("a", false, false)));
+		manager.add(service("b", false, false));
+		manager.start();
+		Assertions.assertThrows(IllegalStateException.class, () -> manager.add(service("c", false, false)));
+		manager.stop();
+		Assertions.assertEquals(List.of("start a", "start b", "stop b", "stop a"), this.calls);
 	}
 }

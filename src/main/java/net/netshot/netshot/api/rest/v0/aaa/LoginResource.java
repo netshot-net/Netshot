@@ -49,7 +49,7 @@ import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.ClientAddress;
 import net.netshot.netshot.api.rest.SessionAuthenticator;
 import net.netshot.netshot.api.rest.v0.NetshotAuthenticationRequiredException;
 
@@ -78,6 +78,8 @@ public class LoginResource {
 
 	/** The OIDC authentication. */
 	private final Oidc oidc;
+	/** The address of the client of a request. */
+	private final ClientAddress clientAddress;
 
 	/**
 	 * Instantiates the resource.
@@ -85,12 +87,14 @@ public class LoginResource {
 	 * @param loginService the login use case
 	 * @param userService the user use cases
 	 * @param oidc the OIDC authentication (for the end session endpoint)
+	 * @param clientAddress the address of the client of a request
 	 */
 	@Inject
-	public LoginResource(LoginService loginService, UserService userService, Oidc oidc) {
+	public LoginResource(LoginService loginService, UserService userService, Oidc oidc, ClientAddress clientAddress) {
 		this.loginService = loginService;
 		this.userService = userService;
 		this.oidc = oidc;
+		this.clientAddress = clientAddress;
 	}
 
 	/**
@@ -176,7 +180,7 @@ public class LoginResource {
 	public UserDto login(LoginRequest rsLogin) throws WebApplicationException {
 		log.debug("REST authentication request, username {}.", rsLogin.username());
 
-		String remoteAddress = LoggerFilter.getClientAddress(this.request);
+		String remoteAddress = this.clientAddress.of(this.request);
 		// Any exception thrown by the service leaves the existing session untouched
 		UiUser user = this.loginService.authenticate(UserMapper.toAttempt(rsLogin, remoteAddress));
 
@@ -189,7 +193,7 @@ public class LoginResource {
 		if (user != null) {
 			HttpSession httpSession = this.request.getSession(true);
 			// The current max idle time (the default timeout of the sessions is set when the server starts)
-			httpSession.setMaxInactiveInterval(UiUser.settings().maxIdleTime());
+			httpSession.setMaxInactiveInterval(this.loginService.sessionMaxIdleTime());
 			httpSession.setAttribute(SessionAuthenticator.USER_ATTRIBUTE, user);
 			return UserMapper.toDto(user);
 		}

@@ -19,7 +19,7 @@ export default function DiagnosticSidebar() {
   // the add-diagnostic button must be Group's direct child rather than hidden
   // behind a <Protected> wrapper - otherwise it never receives the
   // data-first/data-last attributes that remove its adjoining rounded corner.
-  const isExecureReadWrite = (user?.level || 0) >= Level.ExecureReadWrite
+  const isExecuteReadWrite = (user?.level || 0) >= Level.ExecuteReadWrite
 
   return (
     <DiagnosticSidebarProvider>
@@ -36,7 +36,7 @@ export default function DiagnosticSidebar() {
                 <Stack p="6">
                   <Menu.Root positioning={{ placement: "top" }}>
                     <Group attached w="full">
-                      {isExecureReadWrite && (
+                      {isExecuteReadWrite && (
                         <AddDiagnosticTrigger>
                           <Button flex="1">
                             <LuPlus />

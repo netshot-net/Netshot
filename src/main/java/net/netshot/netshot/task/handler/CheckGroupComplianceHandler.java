@@ -48,8 +48,8 @@ import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
@@ -64,32 +64,51 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 
 	private final ComplianceChecker complianceChecker;
 
-	private final PolicyRepository policyRepository = new PolicyRepository();
+	private final PolicyRepository policyRepository;
 
-	private final RuleRepository ruleRepository = new RuleRepository();
+	private final RuleRepository ruleRepository;
 
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
-	private final SoftwareRuleRepository softwareRuleRepository = new SoftwareRuleRepository();
+	private final SoftwareRuleRepository softwareRuleRepository;
 
-	private final HardwareRuleRepository hardwareRuleRepository = new HardwareRuleRepository();
+	private final HardwareRuleRepository hardwareRuleRepository;
 
 	/** The transaction support. */
 	private final Transactions transactions;
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
+	private final ConfigRepository configRepository;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Creates the handler.
 	 * @param transactions the transaction support
 	 * @param complianceChecker the compliance checker
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param policyRepository the policy repository
+	 * @param ruleRepository the rule repository (the rules and their check results)
+	 * @param softwareRuleRepository the software rule repository
+	 * @param hardwareRuleRepository the hardware rule repository
+	 * @param deviceRepository the device repository
+	 * @param configRepository the configuration repository (the last configuration of the device)
+	 * @param groupRepository the group repository (the groups of the devices)
 	 */
-	public CheckGroupComplianceHandler(Transactions transactions, ComplianceChecker complianceChecker, DynamicGroups dynamicGroups) {
+	public CheckGroupComplianceHandler(Transactions transactions, ComplianceChecker complianceChecker, DynamicGroups dynamicGroups,
+		PolicyRepository policyRepository, RuleRepository ruleRepository, SoftwareRuleRepository softwareRuleRepository,
+		HardwareRuleRepository hardwareRuleRepository, DeviceRepository deviceRepository, ConfigRepository configRepository,
+		GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.dynamicGroups = dynamicGroups;
 		this.complianceChecker = complianceChecker;
+		this.policyRepository = policyRepository;
+		this.ruleRepository = ruleRepository;
+		this.softwareRuleRepository = softwareRuleRepository;
+		this.hardwareRuleRepository = hardwareRuleRepository;
+		this.deviceRepository = deviceRepository;
+		this.configRepository = configRepository;
+		this.groupRepository = groupRepository;
 	}
 
 	@Override
@@ -191,7 +210,7 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 		List<Policy> policies = this.policyRepository.findOfDevice(dsl, deviceId);
 		if (!policies.isEmpty()) {
 			DeviceDraft draft = new DeviceDraft(device);
-			draft.setLastConfig(device.lastConfigId() == null ? null : new ConfigRepository().find(dsl, device.lastConfigId(), true));
+			draft.setLastConfig(device.lastConfigId() == null ? null : this.configRepository.find(dsl, device.lastConfigId(), true));
 			List<Exemption> exemptions = this.ruleRepository.findExemptionsOfDevice(dsl, deviceId);
 			for (Policy policy : policies) {
 				List<Rule> policyRules = rules.byPolicy().get(policy.id());
@@ -202,7 +221,7 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 			// The rules may change the tags or comments of the device
 			checked = draft.toDevice();
 		}
-		Set<Long> groupIds = GroupRepository.findGroupIdsOfDevice(dsl, deviceId);
+		Set<Long> groupIds = this.groupRepository.findGroupIdsOfDevice(dsl, deviceId);
 		this.deviceRepository.save(dsl, device,
 			CheckComplianceHandler.checkSoftwareAndHardware(checked, groupIds, rules.software(), rules.hardware()));
 	}

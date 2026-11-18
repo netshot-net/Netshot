@@ -111,17 +111,6 @@ public class DiagnosticRepository {
 	}
 
 	/**
-	 * Lists the diagnostics, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the diagnostics
-	 */
-	public List<Diagnostic> findAll(DSLContext dsl, Page page) {
-		return query(dsl, DSL.noCondition(), page);
-	}
-
-	/**
 	 * Lists the enabled diagnostics, by ID.
 	 *
 	 * @param dsl the jOOQ context

@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.Http;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
@@ -60,6 +60,7 @@ import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 import net.netshot.netshot.vault.SecretResolver;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * Tests for {@code Http.download()}/{@code http.download(...)}: the
@@ -126,7 +127,7 @@ class HttpDownloadTest {
 		this.serveBinary("/binary.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http http = new Http("127.0.0.1", this.port, false, Http.Settings.from(TestConfig.store().current()), taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Http.HttpDownloadResult result =
@@ -152,7 +153,7 @@ class HttpDownloadTest {
 		this.serveBinary("/binary2.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http http = new Http("127.0.0.1", this.port, false, Http.Settings.from(TestConfig.store().current()), taskContext, SecretResolver.LOCAL);
 		Http.HttpResult result = http.request("GET", "/binary2.bin", null, null, null, null, null, null);
 
 		Assertions.assertEquals(200, result.getStatus());
@@ -185,7 +186,7 @@ class HttpDownloadTest {
 		});
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http http = new Http("127.0.0.1", this.port, false, Http.Settings.from(TestConfig.store().current()), taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Map<String, String> headers = new HashMap<>();
@@ -232,12 +233,12 @@ class HttpDownloadTest {
 		TestDrivers.registry().getDrivers().put("HttpDownloadTestDriver", driver);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
+		Http fakeHttp = new Http("127.0.0.1", this.port, false, Http.Settings.from(TestConfig.store().current()), taskContext, SecretResolver.LOCAL);
 		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username(Secret.local("user")).password(Secret.local("pass")).name("test-http-account").build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, new BinaryFileStorage(TestConfig.store()));
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, null);
 		accessManager.forceClientForTest(fakeHttp, credentials);
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
@@ -249,11 +250,11 @@ class HttpDownloadTest {
 		ConfigBinaryFileAttribute fileAttribute = (ConfigBinaryFileAttribute) config.getAttribute("backupArchive");
 		Assertions.assertNotNull(fileAttribute, "The backupArchive attribute wasn't set");
 		Assertions.assertEquals(payload.length, fileAttribute.fileSize(), "The stored file size is incorrect");
-		Assertions.assertArrayEquals(payload, Files.readAllBytes(fileAttribute.getPendingFilePath(device.getId())),
+		Assertions.assertArrayEquals(payload, Files.readAllBytes(new BinaryFileStorage(TestConfig.store()).pendingFilePath(fileAttribute, device.getId())),
 			"The stored file content doesn't match the server response");
 		Assertions.assertEquals(
 			".tmp.%d_cfg0_backupArchive_%s.data".formatted(device.getId(), fileAttribute.uid()),
-			fileAttribute.getPendingFilePath(device.getId()).getFileName().toString(),
+			new BinaryFileStorage(TestConfig.store()).pendingFilePath(fileAttribute, device.getId()).getFileName().toString(),
 			"The pending file name should embed the device id, cfg0 placeholder, attribute name and uid");
 	}
 
@@ -308,7 +309,7 @@ class HttpDownloadTest {
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpAuthOverrideTestDriver", null, domain, "test").toBuilder();
 		DeviceAccess httpAccess = DeviceAccess.of("http").toBuilder().address("127.0.0.1").port(this.port).build();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(List.of(httpAccess)).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext, null, new BinaryFileStorage(TestConfig.store()));
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, Set.of(credentials));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);

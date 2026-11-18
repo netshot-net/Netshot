@@ -48,7 +48,9 @@ import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.DtoContract;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
+import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.vault.VaultInstance;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 
 /**
  * Checks that the Vault instance DTOs and their mapper are a faithful replacement of the entities
@@ -206,15 +208,15 @@ class VaultInstanceDtoTest {
 		"\"text\"");
 
 	@Test
-	@DisplayName("The requests are read like the entities used to be (values, defaults, unchanged secrets, ignored and refused properties)")
+	@DisplayName("The requests are read into the definition of the service (values, defaults, unchanged secrets, ignored and refused properties)")
 	void requestsAreReadLikeTheEntity() throws Exception {
 		int refused = 0;
 		int index = 0;
 		for (String body : BODIES) {
 			index++;
-			VaultInstance actual = null;
+			VaultInstanceDefinition actual = null;
 			try {
-				actual = VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class).readValue(body));
+				actual = VaultInstanceMapper.toDefinition(JSON.readerFor(VaultInstanceRequest.class).readValue(body));
 			}
 			catch (JsonProcessingException e) {
 				// Refused
@@ -228,20 +230,21 @@ class VaultInstanceDtoTest {
 	}
 
 	@Test
-	@DisplayName("A request has the defaults of the entity, and = is read as unchanged (null)")
+	@DisplayName("A request has the defaults of the former entity, and a secret not given or given as = is unchanged")
 	void requestDefaults() throws Exception {
-		HashicorpVaultKv2Instance minimal = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(
+		VaultInstanceDefinition minimal = VaultInstanceMapper.toDefinition(
 			JSON.readerFor(VaultInstanceRequest.class).readValue("{\"type\": \"Vault KV v2\", \"name\": \"n\"}"));
 		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, minimal.httpsCaTrustMode());
 		Assertions.assertEquals("secret", minimal.kvMountPath());
 		Assertions.assertEquals("approle", minimal.appRoleMountPath());
 		Assertions.assertEquals("jwt", minimal.jwtMountPath());
-		HashicorpVaultKv2Instance masked = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class)
+		Assertions.assertEquals(SecretChange.UNCHANGED, minimal.appRoleSecretId());
+		VaultInstanceDefinition masked = VaultInstanceMapper.toDefinition(JSON.readerFor(VaultInstanceRequest.class)
 			.readValue("{" + BASE + ", \"appRoleSecretId\": \"=\", \"jwtClientSecret\": \"=\"}"));
-		Assertions.assertNull(masked.appRoleSecretId());
-		Assertions.assertNull(masked.jwtClientSecret());
-		HashicorpVaultKv2Instance given = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class)
+		Assertions.assertEquals(SecretChange.UNCHANGED, masked.appRoleSecretId());
+		Assertions.assertEquals(SecretChange.UNCHANGED, masked.jwtClientSecret());
+		VaultInstanceDefinition given = VaultInstanceMapper.toDefinition(JSON.readerFor(VaultInstanceRequest.class)
 			.readValue("{" + BASE + ", \"appRoleSecretId\": \"new\"}"));
-		Assertions.assertEquals(Secret.local("new"), given.appRoleSecretId());
+		Assertions.assertEquals(new SecretChange.Local("new"), given.appRoleSecretId());
 	}
 }

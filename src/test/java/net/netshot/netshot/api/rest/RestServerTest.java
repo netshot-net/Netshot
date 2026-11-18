@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.TestWiring;
@@ -46,7 +46,7 @@ class RestServerTest {
 		config.setProperty("netshot.http.ssl.enabled", "false");
 		config.setProperty("netshot.http.baseurl", "http://127.0.0.1:%d".formatted(port));
 		TestConfig.init(config);
-		RestServer server = new RestServer(TestWiring.get().binder());
+		RestServer server = new RestServer(TestWiring.get().api().restDependencies(), TestConfig.store());
 		Assertions.assertFalse(server.isHealthy());
 		server.start();
 		try {

@@ -26,10 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
@@ -68,7 +66,7 @@ public record UiUser(long id, int version, Instant changeDate, String username, 
 		 * @param config the configuration
 		 * @return the settings
 		 */
-		static Settings from(Config config) {
+		public static Settings from(Config config) {
 			return new Settings(config.get(MAX_IDLE_TIME));
 		}
 	}
@@ -82,17 +80,6 @@ public record UiUser(long id, int version, Instant changeDate, String username, 
 		public WrongPasswordException(String message) {
 			super(message);
 		}
-	}
-
-	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
-
-	/**
-	 * Gets the settings of the users.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		return SETTINGS.get();
 	}
 
 	/**

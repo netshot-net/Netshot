@@ -108,17 +108,17 @@ class HookDtoTest {
 		List<Hook> entities = new ArrayList<>(List.of(full, none));
 		TypeReference<List<HookDto>> dtoType = new TypeReference<>() { };
 		this.contract.checkBoth(
-			JSON.writerFor(dtoType).writeValueAsBytes(HookMapper.toDtos(entities)),
-			XML.writerFor(dtoType).writeValueAsBytes(HookMapper.toDtos(entities)));
-		Assertions.assertEquals(ArrayList.class, HookMapper.toDtos(entities).getClass());
+			JSON.writerFor(dtoType).writeValueAsBytes(HookMapper.toDtos(entities, false)),
+			XML.writerFor(dtoType).writeValueAsBytes(HookMapper.toDtos(entities, false)));
+		Assertions.assertEquals(ArrayList.class, HookMapper.toDtos(entities, false).getClass());
 	}
 
 	@Test
-	@DisplayName("A sub list of hooks (a paginated query with the triggers fetched) is mapped to a sub list, which XML publishes as such, like it was")
+	@DisplayName("A page of hooks is mapped to a sub list, which XML publishes as such, like it was")
 	void subListQuirk() throws Exception {
 		List<Hook> all = new ArrayList<>(List.of(webHook(2, "One", "A"), webHook(3, "Two", "B")));
 		List<Hook> sub = all.subList(0, 2);
-		List<HookDto> dtos = HookMapper.toDtos(sub);
+		List<HookDto> dtos = HookMapper.toDtos(all, true);
 		Assertions.assertEquals(sub.getClass(), dtos.getClass());
 		Assertions.assertNotEquals(ArrayList.class, dtos.getClass());
 		Assertions.assertEquals(2, dtos.size());

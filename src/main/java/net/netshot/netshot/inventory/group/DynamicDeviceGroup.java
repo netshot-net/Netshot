@@ -44,9 +44,6 @@ public record DynamicDeviceGroup(
 	boolean hiddenFromReports,
 	String query) implements DeviceGroup {
 
-	/** The query of a new group. */
-	public static final String DEFAULT_QUERY = "[Name] is \"example\"";
-
 	@Override
 	public String toString() {
 		return DeviceGroup.describe(this);

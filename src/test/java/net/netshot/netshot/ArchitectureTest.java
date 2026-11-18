@@ -20,6 +20,7 @@ package net.netshot.netshot;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
@@ -34,7 +35,10 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaConstructorCall;
+import com.tngtech.archunit.core.domain.JavaField;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
+import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -123,6 +127,140 @@ final class ArchitectureTest {
 	static final ArchRule REST_API_VERSIONS_ARE_INDEPENDENT =
 		slices().matching(ROOT + "api.rest.(*)..").namingSlices("REST API $1")
 			.should().notDependOnEachOther()
+			.allowEmptyShould(true);
+
+	/**
+	 * The legacy API (api.rest.v0) adapts its requests and answers to the use cases of the services, the ones of the
+	 * v1 API: no service has a public method which only the legacy API uses, so that removing the legacy API (its
+	 * packages) leaves no dead code in the services.
+	 */
+	@ArchTest
+	static final ArchRule NO_SERVICE_METHOD_FOR_THE_LEGACY_API_ONLY =
+		classes().that().haveSimpleNameEndingWith("Service").and().resideOutsideOfPackage(ROOT + "api..")
+			.should(new ArchCondition<JavaClass>("have no public method used only by the legacy API (" + ROOT + "api.rest.v0)") {
+				@Override
+				public void check(JavaClass service, ConditionEvents events) {
+					for (JavaMethod method : service.getMethods()) {
+						if (!method.getModifiers().contains(JavaModifier.PUBLIC)) {
+							continue;
+						}
+						// The calls and the method references
+						Set<JavaClass> users = new HashSet<>();
+						method.getAccessesToSelf().forEach(access -> users.add(access.getOriginOwner()));
+						users.remove(service);
+						if (!users.isEmpty() && users.stream().allMatch(user -> user.getPackageName().startsWith(ROOT + "api.rest.v0"))) {
+							events.add(SimpleConditionEvent.violated(method, method.getFullName() + " is only used by the legacy API: "
+								+ users.stream().map(JavaClass::getSimpleName).sorted().toList()));
+						}
+					}
+				}
+			})
+			.allowEmptyShould(true);
+
+	/**
+	 * The repositories are built once, by the composition root, and handed to the classes using them by constructor:
+	 * no other class creates one (the command line tools take them from the wiring too).
+	 */
+	@ArchTest
+	static final ArchRule REPOSITORIES_ARE_BUILT_BY_THE_COMPOSITION_ROOT =
+		noClasses().that().resideOutsideOfPackage(ROOT + "boot..")
+			.should().callConstructorWhere(new DescribedPredicate<JavaConstructorCall>("the target is a repository") {
+				@Override
+				public boolean test(JavaConstructorCall call) {
+					JavaClass owner = call.getTargetOwner();
+					return owner.getPackageName().startsWith(ROOT) && owner.getSimpleName().endsWith("Repository");
+				}
+			})
+			.allowEmptyShould(true);
+
+	/**
+	 * Nothing depends on the entry point ({@code Netshot}: {@code main} and {@code agentmain}): the configuration
+	 * is given by the composition root, the facts of the process by {@code platform.runtime}.
+	 */
+	@ArchTest
+	static final ArchRule NOTHING_DEPENDS_ON_THE_ENTRY_POINT =
+		noClasses().that().resideOutsideOfPackage(ROOT.substring(0, ROOT.length() - 1))
+			.should().dependOnClassesThat().haveFullyQualifiedName(ROOT + "Netshot")
+			.allowEmptyShould(true);
+
+	/**
+	 * No static access to the application: no static field holds the configuration, the object graph, the services
+	 * or the repositories (a static final reference to a mutable store is global state too). They are given by
+	 * constructor, from the composition root.
+	 */
+	@ArchTest
+	static final ArchRule NO_STATIC_ACCESS_TO_THE_APPLICATION =
+		fields().that().areStatic()
+			.should(new ArchCondition<JavaField>("not hold the configuration, the object graph, a service or a repository") {
+				@Override
+				public void check(JavaField field, ConditionEvents events) {
+					JavaClass type = field.getRawType();
+					boolean graph = type.isAssignableTo(ROOT + "platform.config.ConfigStore")
+						|| type.isAssignableTo(ROOT + "platform.config.Config")
+						|| type.isAssignableTo(ROOT + "boot.Wiring")
+						|| type.isAssignableTo(ROOT + "boot.Application")
+						|| type.isAssignableTo(ROOT + "platform.lifecycle.ServiceManager")
+						|| type.isAssignableTo(ROOT + "platform.lifecycle.Service")
+						|| type.getPackageName().startsWith(ROOT) && type.getSimpleName().endsWith("Repository");
+					if (graph) {
+						events.add(SimpleConditionEvent.violated(field, "%s is a static field of type %s"
+							.formatted(field.getFullName(), type.getName())));
+					}
+				}
+			})
+			.allowEmptyShould(true);
+
+	/**
+	 * The dependency injection container of Jersey (HK2) stays in the REST layer: the composition root gives the
+	 * REST server its {@code RestDependencies}, a plain record.
+	 */
+	@ArchTest
+	static final ArchRule HK2_ONLY_IN_THE_REST_LAYER =
+		noClasses().that().resideOutsideOfPackage(ROOT + "api.rest..")
+			.should().dependOnClassesThat().resideInAPackage("org.glassfish.hk2..")
+			.allowEmptyShould(true);
+
+	/**
+	 * Only the services listen to the changes of the configuration (they start listening when started, and stop when
+	 * stopped), and the bootstrap (the logging); the other long-lived objects hold bindings.
+	 */
+	@ArchTest
+	static final ArchRule CONFIGURATION_LISTENERS_ARE_SERVICES =
+		noClasses().that().resideOutsideOfPackage(ROOT + "boot..")
+			.and().doNotImplement(ROOT + "platform.lifecycle.Service")
+			.should().callMethod(ROOT + "platform.config.ConfigStore", "addListener", "java.util.function.Consumer")
+			.allowEmptyShould(true);
+
+	/**
+	 * Only the entry point, the command line tools and the composition root itself use the composition root
+	 * ({@code boot}): the other classes receive what they need by constructor.
+	 */
+	@ArchTest
+	static final ArchRule ONLY_THE_ENTRY_POINTS_USE_THE_COMPOSITION_ROOT =
+		noClasses().that().resideOutsideOfPackages(ROOT + "boot..", ROOT + "tools..")
+			.and().resideOutsideOfPackage(ROOT.substring(0, ROOT.length() - 1))
+			.should().dependOnClassesThat().resideInAPackage(ROOT + "boot..")
+			.allowEmptyShould(true);
+
+	/**
+	 * The services (the long-running components, with a lifecycle) are built once, by the composition root, which
+	 * registers them in the service manager: no other class creates one (but the service itself, in a factory).
+	 */
+	@ArchTest
+	static final ArchRule SERVICES_ARE_BUILT_BY_THE_COMPOSITION_ROOT =
+		classes().that().resideOutsideOfPackage(ROOT + "boot..")
+			.should(new ArchCondition<JavaClass>("not create a service") {
+				@Override
+				public void check(JavaClass javaClass, ConditionEvents events) {
+					for (JavaConstructorCall call : javaClass.getConstructorCallsFromSelf()) {
+						JavaClass target = call.getTargetOwner();
+						if (target.isAssignableTo(ROOT + "platform.lifecycle.Service") && !target.isAssignableFrom(javaClass.getName())
+							&& !javaClass.isAssignableTo(target.getName())) {
+							events.add(SimpleConditionEvent.violated(call, call.getDescription()));
+						}
+					}
+				}
+			})
 			.allowEmptyShould(true);
 
 	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
@@ -233,13 +371,27 @@ final class ArchitectureTest {
 
 	/**
 	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring,
-	 * and the values read once are held by lazily initialized holder classes. The only exception is the
-	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}).
+	 * and the values read once are held by lazily initialized holder classes. The exception is the
+	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}, kept by
+	 * {@code AgentInstrumentation}).
 	 */
 	@ArchTest
 	static final ArchRule STATIC_FIELDS_ARE_FINAL =
-		fields().that().areStatic().and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
+		fields().that().areStatic()
+			.and().doNotHaveFullName(ROOT + "platform.runtime.AgentInstrumentation.instrumentation")
 			.should().beFinal().allowEmptyShould(true);
+
+	/**
+	 * The v1 mappers are singletons bound by {@code V1Application} and injected into the resources, which receive
+	 * by constructor the paths of the v1 objects ({@code V1Links}) and the other mappers they use: they have no
+	 * static method (the v0 mappers, frozen, keep theirs).
+	 */
+	@ArchTest
+	static final ArchRule V1_MAPPERS_ARE_INJECTED_INSTANCES =
+		methods().that().areDeclaredInClassesThat().resideInAPackage(ROOT + "api.rest.v1.*..")
+			.and().areDeclaredInClassesThat().haveSimpleNameEndingWith("Mapper")
+			.and().doNotHaveModifier(JavaModifier.SYNTHETIC)
+			.should().notBeStatic().allowEmptyShould(true);
 
 	/**
 	 * No cycles between top-level slices (net.netshot.netshot.(*)..). Unlike ArchUnit's own

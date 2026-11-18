@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
@@ -38,9 +39,10 @@ import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
 import org.apache.sshd.common.session.SessionListener;
 import org.apache.sshd.core.CoreModuleProperties;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.runtime.BuildInfo;
+import net.netshot.netshot.platform.config.Config;
 
 /**
  * The SSH client shared by the SSH accesses to the devices ({@link Ssh}): built with the settings of
@@ -57,12 +59,24 @@ public final class SshClientService implements Service {
 	/** The number of sessions currently open. */
 	private final AtomicInteger openSessions = new AtomicInteger();
 
+	/** The configuration store (its changes are applied to the client). */
+	private final ConfigStore config;
+
+	/** The settings of the device accesses (the SSH settings). */
+	private final AccessSettings settings;
+
+	/** Applies the settings on each configuration change (while the service runs). */
+	private final Consumer<Config> listener = _ -> this.applySettings();
+
 	/**
 	 * Builds the client (not started).
 	 *
 	 * @param config the configuration store, whose changes are applied to the client
+	 * @param settings the settings of the device accesses (the SSH settings)
 	 */
-	public SshClientService(ConfigStore config) {
+	public SshClientService(ConfigStore config, AccessSettings settings) {
+		this.config = config;
+		this.settings = settings;
 		this.client = SshClient.setUpDefaultClient();
 		this.client.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
 		this.client.setFilePasswordProvider(FilePasswordProvider.EMPTY);
@@ -75,7 +89,7 @@ public final class SshClientService implements Service {
 			}
 		});
 
-		CoreModuleProperties.CLIENT_IDENTIFICATION.set(this.client, "NETSHOT-%s".formatted(Netshot.VERSION));
+		CoreModuleProperties.CLIENT_IDENTIFICATION.set(this.client, "NETSHOT-%s".formatted(BuildInfo.VERSION));
 		// Cisco IOS at least doesn't like receiving the identification message from client before sending its own
 		CoreModuleProperties.SEND_IMMEDIATE_IDENTIFICATION.set(this.client, false);
 		CoreModuleProperties.SEND_IMMEDIATE_KEXINIT.set(this.client, false);
@@ -109,20 +123,18 @@ public final class SshClientService implements Service {
 			}
 		});
 		this.applySettings();
-		// Applied again on each configuration change
-		config.addListener(_ -> this.applySettings());
 	}
 
 	/**
 	 * Applies the settings to the client.
 	 */
 	private void applySettings() {
-		Ssh.Settings settings = Ssh.settings();
-		CoreModuleProperties.NIO2_READ_TIMEOUT.set(this.client, Duration.ofMillis(settings.receiveTimeout()));
-		CoreModuleProperties.REKEY_TIME_LIMIT.set(this.client, Duration.ofMillis(settings.rekeyTimeLimit()));
-		CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.client, settings.rekeyDataLimit());
-		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.client, settings.rekeyBlocksLimit());
-		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.client, settings.rekeyPacketsLimit());
+		Ssh.Settings ssh = this.settings.ssh();
+		CoreModuleProperties.NIO2_READ_TIMEOUT.set(this.client, Duration.ofMillis(ssh.receiveTimeout()));
+		CoreModuleProperties.REKEY_TIME_LIMIT.set(this.client, Duration.ofMillis(ssh.rekeyTimeLimit()));
+		CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.client, ssh.rekeyDataLimit());
+		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.client, ssh.rekeyBlocksLimit());
+		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.client, ssh.rekeyPacketsLimit());
 	}
 
 	/**
@@ -135,17 +147,26 @@ public final class SshClientService implements Service {
 	}
 
 	@Override
+	public String id() {
+		return "ssh-client";
+	}
+
+	@Override
 	public String name() {
 		return "SSH client";
 	}
 
 	@Override
 	public void start() {
+		// The settings are applied again on each configuration change
+		this.applySettings();
+		this.config.addListener(this.listener);
 		this.client.start();
 	}
 
 	@Override
 	public void stop() {
+		this.config.removeListener(this.listener);
 		this.client.stop();
 	}
 

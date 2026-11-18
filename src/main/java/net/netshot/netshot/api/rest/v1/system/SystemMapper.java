@@ -20,6 +20,8 @@ package net.netshot.netshot.api.rest.v1.system;
 
 import java.time.Instant;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.cluster.ClusterMember;
 import net.netshot.netshot.cluster.ClusterService.MasterStatus;
 import net.netshot.netshot.platform.lifecycle.ServiceStatus;
@@ -28,9 +30,13 @@ import net.netshot.netshot.system.ServerInfo;
 /**
  * Maps the system information to its v1 representation.
  */
-public final class SystemMapper {
+public class SystemMapper {
 
-	private SystemMapper() {
+	/**
+	 * Instantiates the mapper.
+	 */
+	@Inject
+	public SystemMapper() {
 	}
 
 	/**
@@ -40,7 +46,7 @@ public final class SystemMapper {
 	 * @param now the current time
 	 * @return the representation
 	 */
-	public static SystemInfoDto toDto(ServerInfo info, Instant now) {
+	public SystemInfoDto toDto(ServerInfo info, Instant now) {
 		return new SystemInfoDto(info.serverVersion(), now, info.maxIdleTimeout());
 	}
 
@@ -50,7 +56,7 @@ public final class SystemMapper {
 	 * @param member the member
 	 * @return the representation
 	 */
-	public static ClusterMemberDto toDto(ClusterMember member) {
+	public ClusterMemberDto toDto(ClusterMember member) {
 		return new ClusterMemberDto(member.getInstanceId(), member.getHostname(), member.isLocal(), member.getHostname(),
 			member.getClusteringVersion(), member.getMasterPriority(), member.getRunnerPriority(), member.getRunnerWeight(),
 			member.getAppVersion(), member.getJvmVersion(), member.getDriverHash(),
@@ -64,7 +70,7 @@ public final class SystemMapper {
 	 * @param status the status
 	 * @return the representation
 	 */
-	public static ClusterMasterDto toDto(MasterStatus status) {
+	public ClusterMasterDto toDto(MasterStatus status) {
 		return new ClusterMasterDto(status.clusterEnabled(), status.master(), status.currentMasterId());
 	}
 
@@ -74,7 +80,7 @@ public final class SystemMapper {
 	 * @param status the status
 	 * @return the representation
 	 */
-	public static ServiceDto toDto(ServiceStatus status) {
-		return new ServiceDto(status.name(), status.name(), status.state().name(), status.healthy(), status.error(), status.stats());
+	public ServiceDto toDto(ServiceStatus status) {
+		return new ServiceDto(status.name(), status.id(), status.state().name(), status.healthy(), status.error(), status.stats());
 	}
 }

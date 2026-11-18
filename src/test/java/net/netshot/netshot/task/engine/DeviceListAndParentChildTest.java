@@ -41,6 +41,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
 
 @DatabaseTest
 @DisplayName("Group task device list / parent-child tracking (DB-backed)")
@@ -131,8 +132,8 @@ class DeviceListAndParentChildTest {
 	 * @return the orchestrator
 	 */
 	private ChildTaskOrchestrator orchestrator() {
-		return new ChildTaskOrchestrator(TestWiring.get().transactions(), _ -> {
-		});
+		return new ChildTaskOrchestrator(TestWiring.get().core().transactions(), _ -> {
+		}, TestWiring.get().core().repositories().task(), TestConfig.store());
 	}
 
 	@Test

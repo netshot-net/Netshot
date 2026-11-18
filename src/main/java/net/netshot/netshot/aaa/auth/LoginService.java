@@ -26,11 +26,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
-import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
+import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -52,6 +53,10 @@ public class LoginService {
 	private final Transactions transactions;
 	private final UserRepository repository;
 	private final RemoteAuthenticator remote;
+	/** The password policy of the local users, from the configuration. */
+	private final ConfigStore.Binding<PasswordPolicy> passwordPolicy;
+	/** The settings of the users (the max idle time of the sessions), from the configuration. */
+	private final ConfigStore.Binding<UiUser.Settings> userSettings;
 
 	/**
 	 * Instantiates the service.
@@ -59,11 +64,23 @@ public class LoginService {
 	 * @param transactions the transaction support
 	 * @param repository the user queries
 	 * @param remote the remote authentication methods
+	 * @param config the configuration store (the password policy, the max idle time of the sessions)
 	 */
-	public LoginService(Transactions transactions, UserRepository repository, RemoteAuthenticator remote) {
+	public LoginService(Transactions transactions, UserRepository repository, RemoteAuthenticator remote, ConfigStore config) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.remote = remote;
+		this.passwordPolicy = config.bind(PasswordPolicy::from);
+		this.userSettings = config.bind(UiUser.Settings::from);
+	}
+
+	/**
+	 * Gets the max idle time of the user sessions, from the current configuration (applied to the new sessions).
+	 *
+	 * @return the max idle time (in seconds)
+	 */
+	public int sessionMaxIdleTime() {
+		return this.userSettings.get().maxIdleTime();
 	}
 
 	/**
@@ -158,7 +175,7 @@ public class LoginService {
 					throw new WrongPasswordException("Remote login attempt with username which is configured as Netshot local");
 				}
 				try {
-					user.checkPassword(attempt.password(), PasswordPolicy.getMainPolicy());
+					user.checkPassword(attempt.password(), this.passwordPolicy.get());
 					AAA_LOG.info(
 						"Local authentication success for user {} from {}.", username, remoteAddress);
 				}
@@ -234,7 +251,7 @@ public class LoginService {
 				this.repository.lock(dsl, userId);
 				UiUser user = this.repository.find(dsl, userId);
 				try {
-					this.repository.save(dsl, user.withPassword(newPassword, PasswordPolicy.getMainPolicy()));
+					this.repository.save(dsl, user.withPassword(newPassword, this.passwordPolicy.get()));
 				}
 				catch (PasswordPolicyException e) {
 					log.error("New user password doesn't comply with password policy.", e);

@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.aaa.user;
 
-import java.util.List;
 
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -26,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -55,22 +53,6 @@ public class ApiTokenService {
 	public ApiTokenService(Transactions transactions, ApiTokenRepository repository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the API tokens.
-	 *
-	 * @param page the window on the result
-	 * @return the API tokens
-	 */
-	public List<ApiToken> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.list(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to retrieve the API tokens.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the API tokens.");
-		}
 	}
 
 	/**
@@ -194,16 +176,15 @@ public class ApiTokenService {
 	 * Deletes an API token.
 	 *
 	 * @param id the ID of the API token
-	 * @return true if the API token has been deleted, false if there is no such token
+	 * @throws NetshotException if the API token doesn't exist, or can't be deleted
 	 */
-	public boolean delete(long id) {
+	public void delete(long id) {
 		ApiToken apiToken;
 		try {
 			apiToken = this.transactions.write(dsl -> {
 				ApiToken existing = this.repository.find(dsl, id);
 				if (existing == null) {
-					log.info("No such API token of ID {}", id);
-					return null;
+					throw new NetshotException(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, "The API token doesn't exist.");
 				}
 				this.repository.remove(dsl, existing.id());
 				return existing;
@@ -212,10 +193,6 @@ public class ApiTokenService {
 		catch (DataAccessException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the API token.");
 		}
-		if (apiToken == null) {
-			return false;
-		}
 		AAA_LOG.info("API token of ID {} has been deleted", apiToken);
-		return true;
 	}
 }

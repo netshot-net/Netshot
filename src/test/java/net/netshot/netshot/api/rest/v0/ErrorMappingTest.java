@@ -22,18 +22,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.api.v0.V0BadRequestException;
+import net.netshot.netshot.testing.TestConfig;
 
 @UnitTest
 @DisplayName("v0 error mapping")
 class ErrorMappingTest {
 
-	private final NetshotExceptionMapper mapper = new NetshotExceptionMapper(new Oidc(Netshot.config()));
+	private final NetshotExceptionMapper mapper = new NetshotExceptionMapper(new Oidc(TestConfig.store()));
 
 	@Test
 	@DisplayName("NetshotException is rendered like the former NetshotBadRequestException, for every error code")

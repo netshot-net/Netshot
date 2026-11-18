@@ -32,7 +32,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.testing.ApiTest;
@@ -79,7 +79,7 @@ class V1AuthResourceTest {
 	private void createUser(String username, String password, int level, Instant passwordDate) {
 		UiUser user = UiUser.withPassword(username, true, level, password);
 		UiUser stored = passwordDate == null ? user : user.withLastPasswordChangeDate(passwordDate);
-		TestWiring.get().transactions().run(dsl -> new UserRepository().add(dsl, stored));
+		TestWiring.get().core().transactions().run(dsl -> new UserRepository().add(dsl, stored));
 	}
 
 	private static String credentials(String username, String password) {

@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
+import java.util.Map;
 
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,8 +46,17 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.compliance.RankedSoftwareRule;
+import net.netshot.netshot.compliance.SoftwareRule;
+import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 
 /**
  * The REST resource of the software compliance rules: list, add, edit, delete and sort.
@@ -59,7 +69,15 @@ import net.netshot.netshot.driver.DriverRegistry;
 public class SoftwareRuleResource {
 
 	private final SoftwareRuleService softwareRuleService;
+	private final GroupService groupService;
 	private final DriverRegistry driverRegistry;
+
+	/** An unknown target group, as v0 always reported it. */
+	private static final V0Errors.Translation INVALID_GROUP = V0Errors.target("group", ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
+
+	/** An unknown rule, as v0 always reported it. */
+	private static final V0Errors.Translation UNKNOWN_RULE = V0Errors.code(ErrorCode.NETSHOT_RULE_NOT_FOUND, ErrorCode.NETSHOT_INVALID_RULE,
+		"Unable to find this rule.");
 
 	@Context
 	private HttpServletRequest request;
@@ -68,11 +86,13 @@ public class SoftwareRuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param softwareRuleService the software rule use cases
+	 * @param groupService the group use cases (to write the target group of a rule)
 	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, DriverRegistry driverRegistry) {
+	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, GroupService groupService, DriverRegistry driverRegistry) {
 		this.softwareRuleService = softwareRuleService;
+		this.groupService = groupService;
 		this.driverRegistry = driverRegistry;
 	}
 
@@ -94,7 +114,11 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public List<SoftwareRuleDto> getSoftwareRules(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, software rules.");
-		return SoftwareRuleMapper.toDtos(this.driverRegistry, this.softwareRuleService.list(paginationParams.toPage()));
+		List<SoftwareRule> rules = this.softwareRuleService.list(V0Lists.query(paginationParams.toPage())).items().stream()
+			.map(RankedSoftwareRule::rule).toList();
+		Map<Long, DeviceGroup> groups = V0Lists.groups(this.groupService, rules.stream().map(SoftwareRule::targetGroupId).toList());
+		return SoftwareRuleMapper.toDtos(this.driverRegistry, rules.stream()
+			.map(rule -> new SoftwareRuleView(rule, rule.targetGroupId() == null ? null : groups.get(rule.targetGroupId()))).toList());
 	}
 
 	/**
@@ -116,10 +140,10 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public SoftwareRuleDto addSoftwareRule(SoftwareRuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add software rule.");
-		SoftwareRuleDto rule = SoftwareRuleMapper.toDto(this.driverRegistry, 
-			this.softwareRuleService.create(SoftwareRuleMapper.toDefinition(rsRule)));
+		SoftwareRule newRule = SoftwareRuleMapper.toRule(this.driverRegistry, SoftwareRuleMapper.toDefinition(rsRule));
+		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.create(newRule, null), INVALID_GROUP);
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return rule;
+		return this.toDto(rule.rule());
 	}
 
 	/**
@@ -140,7 +164,7 @@ public class SoftwareRuleResource {
 	public void deleteSoftwareRule(@PathParam("id") @Parameter(description = "Software rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete software rule {}.", id);
-		if (this.softwareRuleService.delete(id)) {
+		if (V0Errors.found(() -> this.softwareRuleService.delete(id, null), ErrorCode.NETSHOT_RULE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {
@@ -171,7 +195,10 @@ public class SoftwareRuleResource {
 		SoftwareRuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit software rule {}.", id);
-		return SoftwareRuleMapper.toDto(this.driverRegistry, this.softwareRuleService.update(id, SoftwareRuleMapper.toDefinition(rsRule)));
+		SoftwareRule newRule = SoftwareRuleMapper.toRule(this.driverRegistry, SoftwareRuleMapper.toDefinition(rsRule));
+		RankedSoftwareRule rule = V0Errors.translate(() -> this.softwareRuleService.update(id, _ -> new Replacement(newRule, null), null),
+			UNKNOWN_RULE, INVALID_GROUP);
+		return this.toDto(rule.rule());
 	}
 
 	/**
@@ -196,7 +223,22 @@ public class SoftwareRuleResource {
 		@QueryParam("next") @Parameter(description = "ID of the other rule to move this rule before (omit parameter to place the rule at last position)") Long nextId)
 		throws WebApplicationException {
 		log.debug("REST request, sort software rule.");
-		this.softwareRuleService.sort(id, nextId);
+		// The rule takes the position of the next rule (the one before it, if the rule is before it), or the last one
+		Integer nextRank = null;
+		if (nextId != null) {
+			if (nextId.equals(id)) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
+			}
+			nextRank = V0Errors.translate(() -> this.softwareRuleService.get(nextId).rank(), UNKNOWN_RULE);
+		}
+		Integer next = nextRank;
+		V0Errors.translate(() -> this.softwareRuleService.update(id, rule -> new Replacement(rule.rule(),
+			next == null ? Integer.MAX_VALUE : next - (rule.rank() < next ? 1 : 0)), null), UNKNOWN_RULE);
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
+	}
+
+	private SoftwareRuleDto toDto(SoftwareRule rule) {
+		return SoftwareRuleMapper.toDto(this.driverRegistry,
+			new SoftwareRuleView(rule, V0Lists.group(this.groupService, rule.targetGroupId())));
 	}
 }

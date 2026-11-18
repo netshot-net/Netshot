@@ -38,7 +38,6 @@ import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERF
 import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP6ADDRESSES;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -59,6 +58,7 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.JSONB;
 import org.jooq.Record;
+import org.jooq.Result;
 import org.jooq.SelectField;
 import org.jooq.exception.DataChangedException;
 import org.jooq.impl.DSL;
@@ -81,9 +81,8 @@ import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
-import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
@@ -178,7 +177,8 @@ public class DeviceRepository {
 		ACCESS_FIELDS = List.copyOf(fields);
 	}
 
-	private static final Field<List<DeviceAccess>> ACCESSES = DSL.multiset(
+	/** The accesses of the device (records: their credential sets are decoded by the instance, see {@link #toAccess}). */
+	private static final Field<Result<Record>> ACCESSES = DSL.multiset(
 			DSL.select(ACCESS_FIELDS)
 				.from(DEVICE_ACCESS)
 				.leftJoin(GLOBAL_CS).on(GLOBAL_CS.ID.eq(DEVICE_ACCESS.GLOBAL_CREDENTIAL_SET))
@@ -187,7 +187,6 @@ public class DeviceRepository {
 				.leftJoin(SPECIFIC_CS_DOMAIN).on(SPECIFIC_CS_DOMAIN.ID.eq(SPECIFIC_CS.MGMT_DOMAIN))
 				.where(DEVICE_ACCESS.DEVICE.eq(DEVICE.ID))
 				.orderBy(DEVICE_ACCESS.ACCESS_NAME))
-		.convertFrom(r -> r.map(DeviceRepository::toAccess))
 		.as("accesses");
 
 	private static final Field<List<Module>> MODULES = DSL.multiset(
@@ -264,6 +263,29 @@ public class DeviceRepository {
 		FIELDS = List.copyOf(fields);
 	}
 
+	/** The configurations (the new configuration of a snapshot). */
+	private final ConfigRepository configRepository;
+
+	/** The diagnostic results (of a snapshot). */
+	private final DiagnosticResultRepository diagnosticResultRepository;
+
+	/** The credential sets (the specific credential sets of the devices). */
+	private final CredentialSetRepository credentialSetRepository;
+
+	/**
+	 * Instantiates the repository.
+	 *
+	 * @param configRepository the configuration repository (to save the new configuration of a snapshot)
+	 * @param diagnosticResultRepository the diagnostic result repository (to save the results of a snapshot)
+	 * @param credentialSetRepository the credential set repository (to remove the specific credential sets of a device)
+	 */
+	public DeviceRepository(ConfigRepository configRepository, DiagnosticResultRepository diagnosticResultRepository,
+		CredentialSetRepository credentialSetRepository) {
+		this.configRepository = configRepository;
+		this.diagnosticResultRepository = diagnosticResultRepository;
+		this.credentialSetRepository = credentialSetRepository;
+	}
+
 	private static <E extends Enum<E>> E toEnum(Class<E> type, String name) {
 		return name == null ? null : Enum.valueOf(type, name);
 	}
@@ -329,13 +351,13 @@ public class DeviceRepository {
 			r.get(m.LAST_SEEN_DATE), Boolean.TRUE.equals(r.get(m.REMOVED)));
 	}
 
-	private static DeviceAccess toAccess(Record r) {
+	private DeviceAccess toAccess(Record r) {
 		return new DeviceAccess(
 			r.get(DEVICE_ACCESS.ACCESS_NAME),
 			r.get(DEVICE_ACCESS.ADDRESS),
 			r.get(DEVICE_ACCESS.PORT),
-			CredentialSetRepository.toCredentialSet(r, GLOBAL_CS, GLOBAL_CS_DOMAIN),
-			CredentialSetRepository.toCredentialSet(r, SPECIFIC_CS, SPECIFIC_CS_DOMAIN),
+			this.credentialSetRepository.toCredentialSet(r, GLOBAL_CS, GLOBAL_CS_DOMAIN),
+			this.credentialSetRepository.toCredentialSet(r, SPECIFIC_CS, SPECIFIC_CS_DOMAIN),
 			toEnum(DeviceAccess.SshHostKeyVerification.class, r.get(DEVICE_ACCESS.SSH_HOST_KEY_VERIFICATION)),
 			r.get(DEVICE_ACCESS.SSH_TRUSTED_HOST_KEYS),
 			r.get(DEVICE_ACCESS.SSH_TRUSTED_HOST_KEYS_SINCE),
@@ -364,7 +386,7 @@ public class DeviceRepository {
 			Boolean.TRUE.equals(r.get(NETWORK_INTERFACE.LEVEL3)));
 	}
 
-	private static Device toDevice(Record r) {
+	private Device toDevice(Record r) {
 		return new Device(
 			r.get(DEVICE.ID),
 			r.get(DEVICE.VERSION),
@@ -398,7 +420,7 @@ public class DeviceRepository {
 			optional(r, VIRTUAL_DEVICES),
 			optional(r, VRF_INSTANCES),
 			optional(r, ATTRIBUTES),
-			optional(r, ACCESSES),
+			this.accesses(r),
 			optional(r, MODULES),
 			optional(r, INTERFACES),
 			optional(r, GROUPS));
@@ -416,6 +438,17 @@ public class DeviceRepository {
 		return r.field(field) == null ? null : r.get(field);
 	}
 
+	/**
+	 * Reads the accesses of a device, if the query selected them.
+	 *
+	 * @param r the record
+	 * @return the accesses, or null if the query didn't select them
+	 */
+	private List<DeviceAccess> accesses(Record r) {
+		Result<Record> accesses = optional(r, ACCESSES);
+		return accesses == null ? null : accesses.map(this::toAccess);
+	}
+
 	private List<Device> findWhere(DSLContext dsl, Condition condition) {
 		return dsl.select(FIELDS)
 			.from(DEVICE)
@@ -424,7 +457,7 @@ public class DeviceRepository {
 			.leftJoin(EOS).on(EOS.ID.eq(DEVICE.EOS_MODULE))
 			.where(condition)
 			.orderBy(DEVICE.ID)
-			.fetch(DeviceRepository::toDevice);
+			.fetch(this::toDevice);
 	}
 
 	/**
@@ -491,25 +524,6 @@ public class DeviceRepository {
 	 */
 	public DeviceSummary findSummary(DSLContext dsl, long id) {
 		return dsl.select(DeviceSummary.FIELDS).from(DEVICE).where(DEVICE.ID.eq(id)).fetchOne(DeviceSummary::fromRecord);
-	}
-
-	/**
-	 * Lists the devices in their summary form.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param groupId the ID of a group whose members are listed (in the order of the group), or null for all the devices
-	 * @param page the window on the result
-	 * @return the device summaries
-	 */
-	public List<DeviceSummary> findSummaries(DSLContext dsl, Long groupId, Page page) {
-		if (groupId == null) {
-			return page.apply(dsl.select(DeviceSummary.FIELDS).from(DEVICE)).fetch(DeviceSummary::fromRecord);
-		}
-		return page.apply(dsl.select(DeviceSummary.FIELDS).from(DEVICE)
-				.join(DEVICE_GROUP_CACHED_DEVICES).on(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID))
-				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))
-				.orderBy(DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION.asc(), DEVICE.NAME.asc()))
-			.fetch(DeviceSummary::fromRecord);
 	}
 
 	/** The fields the device lists can be filtered and sorted on. */
@@ -600,7 +614,7 @@ public class DeviceRepository {
 				.leftJoin(EOS).on(EOS.ID.eq(DEVICE.EOS_MODULE))
 				.where(LIST.condition(query)).and(condition)
 				.orderBy(LIST.orderBy(query)))
-			.fetch(DeviceRepository::toDevice);
+			.fetch(this::toDevice);
 	}
 
 	/**
@@ -629,108 +643,28 @@ public class DeviceRepository {
 	}
 
 	/**
-	 * Finds the network interfaces of a device, with their IP addresses.
+	 * A binary file attribute of a stored configuration.
+	 *
+	 * @param configId the ID of the configuration
+	 * @param attribute the attribute
+	 */
+	public record StoredBinaryFile(long configId, ConfigBinaryFileAttribute attribute) {
+	}
+
+	/**
+	 * Finds the binary file attributes of the configurations of a device.
 	 *
 	 * @param dsl the jOOQ context
 	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the interfaces, by ID (none if there is no such device)
+	 * @return the attributes, with their configurations
 	 */
-	public List<NetworkInterface> findInterfaces(DSLContext dsl, long deviceId, Page page) {
-		List<NetworkInterface> interfaces = page.apply(dsl.select(INTERFACE_FIELDS).from(NETWORK_INTERFACE)
-				.where(NETWORK_INTERFACE.DEVICE.eq(deviceId))
-				.orderBy(NETWORK_INTERFACE.ID))
-			.fetch(DeviceRepository::toInterface);
-		if (page.isRestricted()) {
-			// Quirk kept: Hibernate paginated this query (with collection fetches) in memory, answering
-			// a sub list, which XML publishes as <SubList> instead of <ArrayList>
-			return interfaces.subList(0, interfaces.size());
-		}
-		return interfaces;
-	}
-
-	/**
-	 * Finds the hardware modules of a device.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param deviceId the device ID
-	 * @param includeHistory whether to include the modules which have been removed
-	 * @param page the window on the result
-	 * @return the modules, by ID (none if there is no such device)
-	 */
-	public List<Module> findModules(DSLContext dsl, long deviceId, boolean includeHistory, Page page) {
-		Condition condition = MODULE.DEVICE.eq(deviceId);
-		if (!includeHistory) {
-			condition = condition.and(MODULE.REMOVED.isFalse());
-		}
-		return page.apply(dsl.select(MODULE.fields()).from(MODULE).where(condition).orderBy(MODULE.ID))
-			.fetch(m -> toModule(m, MODULE));
-	}
-
-	/**
-	 * Lists the device families currently known: the driver and family of every device.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the families, one per device
-	 */
-	public List<DeviceFamily> findFamilies(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(DEVICE.DRIVER, DEVICE.FAMILY).from(DEVICE).orderBy(DEVICE.ID))
-			.fetch(r -> new DeviceFamily(r.get(DEVICE.DRIVER), r.get(DEVICE.FAMILY)));
-	}
-
-	/**
-	 * Lists the part numbers currently known: the part number of every module.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the part numbers, one per module
-	 */
-	public List<String> findPartNumbers(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(MODULE.PART_NUMBER).from(MODULE).orderBy(MODULE.ID)).fetch(MODULE.PART_NUMBER);
-	}
-
-	/**
-	 * Lists the tags attached to at least one device, with the number of devices of each.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the tags, sorted
-	 */
-	public List<DeviceTagCount> findTagCounts(DSLContext dsl, Page page) {
-		Field<Integer> count = DSL.count(DEVICE_TAGS.DEVICE);
-		return page.apply(dsl.select(DEVICE_TAGS.TAG, count).from(DEVICE_TAGS).groupBy(DEVICE_TAGS.TAG).orderBy(DEVICE_TAGS.TAG))
-			.fetch(r -> new DeviceTagCount(r.get(DEVICE_TAGS.TAG), r.get(count).longValue()));
-	}
-
-	/**
-	 * Lists the software versions currently known: the (non empty) version of every device.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the software versions, one per device
-	 */
-	public List<String> findSoftwareVersions(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(DEVICE.SOFTWARE_VERSION).from(DEVICE)
-				.where(DEVICE.SOFTWARE_VERSION.isNotNull(), DEVICE.SOFTWARE_VERSION.ne(""))
-				.orderBy(DEVICE.ID))
-			.fetch(DEVICE.SOFTWARE_VERSION);
-	}
-
-	/**
-	 * Finds the paths of the binary files holding configuration attributes of a device.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param deviceId the device ID
-	 * @return the file paths
-	 */
-	public List<Path> findConfigBinaryFilePaths(DSLContext dsl, long deviceId) {
+	public List<StoredBinaryFile> findConfigBinaryFiles(DSLContext dsl, long deviceId) {
 		return dsl.select(CONFIG.ID, CONFIG_ATTRIBUTE.NAME, CONFIG_ATTRIBUTE.UID, CONFIG_ATTRIBUTE.ORIGINAL_NAME)
 			.from(CONFIG_ATTRIBUTE)
 			.join(CONFIG).on(CONFIG.ID.eq(CONFIG_ATTRIBUTE.CONFIG))
 			.where(CONFIG.DEVICE.eq(deviceId), CONFIG_ATTRIBUTE.TYPE.eq("F"))
-			.fetch(r -> new ConfigBinaryFileAttribute(r.get(CONFIG_ATTRIBUTE.NAME), r.get(CONFIG_ATTRIBUTE.UID),
-				r.get(CONFIG_ATTRIBUTE.ORIGINAL_NAME), 0, null).getFilePath(deviceId, r.get(CONFIG.ID)));
+			.fetch(r -> new StoredBinaryFile(r.get(CONFIG.ID), new ConfigBinaryFileAttribute(r.get(CONFIG_ATTRIBUTE.NAME),
+				r.get(CONFIG_ATTRIBUTE.UID), r.get(CONFIG_ATTRIBUTE.ORIGINAL_NAME), 0, null)));
 	}
 
 	/**
@@ -930,13 +864,12 @@ public class DeviceRepository {
 		Device edited = draft.toDevice();
 		Config newConfig = null;
 		if (draft.getNewConfig() != null) {
-			ConfigRepository configRepository = new ConfigRepository();
-			long configId = configRepository.add(dsl, draft.getNewConfig());
-			newConfig = configRepository.find(dsl, configId, false);
+			long configId = this.configRepository.add(dsl, draft.getNewConfig());
+			newConfig = this.configRepository.find(dsl, configId, false);
 			edited = edited.toBuilder().lastConfigId(configId).build();
 		}
 		this.save(dsl, draft.getOriginal(), edited);
-		new DiagnosticResultRepository().save(dsl, draft.getId(), draft.getDiagnosticResults().values());
+		this.diagnosticResultRepository.save(dsl, draft.getId(), draft.getDiagnosticResults().values());
 		return newConfig;
 	}
 
@@ -1014,7 +947,7 @@ public class DeviceRepository {
 				.execute();
 		}
 		// Once no access references them anymore (their removal would remove the accesses)
-		new CredentialSetRepository().removeAll(dsl, obsoleteSpecificIds);
+		this.credentialSetRepository.removeAll(dsl, obsoleteSpecificIds);
 	}
 
 	/**
@@ -1042,7 +975,7 @@ public class DeviceRepository {
 			return false;
 		}
 		deleteLongTexts(dsl, longTextIds);
-		new CredentialSetRepository().removeAll(dsl, specificIds);
+		this.credentialSetRepository.removeAll(dsl, specificIds);
 		return true;
 	}
 

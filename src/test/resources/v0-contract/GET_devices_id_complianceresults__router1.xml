@@ -31,26 +31,6 @@
     <ruleName>JS check</ruleName>
   </item>
   <item>
-    <checkDate>1609502402000</checkDate>
-    <comment>Script error</comment>
-    <expirationDate/>
-    <policyId>2</policyId>
-    <policyName>Routing policy</policyName>
-    <result>INVALIDRULE</result>
-    <ruleId>3</ruleId>
-    <ruleName>JS check</ruleName>
-  </item>
-  <item>
-    <checkDate>1609502403000</checkDate>
-    <comment/>
-    <expirationDate/>
-    <policyId>2</policyId>
-    <policyName>Routing policy</policyName>
-    <result>NOTAPPLICABLE</result>
-    <ruleId>4</ruleId>
-    <ruleName>Python check</ruleName>
-  </item>
-  <item>
     <checkDate>1609502403000</checkDate>
     <comment/>
     <expirationDate/>

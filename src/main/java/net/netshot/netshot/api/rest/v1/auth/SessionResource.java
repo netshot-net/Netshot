@@ -45,7 +45,7 @@ import net.netshot.netshot.aaa.auth.LoginService;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.ClientAddress;
 import net.netshot.netshot.api.rest.SessionAuthenticator;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -71,6 +71,9 @@ public class SessionResource {
 
 	private final LoginService loginService;
 	private final Oidc oidc;
+	private final ClientAddress clientAddress;
+	private final V1Links links;
+	private final AuthMapper authMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -86,11 +89,17 @@ public class SessionResource {
 	 *
 	 * @param loginService the login use case
 	 * @param oidc the OIDC authentication (for the end session endpoint)
+	 * @param clientAddress the address of the client of a request
+	 * @param links the paths of the v1 objects
+	 * @param authMapper maps the auth objects
 	 */
 	@Inject
-	public SessionResource(LoginService loginService, Oidc oidc) {
+	public SessionResource(LoginService loginService, Oidc oidc, ClientAddress clientAddress, V1Links links, AuthMapper authMapper) {
 		this.loginService = loginService;
 		this.oidc = oidc;
+		this.clientAddress = clientAddress;
+		this.links = links;
+		this.authMapper = authMapper;
 	}
 
 	/**
@@ -110,7 +119,7 @@ public class SessionResource {
 		+ "comply with the password policy is a 400. Useless when using API tokens.")
 	public SessionDto login(SessionRequest credentials) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		LoginAttempt attempt = toAttempt(credentials, LoggerFilter.getClientAddress(this.request));
+		LoginAttempt attempt = toAttempt(credentials, this.clientAddress.of(this.request));
 		V1Response.noStore(this.request);
 		// Any exception thrown by the service (expired password...) leaves the existing session untouched
 		UiUser user = this.loginService.authenticate(attempt);
@@ -125,11 +134,11 @@ public class SessionResource {
 		}
 		HttpSession httpSession = this.request.getSession(true);
 		// The current max idle time (the default timeout of the sessions is set when the server starts)
-		int maxIdleTime = UiUser.settings().maxIdleTime();
+		int maxIdleTime = this.loginService.sessionMaxIdleTime();
 		httpSession.setMaxInactiveInterval(maxIdleTime);
 		httpSession.setAttribute(SessionAuthenticator.USER_ATTRIBUTE, user);
-		V1Response.created(this.request, V1Links.of(AuthMapper.AUTH_PATH, "session"));
-		return AuthMapper.toSessionDto(user, httpSession.getCreationTime(), maxIdleTime);
+		V1Response.created(this.request, this.links.of(AuthMapper.AUTH_PATH, "session"));
+		return this.authMapper.toSessionDto(user, httpSession.getCreationTime(), maxIdleTime);
 	}
 
 	/**
@@ -151,7 +160,7 @@ public class SessionResource {
 			|| !(httpSession.getAttribute(SessionAuthenticator.USER_ATTRIBUTE) instanceof UiUser user)) {
 			throw new NetshotException(ErrorCode.NETSHOT_SESSION_NOT_FOUND, "The request is not made in a session.");
 		}
-		return AuthMapper.toSessionDto(user, httpSession.getCreationTime(), httpSession.getMaxInactiveInterval());
+		return this.authMapper.toSessionDto(user, httpSession.getCreationTime(), httpSession.getMaxInactiveInterval());
 	}
 
 	/**

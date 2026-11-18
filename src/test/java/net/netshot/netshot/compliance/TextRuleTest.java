@@ -19,7 +19,6 @@
 package net.netshot.netshot.compliance;
 
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
@@ -30,6 +29,7 @@ import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.testing.TestConfig;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -43,7 +43,7 @@ class TextRuleTest {
 
 	@BeforeAll
 	static void initNetshot() throws Exception {
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(), null);
 	}
 
 	Policy policy = new Policy(0, 0, null, "Fake policy", null);

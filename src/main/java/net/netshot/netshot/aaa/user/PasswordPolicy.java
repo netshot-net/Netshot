@@ -25,9 +25,7 @@ import java.util.regex.Pattern;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 
 /**
@@ -109,20 +107,17 @@ public class PasswordPolicy {
 	/** Min number of uppercase characters. */
 	private static final Setting<Integer> MIN_UPPERCASE_CHARS = minCharsSetting(CharMatch.UPPERCASE);
 
-	/** The main policy, from the configuration. */
-	private static final ConfigStore.Binding<PasswordPolicy> MAIN_POLICY = Netshot.config().bind(PasswordPolicy::fromConfig);
-
 	private static Setting<Integer> minCharsSetting(CharMatch match) {
 		return Setting.integer("netshot.aaa.passwordpolicy." + match.getName())
 			.defaultValue(match.getDefaultValue()).range(0, 1024).live();
 	}
 
 	/**
-	 * Builds the main policy from the configuration.
+	 * Builds the main policy (the one of the local users) from the configuration.
 	 * @param config the configuration
 	 * @return the policy
 	 */
-	private static PasswordPolicy fromConfig(Config config) {
+	public static PasswordPolicy from(Config config) {
 		PasswordPolicy policy = new PasswordPolicy();
 		policy.maxHistory = config.get(MAX_HISTORY);
 		policy.maxDuration = config.get(MAX_DURATION);
@@ -139,14 +134,6 @@ public class PasswordPolicy {
 			}
 		}
 		return policy;
-	}
-
-	/**
-	 * Get the main password policy (as configured in Netshot config file).
-	 * @return the main password policy
-	 */
-	public static PasswordPolicy getMainPolicy() {
-		return MAIN_POLICY.get();
 	}
 
 	/** Max history count. */

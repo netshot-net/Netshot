@@ -35,15 +35,16 @@ import org.graalvm.polyglot.proxy.ProxyArray;
 import org.graalvm.polyglot.proxy.ProxyHashMap;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.driver.AttributeDefinition;
+import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
+import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.NetworkInterface;
@@ -53,12 +54,11 @@ import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
-import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
+import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.net.PhysicalAddress;
 
 /**
@@ -107,10 +107,10 @@ public final class PyDeviceHelper {
 		return field;
 	}
 
-	public PyDeviceHelper(DriverRegistry driverRegistry, Transactions transactions, DeviceDraft device, TaskContext taskContext, boolean readOnly)
+	public PyDeviceHelper(DriverRegistry driverRegistry, DeviceReads reads, DeviceDraft device, TaskContext taskContext, boolean readOnly)
 		throws MissingDeviceDriverException {
 		this.driverRegistry = driverRegistry;
-		this.lookup = new DeviceLookup(transactions);
+		this.lookup = new DeviceLookup(reads);
 		this.device = device;
 		this.taskContext = taskContext;
 		this.readOnly = readOnly;

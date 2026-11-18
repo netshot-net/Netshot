@@ -41,7 +41,7 @@ RUN ./mvnw dependency:resolve dependency:resolve-plugins -B
 COPY . /build
 COPY --from=webui-builder /build/webui/dist /build/src/main/resources/webui/dist
 RUN sed -i -r "s/VERSION = \".*\";/VERSION = \"$NETSHOT_VERSION\";/g" \
-       src/main/java/net/netshot/netshot/Netshot.java
+       src/main/java/net/netshot/netshot/platform/runtime/BuildInfo.java
 RUN ./mvnw package -Dmaven.test.skip
 
 FROM debian-graalvm

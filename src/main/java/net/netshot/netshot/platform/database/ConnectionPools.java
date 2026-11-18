@@ -30,7 +30,6 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
 
@@ -46,7 +45,7 @@ public final class ConnectionPools implements AutoCloseable {
 	static final Setting<Integer> MIN_POOL_SIZE = poolSetting("netshot.db.pooler.minpoolsize", 5, 0);
 
 	/** Max size of the main (read-write and read-only) pools. */
-	public static final Setting<Integer> MAX_POOL_SIZE = poolSetting("netshot.db.pooler.maxpoolsize", 50, 0);
+	static final Setting<Integer> MAX_POOL_SIZE = poolSetting("netshot.db.pooler.maxpoolsize", 50, 0);
 
 	/** Min size of the system pool. */
 	static final Setting<Integer> SYSTEM_MIN_POOL_SIZE = poolSetting("netshot.db.pooler.system.minpoolsize", 1, 0);
@@ -93,21 +92,17 @@ public final class ConnectionPools implements AutoCloseable {
 	/**
 	 * Creates the pools.
 	 *
-	 * @param driverClass the JDBC driver class
-	 * @param url the URL of the (read-write) database
-	 * @param readUrl the URL of the read-only database, or null to read from the read-write one
-	 * @param username the user name
-	 * @param password the password
+	 * @param config the configuration (the sizes of the pools)
+	 * @param database the settings of the database connections
 	 */
-	public ConnectionPools(String driverClass, String url, String readUrl, String username, String password) {
-		Config config = Netshot.config().current();
-		this.pools.put(PoolKind.READ_WRITE, create(config, PoolKind.READ_WRITE, driverClass, url, username, password,
-			config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
-		this.pools.put(PoolKind.SYSTEM, create(config, PoolKind.SYSTEM, driverClass, url, username, password,
-			config.get(SYSTEM_MIN_POOL_SIZE), config.get(SYSTEM_MAX_POOL_SIZE)));
-		if (readUrl != null) {
-			this.pools.put(PoolKind.READ_ONLY, create(config, PoolKind.READ_ONLY, driverClass, readUrl, username, password,
-				config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
+	public ConnectionPools(Config config, Database.Settings database) {
+		this.pools.put(PoolKind.READ_WRITE, create(config, PoolKind.READ_WRITE, database.driverClass(), database.url(),
+			database.username(), database.password(), config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
+		this.pools.put(PoolKind.SYSTEM, create(config, PoolKind.SYSTEM, database.driverClass(), database.url(),
+			database.username(), database.password(), config.get(SYSTEM_MIN_POOL_SIZE), config.get(SYSTEM_MAX_POOL_SIZE)));
+		if (database.readUrl() != null) {
+			this.pools.put(PoolKind.READ_ONLY, create(config, PoolKind.READ_ONLY, database.driverClass(), database.readUrl(),
+				database.username(), database.password(), config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
 		}
 	}
 

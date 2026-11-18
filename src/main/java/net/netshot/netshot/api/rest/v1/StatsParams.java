@@ -94,6 +94,7 @@ public final class StatsParams {
 	/**
 	 * Reads a statistics request.
 	 *
+	 * @param lists the reader of the list parameters
 	 * @param params the query parameters
 	 * @param schema what the list can be filtered on and grouped by
 	 * @param defaultOn the date field of the time buckets when {@code on} isn't given
@@ -101,7 +102,8 @@ public final class StatsParams {
 	 * @return the request
 	 * @throws NetshotException if a parameter is unknown or invalid
 	 */
-	public static Parsed parse(MultivaluedMap<String, String> params, QuerySchema schema, String defaultOn, String... handled) {
+	public static Parsed parse(ListParams lists, MultivaluedMap<String, String> params, QuerySchema schema, String defaultOn,
+		String... handled) {
 		for (String name : params.keySet()) {
 			if (REFUSED.contains(name)) {
 				throw NetshotException.invalidParameter(name, "The parameter '%s' doesn't apply to statistics".formatted(name));
@@ -109,7 +111,7 @@ public final class StatsParams {
 		}
 		List<String> skipped = new ArrayList<>(STATS_PARAMETERS);
 		skipped.addAll(List.of(handled));
-		ListQuery query = ListParams.parse(params, schema, skipped.toArray(String[]::new));
+		ListQuery query = lists.parse(params, schema, skipped.toArray(String[]::new));
 		List<String> groupBy = new ArrayList<>();
 		for (String value : values(params, GROUP_BY)) {
 			for (String name : value.split(",")) {

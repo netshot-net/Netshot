@@ -54,14 +54,11 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.compliance.Exemption;
-import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleService.Replacement;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.RuleTestResult;
-import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -77,6 +74,9 @@ public class RuleResource {
 
 	private final RuleService ruleService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
+	private final V1Links links;
+	private final RuleMapper ruleMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -91,19 +91,25 @@ public class RuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param ruleService the rule use cases
-	 * @param policyService the policy use cases
-	 * @param groupService the group use cases
-	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param ruleMapper maps the rule objects
+	 * @param refs resolves the references of the compliance objects
 	 */
 	@Inject
-	public RuleResource(RuleService ruleService, PolicyService policyService, GroupService groupService, DeviceRefs deviceRefs) {
+	public RuleResource(RuleService ruleService, ListParams lists, V1Links links, RuleMapper ruleMapper, ComplianceRefs refs) {
 		this.ruleService = ruleService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.refs = refs;
+		this.lists = lists;
+		this.links = links;
+		this.ruleMapper = ruleMapper;
 	}
 
 	/**
 	 * Lists the rules, optionally restricted by a fixed filter (the rules of a policy).
 	 *
+	 * @param lists the reader of the list parameters
+	 * @param ruleMapper maps the rule objects
 	 * @param ruleService the rule use cases
 	 * @param refs the loader of the referenced objects
 	 * @param request the request
@@ -111,15 +117,15 @@ public class RuleResource {
 	 * @param fixed the filter to add to the ones of the request, or null
 	 * @return the page of rules
 	 */
-	static ListResponse<RuleDto> list(RuleService ruleService, ComplianceRefs refs, HttpServletRequest request, UriInfo uriInfo,
-		Criterion fixed) {
-		ListQuery query = ListParams.parse(uriInfo.getQueryParameters(), ListSchema.RULES.schema());
+	static ListResponse<RuleDto> list(ListParams lists, RuleMapper ruleMapper, RuleService ruleService, ComplianceRefs refs,
+		HttpServletRequest request, UriInfo uriInfo, Criterion fixed) {
+		ListQuery query = lists.parse(uriInfo.getQueryParameters(), ListSchema.RULES.schema());
 		Selection selection = Selection.of(uriInfo.getQueryParameters(), RuleDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, RuleDto.class);
 		ListQuery restricted = fixed == null ? query : query.and(fixed);
 		ListResult<Rule> rules = ruleService.list(restricted);
 		var policies = refs.policies(selection, "policy", rules.items().stream().map(Rule::policyId).toList());
-		return ListResponse.of(uriInfo, query, rules, r -> RuleMapper.toDto(r, policies));
+		return ListResponse.of(uriInfo, query, rules, r -> ruleMapper.toDto(r, policies));
 	}
 
 	/**
@@ -134,7 +140,7 @@ public class RuleResource {
 		+ "view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has).")
 	@ListFilters(ListSchema.RULES)
 	public ListResponse<RuleDto> listRules() {
-		return list(this.ruleService, this.refs, this.request, this.uriInfo, null);
+		return list(this.lists, this.ruleMapper, this.ruleService, this.refs, this.request, this.uriInfo, null);
 	}
 
 	/**
@@ -170,8 +176,8 @@ public class RuleResource {
 		if (ruleRequest.policy() == null) {
 			throw NetshotException.invalidParameter("policy", "The policy is required.");
 		}
-		Rule rule = this.ruleService.add(RuleMapper.toRule(ruleRequest));
-		V1Response.created(this.request, V1Links.of(RuleMapper.PATH, rule.id()));
+		Rule rule = this.ruleService.create(this.ruleMapper.toRule(ruleRequest));
+		V1Response.created(this.request, this.links.of(RuleMapper.PATH, rule.id()));
 		return this.respond(rule);
 	}
 
@@ -191,8 +197,8 @@ public class RuleResource {
 		+ "can't change; its exemptions are unchanged). With If-Match, the rule must still be at the given version (ETag).")
 	public RuleDto replaceRule(@PathParam("id") @Parameter(description = "Rule ID") long id, RuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Rule rule = RuleMapper.toRule(ruleRequest);
-		return this.respond(this.ruleService.replace(id, _ -> rule, V1Response.ifMatch(this.headers)));
+		Rule rule = this.ruleMapper.toRule(ruleRequest);
+		return this.respond(this.ruleService.update(id, _ -> Replacement.of(rule), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -212,8 +218,8 @@ public class RuleResource {
 	public RuleDto updateRule(@PathParam("id") @Parameter(description = "Rule ID") long id,
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.ruleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(), RuleRequest.class,
-			RuleMapper::toRequest, RuleMapper::toRule), V1Response.ifMatch(this.headers)));
+		return this.respond(this.ruleService.update(id, MergePatch.of(patch, this.headers.getMediaType(), RuleRequest.class,
+			this.ruleMapper::toRequest, this.ruleMapper::toRule).andThen(Replacement::of), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -228,9 +234,7 @@ public class RuleResource {
 		+ "the rule must still be at the given version (ETag).")
 	public void deleteRule(@PathParam("id") @Parameter(description = "Rule ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.ruleService.delete(id, V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The rule doesn't exist.");
-		}
+		this.ruleService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 
@@ -248,7 +252,7 @@ public class RuleResource {
 		+ "their exemption ends. Filters: device, expirationDate.")
 	@ListFilters(ListSchema.EXEMPTIONS)
 	public ListResponse<ExemptionDto> listExemptions(@PathParam("id") @Parameter(description = "Rule ID") long id) {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.EXEMPTIONS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.EXEMPTIONS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), ExemptionDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, ExemptionDto.class);
 		ListResult<Exemption> exemptions = this.ruleService.listExemptions(id, query);
@@ -300,7 +304,7 @@ public class RuleResource {
 		+ "A device without configuration gives a NOTAPPLICABLE result.")
 	public RuleTestResultDto testRule(RuleTestRequest testRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		RuleTestResult result = this.ruleService.test(testRequest.device().id(), RuleMapper.toRule(testRequest.rule(), true));
+		RuleTestResult result = this.ruleService.test(testRequest.device().id(), this.ruleMapper.toRule(testRequest.rule(), true));
 		return new RuleTestResultDto(result.result(), result.log(), result.comment());
 	}
 
@@ -308,6 +312,6 @@ public class RuleResource {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), RuleDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, RuleDto.class);
 		V1Response.etag(this.request, rule.version());
-		return RuleMapper.toDto(rule, this.refs.policies(selection, "policy", java.util.List.of(rule.policyId())));
+		return this.ruleMapper.toDto(rule, this.refs.policies(selection, "policy", java.util.List.of(rule.policyId())));
 	}
 }

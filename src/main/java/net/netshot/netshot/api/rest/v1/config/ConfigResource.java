@@ -42,15 +42,14 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-import net.netshot.netshot.api.rest.v1.ListFilters;
-import net.netshot.netshot.api.rest.v1.ListSchema;
-import net.netshot.netshot.platform.query.StatsRow;
-import net.netshot.netshot.api.rest.v1.StatsResponse;
-import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
+import net.netshot.netshot.api.rest.v1.StatsParams;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
@@ -67,6 +66,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.StatsRow;
 
 /**
  * The configurations of the devices (v1): list, read, download an item, compare two.
@@ -81,6 +81,9 @@ public class ConfigResource {
 	private final ConfigService configService;
 	private final SearchService searchService;
 	private final DeviceRefs deviceRefs;
+	private final ListParams lists;
+	private final ConfigMapper configMapper;
+	private final DeviceMapper deviceMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -94,12 +97,19 @@ public class ConfigResource {
 	 * @param configService the configuration use cases
 	 * @param searchService the device search use cases
 	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
+	 * @param configMapper maps the config objects
+	 * @param deviceMapper maps the device objects
 	 */
 	@Inject
-	public ConfigResource(ConfigService configService, SearchService searchService, DeviceRefs deviceRefs) {
+	public ConfigResource(ConfigService configService, SearchService searchService, DeviceRefs deviceRefs, ListParams lists,
+		ConfigMapper configMapper, DeviceMapper deviceMapper) {
 		this.configService = configService;
 		this.searchService = searchService;
 		this.deviceRefs = deviceRefs;
+		this.lists = lists;
+		this.configMapper = configMapper;
+		this.deviceMapper = deviceMapper;
 	}
 
 	/**
@@ -116,9 +126,9 @@ public class ConfigResource {
 		+ "day, week or month, on changeDate, from/to, timeZone).")
 	@ListFilters(ListSchema.CONFIGS)
 	public StatsResponse getConfigStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.CONFIGS.schema(), "changeDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.lists, this.uriInfo.getQueryParameters(), ListSchema.CONFIGS.schema(), "changeDate");
 		ListResult<StatsRow> rows = this.configService.stats(parsed.query(), parsed.stats());
-		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of("device", DeviceMapper.resolver(this.searchService)));
+		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of("device", this.deviceMapper.resolver(this.searchService)));
 	}
 
 	/**
@@ -135,12 +145,14 @@ public class ConfigResource {
 		+ "from their url. The filters on domain and group apply to the device of the configuration.")
 	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listConfigs() {
-		return list(this.configService, this.deviceRefs, this.request, this.uriInfo, null);
+		return list(this.lists, this.configMapper, this.configService, this.deviceRefs, this.request, this.uriInfo, null);
 	}
 
 	/**
 	 * Answers a page of configurations (of the configuration list, or of a list of configurations of another object).
 	 *
+	 * @param lists the reader of the list parameters
+	 * @param configMapper maps the configuration objects
 	 * @param configService the configuration use cases
 	 * @param deviceRefs writes the devices (the device of each configuration)
 	 * @param request the current request
@@ -149,17 +161,17 @@ public class ConfigResource {
 	 * @return the page of configurations
 	 * @throws NetshotException if a parameter is invalid
 	 */
-	public static ListResponse<ConfigDto> list(ConfigService configService, DeviceRefs deviceRefs,
+	public static ListResponse<ConfigDto> list(ListParams lists, ConfigMapper configMapper, ConfigService configService, DeviceRefs deviceRefs,
 		HttpServletRequest request, UriInfo uriInfo, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, ListSchema.CONFIGS.schema());
+		ListQuery listQuery = lists.parse(params, ListSchema.CONFIGS.schema());
 		Selection selection = Selection.of(params, ConfigDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, ConfigDto.class);
 		boolean withAttributes = selection.includes("attributes");
 		ListResult<Config> configs = configService.list(scope == null ? listQuery : listQuery.and(scope), withAttributes);
 		LongFunction<DeviceDto> devices = deviceRefs.byIds(selection, "device",
 			configs.items().stream().map(Config::deviceId).toList());
-		return ListResponse.of(uriInfo, listQuery, configs, c -> ConfigMapper.toDto(c, devices, withAttributes));
+		return ListResponse.of(uriInfo, listQuery, configs, c -> configMapper.toDto(c, devices, withAttributes));
 	}
 
 	/**
@@ -180,7 +192,7 @@ public class ConfigResource {
 		V1Response.select(this.request, selection, ConfigDto.class);
 		Config config = this.configService.get(id);
 		V1Response.etag(this.request, config.version());
-		return ConfigMapper.toDto(config, this.deviceRefs.byIds(selection, "device", List.of(config.deviceId())), true);
+		return this.configMapper.toDto(config, this.deviceRefs.byIds(selection, "device", List.of(config.deviceId())), true);
 	}
 
 	/**
@@ -265,7 +277,7 @@ public class ConfigResource {
 			configs.values().stream().map(Config::deviceId).toList());
 		Config original = configs.get(diff.originalConfigId());
 		Config revised = configs.get(diff.revisedConfigId());
-		return ConfigMapper.toDto(diff, original == null ? null : ConfigMapper.toDto(original, devices, false),
-			revised == null ? null : ConfigMapper.toDto(revised, devices, false));
+		return this.configMapper.toDto(diff, original == null ? null : this.configMapper.toDto(original, devices, false),
+			revised == null ? null : this.configMapper.toDto(revised, devices, false));
 	}
 }

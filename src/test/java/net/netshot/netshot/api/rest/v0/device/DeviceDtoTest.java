@@ -38,6 +38,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
+import net.netshot.netshot.credentials.CredentialSetDefinition;
+import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -50,11 +52,12 @@ import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
+import net.netshot.netshot.inventory.device.AccessSpecificCredential;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
+import net.netshot.netshot.inventory.device.DeviceChange;
 import net.netshot.netshot.inventory.device.DeviceCreation;
-import net.netshot.netshot.inventory.device.DeviceUpdate;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
@@ -66,6 +69,7 @@ import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
@@ -346,19 +350,38 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("An update request leaves unchanged what it doesn't mention")
 	void updateRequestMapping() throws Exception {
+		DeviceTelnetAccount specific = DeviceTelnetAccount.builder().name("DEVICESPECIFIC-1").deviceSpecific(true)
+			.username(Secret.local("u")).password(Secret.local("p")).build();
+		Device device = Device.builder().id(5).status(Device.Status.INPRODUCTION).comments("current").mgmtAddress("10.0.0.1")
+			.mgmtDomain(Domain.builder().id(3).name("d").build()).options(Map.of("a", true)).tags(new HashSet<>(List.of("t")))
+			.accesses(List.of(DeviceAccess.of("telnet").toBuilder().specificCredentialSet(specific).build())).build();
+
 		UpdateDeviceRequest empty = JSON.readerFor(UpdateDeviceRequest.class).readValue("{}");
-		DeviceUpdate update = DeviceMapper.toUpdate(empty);
-		Assertions.assertEquals(new DeviceUpdate(null, null, null, null, null, null, null, null), update);
+		DeviceChange unchanged = DeviceMapper.toChange(device, empty);
+		Assertions.assertEquals(Device.Status.INPRODUCTION, unchanged.status());
+		Assertions.assertEquals("current", unchanged.comments());
+		Assertions.assertEquals("10.0.0.1", unchanged.mgmtAddress());
+		Assertions.assertEquals(3L, unchanged.mgmtDomainId());
+		Assertions.assertEquals(List.of(DeviceAccess.of("telnet")), unchanged.accesses());
+		Assertions.assertEquals(List.of(new AccessSpecificCredential("telnet", new CredentialSetDefinition(Kind.TELNET,
+			"DEVICESPECIFIC-1", null, new SecretChange.Local("u"), new SecretChange.Local("p"), SecretChange.CLEARED, null, null,
+			null, null, null, null))), unchanged.specificCredentials());
+		Assertions.assertEquals(Map.of("a", true), unchanged.options());
+		Assertions.assertEquals(device.tags(), unchanged.tags());
 
 		UpdateDeviceRequest request = JSON.readerFor(UpdateDeviceRequest.class).readValue("""
 			{"id": 5, "enabled": false, "comments": "c", "ipAddress": "10.0.0.2", "mgmtDomain": 6,
-			 "accesses": [], "options": {}, "tags": []}""");
-		DeviceUpdate full = DeviceMapper.toUpdate(request);
-		Assertions.assertEquals(Boolean.FALSE, full.enabled());
+			 "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "Telnet", "username": "u2", "password": "="}}],
+			 "options": {}, "tags": []}""");
+		DeviceChange full = DeviceMapper.toChange(device, request);
+		Assertions.assertEquals(Device.Status.DISABLED, full.status());
 		Assertions.assertEquals("c", full.comments());
-		Assertions.assertEquals("10.0.0.2", full.ipAddress());
+		Assertions.assertEquals("10.0.0.2", full.mgmtAddress());
 		Assertions.assertEquals(6L, full.mgmtDomainId());
-		Assertions.assertEquals(new ArrayList<DeviceAccess>(), full.accesses());
+		// The mask keeps the current secret
+		Assertions.assertEquals(List.of(new AccessSpecificCredential("telnet", new CredentialSetDefinition(Kind.TELNET,
+			null, null, new SecretChange.Local("u2"), SecretChange.UNCHANGED, SecretChange.CLEARED, null, null,
+			null, null, null, null))), full.specificCredentials());
 		Assertions.assertEquals(Map.of(), full.options());
 		Assertions.assertEquals(List.of(), full.tags());
 	}

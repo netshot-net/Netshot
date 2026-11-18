@@ -22,6 +22,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
@@ -31,19 +33,75 @@ import net.netshot.netshot.platform.lifecycle.Service;
  */
 public final class DatabaseService implements Service {
 
+	/** The configuration store. */
+	private final ConfigStore config;
+
 	/** The connection pools, while started. */
 	private volatile ConnectionPools pools;
 
+	/**
+	 * Creates the database access.
+	 *
+	 * @param config the configuration store (the database and the sizes of the pools)
+	 */
+	public DatabaseService(ConfigStore config) {
+		this.config = config;
+	}
+
+	/**
+	 * Migrates the database schema to the current version, if necessary (at startup, before the service starts).
+	 *
+	 * @throws Exception if the schema can't be migrated
+	 */
+	public void migrate() throws Exception {
+		Database.migrate(this.config.current());
+	}
+
+	/**
+	 * Opens a raw SQL connection, out of the connection pools (the long-lived connections of the task locks and of
+	 * the cluster notifications), whether the service is started or not. The caller closes it.
+	 *
+	 * @return the connection
+	 * @throws SQLException if the connection can't be opened
+	 */
+	public Connection openUnpooledConnection() throws SQLException {
+		return Database.openUnpooledConnection(this.config.current());
+	}
+
+	/**
+	 * Gets the maximum size of the main connection pool, the one of the transactions.
+	 *
+	 * @return the maximum number of connections
+	 */
+	public int maxPoolSize() {
+		return this.config.current().get(ConnectionPools.MAX_POOL_SIZE);
+	}
+
+	/**
+	 * Gets the password used to encrypt the sensitive data in the database (the secrets of the credentials).
+	 *
+	 * @return the password
+	 * @throws IllegalStateException if the password is required but not configured
+	 */
+	public String encryptionPassword() {
+		return Database.encryptionPassword(this.config.current());
+	}
+
+	@Override
+	public String id() {
+		return "database";
+	}
+
 	@Override
 	public String name() {
-		return "database";
+		return "Database";
 	}
 
 	@Override
 	public synchronized void start() {
 		if (this.pools == null) {
-			this.pools = new ConnectionPools(Database.getDriverClass(), Database.getUrl(), Database.getReadUrl(),
-				Database.getUsername(), Database.getPassword());
+			Config current = this.config.current();
+			this.pools = new ConnectionPools(current, Database.Settings.from(current));
 		}
 	}
 

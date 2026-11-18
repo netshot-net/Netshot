@@ -32,8 +32,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestNetwork;
@@ -51,7 +50,15 @@ class SyslogServerTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.syslog.port", Integer.toString(port));
 		TestConfig.init(config);
-		return new SyslogServer(TestDrivers.registry(), (_, _) -> { }, Netshot.config());
+		return new SyslogServer(TestDrivers.registry(), (_, _) -> { }, TestConfig.store());
+	}
+
+	private static void configure(int port, boolean disabled) {
+		Properties config = new Properties();
+		config.setProperty("netshot.syslog.port", Integer.toString(port));
+		config.setProperty("netshot.syslog.listenaddress", "127.0.0.1");
+		config.setProperty("netshot.syslog.enabled", Boolean.toString(!disabled));
+		TestConfig.init(config);
 	}
 
 	private static void await(BooleanSupplier condition, String message) throws InterruptedException {
@@ -99,5 +106,53 @@ class SyslogServerTest {
 		}
 		await(server::isHealthy, "The server didn't open the port once released");
 		server.stop();
+	}
+
+	@Test
+	@DisplayName("Applies a change of the port live")
+	void portChangedLive() throws Exception {
+		int firstPort = TestNetwork.freePort();
+		SyslogServer server = server(firstPort);
+		server.start();
+		try {
+			await(server::isHealthy, "The server isn't listening");
+			int secondPort = TestNetwork.freePort();
+			configure(secondPort, false);
+			await(() -> server.isHealthy() && (Integer) server.stats().get("port") == secondPort, "The server didn't move to the new port");
+			send(secondPort, "<189>Oct 25 10:00:00 router1 Some message which no driver matches");
+			await(() -> (Long) server.stats().get("received") == 1L, "The message wasn't received on the new port");
+			// The former port is free
+			try (DatagramSocket socket = new DatagramSocket(firstPort)) {
+				Assertions.assertTrue(socket.isBound());
+			}
+			Assertions.assertEquals(0L, server.stats().get("errors"), "A configuration change isn't a socket error");
+		}
+		finally {
+			server.stop();
+		}
+	}
+
+	@Test
+	@DisplayName("Disabled live: closes its port and stays healthy, then listens again once enabled")
+	void disabledLive() throws Exception {
+		int port = TestNetwork.freePort();
+		SyslogServer server = server(port);
+		server.start();
+		try {
+			await(server::isHealthy, "The server isn't listening");
+			configure(port, true);
+			await(() -> !(Boolean) server.stats().get("listening"), "The server didn't close its port");
+			Assertions.assertTrue(server.isHealthy(), "A disabled server is healthy");
+			Assertions.assertEquals(false, server.stats().get("enabled"));
+			try (DatagramSocket socket = new DatagramSocket(port)) {
+				Assertions.assertTrue(socket.isBound());
+			}
+			configure(port, false);
+			await(() -> (Boolean) server.stats().get("listening"), "The server didn't listen again");
+			Assertions.assertEquals(true, server.stats().get("enabled"));
+		}
+		finally {
+			server.stop();
+		}
 	}
 }

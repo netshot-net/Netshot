@@ -31,9 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * Service that proactively refreshes the Vault client tokens shortly before they expire, so that the
@@ -65,6 +65,7 @@ public final class VaultTokenRefresher implements Service {
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final VaultInstanceRepository repository;
 
 	/**
 	 * Creates the refresher.
@@ -72,11 +73,18 @@ public final class VaultTokenRefresher implements Service {
 	 * @param transactions the transaction support, to read the Vault instances
 	 * @param vaultManager the Vault client, whose tokens are refreshed
 	 * @param config the configuration store
+	 * @param repository the Vault instance repository
 	 */
-	public VaultTokenRefresher(Transactions transactions, VaultManager vaultManager, ConfigStore config) {
+	public VaultTokenRefresher(Transactions transactions, VaultManager vaultManager, ConfigStore config, VaultInstanceRepository repository) {
 		this.transactions = transactions;
 		this.vaultManager = vaultManager;
 		this.config = config;
+		this.repository = repository;
+	}
+
+	@Override
+	public String id() {
+		return "vault-token-refresher";
 	}
 
 	@Override
@@ -94,6 +102,16 @@ public final class VaultTokenRefresher implements Service {
 	public synchronized void stop() throws InterruptedException {
 		this.executor.shutdownNow();
 		this.executor.awaitTermination(10, TimeUnit.SECONDS);
+	}
+
+	/**
+	 * Whether the refresher runs: its executor is not shut down.
+	 *
+	 * @return true if healthy
+	 */
+	@Override
+	public synchronized boolean isHealthy() {
+		return this.executor != null && !this.executor.isShutdown();
 	}
 
 	@Override
@@ -129,7 +147,7 @@ public final class VaultTokenRefresher implements Service {
 
 	private void refreshAll() {
 		// The instances are read first: no transaction is held during the logins
-		List<VaultInstance> instances = this.transactions.read(dsl -> new VaultInstanceRepository().findAll(dsl, Page.ALL));
+		List<VaultInstance> instances = this.transactions.read(dsl -> this.repository.findAll(dsl, ListQuery.ALL));
 		for (VaultInstance candidate : instances) {
 			if (!(candidate instanceof HashicorpVaultKv2Instance vaultInstance)) {
 				continue;

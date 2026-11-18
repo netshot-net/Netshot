@@ -38,7 +38,6 @@ import net.netshot.netshot.api.rest.v0.script.ScriptMapper;
 import net.netshot.netshot.api.rest.v0.script.ScriptRequest;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
@@ -94,10 +93,6 @@ class DiagnosticDtoTest {
 			.changeDate(Instant.ofEpochMilli(1_600_000_300_000L)).build();
 	}
 
-	private static DiagnosticView view(Diagnostic diagnostic, DeviceGroup group) {
-		return new DiagnosticView(diagnostic, group);
-	}
-
 	@Test
 	@DisplayName("A simple diagnostic has the same JSON and XML representation as the entity, with either kind of group or none")
 	void simpleDiagnostic() throws Exception {
@@ -105,17 +100,17 @@ class DiagnosticDtoTest {
 		StaticDeviceGroup fixed = staticGroup();
 		SimpleDiagnostic diagnostic = new SimpleDiagnostic(5, 0, null, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(.*)", "$1");
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, dynamic)));
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, fixed)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic, dynamic));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic, fixed));
 		diagnostic = new SimpleDiagnostic(5, 0, null, "Simple", true, null, AttributeType.LONGTEXT, "NoSuchDriver",
 			"enable", "show version", null, "$1");
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic, null));
 		diagnostic = new SimpleDiagnostic(5, 0, null, "Simple", true, null, AttributeType.LONGTEXT, "",
 			"enable", "show version", null, "$1");
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null)));
-		String json = new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null))));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic, null));
+		String json = new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic, null)));
 		Assertions.assertTrue(json.contains("\"type\":\"SimpleDiagnostic\""), json);
-		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null))))
+		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic, null)))
 			.startsWith("<SimpleDiagnostic type=\"SimpleDiagnostic\">"));
 	}
 
@@ -125,15 +120,15 @@ class DiagnosticDtoTest {
 		DynamicDeviceGroup dynamic = dynamicGroup();
 		StaticDeviceGroup fixed = staticGroup();
 		JavaScriptDiagnostic js = new JavaScriptDiagnostic(6, 0, null, "JS", false, fixed.id(), AttributeType.NUMERIC, "function diagnose() {\n}");
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, fixed)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), js, fixed));
 		js = new JavaScriptDiagnostic(6, 0, null, "JS", false, null, AttributeType.NUMERIC, null);
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, null)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), js, null));
 		PythonDiagnostic python = new PythonDiagnostic(7, 0, null, "Python", true, dynamic.id(), AttributeType.BINARY, "def diagnose():\n  pass");
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, dynamic)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), python, dynamic));
 		python = new PythonDiagnostic(7, 0, null, "Python", true, null, AttributeType.BINARY, "def diagnose():\n  pass");
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, null)));
-		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, null)))).contains("\"type\":\"PythonDiagnostic\""));
-		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, null)))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), python, null));
+		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), python, null))).contains("\"type\":\"PythonDiagnostic\""));
+		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), js, null))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
 	}
 
 	@Test
@@ -144,8 +139,9 @@ class DiagnosticDtoTest {
 		SimpleDiagnostic simple = new SimpleDiagnostic(1, 0, null, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12", "enable", "show", null, null);
 		PythonDiagnostic python = new PythonDiagnostic(2, 0, null, "Python", true, null, AttributeType.BINARY, "x");
 		JavaScriptDiagnostic js = new JavaScriptDiagnostic(3, 0, null, "JS", true, fixed.id(), AttributeType.TEXT, "y");
-		List<DiagnosticView> entities = new ArrayList<>(List.of(view(simple, dynamic), view(python, null), view(js, fixed)));
-		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toDtos(TestDrivers.registry(), entities)));
+		List<Diagnostic> entities = List.of(simple, python, js);
+		Map<Long, DeviceGroup> groups = Map.of(dynamic.id(), dynamic, fixed.id(), fixed);
+		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toDtos(TestDrivers.registry(), entities, groups)));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -274,7 +270,7 @@ class DiagnosticDtoTest {
 			"{\"id\": \"x\"}")) {
 			Assertions.assertThrows(JsonMappingException.class, () -> scriptRequest(body), body);
 		}
-		Assertions.assertEquals("x", ScriptMapper.toCreation(scriptRequest("{\"author\": \"x\"}"), null).author(), "posted author kept");
-		Assertions.assertEquals("u", ScriptMapper.toCreation(scriptRequest("{\"author\": \"x\"}"), "u").author(), "user wins");
+		Assertions.assertEquals("x", ScriptMapper.toDefinition(scriptRequest("{\"author\": \"x\"}"), null).author(), "posted author kept");
+		Assertions.assertEquals("u", ScriptMapper.toDefinition(scriptRequest("{\"author\": \"x\"}"), "u").author(), "user wins");
 	}
 }

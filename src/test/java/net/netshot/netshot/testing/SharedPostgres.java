@@ -28,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.platform.database.Database;
 
 /**
@@ -126,7 +125,7 @@ final class SharedPostgres implements AutoCloseable {
 			config.setProperty("netshot.log.level", "WARN");
 			TestConfig.init(config);
 			// Plain connection, closed after the update: nothing stays connected to the template
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 			this.templateMigrated = true;
 		}
 		this.execute("DROP DATABASE IF EXISTS \"%s\"".formatted(databaseName));

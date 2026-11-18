@@ -48,7 +48,9 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -79,8 +81,9 @@ class ConfigServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = TestWiring.get().transactions();
-		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry());
+		this.transactions = TestWiring.get().core().transactions();
+		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry(), TestWiring.get().core().repositories().device(),
+			TestWiring.get().core().repositories().binaryFiles());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.domainId = domain.id();
 		Device routerDevice = device("CiscoIOS12", "router-a", "10.40.0.1", domain);
@@ -114,7 +117,7 @@ class ConfigServiceTest {
 			Config.builder().author(author).changeDate(Instant.ofEpochMilli(date)).attributes(attributes).build());
 		if (file != null) {
 			try {
-				Files.writeString(file.getFilePath(device.id(), configId), "bytes");
+				Files.writeString(TestWiring.get().core().repositories().binaryFiles().filePath(file, device.id(), configId), "bytes");
 			}
 			catch (java.io.IOException e) {
 				throw new IllegalStateException(e);
@@ -129,8 +132,12 @@ class ConfigServiceTest {
 		return exception;
 	}
 
-	private static ConfigFilter noFilter() {
-		return new ConfigFilter(null, null, Set.of(), Set.of());
+	private List<Config> list(Page page, Criterion... criteria) {
+		return this.service.list(new ListQuery(List.of(criteria), null, List.of(), page, false), true).items();
+	}
+
+	private static Criterion of(String field, Lookup lookup, Object value) {
+		return new Criterion(field, lookup, List.of(value));
 	}
 
 	// ------------------------------------------------------------------
@@ -138,55 +145,48 @@ class ConfigServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("listByDevice() returns the configurations of the device, the most recent first, with usable attributes")
-	void listByDevice() {
-		List<Config> configs = this.service.listByDevice(this.router, Page.ALL);
+	@DisplayName("list() of a device returns its configurations, the most recent first, with usable attributes")
+	void listOfDevice() {
+		List<Config> configs = this.list(Page.ALL, of("device", Lookup.EXACT, this.router));
 		Assertions.assertEquals(List.of(this.third, this.second, this.first), configs.stream().map(Config::id).toList());
 		Assertions.assertEquals(5, configs.get(0).attributes().size(), "attributes can be read without a session");
 		Assertions.assertEquals(2, configs.get(2).attributes().size());
-		Assertions.assertEquals(List.of(this.second), this.service.listByDevice(this.router, new Page(1, 1)).stream().map(Config::id).toList());
-		Assertions.assertEquals(List.of(), this.service.listByDevice(99999999L, Page.ALL));
+		Assertions.assertEquals(List.of(this.second),
+			this.list(new Page(1, 1), of("device", Lookup.EXACT, this.router)).stream().map(Config::id).toList());
+		Assertions.assertEquals(List.of(), this.list(Page.ALL, of("device", Lookup.EXACT, 99999999L)));
 	}
 
 	@Test
-	@DisplayName("listByDevice() and list() leave the long texts out (all the texts of a device can exceed the heap, #417)")
+	@DisplayName("list() leaves the long texts out (all the texts of a device can exceed the heap, #417)")
 	void listsWithoutTexts() {
-		List<Config> byDevice = this.service.listByDevice(this.router, Page.ALL);
-		List<Config> all = this.service.list(new ListQuery(List.of(), null, List.of(), Page.ALL, false), true).items();
-		Assertions.assertEquals(3, byDevice.size());
+		List<Config> all = this.list(Page.ALL);
 		Assertions.assertTrue(all.size() >= 5, "all the configurations are listed");
-		for (Config config : byDevice) {
-			Assertions.assertNull(((ConfigLongTextAttribute) config.getAttribute("runningConfig")).text(), "text loaded by listByDevice()");
-		}
 		for (Config config : all) {
 			Assertions.assertNull(((ConfigLongTextAttribute) config.getAttribute("runningConfig")).text(), "text loaded by list()");
 		}
 	}
 
 	@Test
-	@DisplayName("listChanges() filters on the dates, the domains and the groups")
+	@DisplayName("list() filters on the dates, the domains and the groups")
 	void listChanges() {
-		List<ConfigSummary> all = this.service.listChanges(noFilter(), Page.ALL);
-		Assertions.assertEquals(5, all.size());
-		ConfigSummary summary = all.stream().filter(s -> s.id() == this.third).findFirst().orElseThrow();
-		Assertions.assertEquals("router-a", summary.deviceName());
-		Assertions.assertEquals(this.router, summary.deviceId());
-		Assertions.assertEquals("snapshot", summary.author());
-		Assertions.assertEquals(new Date(D2022), summary.changeDate());
+		Config latest = this.list(Page.ALL).stream().filter(c -> c.id() == this.third).findFirst().orElseThrow();
+		Assertions.assertEquals(this.router, latest.deviceId());
+		Assertions.assertEquals("snapshot", latest.author());
+		Assertions.assertEquals(Instant.ofEpochMilli(D2022), latest.changeDate());
 
 		Assertions.assertEquals(Set.of(this.second, this.third, this.otherConfig, this.snmpConfig),
-			ids(this.service.listChanges(new ConfigFilter(new Date(D2021), null, Set.of(), Set.of()), Page.ALL)), "after is inclusive");
+			ids(this.list(Page.ALL, of("changeDate", Lookup.GTE, Instant.ofEpochMilli(D2021)))), "after is inclusive");
 		Assertions.assertEquals(Set.of(this.first),
-			ids(this.service.listChanges(new ConfigFilter(null, new Date(D2021), Set.of(), Set.of()), Page.ALL)), "before is exclusive");
+			ids(this.list(Page.ALL, of("changeDate", Lookup.LT, Instant.ofEpochMilli(D2021)))), "before is exclusive");
 		Assertions.assertEquals(Set.of(this.first, this.second, this.third, this.snmpConfig),
-			ids(this.service.listChanges(new ConfigFilter(null, null, Set.of(this.domainId), Set.of()), Page.ALL)));
+			ids(this.list(Page.ALL, of("domain", Lookup.EXACT, this.domainId))));
 		Assertions.assertEquals(Set.of(this.first, this.second, this.third),
-			ids(this.service.listChanges(new ConfigFilter(null, null, Set.of(), Set.of(this.groupId)), Page.ALL)));
-		Assertions.assertEquals(1, this.service.listChanges(noFilter(), new Page(0, 1)).size());
+			ids(this.list(Page.ALL, of("group", Lookup.EXACT, this.groupId))));
+		Assertions.assertEquals(1, this.list(new Page(0, 1)).size());
 	}
 
-	private static Set<Long> ids(List<ConfigSummary> summaries) {
-		return summaries.stream().map(ConfigSummary::id).collect(java.util.stream.Collectors.toSet());
+	private static Set<Long> ids(List<Config> configs) {
+		return configs.stream().map(Config::id).collect(java.util.stream.Collectors.toSet());
 	}
 
 	// ------------------------------------------------------------------

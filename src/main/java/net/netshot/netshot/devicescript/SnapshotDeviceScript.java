@@ -34,7 +34,6 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
@@ -45,29 +44,31 @@ import net.netshot.netshot.devicescript.helper.JsConfigHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceScriptOptions;
 import net.netshot.netshot.devicescript.helper.JsSnmpHelper;
-import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
+import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigDraft;
-import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {
 
-	/** Folder to dump the configurations into, after each snapshot. */
-	static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
-
 	/** The embedded SSH server, where the devices upload files (null if not running). */
 	private final SshServer sshServer;
+
+	/** The folder to write the configurations to (null for none). */
+	private final String dumpFolder;
+
+	/** The storage of the binary file attributes. */
+	private final BinaryFileStorage binaryFiles;
 
 	/**
 	 * Creates the snapshot script.
@@ -76,10 +77,16 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if not running)
 	 * @param logger the task logger
+	 * @param dumpFolder the folder to write the configurations to, null to write them nowhere
+	 *        ({@code netshot.snapshots.dump})
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
-	public SnapshotDeviceScript(DriverRegistry driverRegistry, Connectors connectors, SshServer sshServer, TaskContext logger) {
+	public SnapshotDeviceScript(DriverRegistry driverRegistry, Connectors connectors, SshServer sshServer, TaskContext logger,
+		String dumpFolder, BinaryFileStorage binaryFiles) {
+		this.binaryFiles = binaryFiles;
 		super(driverRegistry, connectors, logger);
 		this.sshServer = sshServer;
+		this.dumpFolder = dumpFolder;
 	}
 
 	/**
@@ -88,13 +95,13 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param config = the config
 	 */
 	protected void dumpConfig(DeviceDraft device, ConfigDraft config) {
-		String path = Netshot.config().current().get(DUMP_PATH);
+		String path = this.dumpFolder;
 		if (path != null) {
 			// The device name is reported by the device itself, it must not be able to escape the dump folder
-			Path dumpFolder = Paths.get(path).toAbsolutePath().normalize();
+			Path folder = Paths.get(path).toAbsolutePath().normalize();
 			String fileName = Objects.toString(device.getName(), "").replaceAll("[/\\\\\\x00]", "_");
-			Path dumpFile = dumpFolder.resolve(fileName).normalize();
-			if (fileName.isEmpty() || !dumpFolder.equals(dumpFile.getParent())) {
+			Path dumpFile = folder.resolve(fileName).normalize();
+			if (fileName.isEmpty() || !folder.equals(dumpFile.getParent())) {
 				log.warn("Invalid device name '{}' to dump the configuration into the dump folder.", device.getName());
 				this.taskContext.warn("Unable to write the configuration to a file: invalid device name.");
 				return;
@@ -164,7 +171,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 		if (lastConfigId == null) {
 			return null;
 		}
-		return this.connectors.transactions().read(dsl -> new ConfigRepository().find(dsl, lastConfigId, true));
+		return this.connectors.reads().findConfig(lastConfigId);
 	}
 
 	@Override
@@ -183,7 +190,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			this.taskContext.info("Starting snapshot of device {} using driver {} version {}",
 				device.getId(), driver.getName(), driver.getVersion());
 			driver.loadCode(context);
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.connectors.transactions(), device, jsCliHelper, this.taskContext, false);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.connectors.reads(), device, jsCliHelper, this.taskContext, false);
 			options.setDeviceHelper(deviceHelper);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Device {} options: {}", device.getId(), deviceHelper.resolveOptionValues());
@@ -191,7 +198,8 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			ConfigDraft config = new ConfigDraft(device.getId());
 			Config lastConfig = device.getLastConfig() != null ? device.getLastConfig() : loadLastConfig(device);
 			device.setLastConfig(lastConfig);
-			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.sshServer, this.taskContext);
+			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.sshServer,
+				this.connectors.settings().collector(), this.binaryFiles, this.taskContext);
 			options.setConfigHelper(configHelper);
 			context.getBindings("js").getMember("_connect")
 				.execute("snapshot", options);
@@ -232,7 +240,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 				this.taskContext.info("The configuration hasn't changed. Not storing a new one in the DB.");
 				for (ConfigAttribute ca : config.getAttributes()) {
 					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
-						Path pendingPath = cbfa.getPendingFilePath(device.getId());
+						Path pendingPath = this.binaryFiles.pendingFilePath(cbfa, device.getId());
 						try {
 							log.debug("Removing useless file {}", pendingPath);
 							Files.deleteIfExists(pendingPath);

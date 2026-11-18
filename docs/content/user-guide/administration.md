@@ -8,7 +8,7 @@ Netshot supports both local and remote accounts. Local accounts are stored and a
 
 On login, Netshot first checks for a local account with that username. If found, the password is checked directly against it. If no local account exists and at least one RADIUS or TACACS+ server is configured, Netshot tries a challenge against it:
 
-- **RADIUS**: on success, the user is allowed as Visitor by default. A `Service-Type` attribute of `Administrative-User` grants Admin, `Outbound-User` grants Execute-scripts, and `NAS-Prompt-User` grants Read-write. If the user already exists locally as a *remote* user, their locally-assigned permission level overrides the RADIUS-provided one.
+- **RADIUS**: on success, the user is allowed as Read-only by default. A `Service-Type` attribute of `Administrative-User` grants Admin, `Outbound-User` grants Execute-scripts, and `NAS-Prompt-User` grants Read-write. If the user already exists locally as a *remote* user, their locally-assigned permission level overrides the RADIUS-provided one.
 - **TACACS+**: the `role` attribute returned by the server is checked against known values (`admin`, `execute-read-write`, `read-write` by default — customizable in `netshot.conf`).
 
 See [Single Sign-On (OIDC)](#single-sign-on-oidc) below for the third option.
@@ -42,8 +42,8 @@ Netshot has five permission levels, from least to most privileged:
 
 | Level | Can do |
 |---|---|
-| **Visitor** (read-only) | Browse everything; make no changes. |
-| **Operator** | Visitor, plus trigger standard tasks: run snapshots, diagnostics, compliance checks. |
+| **Read-only** | Browse everything; make no changes. |
+| **Operator** | Read-only, plus trigger standard tasks: run snapshots, diagnostics, compliance checks. |
 | **Read-write** | Operator, plus create/edit/delete devices, groups, and policies, and schedule tasks. |
 | **Execute-scripts** | Read-write, plus create, edit, and run device scripts and diagnostics. |
 | **Admin** | Full access, including user management and everything under the Admin tab. |

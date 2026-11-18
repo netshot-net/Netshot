@@ -41,7 +41,6 @@ import net.netshot.netshot.testing.api.v1.V1Client;
 import net.netshot.netshot.testing.api.v1.V1Client.Answer;
 import net.netshot.netshot.testing.api.v1.V1Endpoints;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
-import net.netshot.netshot.vault.VaultInstanceRepository;
 
 /**
  * The Vault instances of the v1 API, over HTTP: the secrets are write-only (never in a response, kept when left
@@ -64,7 +63,7 @@ class V1VaultInstanceResourceTest {
 	void setUp(TestServer testServer) {
 		this.server = testServer;
 		this.admin = new V1Client(testServer, UiUser.LEVEL_ADMIN);
-		TestWiring.get().transactions().run(dsl -> {
+		TestWiring.get().core().transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.DEVICE_CREDENTIAL_SET).execute();
 			dsl.deleteFrom(Tables.VAULT_INSTANCE).execute();
 		});
@@ -88,7 +87,7 @@ class V1VaultInstanceResourceTest {
 	}
 
 	private static HashicorpVaultKv2Instance stored(long id) {
-		return (HashicorpVaultKv2Instance) TestWiring.get().transactions().read(dsl -> new VaultInstanceRepository().find(dsl, id));
+		return (HashicorpVaultKv2Instance) TestWiring.get().core().transactions().read(dsl -> TestWiring.get().core().repositories().vaultInstance().find(dsl, id));
 	}
 
 	private static Set<String> names(JsonNode object) {

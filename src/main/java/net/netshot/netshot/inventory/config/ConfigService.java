@@ -47,7 +47,6 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -56,6 +55,7 @@ import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.platform.query.QuerySchema;
 import net.netshot.netshot.platform.query.StatsQuery;
 import net.netshot.netshot.platform.query.StatsRow;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * The configuration use cases: list the configurations, download an item of one, and compare two.
@@ -69,7 +69,8 @@ public class ConfigService {
 	private final Transactions transactions;
 	private final ConfigRepository repository;
 	private final DriverRegistry driverRegistry;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
+	private final BinaryFileStorage binaryFiles;
 
 	/**
 	 * Instantiates the service.
@@ -77,30 +78,16 @@ public class ConfigService {
 	 * @param transactions the transaction support
 	 * @param repository the configuration repository
 	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRepository the device repository (to find the device of a configuration)
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
-	public ConfigService(Transactions transactions, ConfigRepository repository, DriverRegistry driverRegistry) {
+	public ConfigService(Transactions transactions, ConfigRepository repository, DriverRegistry driverRegistry,
+		DeviceRepository deviceRepository, BinaryFileStorage binaryFiles) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Lists the configurations of a device, with their attributes (see {@link ConfigRepository#findByDevice}
-	 * for what is loaded).
-	 *
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the configurations, the most recent first (none if there is no such device)
-	 * @throws NetshotException if the configurations can't be read
-	 */
-	public List<Config> listByDevice(long deviceId, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findByDevice(dsl, deviceId, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the configs.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
-		}
+		this.deviceRepository = deviceRepository;
+		this.binaryFiles = binaryFiles;
 	}
 
 	/**
@@ -172,24 +159,6 @@ public class ConfigService {
 	}
 
 	/**
-	 * Lists the configuration changes matching some criteria.
-	 *
-	 * @param filter the criteria
-	 * @param page the window on the result
-	 * @return the configurations in their summary form
-	 * @throws NetshotException if the configurations can't be read
-	 */
-	public List<ConfigSummary> listChanges(ConfigFilter filter, Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, filter, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the configs", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
-		}
-	}
-
-	/**
 	 * Gets the content of an item (a long text or a binary file) of a configuration.
 	 *
 	 * @param id the configuration ID
@@ -236,7 +205,7 @@ public class ConfigService {
 		return new ConfigItem(fileName, content, null, content.length);
 	}
 
-	private static ConfigItem fileItem(Config config, DeviceSummary device, ConfigBinaryFileAttribute attribute) {
+	private ConfigItem fileItem(Config config, DeviceSummary device, ConfigBinaryFileAttribute attribute) {
 		String fileName = attribute.originalName();
 		if (fileName == null) {
 			fileName = "%s.dat".formatted(attribute.name());
@@ -245,7 +214,7 @@ public class ConfigService {
 			fileName = "%s_%s".formatted(attribute.name(), fileName);
 		}
 		fileName = downloadFileName(config, device, fileName);
-		File file = attribute.getFilePath(config.deviceId(), config.id()).toFile();
+		File file = this.binaryFiles.filePath(attribute, config.deviceId(), config.id()).toFile();
 		return new ConfigItem(fileName, null, file, file.length());
 	}
 

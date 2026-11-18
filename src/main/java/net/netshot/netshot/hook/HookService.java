@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -61,22 +60,6 @@ public class HookService {
 	public HookService(Transactions transactions, HookRepository repository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the hooks, with their triggers.
-	 *
-	 * @param page the window on the result
-	 * @return the hooks
-	 */
-	public List<Hook> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the hooks.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hooks");
-		}
 	}
 
 	/**
@@ -189,47 +172,6 @@ public class HookService {
 	}
 
 	/**
-	 * Edits a hook: its properties and triggers are replaced by the given ones.
-	 *
-	 * @param id the ID of the hook
-	 * @param incoming the new values (null triggers meaning none, as on creation)
-	 * @return the hook as saved
-	 */
-	public Hook update(long id, Hook incoming) {
-		Hook hook = incoming.withId(id);
-		if (hook.triggers() == null) {
-			// No triggers (null) means none, as on creation
-			hook = hook.withTriggers(new HashSet<>());
-		}
-		if (hook.name() == null || "".equals(hook.name().trim())) {
-			log.error("Invalid hook name.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
-		}
-		Hook valid = validate(hook);
-		Hook saved;
-		try {
-			saved = this.transactions.write(dsl -> {
-				this.repository.lock(dsl, id);
-				Hook stored = this.repository.find(dsl, id);
-				// A hook of another type is not found, as with the former query by type
-				if (stored == null || !stored.getClass().equals(valid.getClass())) {
-					log.error("Unable to find the hook {}.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK, "Unable to find the hook.");
-				}
-				refuseNullTrigger(valid);
-				this.repository.save(dsl, valid);
-				return this.repository.find(dsl, id);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to save the hook {}.", id, e);
-			throw saveFailure(e);
-		}
-		AAA_LOG.info("{} has been edited", saved);
-		return saved;
-	}
-
-	/**
 	 * Edits a hook, if it is at a given version: its properties and triggers are replaced by the ones the change
 	 * gives from the hook as it is, which can't change meanwhile (to apply a patch).
 	 *
@@ -282,33 +224,21 @@ public class HookService {
 	}
 
 	/**
-	 * Deletes a hook.
-	 *
-	 * @param id the ID of the hook
-	 * @return false if there is no such hook
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a hook, if it is at a given version.
 	 *
 	 * @param id the ID of the hook
 	 * @param expectedVersion the version the hook must be at, or null for any
-	 * @return false if there is no such hook
-	 * @throws NetshotException if the hook isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the hook doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
-		boolean deleted;
+	public void delete(long id, Long expectedVersion) {
 		try {
-			deleted = this.transactions.write(dsl -> {
+			this.transactions.run(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					return false;
+					throw new NetshotException(ErrorCode.NETSHOT_HOOK_NOT_FOUND, "The hook doesn't exist.");
 				}
 				Versions.check("hook", version, expectedVersion);
-				return this.repository.remove(dsl, id);
+				this.repository.remove(dsl, id);
 			});
 		}
 		catch (NetshotException e) {
@@ -318,12 +248,6 @@ public class HookService {
 			log.error("Unable to delete the hook {}", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the hook");
 		}
-		if (deleted) {
-			AAA_LOG.info("Hook of ID {} has been deleted.", id);
-		}
-		else {
-			log.info("No such hook of ID {}", id);
-		}
-		return deleted;
+		AAA_LOG.info("Hook of ID {} has been deleted.", id);
 	}
 }

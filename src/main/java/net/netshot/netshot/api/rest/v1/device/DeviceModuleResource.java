@@ -59,6 +59,8 @@ public class DeviceModuleResource {
 	private static final String REMOVED = "removed";
 
 	private final DeviceCatalogService catalogService;
+	private final ListParams lists;
+	private final DeviceInventoryMapper deviceInventoryMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -70,10 +72,14 @@ public class DeviceModuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param catalogService the device sub-resource use cases
+	 * @param lists the reader of the list parameters
+	 * @param deviceInventoryMapper maps the device inventory objects
 	 */
 	@Inject
-	public DeviceModuleResource(DeviceCatalogService catalogService) {
+	public DeviceModuleResource(DeviceCatalogService catalogService, ListParams lists, DeviceInventoryMapper deviceInventoryMapper) {
 		this.catalogService = catalogService;
+		this.lists = lists;
+		this.deviceInventoryMapper = deviceInventoryMapper;
 	}
 
 	/**
@@ -95,12 +101,12 @@ public class DeviceModuleResource {
 		if (removed != null && !"true".equals(removed) && !"false".equals(removed)) {
 			throw NetshotException.invalidParameter(REMOVED, "Invalid removed parameter: true or false is expected");
 		}
-		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_MODULES.schema(), REMOVED);
+		ListQuery query = this.lists.parse(params, ListSchema.DEVICE_MODULES.schema(), REMOVED);
 		if (!"true".equals(removed)) {
 			query = query.and(new Criterion(REMOVED, Lookup.EXACT, List.of(Boolean.FALSE)));
 		}
 		Selection selection = Selection.of(params, DeviceModuleDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceModuleDto.class);
-		return ListResponse.of(this.uriInfo, query, this.catalogService.listModules(id, query), DeviceInventoryMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.catalogService.listModules(id, query), this.deviceInventoryMapper::toDto);
 	}
 }

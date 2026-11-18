@@ -44,7 +44,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookService;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
  * The REST resource of the hook definitions: list, add, edit and delete. (The payload a hook sends
@@ -90,7 +95,8 @@ public class HookResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public List<HookDto> getHooks(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, hooks.");
-		return HookMapper.toDtos(this.hookService.list(paginationParams.toPage()));
+		Page page = paginationParams.toPage();
+		return HookMapper.toDtos(this.hookService.list(V0Lists.query(page)).items(), page.isRestricted());
 	}
 
 	/**
@@ -134,7 +140,7 @@ public class HookResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public void deleteHook(@PathParam("id") @Parameter(description = "Hook ID") Long id) throws WebApplicationException {
 		log.debug("REST request, delete hook {}", id);
-		if (this.hookService.delete(id)) {
+		if (V0Errors.found(() -> this.hookService.delete(id, null), ErrorCode.NETSHOT_HOOK_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {
@@ -162,6 +168,8 @@ public class HookResource {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public HookDto setHook(@PathParam("id") @Parameter(description = "Hook ID") Long id, HookRequest rsHook) throws WebApplicationException {
 		log.debug("REST request, edit hook {}", id);
-		return HookMapper.toDto(this.hookService.update(id, HookMapper.toEntity(rsHook)));
+		Hook hook = HookMapper.toEntity(rsHook);
+		return HookMapper.toDto(V0Errors.translate(() -> this.hookService.update(id, _ -> hook, null),
+			V0Errors.code(ErrorCode.NETSHOT_HOOK_NOT_FOUND, ErrorCode.NETSHOT_INVALID_HOOK, "Unable to find the hook.")));
 	}
 }

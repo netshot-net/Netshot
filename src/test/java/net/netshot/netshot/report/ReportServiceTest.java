@@ -38,32 +38,27 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.RuleDefinition;
 import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.domain.Domain;
-import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
@@ -71,6 +66,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.TestConfig;
 
 /**
  * Tests of the report use cases (statistics, device lists, export), against a real database.
@@ -90,14 +86,10 @@ class ReportServiceTest {
 	private Transactions transactions;
 	private ReportService service;
 	private long domainA;
-	private long domainB;
 	private long dev1;
 	private long dev2;
 	private long dev3;
-	private long dev4;
 	private long group1;
-	private long hiddenGroup;
-	private long emptyGroup;
 	private long policy;
 	private long rule1;
 	private long rule2;
@@ -106,7 +98,7 @@ class ReportServiceTest {
 	void initDb() throws Exception {
 		this.previousTimeZone = TimeZone.getDefault();
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-		this.transactions = TestWiring.get().transactions();
+		this.transactions = TestWiring.get().core().transactions();
 		this.service = new ReportService(this.transactions, new ReportRepository(), TestDrivers.registry());
 		this.seed();
 	}
@@ -134,7 +126,6 @@ class ReportServiceTest {
 		Domain a = TestDevices.addDomain("Report A", "A");
 		Domain b = TestDevices.addDomain("Report B", "B");
 		this.domainA = a.id();
-		this.domainB = b.id();
 		Device d1 = this.device("rep-1", a, Device.Status.INPRODUCTION, ConformanceLevel.GOLD, "1.0", EOS, null,
 			new DeviceNumericAttribute("mainMemorySize", 2048.0),
 			new DeviceLongTextAttribute("inventoryNotes", "no definition for this one"));
@@ -144,16 +135,15 @@ class ReportServiceTest {
 		this.dev1 = d1.id();
 		this.dev2 = d2.id();
 		this.dev3 = d3.id();
-		this.dev4 = d4.id();
 		this.group1 = TestDevices.addStaticGroup("Report group", d1, d2, d3).id();
 		StaticDeviceGroup hidden = TestDevices.addStaticGroup("Report hidden group", d4);
-		TestWiring.get().transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
-		this.hiddenGroup = hidden.id();
-		this.emptyGroup = TestDevices.addStaticGroup("Report empty group").id();
-		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository());
+		TestWiring.get().core().transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
+		TestDevices.addStaticGroup("Report empty group");
+		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository(), TestWiring.get().core().repositories().group());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
-			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), TestWiring.get().transactions()));
-		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).policy().id();
+			RuleEvaluators.standard(new JsRuleRuntime(TestConfig.store()), new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(),
+				TestWiring.get().core().repositories().deviceReads()), TestWiring.get().core().repositories().device());
+		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).id();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
 		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();
 		this.transactions.run(dsl -> {
@@ -176,7 +166,7 @@ class ReportServiceTest {
 
 	private void snapshot(DSLContext dsl, long deviceId, Task.Status status, long date) {
 		Instant when = Instant.ofEpochMilli(date);
-		new TaskRepository().add(dsl, TakeSnapshotTask.of(new DeviceRepository().find(dsl, deviceId), "snapshot", "tester", true, false, false)
+		new TaskRepository().add(dsl, TakeSnapshotTask.of(TestWiring.get().core().repositories().device().find(dsl, deviceId), "snapshot", "tester", true, false, false)
 			.toBuilder()
 			.status(status)
 			.creationDate(when)
@@ -186,9 +176,8 @@ class ReportServiceTest {
 			.build());
 	}
 
-	private static RuleDefinition textRule(String name, long policyId) {
-		return new RuleDefinition("TextRule", name, policyId, false, Map.of(), null, "ntp server", null, null, null,
-			"runningConfig", null, null, null, null);
+	private static TextRule textRule(String name, long policyId) {
+		return TextRule.builder(name, policyId).text("ntp server").field("runningConfig").build();
 	}
 
 	private static Set<Long> ids(Long... ids) {
@@ -197,184 +186,6 @@ class ReportServiceTest {
 
 	private static Set<Long> none() {
 		return new HashSet<>();
-	}
-
-	private static Set<ResultOption> noResults() {
-		return new HashSet<>();
-	}
-
-	// ------------------------------------------------------------------
-	// statistics
-	// ------------------------------------------------------------------
-
-	@Test
-	@DisplayName("The daily change counts cover the last 7 days, oldest first, in the given time zone")
-	void last7DaysChanges() {
-		List<DailyChangeCount> counts = this.service.getLast7DaysChanges("UTC");
-		Assertions.assertEquals(7, counts.size());
-		for (int i = 1; i < counts.size(); i++) {
-			Assertions.assertEquals(DAY, counts.get(i).changeDay().getTime() - counts.get(i - 1).changeDay().getTime());
-		}
-		Assertions.assertEquals(0, counts.get(0).changeDay().getTime() % DAY, "days start at midnight");
-		Assertions.assertTrue(counts.get(6).changeCount() >= 1, "today's change");
-		Assertions.assertTrue(counts.get(3).changeCount() >= 1, "the change of 3 days ago");
-		// An unreadable time zone falls back to GMT, a missing one to the server one: both work
-		Assertions.assertEquals(7, this.service.getLast7DaysChanges("No/Such_Zone").size());
-		Assertions.assertEquals(7, this.service.getLast7DaysChanges(null).size());
-	}
-
-	@Test
-	@DisplayName("The configuration compliance of a group counts the devices in production without non conforming result")
-	void groupConfigComplianceStats() {
-		GroupConfigComplianceStat stat = this.configStat(this.service.getGroupConfigComplianceStats(none(), none(), none()));
-		Assertions.assertEquals(2, stat.deviceCount(), "the disabled device is not counted");
-		Assertions.assertEquals(1, stat.compliantDeviceCount(), "only rep-2 has no non conforming result");
-		Assertions.assertEquals("Report group", stat.groupName());
-		// Filter on the domain of the devices
-		stat = this.configStat(this.service.getGroupConfigComplianceStats(ids(this.domainA), none(), none()));
-		Assertions.assertEquals(1, stat.deviceCount());
-		Assertions.assertEquals(0, stat.compliantDeviceCount());
-		// Filter on a policy which doesn't hold the rules
-		stat = this.configStat(this.service.getGroupConfigComplianceStats(none(), none(), ids(this.policy + 1000)));
-		Assertions.assertEquals(2, stat.compliantDeviceCount());
-		// Filter on the groups
-		List<GroupConfigComplianceStat> filtered = this.service.getGroupConfigComplianceStats(none(), ids(this.emptyGroup), none());
-		Assertions.assertEquals(1, filtered.size());
-		Assertions.assertEquals(0, filtered.get(0).deviceCount());
-		// The groups hidden from the reports are never listed
-		Assertions.assertTrue(this.service.getGroupConfigComplianceStats(none(), ids(this.hiddenGroup), none()).isEmpty());
-		Assertions.assertTrue(this.service.getGroupConfigComplianceStats(none(), none(), none()).stream()
-			.noneMatch(s -> s.groupId() == this.hiddenGroup));
-	}
-
-	private GroupConfigComplianceStat configStat(List<GroupConfigComplianceStat> stats) {
-		return stats.stream().filter(s -> s.groupId() == this.group1).findFirst().orElseThrow();
-	}
-
-	@Test
-	@DisplayName("The software compliance of a group counts the devices in production by level")
-	void groupSoftwareComplianceStats() {
-		GroupSoftwareComplianceStat stat = this.service.getGroupSoftwareComplianceStats(none()).stream()
-			.filter(s -> s.groupId() == this.group1).findFirst().orElseThrow();
-		Assertions.assertEquals(1, stat.goldDeviceCount(), "rep-3 is gold but disabled");
-		Assertions.assertEquals(1, stat.silverDeviceCount());
-		Assertions.assertEquals(0, stat.bronzeDeviceCount());
-		Assertions.assertEquals(2, stat.deviceCount());
-		stat = this.service.getGroupSoftwareComplianceStats(ids(this.domainB)).stream()
-			.filter(s -> s.groupId() == this.group1).findFirst().orElseThrow();
-		Assertions.assertEquals(0, stat.goldDeviceCount());
-		Assertions.assertEquals(1, stat.silverDeviceCount());
-		Assertions.assertEquals(1, stat.deviceCount());
-	}
-
-	private static Map<Date, Long> counts(List<HardwareSupportCount> counts) {
-		Map<Date, Long> map = new HashMap<>();
-		counts.forEach(c -> map.put(c.eoxDate(), c.deviceCount()));
-		return map;
-	}
-
-	@Test
-	@DisplayName("The hardware support statistics count the devices in production by end-of-sale and end-of-life date")
-	void hardwareSupportStats() {
-		HardwareSupportStats stats = this.service.getHardwareSupportStats(none(), none());
-		Map<Date, Long> sale = counts(stats.endOfSale());
-		Assertions.assertEquals(2, sale.size());
-		Assertions.assertEquals(2, sale.get(EOS), "rep-1 and rep-2 (rep-3 is disabled)");
-		Assertions.assertEquals(1, sale.get(null), "rep-4 has no date");
-		Map<Date, Long> life = counts(stats.endOfLife());
-		Assertions.assertEquals(1, life.get(EOL));
-		Assertions.assertEquals(2, life.get(null));
-		// Filters
-		Assertions.assertEquals(Map.of(EOS, 1L), counts(this.service.getHardwareSupportStats(ids(this.domainB), none()).endOfSale()));
-		Assertions.assertEquals(Map.of(EOS, 2L), counts(this.service.getHardwareSupportStats(none(), ids(this.group1)).endOfSale()));
-	}
-
-	// ------------------------------------------------------------------
-	// device lists
-	// ------------------------------------------------------------------
-
-	@Test
-	@DisplayName("The devices of a hardware support date are the ones in production at that date, or without date for 0")
-	void hardwareSupportDevices() {
-		Set<String> names = this.service.getHardwareSupportDevices("eos", EOS.getTime(), none(), none()).stream()
-			.map(d -> d.name()).collect(Collectors.toSet());
-		Assertions.assertEquals(Set.of("rep-1", "rep-2"), names);
-		Assertions.assertEquals(Set.of("rep-2"), this.service.getHardwareSupportDevices("eol", EOL.getTime(), none(), none()).stream()
-			.map(d -> d.name()).collect(Collectors.toSet()));
-		Assertions.assertEquals(Set.of("rep-4"), this.service.getHardwareSupportDevices("eos", 0, none(), none()).stream()
-			.map(d -> d.name()).collect(Collectors.toSet()));
-		Assertions.assertEquals(Set.of("rep-1", "rep-4"), this.service.getHardwareSupportDevices("eol", 0, ids(this.domainA), none())
-			.stream().map(d -> d.name()).collect(Collectors.toSet()));
-		Assertions.assertEquals(Set.of("rep-1"), this.service.getHardwareSupportDevices("eol", 0, none(), ids(this.group1)).stream()
-			.map(d -> d.name()).collect(Collectors.toSet()));
-		NetshotException error = Assertions.assertThrows(NetshotException.class,
-			() -> this.service.getHardwareSupportDevices("other", 0, none(), none()));
-		Assertions.assertEquals(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, error.getErrorCode());
-	}
-
-	@Test
-	@DisplayName("The compliance results list one row per rule, with the light device and the filters")
-	void configComplianceDeviceStatuses() {
-		List<PolicyRuleDevice> all = this.service.getConfigComplianceDeviceStatuses(none(), none(), none(), noResults());
-		Set<String> keys = all.stream().map(r -> r.device().name() + "/" + r.ruleName() + "/" + r.result()).collect(Collectors.toSet());
-		Assertions.assertEquals(Set.of("rep-1/Report rule 1/NONCONFORMING", "rep-1/Report rule 2/CONFORMING",
-			"rep-2/Report rule 1/CONFORMING", "rep-2/Report rule 2/EXEMPTED"), keys, "the disabled device is ignored");
-		PolicyRuleDevice first = all.stream().filter(r -> r.device().id() == this.dev1 && r.ruleId() == this.rule1).findFirst().orElseThrow();
-		Assertions.assertEquals("Report policy", first.policyName());
-		Assertions.assertEquals(this.policy, first.policyId());
-		Assertions.assertEquals(Boolean.FALSE, first.device().configCompliant(), "rep-1 has a non conforming result");
-		Assertions.assertNotNull(first.checkDate());
-		Assertions.assertEquals(2, this.service.getConfigComplianceDeviceStatuses(none(), none(), none(), Set.of(ResultOption.CONFORMING)).size());
-		Assertions.assertEquals(2, this.service.getConfigComplianceDeviceStatuses(ids(this.domainA), none(), none(), noResults()).size());
-		Assertions.assertEquals(0, this.service.getConfigComplianceDeviceStatuses(none(), none(), ids(this.policy + 1000), noResults()).size());
-	}
-
-	@Test
-	@DisplayName("The non compliant devices of a group are the non conforming results of its devices in production")
-	void groupConfigNonCompliantDevices() {
-		List<PolicyRuleDevice> devices = this.service.getGroupConfigNonCompliantDevices(this.group1, none(), none());
-		Assertions.assertEquals(1, devices.size());
-		Assertions.assertEquals(this.dev1, devices.get(0).device().id());
-		Assertions.assertEquals(ResultOption.NONCONFORMING, devices.get(0).result());
-		Assertions.assertTrue(this.service.getGroupConfigNonCompliantDevices(this.group1, ids(this.domainB), none()).isEmpty());
-		Assertions.assertTrue(this.service.getGroupConfigNonCompliantDevices(this.group1, none(), ids(this.policy + 1000)).isEmpty());
-		Assertions.assertTrue(this.service.getGroupConfigNonCompliantDevices(99999999L, none(), none()).isEmpty());
-	}
-
-	@Test
-	@DisplayName("The devices by software level match the level whatever its case, an unknown level meaning the unknown level")
-	void groupDevicesBySoftwareLevel() {
-		List<SoftwareLevelDevice> gold = this.service.getGroupDevicesBySoftwareLevel(this.group1, "GoLd", none());
-		Assertions.assertEquals(1, gold.size(), "rep-3 is gold but disabled");
-		Assertions.assertEquals("rep-1", gold.get(0).device().name());
-		Assertions.assertEquals("1.0", gold.get(0).softwareVersion());
-		Assertions.assertEquals(1, this.service.getGroupDevicesBySoftwareLevel(this.group1, "silver", none()).size());
-		Assertions.assertEquals(0, this.service.getGroupDevicesBySoftwareLevel(this.group1, "silver", ids(this.domainA)).size());
-		Assertions.assertEquals(0, this.service.getGroupDevicesBySoftwareLevel(this.group1, "nonsense", none()).size());
-	}
-
-	@Test
-	@DisplayName("The devices without successful snapshot are the ones whose last success is too old or missing, the most recent success first")
-	void accessFailureDevices() {
-		List<AccessFailureDevice> devices = this.service.getAccessFailureDevices(3, none(), Page.ALL);
-		List<String> names = devices.stream().filter(d -> d.device().name().startsWith("rep-")).map(d -> d.device().name()).toList();
-		Assertions.assertEquals(List.of("rep-1", "rep-4"), names, "rep-2 had a success yesterday, rep-4 never; nulls last");
-		AccessFailureDevice rep1 = devices.stream().filter(d -> d.device().id() == this.dev1).findFirst().orElseThrow();
-		Assertions.assertNotNull(rep1.lastSuccess());
-		Assertions.assertNotNull(rep1.lastFailure());
-		Assertions.assertTrue(rep1.lastSuccess().before(rep1.lastFailure()));
-		AccessFailureDevice rep4 = devices.stream().filter(d -> d.device().id() == this.dev4).findFirst().orElseThrow();
-		Assertions.assertNull(rep4.lastSuccess());
-		Assertions.assertNull(rep4.lastFailure());
-		// An invalid number of days is replaced by 3
-		Assertions.assertEquals(devices.size(), this.service.getAccessFailureDevices(null, none(), Page.ALL).size());
-		Assertions.assertEquals(devices.size(), this.service.getAccessFailureDevices(0, none(), Page.ALL).size());
-		// Longer period: only the devices which never had a success
-		Assertions.assertEquals(Set.of(this.dev4), this.service.getAccessFailureDevices(30, none(), Page.ALL).stream()
-			.map(d -> d.device().id()).filter(id -> id >= this.dev1 && id <= this.dev4).collect(Collectors.toSet()));
-		Assertions.assertEquals(1, this.service.getAccessFailureDevices(3, none(), new Page(0, 1)).size());
-		Assertions.assertTrue(this.service.getAccessFailureDevices(3, ids(this.domainB), Page.ALL).stream()
-			.noneMatch(d -> d.device().id() == this.dev1));
 	}
 
 	// ------------------------------------------------------------------

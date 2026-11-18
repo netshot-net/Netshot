@@ -32,7 +32,6 @@ import org.apache.sshd.client.SshClient;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -153,6 +152,15 @@ public class AccessManager {
 	}
 
 	/**
+	 * Gets the settings of the accesses (SSH, Telnet, HTTP).
+	 *
+	 * @return the settings
+	 */
+	public AccessSettings settings() {
+		return this.connectors.settings();
+	}
+
+	/**
 	 * Builds a new access manager for one task attempt against a device, resolving
 	 * (and caching, in {@link DeviceDraft#setCachedIpAddress}) its default
 	 * management address along the way - the one entry point production code
@@ -189,8 +197,7 @@ public class AccessManager {
 			}
 		}
 		Long domainId = device.getMgmtDomain() == null ? null : device.getMgmtDomain().id();
-		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> connectors.transactions().read(
-			dsl -> new CredentialSetRepository().findUsableInDomain(dsl, domainId));
+		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> connectors.reads().findUsableCredentialSets(domainId);
 		return new AccessManager(driverRegistry, connectors, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
 	}
 

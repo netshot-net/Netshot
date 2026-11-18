@@ -1,0 +1,4 @@
+{
+  "errorCode": 10,
+  "errorMsg": "The property 'appRoleId' is required with this authentication method."
+}

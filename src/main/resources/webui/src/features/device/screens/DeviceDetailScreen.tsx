@@ -101,7 +101,7 @@ export default function DeviceDetailScreen() {
                 </Skeleton>
               </Protected>
 
-              <Protected minLevel={Level.ExecureReadWrite}>
+              <Protected minLevel={Level.ExecuteReadWrite}>
                 <Skeleton loading={isPending}>
                   <RunDeviceScriptTrigger devices={[device!]}>
                     <Button disabled={isDisabled}>

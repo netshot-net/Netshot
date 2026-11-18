@@ -60,6 +60,8 @@ import jakarta.ws.rs.ext.MessageBodyWriter;
 	V1Mappers.APPLICATION_MERGE_PATCH_JSON})
 public class V1EntityProvider implements MessageBodyReader<Object>, MessageBodyWriter<Object> {
 
+	private static final String QUERY = "query";
+
 	@Context
 	private HttpServletRequest request;
 
@@ -131,6 +133,10 @@ public class V1EntityProvider implements MessageBodyReader<Object>, MessageBodyW
 		throws IOException {
 		generator.writeStartObject(list);
 		for (DtoModel.Prop prop : DtoModel.of(ListResponse.class).props()) {
+			if (QUERY.equals(prop.name()) && list.query() == null) {
+				// Only the device lists given a search query have one
+				continue;
+			}
 			generator.writeFieldName(prop.name());
 			if ("results".equals(prop.name())) {
 				selection.write(generator, provider, list.results());

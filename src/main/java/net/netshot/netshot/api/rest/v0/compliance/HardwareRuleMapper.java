@@ -24,8 +24,6 @@ import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.compliance.HardwareRule;
-import net.netshot.netshot.compliance.HardwareRuleDefinition;
-import net.netshot.netshot.compliance.HardwareRuleView;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 
@@ -101,5 +99,20 @@ public final class HardwareRuleMapper {
 			request.partNumberRegExp(),
 			request.endOfSale(),
 			request.endOfLife());
+	}
+
+	/**
+	 * Builds the hardware rule to add or to replace from a request, as the v0 API always did: an unknown driver is
+	 * taken for no driver (any driver).
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param definition the request
+	 * @return the rule
+	 */
+	public static HardwareRule toRule(DriverRegistry driverRegistry, HardwareRuleDefinition definition) {
+		return new HardwareRule(0, 0, null, TargetGroups.knownDriver(driverRegistry, definition.driver()), definition.groupId(),
+			definition.family(), definition.familyRegExp(), definition.partNumber(), definition.partNumberRegExp(),
+			definition.endOfSale() == null ? null : definition.endOfSale().toInstant(),
+			definition.endOfLife() == null ? null : definition.endOfLife().toInstant());
 	}
 }

@@ -37,10 +37,7 @@ import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
-import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
-import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.query.ListQuery;
 
 /**
@@ -52,6 +49,7 @@ public class DeviceComplianceResultResource {
 
 	private final RuleService ruleService;
 	private final ComplianceRefs refs;
+	private final ListParams lists;
 
 	@Context
 	private HttpServletRequest request;
@@ -63,15 +61,14 @@ public class DeviceComplianceResultResource {
 	 * Instantiates the resource.
 	 *
 	 * @param ruleService the rule use cases
-	 * @param policyService the policy use cases
-	 * @param groupService the group use cases
-	 * @param deviceRefs writes the devices
+	 * @param lists the reader of the list parameters
+	 * @param refs resolves the references of the compliance objects
 	 */
 	@Inject
-	public DeviceComplianceResultResource(RuleService ruleService, PolicyService policyService, GroupService groupService,
-		DeviceRefs deviceRefs) {
+	public DeviceComplianceResultResource(RuleService ruleService, ListParams lists, ComplianceRefs refs) {
 		this.ruleService = ruleService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
+		this.refs = refs;
+		this.lists = lists;
 	}
 
 	/**
@@ -88,7 +85,7 @@ public class DeviceComplianceResultResource {
 		+ "(unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.")
 	@ListFilters(ListSchema.DEVICE_COMPLIANCE_RESULTS)
 	public ListResponse<DeviceComplianceResultDto> listResults(@PathParam("id") @Parameter(description = "Device ID") long id) {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICE_COMPLIANCE_RESULTS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICE_COMPLIANCE_RESULTS.schema());
 		return ComplianceResultResource.respond(this.refs, this.request, this.uriInfo, query, this.ruleService.listDeviceResults(id, query));
 	}
 }

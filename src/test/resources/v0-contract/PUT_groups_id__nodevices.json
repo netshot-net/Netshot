@@ -1,0 +1,8 @@
+{
+  "changeDate": "<now>",
+  "folder": "Tests/Sub",
+  "hiddenFromReports": true,
+  "id": 5,
+  "name": "New static group renamed",
+  "type": "StaticDeviceGroup"
+}

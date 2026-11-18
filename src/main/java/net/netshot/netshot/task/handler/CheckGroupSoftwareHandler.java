@@ -32,8 +32,8 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
@@ -45,22 +45,32 @@ import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 public class CheckGroupSoftwareHandler implements TaskHandler<CheckGroupSoftwareTask> {
 
 
-	private final SoftwareRuleRepository softwareRuleRepository = new SoftwareRuleRepository();
+	private final SoftwareRuleRepository softwareRuleRepository;
 
-	private final HardwareRuleRepository hardwareRuleRepository = new HardwareRuleRepository();
+	private final HardwareRuleRepository hardwareRuleRepository;
 
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the handler.
 	 *
 	 * @param transactions the transaction support
+	 * @param softwareRuleRepository the software rule repository
+	 * @param hardwareRuleRepository the hardware rule repository
+	 * @param deviceRepository the device repository
+	 * @param groupRepository the group repository (the groups of the devices)
 	 */
-	public CheckGroupSoftwareHandler(Transactions transactions) {
+	public CheckGroupSoftwareHandler(Transactions transactions, SoftwareRuleRepository softwareRuleRepository,
+		HardwareRuleRepository hardwareRuleRepository, DeviceRepository deviceRepository, GroupRepository groupRepository) {
 		this.transactions = transactions;
+		this.softwareRuleRepository = softwareRuleRepository;
+		this.hardwareRuleRepository = hardwareRuleRepository;
+		this.deviceRepository = deviceRepository;
+		this.groupRepository = groupRepository;
 	}
 
 	@Override
@@ -86,7 +96,7 @@ public class CheckGroupSoftwareHandler implements TaskHandler<CheckGroupSoftware
 		try {
 			softwareRules = this.transactions.read(dsl -> this.softwareRuleRepository.findAll(dsl, Page.ALL));
 			hardwareRules = this.transactions.read(dsl -> this.hardwareRuleRepository.findAll(dsl));
-			deviceIds = groupId != null ? this.transactions.read(dsl -> new GroupRepository().findMemberIds(dsl, groupId)) : deviceList;
+			deviceIds = groupId != null ? this.transactions.read(dsl -> this.groupRepository.findMemberIds(dsl, groupId)) : deviceList;
 		}
 		catch (Exception e) {
 			log.error("Task {}. Error while loading the devices and rules to check.", task.id(), e);
@@ -104,7 +114,7 @@ public class CheckGroupSoftwareHandler implements TaskHandler<CheckGroupSoftware
 					if (device == null) {
 						return;
 					}
-					Set<Long> groupIds = GroupRepository.findGroupIdsOfDevice(dsl, device.id());
+					Set<Long> groupIds = this.groupRepository.findGroupIdsOfDevice(dsl, device.id());
 					this.deviceRepository.save(dsl, device,
 						CheckComplianceHandler.checkSoftwareAndHardware(device, groupIds, softwareRules, hardwareRules));
 				});

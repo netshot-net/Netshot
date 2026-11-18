@@ -81,13 +81,11 @@ import org.apache.sshd.sftp.client.SftpClientFactory;
 
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.protocol.SshConfig;
 import net.netshot.netshot.driver.protocol.SshInteractionInstruction;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.log.TaskContext;
 
@@ -227,7 +225,7 @@ public class Ssh extends Cli {
 		 * @param config the configuration
 		 * @return the settings
 		 */
-		static Settings from(Config config) {
+		public static Settings from(Config config) {
 			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT),
 				config.get(COMMAND_TIMEOUT), config.get(REKEY_TIME_LIMIT), config.get(REKEY_DATA_LIMIT),
 				config.get(REKEY_BLOCKS_LIMIT), config.get(REKEY_PACKETS_LIMIT), config.get(KEX_ALGORITHMS),
@@ -235,17 +233,6 @@ public class Ssh extends Cli {
 			log.debug("The default SSH settings are {}", settings);
 			return settings;
 		}
-	}
-
-	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
-
-	/**
-	 * Gets the settings of the SSH client.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		return SETTINGS.get();
 	}
 
 	/**
@@ -276,6 +263,14 @@ public class Ssh extends Cli {
 		new AttributeRepository.AttributeKey<>();
 
 	/**
+	 * Same mechanism as {@link #HOST_KEY_VERIFIER_ATTRIBUTE}, carrying the listener which traces the negotiation of the key
+	 * exchanges: added by the {@link NetshotClientSession} constructor, as the first key exchange may be negotiated
+	 * before {@code connect().verify()} returns.
+	 */
+	static final AttributeRepository.AttributeKey<SessionListener> NEGOTIATION_LISTENER_ATTRIBUTE =
+		new AttributeRepository.AttributeKey<>();
+
+	/**
 	 * Applies {@link #SSH_CONFIG_ATTRIBUTE}'s algorithms when created, and its rekey time/data/packets limits during {@code
 	 * refreshConfiguration()}, before the base implementation's one-shot capture of those limits
 	 * (see that attribute's javadoc for why).
@@ -286,6 +281,10 @@ public class Ssh extends Cli {
 			super(client, ioSession);
 			// The algorithms of the access, set before the first key exchange: once the session is returned by
 			// connect(), the server's KEXINIT may already have been answered with the defaults of the client
+			SessionListener negotiationListener = attributeOf(ioSession, Ssh.NEGOTIATION_LISTENER_ATTRIBUTE);
+			if (negotiationListener != null) {
+				this.addSessionListener(negotiationListener);
+			}
 			SshConfig config = sshConfigOf(ioSession);
 			if (config != null) {
 				this.setKeyExchangeFactories(NamedFactory.setUpTransformedFactories(true,
@@ -305,8 +304,20 @@ public class Ssh extends Cli {
 		 * @return the configuration, or null if the session isn't opened by an access
 		 */
 		private static SshConfig sshConfigOf(IoSession ioSession) {
+			return attributeOf(ioSession, Ssh.SSH_CONFIG_ATTRIBUTE);
+		}
+
+		/**
+		 * Gets an attribute of the context of the access a session is opened for.
+		 *
+		 * @param <T> the type of the attribute
+		 * @param ioSession the I/O session
+		 * @param key the key of the attribute
+		 * @return the attribute, or null if not set or if the session isn't opened by an access
+		 */
+		private static <T> T attributeOf(IoSession ioSession, AttributeRepository.AttributeKey<T> key) {
 			Object rawContext = ioSession.getAttribute(AttributeRepository.class);
-			return rawContext instanceof AttributeRepository context ? context.getAttribute(Ssh.SSH_CONFIG_ATTRIBUTE) : null;
+			return rawContext instanceof AttributeRepository context ? context.getAttribute(key) : null;
 		}
 
 		@Override
@@ -350,7 +361,7 @@ public class Ssh extends Cli {
 	private String privateKey;
 
 	/** The SSH connection config. */
-	private SshConfig sshConfig = new SshConfig(settings());
+	private SshConfig sshConfig;
 
 	/** Per-access host key verifier (trust any/on first use/manual), set via {@link #setHostKeyVerifier}. */
 	@Setter
@@ -368,28 +379,31 @@ public class Ssh extends Cli {
 	 * Instantiates a new SSH connection (password authentication).
 	 *
 	 * @param client the shared SSH client
+	 * @param settings the SSH settings (timeouts, algorithms)
 	 * @param host the host
 	 * @param port the port
 	 * @param username the username
 	 * @param password the password
 	 * @param taskContext the current task context
 	 */
-	public Ssh(SshClient client, String host, int port, String username, String password, TaskContext taskContext) {
+	public Ssh(SshClient client, Settings settings, String host, int port, String username, String password, TaskContext taskContext) {
 		super(host, taskContext);
 		this.client = client;
 		this.port = port;
 		this.username = username;
 		this.password = password;
 		this.privateKey = null;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
+		this.connectionTimeout = settings.connectionTimeout();
+		this.commandTimeout = settings.commandTimeout();
+		this.receiveTimeout = settings.receiveTimeout();
+		this.sshConfig = new SshConfig(settings);
 	}
 
 	/**
 	 * Instantiates a new SSH connection (private key authentication).
 	 *
 	 * @param client the shared SSH client
+	 * @param settings the SSH settings (timeouts, algorithms)
 	 * @param host the host
 	 * @param port the port
 	 * @param username the SSH username
@@ -397,7 +411,7 @@ public class Ssh extends Cli {
 	 * @param passphrase the passphrase which protects the private key
 	 * @param taskContext the current task context
 	 */
-	public Ssh(SshClient client, String host, int port, String username, String privateKey,
+	public Ssh(SshClient client, Settings settings, String host, int port, String username, String privateKey,
 		String passphrase, TaskContext taskContext) {
 		super(host, taskContext);
 		this.client = client;
@@ -405,52 +419,10 @@ public class Ssh extends Cli {
 		this.username = username;
 		this.privateKey = privateKey;
 		this.password = passphrase;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
-	}
-
-	/**
-	 * Instantiates a new SSH connection (private key authentication).
-	 *
-	 * @param client the shared SSH client
-	 * @param host the host
-	 * @param username the SSH username
-	 * @param privateKey the RSA/DSA private key
-	 * @param passphrase the passphrase which protects the private key
-	 * @param taskContext the current task context
-	 */
-	public Ssh(SshClient client, String host, String username, String privateKey,
-		String passphrase, TaskContext taskContext) {
-		super(host, taskContext);
-		this.client = client;
-		this.username = username;
-		this.privateKey = privateKey;
-		this.password = passphrase;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
-	}
-
-
-	/**
-	 * Instantiates a new ssh.
-	 *
-	 * @param client the shared SSH client
-	 * @param host the host
-	 * @param username the username
-	 * @param password the password
-	 * @param taskContext the current task context
-	 */
-	public Ssh(SshClient client, String host, String username, String password, TaskContext taskContext) {
-		super(host, taskContext);
-		this.client = client;
-		this.username = username;
-		this.password = password;
-		this.privateKey = null;
-		this.connectionTimeout = Ssh.settings().connectionTimeout();
-		this.commandTimeout = Ssh.settings().commandTimeout();
-		this.receiveTimeout = Ssh.settings().receiveTimeout();
+		this.connectionTimeout = settings.connectionTimeout();
+		this.commandTimeout = settings.commandTimeout();
+		this.receiveTimeout = settings.receiveTimeout();
+		this.sshConfig = new SshConfig(settings);
 	}
 
 	/**
@@ -496,6 +468,122 @@ public class Ssh extends Cli {
 	}
 
 	/**
+	 * Builds the listener which traces the negotiation of the key exchanges (algorithms proposed and chosen) in the task
+	 * log. It's added to the session when the session is created (see {@link #NEGOTIATION_LISTENER_ATTRIBUTE}).
+	 *
+	 * @return the listener
+	 */
+	private SessionListener negotiationTracer() {
+		return new SessionListener() {
+			@Override
+			public void sessionNegotiationEnd(
+					org.apache.sshd.common.session.Session sshSession,
+					Map<KexProposalOption, String> clientProposal,
+					Map<KexProposalOption, String> serverProposal,
+					Map<KexProposalOption, String> negotiatedOptions,
+					Throwable reason) {
+				if (!Ssh.this.taskContext.isTracing()) {
+					return;
+				}
+				if (reason != null) {
+					Ssh.this.taskContext.trace("SSH Protocol Negotiation ended with error: {}", reason.getMessage());
+				}
+
+				Ssh.this.taskContext.trace("SSH Protocol Negotiation {}:",
+					reason == null ? "Results" : "Proposals (Failed)");
+
+				// Log KEX algorithms
+				String kexClient = clientProposal.get(KexProposalOption.ALGORITHMS);
+				String kexServer = serverProposal.get(KexProposalOption.ALGORITHMS);
+				String kexNegotiated = negotiatedOptions.get(KexProposalOption.ALGORITHMS);
+				Ssh.this.taskContext.trace("  Key Exchange:");
+				Ssh.this.taskContext.trace("    Client proposed: {}", kexClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", kexServer);
+				if (kexNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", kexNegotiated);
+				}
+
+				// Log Server Host Key algorithms
+				String hostKeyClient = clientProposal.get(KexProposalOption.SERVERKEYS);
+				String hostKeyServer = serverProposal.get(KexProposalOption.SERVERKEYS);
+				String hostKeyNegotiated = negotiatedOptions.get(KexProposalOption.SERVERKEYS);
+				Ssh.this.taskContext.trace("  Server Host Key:");
+				Ssh.this.taskContext.trace("    Client proposed: {}", hostKeyClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", hostKeyServer);
+				if (hostKeyNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", hostKeyNegotiated);
+				}
+
+				// Log Cipher algorithms (client-to-server)
+				String cipherC2SClient = clientProposal.get(KexProposalOption.C2SENC);
+				String cipherC2SServer = serverProposal.get(KexProposalOption.C2SENC);
+				String cipherC2SNegotiated = negotiatedOptions.get(KexProposalOption.C2SENC);
+				Ssh.this.taskContext.trace("  Cipher (Client-to-Server):");
+				Ssh.this.taskContext.trace("    Client proposed: {}", cipherC2SClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", cipherC2SServer);
+				if (cipherC2SNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", cipherC2SNegotiated);
+				}
+
+				// Log Cipher algorithms (server-to-client)
+				String cipherS2CClient = clientProposal.get(KexProposalOption.S2CENC);
+				String cipherS2CServer = serverProposal.get(KexProposalOption.S2CENC);
+				String cipherS2CNegotiated = negotiatedOptions.get(KexProposalOption.S2CENC);
+				Ssh.this.taskContext.trace("  Cipher (Server-to-Client):");
+				Ssh.this.taskContext.trace("    Client proposed: {}", cipherS2CClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", cipherS2CServer);
+				if (cipherS2CNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", cipherS2CNegotiated);
+				}
+
+				// Log MAC algorithms (client-to-server)
+				String macC2SClient = clientProposal.get(KexProposalOption.C2SMAC);
+				String macC2SServer = serverProposal.get(KexProposalOption.C2SMAC);
+				String macC2SNegotiated = negotiatedOptions.get(KexProposalOption.C2SMAC);
+				Ssh.this.taskContext.trace("  MAC (Client-to-Server):");
+				Ssh.this.taskContext.trace("    Client proposed: {}", macC2SClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", macC2SServer);
+				if (macC2SNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", macC2SNegotiated);
+				}
+
+				// Log MAC algorithms (server-to-client)
+				String macS2CClient = clientProposal.get(KexProposalOption.S2CMAC);
+				String macS2CServer = serverProposal.get(KexProposalOption.S2CMAC);
+				String macS2CNegotiated = negotiatedOptions.get(KexProposalOption.S2CMAC);
+				Ssh.this.taskContext.trace("  MAC (Server-to-Client):");
+				Ssh.this.taskContext.trace("    Client proposed: {}", macS2CClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", macS2CServer);
+				if (macS2CNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", macS2CNegotiated);
+				}
+
+				// Log Compression algorithms (client-to-server)
+				String compC2SClient = clientProposal.get(KexProposalOption.C2SCOMP);
+				String compC2SServer = serverProposal.get(KexProposalOption.C2SCOMP);
+				String compC2SNegotiated = negotiatedOptions.get(KexProposalOption.C2SCOMP);
+				Ssh.this.taskContext.trace("  Compression (Client-to-Server):");
+				Ssh.this.taskContext.trace("    Client proposed: {}", compC2SClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", compC2SServer);
+				if (compC2SNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", compC2SNegotiated);
+				}
+
+				// Log Compression algorithms (server-to-client)
+				String compS2CClient = clientProposal.get(KexProposalOption.S2CCOMP);
+				String compS2CServer = serverProposal.get(KexProposalOption.S2CCOMP);
+				String compS2CNegotiated = negotiatedOptions.get(KexProposalOption.S2CCOMP);
+				Ssh.this.taskContext.trace("  Compression (Server-to-Client):");
+				Ssh.this.taskContext.trace("    Client proposed: {}", compS2CClient);
+				Ssh.this.taskContext.trace("    Server proposed: {}", compS2CServer);
+				if (compS2CNegotiated != null) {
+					Ssh.this.taskContext.trace("    Negotiated: {}", compS2CNegotiated);
+				}
+			}
+		};
+	}
+
+	/**
 	 * Create the SSH session and open the channel (if openChannel is true).
 	 *
 	 * @param openChannel Whether to open the channel
@@ -508,6 +596,7 @@ public class Ssh extends Cli {
 			Map<AttributeRepository.AttributeKey<?>, Object> contextAttributes = new HashMap<>();
 			contextAttributes.put(Ssh.HOST_KEY_VERIFIER_ATTRIBUTE, verifier);
 			contextAttributes.put(Ssh.SSH_CONFIG_ATTRIBUTE, this.sshConfig);
+			contextAttributes.put(Ssh.NEGOTIATION_LISTENER_ATTRIBUTE, this.negotiationTracer());
 			AttributeRepository connectContext = AttributeRepository.ofAttributesMap(contextAttributes);
 			try {
 				this.session = this.client
@@ -518,118 +607,6 @@ public class Ssh extends Cli {
 			catch (SshException e) {
 				throw this.hostKeyFailure(e);
 			}
-
-			// Add session listener to trace protocol negotiation details.
-			// This must be registered before any further session configuration below,
-			// since on a fast link the server's KEXINIT can otherwise be processed
-			// (and this one-shot event fired) before we get a chance to attach the listener.
-			this.session.addSessionListener(new SessionListener() {
-				@Override
-				public void sessionNegotiationEnd(
-						org.apache.sshd.common.session.Session sshSession,
-						Map<KexProposalOption, String> clientProposal,
-						Map<KexProposalOption, String> serverProposal,
-						Map<KexProposalOption, String> negotiatedOptions,
-						Throwable reason) {
-					if (!Ssh.this.taskContext.isTracing()) {
-						return;
-					}
-					if (reason != null) {
-						Ssh.this.taskContext.trace("SSH Protocol Negotiation ended with error: {}", reason.getMessage());
-					}
-
-					Ssh.this.taskContext.trace("SSH Protocol Negotiation {}:",
-						reason == null ? "Results" : "Proposals (Failed)");
-
-					// Log KEX algorithms
-					String kexClient = clientProposal.get(KexProposalOption.ALGORITHMS);
-					String kexServer = serverProposal.get(KexProposalOption.ALGORITHMS);
-					String kexNegotiated = negotiatedOptions.get(KexProposalOption.ALGORITHMS);
-					Ssh.this.taskContext.trace("  Key Exchange:");
-					Ssh.this.taskContext.trace("    Client proposed: {}", kexClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", kexServer);
-					if (kexNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", kexNegotiated);
-					}
-
-					// Log Server Host Key algorithms
-					String hostKeyClient = clientProposal.get(KexProposalOption.SERVERKEYS);
-					String hostKeyServer = serverProposal.get(KexProposalOption.SERVERKEYS);
-					String hostKeyNegotiated = negotiatedOptions.get(KexProposalOption.SERVERKEYS);
-					Ssh.this.taskContext.trace("  Server Host Key:");
-					Ssh.this.taskContext.trace("    Client proposed: {}", hostKeyClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", hostKeyServer);
-					if (hostKeyNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", hostKeyNegotiated);
-					}
-
-					// Log Cipher algorithms (client-to-server)
-					String cipherC2SClient = clientProposal.get(KexProposalOption.C2SENC);
-					String cipherC2SServer = serverProposal.get(KexProposalOption.C2SENC);
-					String cipherC2SNegotiated = negotiatedOptions.get(KexProposalOption.C2SENC);
-					Ssh.this.taskContext.trace("  Cipher (Client-to-Server):");
-					Ssh.this.taskContext.trace("    Client proposed: {}", cipherC2SClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", cipherC2SServer);
-					if (cipherC2SNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", cipherC2SNegotiated);
-					}
-
-					// Log Cipher algorithms (server-to-client)
-					String cipherS2CClient = clientProposal.get(KexProposalOption.S2CENC);
-					String cipherS2CServer = serverProposal.get(KexProposalOption.S2CENC);
-					String cipherS2CNegotiated = negotiatedOptions.get(KexProposalOption.S2CENC);
-					Ssh.this.taskContext.trace("  Cipher (Server-to-Client):");
-					Ssh.this.taskContext.trace("    Client proposed: {}", cipherS2CClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", cipherS2CServer);
-					if (cipherS2CNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", cipherS2CNegotiated);
-					}
-
-					// Log MAC algorithms (client-to-server)
-					String macC2SClient = clientProposal.get(KexProposalOption.C2SMAC);
-					String macC2SServer = serverProposal.get(KexProposalOption.C2SMAC);
-					String macC2SNegotiated = negotiatedOptions.get(KexProposalOption.C2SMAC);
-					Ssh.this.taskContext.trace("  MAC (Client-to-Server):");
-					Ssh.this.taskContext.trace("    Client proposed: {}", macC2SClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", macC2SServer);
-					if (macC2SNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", macC2SNegotiated);
-					}
-
-					// Log MAC algorithms (server-to-client)
-					String macS2CClient = clientProposal.get(KexProposalOption.S2CMAC);
-					String macS2CServer = serverProposal.get(KexProposalOption.S2CMAC);
-					String macS2CNegotiated = negotiatedOptions.get(KexProposalOption.S2CMAC);
-					Ssh.this.taskContext.trace("  MAC (Server-to-Client):");
-					Ssh.this.taskContext.trace("    Client proposed: {}", macS2CClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", macS2CServer);
-					if (macS2CNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", macS2CNegotiated);
-					}
-
-					// Log Compression algorithms (client-to-server)
-					String compC2SClient = clientProposal.get(KexProposalOption.C2SCOMP);
-					String compC2SServer = serverProposal.get(KexProposalOption.C2SCOMP);
-					String compC2SNegotiated = negotiatedOptions.get(KexProposalOption.C2SCOMP);
-					Ssh.this.taskContext.trace("  Compression (Client-to-Server):");
-					Ssh.this.taskContext.trace("    Client proposed: {}", compC2SClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", compC2SServer);
-					if (compC2SNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", compC2SNegotiated);
-					}
-
-					// Log Compression algorithms (server-to-client)
-					String compS2CClient = clientProposal.get(KexProposalOption.S2CCOMP);
-					String compS2CServer = serverProposal.get(KexProposalOption.S2CCOMP);
-					String compS2CNegotiated = negotiatedOptions.get(KexProposalOption.S2CCOMP);
-					Ssh.this.taskContext.trace("  Compression (Server-to-Client):");
-					Ssh.this.taskContext.trace("    Client proposed: {}", compS2CClient);
-					Ssh.this.taskContext.trace("    Server proposed: {}", compS2CServer);
-					if (compS2CNegotiated != null) {
-						Ssh.this.taskContext.trace("    Negotiated: {}", compS2CNegotiated);
-					}
-				}
-			});
 
 			CoreModuleProperties.REKEY_TIME_LIMIT.set(this.session, Duration.ofMillis(this.sshConfig.getRekeyTimeLimit()));
 			CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.session, this.sshConfig.getRekeyDataLimit());
@@ -945,8 +922,16 @@ public class Ssh extends Cli {
 		}
 		this.taskContext.info("Downloading '{}' using SCP.", remoteFileName);
 
-		ScpClient scpClient = ScpClientCreator.instance().createScpClient(session);
-		scpClient.download(remoteFileName, localStream);
+		// The reads of the SCP channel time out after the receive timeout (they wait forever by default, e.g. when the
+		// device doesn't run the scp command): the property is read when the channel opens, the CLI channel isn't affected
+		CoreModuleProperties.WINDOW_TIMEOUT.set(this.session, Duration.ofMillis(this.receiveTimeout));
+		try {
+			ScpClient scpClient = ScpClientCreator.instance().createScpClient(session);
+			scpClient.download(remoteFileName, localStream);
+		}
+		finally {
+			CoreModuleProperties.WINDOW_TIMEOUT.remove(this.session);
+		}
 	}
 
 	/**

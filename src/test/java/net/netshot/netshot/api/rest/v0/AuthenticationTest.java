@@ -35,8 +35,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.MissingNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.testing.TestWiring;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
@@ -44,6 +43,7 @@ import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.platform.database.schema.Tables;
+import net.netshot.netshot.testing.TestWiring;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -52,11 +52,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import net.netshot.netshot.testing.ApiTest;
-import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.api.v0.V0Client;
 import net.netshot.netshot.testing.api.v0.V0Client.WrongApiResponseException;
+import net.netshot.netshot.testing.api.v0.V0Client;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import org.junit.jupiter.api.BeforeEach;
 
 /**
@@ -104,7 +104,7 @@ class AuthenticationTest {
 
 		@AfterEach
 		void cleanUpData() {
-			TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
+			TestWiring.get().core().transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
 		}
 
 		@Test
@@ -158,7 +158,7 @@ class AuthenticationTest {
 		void currentUser() throws IOException, InterruptedException {
 			String secret = "jmE5C9JHDpLtbGswYfWBdUayKFn7Th6R";
 			ApiToken temp = ApiToken.of("Token get test", secret, UiUser.LEVEL_READONLY);
-			ApiToken token1 = temp.withId(TestWiring.get().transactions().write(dsl -> new ApiTokenRepository().add(dsl, temp)));
+			ApiToken token1 = temp.withId(TestWiring.get().core().transactions().write(dsl -> new ApiTokenRepository().add(dsl, temp)));
 			apiClient.setApiToken(secret);
 			HttpResponse<JsonNode> response = apiClient.get("/user");
 			Assertions.assertEquals(
@@ -197,7 +197,7 @@ class AuthenticationTest {
 			UiUser user = UiUser.withPassword(testUsername, true, testUserLevel, oldPasswords.removeLast());
 			while (oldPasswords.size() > 0) {
 				try {
-					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.getMainPolicy());
+					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.from(TestConfig.store().current()));
 				}
 				catch (PasswordPolicyException e) {
 					// Ignore
@@ -208,7 +208,7 @@ class AuthenticationTest {
 				user = user.withLastPasswordChangeDate(Instant.now().minus(passwordAge, ChronoUnit.DAYS));
 			}
 			UiUser stored = user;
-			this.testUser = stored.withId(TestWiring.get().transactions().write(dsl -> new UserRepository().add(dsl, stored)));
+			this.testUser = stored.withId(TestWiring.get().core().transactions().write(dsl -> new UserRepository().add(dsl, stored)));
 		}
 
 		@Test
@@ -348,7 +348,7 @@ class AuthenticationTest {
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response");
 			{
-				UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = TestWiring.get().core().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 					"Password not changed as expected");
 			}
@@ -366,7 +366,7 @@ class AuthenticationTest {
 				() -> apiClient.get("/domains"),
 				"Login should have failed");
 			{
-				UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = TestWiring.get().core().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(testPassword, null),
 					"Password should not have changed");
 			}

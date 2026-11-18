@@ -18,8 +18,8 @@
  */
 package net.netshot.netshot.system;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.platform.runtime.BuildInfo;
 
 /**
  * Gives the general information about the running server. The values are read on each call,
@@ -27,12 +27,24 @@ import net.netshot.netshot.aaa.user.UiUser;
  */
 public class ServerInfoService {
 
+	/** The login use cases (the max idle time of the sessions). */
+	private final LoginService loginService;
+
+	/**
+	 * Instantiates the service.
+	 *
+	 * @param loginService the login use cases (the max idle time of the sessions)
+	 */
+	public ServerInfoService(LoginService loginService) {
+		this.loginService = loginService;
+	}
+
 	/**
 	 * Gets the server information.
 	 *
 	 * @return the server information
 	 */
 	public ServerInfo get() {
-		return new ServerInfo(Netshot.VERSION, UiUser.settings().maxIdleTime());
+		return new ServerInfo(BuildInfo.VERSION, this.loginService.sessionMaxIdleTime());
 	}
 }

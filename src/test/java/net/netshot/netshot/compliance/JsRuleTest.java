@@ -22,8 +22,7 @@ import java.util.Properties;
 import java.util.Set;
 
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
@@ -52,8 +51,8 @@ class JsRuleTest {
 	@BeforeAll
 	static void initNetshot() throws Exception {
 		originalConfig = TestConfig.properties();
-		jsRuntime = new JsRuleRuntime(Netshot.config());
-		evaluators = RuleEvaluators.standard(jsRuntime, new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
+		jsRuntime = new JsRuleRuntime(TestConfig.store());
+		evaluators = RuleEvaluators.standard(jsRuntime, new PyRuleRuntime(TestConfig.store()), TestDrivers.registry(), null);
 	}
 
 	@AfterEach

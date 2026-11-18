@@ -10,9 +10,11 @@ parameter = value
 
 Lines starting with `#` are ignored.
 
-Netshot reloads its configuration when it receives a `HUP` signal (e.g. `systemctl reload netshot`). The **Reload** column of the tables below tells whether a parameter is applied by such a reload (**Yes**), or only at the next start of Netshot (**Restart**; Netshot logs a warning when such a parameter is changed by a reload). If the configuration can't be read on a reload (no readable configuration file, unreadable secret file), Netshot logs an error and keeps its current configuration.
+Netshot reloads its configuration when it receives a `HUP` signal (e.g. `systemctl reload netshot`). The **Reload** column of the tables below tells whether a parameter is applied by such a reload (**Yes**), or only at the next start of Netshot (**Restart**; Netshot logs a warning when such a parameter is changed by a reload). If the configuration can't be read on a reload (no readable configuration file, unreadable secret file), Netshot logs an error and keeps its current configuration. A reload reads the configuration file Netshot was started with (`-c` option, or the first readable one of `netshot.conf` and `/etc/netshot.conf`). A `HUP` signal received while Netshot starts reloads the configuration too (the services already started apply it, the next ones read it when they start). If Netshot is started with `nohup` (or with `HUP` ignored by another way), it can't receive the signal: Netshot logs a warning at startup, and the configuration is only applied at the next start.
 
 A warning is logged for each `netshot.*` parameter (or `NETSHOT_*` environment variable) which doesn't match any known parameter, typically a typo.
+
+A renamed parameter is still read under its former name (when the new one isn't set), with a warning at startup and on each reload telling the new name: `netshot.db.driver_class` (now `netshot.db.driverclass`), `netshot.db.encryptionPassword` (now `netshot.db.encryptionpassword`), `netshot.syslog.disabled` (now `netshot.syslog.enabled`, inverted) and `netshot.snmptrap.disabled` (now `netshot.snmptrap.enabled`, inverted).
 
 Every parameter can also be passed as an environment variable: replace `.` with `_` and upper-case it. For example, `netshot.log.file` becomes `NETSHOT_LOG_FILE`.
 
@@ -120,8 +122,9 @@ The embedded Syslog server listens for messages that indicate a device configura
 
 | Parameter | Description | Reload |
 |---|---|---|
-| `netshot.syslog.port` | UDP port to listen on. Default: `514` (requires root on Linux). | Restart |
-| `netshot.syslog.disabled` | Disables the embedded Syslog server. Enabled by default. | Restart |
+| `netshot.syslog.port` | UDP port to listen on. Default: `514` (requires root on Linux). | Yes |
+| `netshot.syslog.listenaddress` | IP address to bind to. Default: `0.0.0.0`. | Yes |
+| `netshot.syslog.enabled` | Enables the embedded Syslog server. Default: `true`. Formerly `netshot.syslog.disabled` (inverted), still read. | Yes |
 
 To avoid running as root, listen on a high port (e.g. `1514`) and redirect with `iptables`, as described in the [installation guide](installation/linux.md).
 
@@ -134,10 +137,10 @@ The embedded SNMP trap receiver listens for traps that indicate a device configu
 | `netshot.snmptrap.port` | UDP port to listen on. Default: `162` (requires root on Linux). | Yes |
 | `netshot.snmptrap.listenaddress` | IP address to bind to. Default: `0.0.0.0`. | Yes |
 | `netshot.snmptrap.community` | SNMP community (or space-separated list of communities) accepted from devices. No SNMP v1/v2c trap is accepted unless set. | Yes |
-| `netshot.snmptrap.engineid` | SNMP engine ID. Default: auto-generated at startup. | Yes |
+| `netshot.snmptrap.engineid` | SNMP engine ID, as hexadecimal bytes separated by colons (e.g. `80:00:1f:88:80:...`). Default: auto-generated at startup. | Yes |
 | `netshot.snmptrap.user` | SNMPv3 user(s) allowed to send traps, space-separated for multiple entries. Format: `username protocols [authkey] [privkey]`, where `protocols` is a pipe-separated list of auth (`MD5`, `SHA`, `HMAC128SHA224`, `HMAC192SHA256`, `HMAC256SHA384`, `HMAC384SHA512`) and privacy (`DES`, `3DES`, `AES128`, `AES192`, `AES256`) protocols. No SNMPv3 user is defined by default. | Yes |
 | `netshot.snmptrap.threadcount` | Number of worker threads processing incoming traps. Default: `2`. | Yes |
-| `netshot.snmptrap.disabled` | Disables the embedded SNMP trap receiver. Enabled by default. | Yes |
+| `netshot.snmptrap.enabled` | Enables the embedded SNMP trap receiver. Default: `true`. Formerly `netshot.snmptrap.disabled` (inverted), still read. | Yes |
 
 As with Syslog, listen on a high port and redirect with `iptables` to avoid running as root.
 
@@ -279,7 +282,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 | `netshot.cli.telnet.receivetimeout` | Max time (ms) to wait for data on a Telnet session. | Yes |
 | `netshot.cli.telnet.commandtimeout` | Max time (ms) to wait for a command's output over Telnet. | Yes |
 | `netshot.cli.ssh.connectiontimeout` | Max time (ms) to establish an SSH session, and for the device to complete the authentication. A device which doesn't answer in time is reported as unreachable ("Unable to connect"), not as rejecting the credentials, and the other credential sets of the access aren't tried. | Yes |
-| `netshot.cli.ssh.receivetimeout` | Max time (ms) to wait for data on an SSH session. | Yes |
+| `netshot.cli.ssh.receivetimeout` | Max time (ms) to wait for data on an SSH session, also between two reads of an SCP download (a device which doesn't answer the `scp` command). | Yes |
 | `netshot.cli.ssh.commandtimeout` | Max time (ms) to wait for a command's output over SSH. | Yes |
 | `netshot.cli.ssh.kexalgorithms` | Comma-separated key exchange algorithms for device SSH connections. | Yes |
 | `netshot.cli.ssh.hostkeyalgorithms` | Comma-separated host key algorithms for device SSH connections. | Yes |
@@ -297,6 +300,15 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 |---|---|---|
 | `netshot.httpclient.connectiontimeout` | Max time (ms) to establish the connection to a device's HTTP(S) API. Default: `5000`. | Yes |
 | `netshot.httpclient.receivetimeout` | Max time (ms) to wait for data from a device's HTTP(S) API (between two reads, not for the whole response). Default: `60000`. | Yes |
+
+## SNMP requests to devices
+
+Used by the device type discovery and by the drivers' SNMP requests (SNMPv1, v2c and v3).
+
+| Parameter | Description | Reload |
+|---|---|---|
+| `netshot.snmp.timeout` | Max time (ms) to wait for the response to an SNMP request, before sending it again. Default: `1500`. | Yes |
+| `netshot.snmp.retries` | Number of times an SNMP request without response is sent again (`0` to `100`). Default: `2`. | Yes |
 
 ## JavaScript VM
 

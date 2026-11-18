@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
@@ -38,6 +39,7 @@ import liquibase.UpdateSummaryOutputEnum;
 import liquibase.changelog.ChangeLogParameters;
 import liquibase.changelog.ChangeSet;
 import liquibase.changelog.DatabaseChangeLog;
+import liquibase.Scope;
 import liquibase.command.CommandScope;
 import liquibase.command.core.UpdateCountCommandStep;
 import liquibase.command.core.helpers.DbUrlConnectionArgumentsCommandStep;
@@ -47,12 +49,12 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
-import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDatabase;
 
 /**
@@ -112,7 +114,7 @@ class DatabaseMigrationTest {
 	 */
 	private static void updateToChangeSet(String changeSetId, String changeSetAuthor) throws Exception {
 		System.setProperty("liquibase.analytics.enabled", "false");
-		try (Connection connection = Database.openUnpooledConnection()) {
+		try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current())) {
 			liquibase.database.Database database = DatabaseFactory.getInstance()
 				.findCorrectDatabaseImplementation(new JdbcConnection(connection));
 
@@ -147,18 +149,19 @@ class DatabaseMigrationTest {
 	 * @throws Exception
 	 */
 	private static void updateNext(int count) throws Exception {
-		try (Connection connection = Database.openUnpooledConnection()) {
+		try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current())) {
 			updateCount(DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection)), count);
 		}
 	}
 
 	private static void updateCount(liquibase.database.Database database, int count) throws Exception {
-		new CommandScope(UpdateCountCommandStep.COMMAND_NAME)
+		// The Java migrations read the configuration from the Liquibase scope, as with Database.migrate
+		Scope.child(Map.of(Database.CONFIG_SCOPE_KEY, TestConfig.store().current()), () -> new CommandScope(UpdateCountCommandStep.COMMAND_NAME)
 			.addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
 			.addArgumentValue(UpdateCountCommandStep.CHANGELOG_FILE_ARG, "migration/netshot0.xml")
 			.addArgumentValue(UpdateCountCommandStep.COUNT_ARG, count)
 			.addArgumentValue(ShowSummaryArgument.SHOW_SUMMARY_OUTPUT, UpdateSummaryOutputEnum.LOG)
-			.execute();
+			.execute());
 	}
 
 	@Nested
@@ -196,7 +199,7 @@ class DatabaseMigrationTest {
 			int subnetIpv4Int = Network4Address.inetAddressToInt(
 				(Inet4Address) InetAddress.getByName("172.16.0.0"));
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				statement.execute(
 					"insert into domain (id, name, version, ipv4_address, ipv4_pfxlen, ipv4_usage, "
@@ -229,9 +232,9 @@ class DatabaseMigrationTest {
 			}
 
 			// Resume the migration to completion: this is where NetworkAddressMigrator runs.
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				assertInetColumn(statement,
 					"select ipv4_address from domain where id = 1", "10.20.30.40");
@@ -330,7 +333,7 @@ class DatabaseMigrationTest {
 			// legacy ssh_port/telnet_port/connect_address columns are still on device.
 			updateToChangeSet("0.25.0_29", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				// 301: both ports already at their protocol default, no address -> no row at all.
 				statement.execute("insert into device (id, name, auto_try_credentials, version, ssh_port, telnet_port) "
@@ -348,9 +351,9 @@ class DatabaseMigrationTest {
 			}
 
 			// Resume the migration to completion: this is where 0.25.0_30 runs.
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				assertNoDeviceAccess(statement, 301, "ssh");
 				assertNoDeviceAccess(statement, 301, "telnet");
@@ -390,7 +393,7 @@ class DatabaseMigrationTest {
 			// columns and the device_credential_sets pool table are still present.
 			updateToChangeSet("0.25.0_31", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 
 				// A credential set for each scenario below.
@@ -482,9 +485,9 @@ class DatabaseMigrationTest {
 			}
 
 			// Resume the migration to completion: this is where the enhanced 0.25.0_32 logic runs.
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				assertDeviceAccess(statement, 101, "snmpv2c", null, 201L);
 				assertNoDeviceAccess(statement, 101, "snmpv1");
@@ -549,7 +552,7 @@ class DatabaseMigrationTest {
 			int mgmtIpv4Int = Network4Address.inetAddressToInt(
 				(Inet4Address) InetAddress.getByName("10.1.2.3"));
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				// A device that was never snapshotted: no name, no interface.
 				statement.execute(
@@ -558,9 +561,9 @@ class DatabaseMigrationTest {
 						+ "values (501, '[NONAME]', false, 0, 22, 23, %d, 0, 0)".formatted(mgmtIpv4Int));
 			}
 
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				assertInetColumn(statement,
 					"select mgmt_address from device where id = 501", "10.1.2.3");
@@ -577,7 +580,7 @@ class DatabaseMigrationTest {
 			// The database of a 0.25.0 installation.
 			updateToChangeSet("0.25.0_41", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				String insert = "insert into device (id, name, version, mgmt_address, cached_ip_address) "
 					+ "values (%d, '[NONAME]', 0, %s, %s)";
@@ -588,9 +591,9 @@ class DatabaseMigrationTest {
 				statement.execute(insert.formatted(605, "'10.1.2.5'", "'10.9.9.9'"));
 			}
 
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				assertInetColumn(statement,
 					"select cached_ip_address from device where id = 601", "10.1.2.4");
@@ -616,9 +619,9 @@ class DatabaseMigrationTest {
 		@DisplayName("The device and discovered device columns of the task table are indexed")
 		void indexesTaskDeviceColumns() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("taskdeviceindexmigrationtest"));
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(List.of("device"), List.of("discover_result_device")),
 					rows(statement, "select a.attname from pg_index i "
@@ -640,7 +643,7 @@ class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("hooksingletablemigrationtest"));
 			updateToChangeSet("0.26.0_3", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into hook (id, enabled, name) values (401, true, 'json hook'), (402, false, 'yaml hook'), "
 					+ "(403, true, 'orphan')");
@@ -650,9 +653,9 @@ class DatabaseMigrationTest {
 					+ "(0, 'CheckComplianceTask', 401), (0, 'TakeSnapshotTask', 402)");
 			}
 
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				try (var rows = statement.executeQuery("select id, type, name, enabled, action, url, https_ca_trust_mode, "
 						+ "https_custom_ca_certificate from hook order by id")) {
@@ -725,7 +728,7 @@ class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("singletablehierarchiesmigrationtest"));
 			updateToChangeSet("0.26.0_4", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into rule (id, enabled, name) values (501, true, 'text'), (502, false, 'js'), "
 					+ "(503, true, 'python'), (504, true, 'orphan')");
@@ -747,9 +750,9 @@ class DatabaseMigrationTest {
 				statement.execute("insert into dynamic_device_group (id, query) values (702, '[Name] contains \"r\"')");
 			}
 
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(
 					List.of("501", "TEXT", "text", "t", "null", "t", "interface .*", "CiscoIOS12", "runningConfig", "f", "t", "t", "f", "shutdown"),
@@ -791,7 +794,7 @@ class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("enumnamesmigrationtest"));
 			updateToChangeSet("0.26.0_7", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into device (id, version, name, status, network_class, software_level) values "
 					+ "(801, 0, 'r1', 1, 2, 1), (802, 0, 'r2', 2, 10, 3)");
@@ -814,7 +817,7 @@ class DatabaseMigrationTest {
 			// 0.26.0_8 only: 0.26.0_11 drops the address usages of the domains
 			updateNext(1);
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(
 					List.of("801", "INPRODUCTION", "ROUTER", "SILVER"),
@@ -849,7 +852,7 @@ class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("orphanedlongtextmigrationtest"));
 			updateToChangeSet("0.26.0_9", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into long_text_configuration (id, text) values "
 					+ "(1001, 'device attribute'), (1002, 'config attribute'), (1003, 'diagnostic result'), (1004, 'orphan')");
@@ -861,9 +864,9 @@ class DatabaseMigrationTest {
 				statement.execute("insert into diagnostic_result (id, type, device, diagnostic, long_text) values (1061, 'L', 1011, 1051, 1003)");
 			}
 
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(List.of("1001"), List.of("1002"), List.of("1003")),
 					rows(statement, "select id from long_text_configuration order by id", 1));
@@ -881,16 +884,16 @@ class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("domainaddresscolumnsmigrationtest"));
 			updateToChangeSet("0.26.0_10", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				// As a domain created before 0.24 was stored (prefix length 0)
 				statement.execute("insert into domain (id, version, name, ipv4_address, ipv4_pfxlen, ipv4_usage, ipv6_address, ipv6_pfxlen, ipv6_usage) "
 					+ "values (1101, 0, 'd', '10.0.0.1', 0, 'PRIMARY', '2001:db8::1', 0, 'PRIMARY')");
 			}
 
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(List.of("10.0.0.1", "2001:db8::1")),
 					rows(statement, "select host(ipv4_address), host(ipv6_address) from domain", 2));
@@ -911,7 +914,7 @@ class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("snapshotdatesmigrationtest"));
 			updateToChangeSet("0.26.0_11", "netshot");
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into device (id, version, name, status) values (1201, 0, 'both', 'INPRODUCTION'), "
 					+ "(1202, 0, 'never', 'INPRODUCTION'), (1203, 0, 'failedonly', 'INPRODUCTION')");
@@ -929,9 +932,9 @@ class DatabaseMigrationTest {
 					+ "'SUCCESS', '2026-06-01 10:00:00')");
 			}
 
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(
 					List.of(List.of("1201", "2026-03-01 10:00:00", "2026-02-01 10:00:00"), List.of("1202", "none", "none"),
@@ -969,10 +972,10 @@ class DatabaseMigrationTest {
 		@DisplayName("A database migrated with the legacy custom change class names still validates and upgrades")
 		void legacyChecksumsRemainValid() throws Exception {
 			TestConfig.init(this.getNetshotConfig());
-			Database.update();
+			Database.migrate(TestConfig.store().current());
 
 			// Simulate a database created by a version using the legacy class names
-			try (Connection connection = Database.openUnpooledConnection();
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
 					Statement statement = connection.createStatement()) {
 				for (var entry : LEGACY_CHECKSUMS.entrySet()) {
 					int updated = statement.executeUpdate(
@@ -984,7 +987,7 @@ class DatabaseMigrationTest {
 
 			// Liquibase validates the stored checksums before applying anything: this throws if the
 			// legacy checksums are not accepted by the current changelog.
-			Assertions.assertDoesNotThrow(() -> Database.update());
+			Assertions.assertDoesNotThrow(() -> Database.migrate(TestConfig.store().current()));
 
 			// The changesets now compute a different checksum (so the validCheckSum elements are required)
 			for (var entry : LEGACY_CHECKSUMS.entrySet()) {

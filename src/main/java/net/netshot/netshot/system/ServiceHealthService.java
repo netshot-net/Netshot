@@ -30,26 +30,25 @@ import net.netshot.netshot.platform.lifecycle.ServiceStatus;
  */
 public class ServiceHealthService {
 
-	/** The manager of the services of the server (null until attached). */
-	private volatile ServiceManager manager;
+	/** The manager of the services of the server. */
+	private final ServiceManager manager;
 
 	/**
-	 * Attaches the manager of the services of the server.
+	 * Creates the service.
 	 *
-	 * @param serviceManager the manager
+	 * @param manager the manager of the services of the server
 	 */
-	public void attach(ServiceManager serviceManager) {
-		this.manager = serviceManager;
+	public ServiceHealthService(ServiceManager manager) {
+		this.manager = manager;
 	}
 
 	/**
 	 * Gets the status of the services.
 	 *
-	 * @return the status of each service, in start order (empty if no manager is attached)
+	 * @return the status of each service, in start order
 	 */
 	public List<ServiceStatus> services() {
-		ServiceManager current = this.manager;
-		return current == null ? List.of() : current.status();
+		return this.manager.status();
 	}
 
 	/**
@@ -58,6 +57,6 @@ public class ServiceHealthService {
 	 * @return true if the server is ready and healthy
 	 */
 	public boolean isHealthy() {
-		return this.services().stream().allMatch(ServiceStatus::healthy);
+		return this.manager.isHealthy();
 	}
 }

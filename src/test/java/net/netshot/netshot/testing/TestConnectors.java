@@ -20,7 +20,7 @@ package net.netshot.netshot.testing;
 
 import org.apache.sshd.client.SshClient;
 
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.access.AccessSettings;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.SshClientService;
 import net.netshot.netshot.vault.SecretResolver;
@@ -39,7 +39,7 @@ public final class TestConnectors {
 		static final SshClientService SERVICE = start();
 
 		private static SshClientService start() {
-			SshClientService service = new SshClientService(Netshot.config());
+			SshClientService service = new SshClientService(TestConfig.store(), new AccessSettings(TestConfig.store()));
 			service.start();
 			return service;
 		}
@@ -60,6 +60,6 @@ public final class TestConnectors {
 	 * @return the connectors
 	 */
 	public static Connectors local() {
-		return new Connectors(SecretResolver.LOCAL, sshClient(), null);
+		return new Connectors(SecretResolver.LOCAL, sshClient(), null, AccessSettings.defaults());
 	}
 }

@@ -35,14 +35,17 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.AutoSnapshotQueue;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
 
 /**
  * Takes the snapshot of a device.
@@ -56,17 +59,23 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	/** The devices with a queued automatic snapshot. */
 	private final AutoSnapshotQueue autoSnapshots;
 
+	/** Folder to dump the configurations into, after each snapshot. */
+	static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
+
 	/** The embedded SSH server, where the devices upload files (null if disabled). */
 	private final SshServer sshServer;
 	/** The transaction support. */
 	private final Transactions transactions;
-	private final DeviceRepository deviceRepository = new DeviceRepository();
+	private final DeviceRepository deviceRepository;
 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
 	/** The secret resolver and the SSH client of the device accesses. */
 	private final Connectors connectors;
+	/** The folder to dump the configurations into after each snapshot (null for none), from the configuration. */
+	private final ConfigStore.Binding<String> dumpPath;
+	private final BinaryFileStorage binaryFiles;
 
 	/**
 	 * Creates the handler.
@@ -77,9 +86,13 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if disabled)
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
+	 * @param deviceRepository the device repository
+	 * @param config the configuration store (the dump folder of the configurations)
+	 * @param binaryFiles the storage of the binary file attributes
 	 */
 	public TakeSnapshotHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
-		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors) {
+		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors, DeviceRepository deviceRepository, ConfigStore config,
+		BinaryFileStorage binaryFiles) {
 		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
@@ -87,6 +100,9 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		this.sshServer = sshServer;
 		this.taskSubmitter = taskSubmitter;
 		this.autoSnapshots = autoSnapshots;
+		this.deviceRepository = deviceRepository;
+		this.dumpPath = config.bind(current -> current.get(DUMP_PATH));
+		this.binaryFiles = binaryFiles;
 	}
 
 	@Override
@@ -122,7 +138,8 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger,
+			this.dumpPath.get(), this.binaryFiles);
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
@@ -144,7 +161,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			if (newConfig != null) {
 				for (ConfigAttribute ca : newConfig.attributes()) {
 					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
-						cbfa.finalizeStorage(deviceId, newConfig.id());
+						this.binaryFiles.finalizeStorage(cbfa, deviceId, newConfig.id());
 					}
 				}
 			}

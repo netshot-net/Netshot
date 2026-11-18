@@ -67,7 +67,7 @@ export default function DeviceDetailScreen() {
 
           <Spacer />
 
-          <Protected minLevel={Level.ExecureReadWrite}>
+          <Protected minLevel={Level.ExecuteReadWrite}>
             <Skeleton loading={isPending}>
               <Menu.Root positioning={{ placement: "bottom-end" }}>
                 <Group attached>

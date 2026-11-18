@@ -45,6 +45,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.V0Lists;
+import net.netshot.netshot.api.rest.v0.V0Errors;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.vault.VaultConnectionTestResult;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
@@ -59,6 +65,10 @@ import net.netshot.netshot.vault.VaultInstanceService;
 public class VaultInstanceResource {
 
 	private final VaultInstanceService vaultInstanceService;
+
+	/** An unknown Vault instance, as v0 always reported it. */
+	private static final V0Errors.Translation NOT_FOUND = V0Errors.code(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND,
+		ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");
 
 	@Context
 	private HttpServletRequest request;
@@ -92,7 +102,7 @@ public class VaultInstanceResource {
 	public List<VaultInstanceDto> getVaultInstances(@BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, get Vault instances.");
-		return VaultInstanceMapper.toDtos(this.vaultInstanceService.list(paginationParams.toPage()));
+		return VaultInstanceMapper.toDtos(this.vaultInstanceService.list(V0Lists.query(paginationParams.toPage())).items());
 	}
 
 	/**
@@ -113,7 +123,7 @@ public class VaultInstanceResource {
 	public void deleteVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, delete Vault instance {}", id);
-		if (this.vaultInstanceService.delete(id)) {
+		if (V0Errors.found(() -> this.vaultInstanceService.delete(id, null), ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND)) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {
@@ -141,7 +151,7 @@ public class VaultInstanceResource {
 	public VaultInstanceDto addVaultInstance(VaultInstanceRequest vaultInstance)
 		throws WebApplicationException {
 		log.debug("REST request, add Vault instance.");
-		VaultInstanceDto created = VaultInstanceMapper.toDto(this.vaultInstanceService.create(VaultInstanceMapper.toEntity(vaultInstance)));
+		VaultInstanceDto created = VaultInstanceMapper.toDto(this.vaultInstanceService.create(VaultInstanceMapper.toDefinition(vaultInstance)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return created;
 	}
@@ -167,7 +177,8 @@ public class VaultInstanceResource {
 	public VaultInstanceDto setVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") Long id,
 			VaultInstanceRequest rsVaultInstance) throws WebApplicationException {
 		log.debug("REST request, edit Vault instance {}", id);
-		return VaultInstanceMapper.toDto(this.vaultInstanceService.update(id, VaultInstanceMapper.toEntity(rsVaultInstance)));
+		VaultInstanceDefinition definition = VaultInstanceMapper.toDefinition(rsVaultInstance);
+		return VaultInstanceMapper.toDto(V0Errors.translate(() -> this.vaultInstanceService.update(id, _ -> definition, null), NOT_FOUND));
 	}
 
 	/**
@@ -193,7 +204,11 @@ public class VaultInstanceResource {
 	public void testVaultInstance(@QueryParam("id") @Parameter(description = "Existing Vault instance ID, if any") Long id,
 			VaultInstanceRequest rsVaultInstance) throws WebApplicationException {
 		log.debug("REST request, test Vault instance '{}'.", rsVaultInstance.getName());
-		this.vaultInstanceService.testConnection(id, VaultInstanceMapper.toEntity(rsVaultInstance));
+		VaultConnectionTestResult result = V0Errors.translate(
+			() -> this.vaultInstanceService.test(id, VaultInstanceMapper.toDefinition(rsVaultInstance)), NOT_FOUND);
+		if (!result.success()) {
+			throw new NetshotException(ErrorCode.NETSHOT_VAULT_CONNECTION_FAILED, "Vault connection test failed: " + result.message());
+		}
 		ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 	}
 }

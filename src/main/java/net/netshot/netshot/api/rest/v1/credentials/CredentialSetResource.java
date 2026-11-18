@@ -59,6 +59,7 @@ import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceDto;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceMapper;
+import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -79,6 +80,10 @@ public class CredentialSetResource {
 
 	private final CredentialSetService credentialSetService;
 	private final VaultInstanceService vaultInstanceService;
+	private final ListParams lists;
+	private final V1Links links;
+	private final CredentialSetMapper credentialSetMapper;
+	private final VaultInstanceMapper vaultInstanceMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -94,11 +99,20 @@ public class CredentialSetResource {
 	 *
 	 * @param credentialSetService the credential set use cases
 	 * @param vaultInstanceService the Vault instance use cases (to name the instances credentials refer to)
+	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param credentialSetMapper maps the credential set objects
+	 * @param vaultInstanceMapper maps the vault instance objects
 	 */
 	@Inject
-	public CredentialSetResource(CredentialSetService credentialSetService, VaultInstanceService vaultInstanceService) {
+	public CredentialSetResource(CredentialSetService credentialSetService, VaultInstanceService vaultInstanceService, ListParams lists,
+		V1Links links, CredentialSetMapper credentialSetMapper, VaultInstanceMapper vaultInstanceMapper) {
 		this.credentialSetService = credentialSetService;
 		this.vaultInstanceService = vaultInstanceService;
+		this.lists = lists;
+		this.links = links;
+		this.credentialSetMapper = credentialSetMapper;
+		this.vaultInstanceMapper = vaultInstanceMapper;
 	}
 
 	/**
@@ -114,12 +128,12 @@ public class CredentialSetResource {
 		+ "(deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned.")
 	@ListFilters(ListSchema.CREDENTIAL_SETS)
 	public ListResponse<CredentialSetDto> listCredentialSets() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.CREDENTIAL_SETS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.CREDENTIAL_SETS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, CredentialSetDto.class);
 		var result = this.credentialSetService.list(query);
 		LongFunction<VaultInstanceDto> vaults = this.vaults(selection, result.items());
-		return ListResponse.of(this.uriInfo, query, result, c -> CredentialSetMapper.toDto(c, vaults));
+		return ListResponse.of(this.uriInfo, query, result, c -> this.credentialSetMapper.toDto(c, vaults));
 	}
 
 	/**
@@ -154,8 +168,8 @@ public class CredentialSetResource {
 		+ "must be given, by value or as a location in a Vault instance.")
 	public CredentialSetDto createCredentialSet(CredentialSetRequest credentialSetRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DeviceCredentialSet credentialSet = this.credentialSetService.create(CredentialSetMapper.toDefinition(credentialSetRequest));
-		V1Response.created(this.request, V1Links.of(CredentialSetMapper.PATH, credentialSet.id()));
+		DeviceCredentialSet credentialSet = this.credentialSetService.create(this.credentialSetMapper.toDefinition(credentialSetRequest));
+		V1Response.created(this.request, this.links.of(CredentialSetMapper.PATH, credentialSet.id()));
 		return this.respond(credentialSet, Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.FULL));
 	}
 
@@ -178,8 +192,8 @@ public class CredentialSetResource {
 	public CredentialSetDto replaceCredentialSet(@PathParam("id") @Parameter(description = "Credential set ID") long id,
 		CredentialSetRequest credentialSetRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DeviceCredentialSet credentialSet = this.credentialSetService.update(id, CredentialSetMapper.toDefinition(credentialSetRequest),
-			V1Response.ifMatch(this.headers));
+		CredentialSetDefinition definition = this.credentialSetMapper.toDefinition(credentialSetRequest);
+		DeviceCredentialSet credentialSet = this.credentialSetService.update(id, _ -> definition, V1Response.ifMatch(this.headers));
 		return this.respond(credentialSet, Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.FULL));
 	}
 
@@ -202,7 +216,7 @@ public class CredentialSetResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		DeviceCredentialSet credentialSet = this.credentialSetService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
-			CredentialSetRequest.class, CredentialSetMapper::toRequest, CredentialSetMapper::toDefinition), V1Response.ifMatch(this.headers));
+			CredentialSetRequest.class, this.credentialSetMapper::toRequest, this.credentialSetMapper::toDefinition), V1Response.ifMatch(this.headers));
 		return this.respond(credentialSet, Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.FULL));
 	}
 
@@ -225,7 +239,7 @@ public class CredentialSetResource {
 	private CredentialSetDto respond(DeviceCredentialSet credentialSet, Selection selection) {
 		V1Response.select(this.request, selection, CredentialSetDto.class);
 		V1Response.etag(this.request, credentialSet.version());
-		return CredentialSetMapper.toDto(credentialSet, this.vaults(selection, List.of(credentialSet)));
+		return this.credentialSetMapper.toDto(credentialSet, this.vaults(selection, List.of(credentialSet)));
 	}
 
 	/**
@@ -239,8 +253,8 @@ public class CredentialSetResource {
 	private LongFunction<VaultInstanceDto> vaults(Selection selection, Collection<DeviceCredentialSet> credentialSets) {
 		List<Long> ids = new ArrayList<>();
 		if (VAULT_PROPERTIES.stream().anyMatch(selection::includes)) {
-			credentialSets.forEach(c -> ids.addAll(CredentialSetMapper.vaultInstanceIds(c)));
+			credentialSets.forEach(c -> ids.addAll(this.credentialSetMapper.vaultInstanceIds(c)));
 		}
-		return VaultInstanceMapper.resolver(this.vaultInstanceService, ids);
+		return this.vaultInstanceMapper.resolver(this.vaultInstanceService, ids);
 	}
 }

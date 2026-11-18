@@ -23,11 +23,12 @@ import java.util.Map;
 /**
  * The status of a service.
  *
+ * @param id the identifier of the service
  * @param name the name of the service
  * @param state the state
  * @param healthy whether the service is running and healthy
  * @param error the error which made it fail (null if none)
  * @param stats the statistics of the service
  */
-public record ServiceStatus(String name, ServiceState state, boolean healthy, String error, Map<String, Object> stats) {
+public record ServiceStatus(String id, String name, ServiceState state, boolean healthy, String error, Map<String, Object> stats) {
 }

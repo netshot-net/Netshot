@@ -18,9 +18,10 @@
  */
 package net.netshot.netshot.api.rest.v1.user;
 
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.aaa.user.UserCreation;
-import net.netshot.netshot.aaa.user.UserUpdate;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.api.rest.v1.Secret;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
@@ -29,9 +30,24 @@ import net.netshot.netshot.platform.error.NetshotException;
 /**
  * Maps the users to their v1 representation and back.
  */
-public final class UserMapper {
+public class UserMapper {
 
-	private UserMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/** Maps the auth objects. */
+	private final AuthMapper authMapper;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 * @param authMapper maps the auth objects
+	 */
+	@Inject
+	public UserMapper(V1Links links, AuthMapper authMapper) {
+		this.links = links;
+		this.authMapper = authMapper;
 	}
 
 	/**
@@ -40,13 +56,13 @@ public final class UserMapper {
 	 * @param user the user (null gives null)
 	 * @return the representation
 	 */
-	public static UserDto toDto(UiUser user) {
+	public UserDto toDto(UiUser user) {
 		if (user == null) {
 			return null;
 		}
 		boolean hasPassword = user.local() && user.hashedPassword() != null && !user.hashedPassword().isEmpty();
-		return new UserDto(user.id(), V1Links.of(AuthMapper.USERS_PATH, user.id()), user.username(), user.version(),
-			user.changeDate(), user.username(), user.local(), user.level(), AuthMapper.roleOf(user.level()), hasPassword,
+		return new UserDto(user.id(), this.links.of(AuthMapper.USERS_PATH, user.id()), user.username(), user.version(),
+			user.changeDate(), user.username(), user.local(), user.level(), this.authMapper.roleOf(user.level()), hasPassword,
 			hasPassword ? user.lastPasswordChangeDate() : null);
 	}
 
@@ -57,31 +73,21 @@ public final class UserMapper {
 	 * @param user the user
 	 * @return the request
 	 */
-	public static UserRequest toRequest(UiUser user) {
+	public UserRequest toRequest(UiUser user) {
 		return new UserRequest(user.username(), user.local(), user.level(), null);
 	}
 
 	/**
-	 * Maps a request to the creation of a user.
+	 * Maps a request to the settings of a user (to create or replace it).
 	 *
 	 * @param request the request
 	 * @return the command
 	 */
-	public static UserCreation toCreation(UserRequest request) {
-		return new UserCreation(request.username(), request.local(), password(request), request.level());
+	public UserDefinition toDefinition(UserRequest request) {
+		return new UserDefinition(request.username(), request.local(), password(request), request.level());
 	}
 
-	/**
-	 * Maps a request to the new settings of a user.
-	 *
-	 * @param request the request
-	 * @return the command
-	 */
-	public static UserUpdate toUpdate(UserRequest request) {
-		return new UserUpdate(request.username(), request.local(), password(request), request.level());
-	}
-
-	private static String password(UserRequest request) {
+	private String password(UserRequest request) {
 		Secret password = request.password();
 		if (password == null || !request.local()) {
 			return null;

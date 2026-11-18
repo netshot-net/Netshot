@@ -29,16 +29,16 @@ import static net.netshot.netshot.platform.database.schema.Tables.TASK;
 import org.quartz.SchedulerException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.ScheduleMode;
 import net.netshot.netshot.task.Task.SequentialScheduling;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.DeviceBasedTask;
+import net.netshot.netshot.platform.config.ConfigStore;
 
 /**
  * Orchestrates the child tasks of a group-based (or otherwise fan-out) parent task: pre-creates
@@ -67,19 +67,24 @@ public class ChildTaskOrchestrator {
 
 	private final ChildScheduler scheduler;
 
-	private final TaskRepository repository = new TaskRepository();
+	private final TaskRepository repository;
 
 	/** The transaction support. */
 	private final Transactions transactions;
+	private final ConfigStore config;
 
 	/**
 	 * Creates the orchestrator.
 	 * @param transactions the transaction support
 	 * @param scheduler the scheduler to promote children with
+	 * @param repository the task repository
+	 * @param config the configuration store
 	 */
-	public ChildTaskOrchestrator(Transactions transactions, ChildScheduler scheduler) {
+	public ChildTaskOrchestrator(Transactions transactions, ChildScheduler scheduler, TaskRepository repository, ConfigStore config) {
 		this.transactions = transactions;
 		this.scheduler = scheduler;
+		this.repository = repository;
+		this.config = config;
 	}
 
 	/**
@@ -315,7 +320,7 @@ public class ChildTaskOrchestrator {
 			// already marked CANCELLED by cancelRemainingDelayedChildren -- nothing to wait for.
 		}
 
-		int intervalMs = Netshot.config().current().get(SEQUENTIAL_POLL_INTERVAL);
+		int intervalMs = this.config.current().get(SEQUENTIAL_POLL_INTERVAL);
 		try {
 			while (!pending.isEmpty() && !cancelHonored) {
 				Thread.sleep(intervalMs);
@@ -435,7 +440,7 @@ public class ChildTaskOrchestrator {
 	 * @throws InterruptedException if the polling wait is interrupted
 	 */
 	public Status pollChildUntilTerminal(long taskId) throws InterruptedException {
-		int intervalMs = Netshot.config().current().get(SEQUENTIAL_POLL_INTERVAL);
+		int intervalMs = this.config.current().get(SEQUENTIAL_POLL_INTERVAL);
 		while (true) {
 			Thread.sleep(intervalMs);
 			Status childStatus = this.transactions.read(dsl -> this.repository.findStatus(dsl, taskId));

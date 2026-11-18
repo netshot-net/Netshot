@@ -19,7 +19,6 @@
 package net.netshot.netshot.domain;
 
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
@@ -28,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -62,23 +60,6 @@ public class DomainService {
 	public DomainService(Transactions transactions, DomainRepository repository) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the domains.
-	 *
-	 * @param page the window on the result
-	 * @return the domains, by ID
-	 * @throws NetshotException if the domains can't be read
-	 */
-	public List<Domain> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the domains.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the domains");
-		}
 	}
 
 	/**
@@ -171,34 +152,6 @@ public class DomainService {
 	}
 
 	/**
-	 * Edits a domain.
-	 *
-	 * @param id the domain ID
-	 * @param definition the new definition of the domain
-	 * @return the edited domain
-	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist,
-	 *         the name is already used, or the domain can't be stored
-	 */
-	public Domain update(long id, DomainDefinition definition) {
-		return this.update(id, definition, null);
-	}
-
-	/**
-	 * Edits a domain, if it is still at a given version.
-	 *
-	 * @param id the domain ID
-	 * @param definition the new definition of the domain
-	 * @param expectedVersion the version the domain must be at, or null for any
-	 * @return the edited domain
-	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist, isn't at the
-	 *         expected version, the name is already used, or the domain can't be stored
-	 */
-	public Domain update(long id, DomainDefinition definition, Long expectedVersion) {
-		Domain valid = validate(definition);
-		return this.update(id, _ -> definition, expectedVersion, valid);
-	}
-
-	/**
 	 * Edits a domain, if it is still at a given version: the new definition is computed from the domain as it is,
 	 * which can't change meanwhile (to apply a patch).
 	 *
@@ -210,11 +163,6 @@ public class DomainService {
 	 *         expected version, the name is already used, or the domain can't be stored
 	 */
 	public Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion) {
-		return this.update(id, change, expectedVersion, null);
-	}
-
-	// With the definition already validated (as a domain), if it is known
-	private Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion, Domain validated) {
 		Domain domain;
 		try {
 			domain = this.transactions.write(dsl -> {
@@ -224,7 +172,7 @@ public class DomainService {
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
 				Domain existing = this.repository.find(dsl, id);
-				Domain valid = validated == null ? validate(change.apply(existing)) : validated;
+				Domain valid = validate(change.apply(existing));
 				Versions.check("domain", version, expectedVersion);
 				return this.repository.save(dsl, existing.toBuilder()
 					.name(valid.name())
@@ -246,17 +194,6 @@ public class DomainService {
 		}
 		AAA_LOG.info("{} has been edited.", domain);
 		return domain;
-	}
-
-	/**
-	 * Deletes a domain.
-	 *
-	 * @param id the domain ID
-	 * @throws NetshotException if the domain doesn't exist, is used by devices or credential sets,
-	 *         or can't be deleted
-	 */
-	public void delete(long id) {
-		this.delete(id, null);
 	}
 
 	/**

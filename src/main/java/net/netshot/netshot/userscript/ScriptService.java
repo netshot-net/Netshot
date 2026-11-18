@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.userscript;
 
-import java.util.List;
 import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
@@ -29,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -65,25 +63,6 @@ public class ScriptService {
 	}
 
 	/**
-	 * Lists the scripts, without their content.
-	 *
-	 * @param page the window on the result
-	 * @return the scripts, detached, with a null script
-	 * @throws NetshotException if the scripts can't be read
-	 */
-	public List<DeviceJsScript> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findAll(dsl, page).stream()
-				.map(DeviceJsScript::withoutScript)
-				.toList());
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the scripts.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the scripts");
-		}
-	}
-
-	/**
 	 * Gets what the script lists can be filtered and sorted on.
 	 *
 	 * @return the schema of the list queries
@@ -114,17 +93,22 @@ public class ScriptService {
 	 * Gets a script.
 	 *
 	 * @param id the script ID
-	 * @return the script, or null if there is no such script
-	 * @throws NetshotException if the script can't be read
+	 * @return the script
+	 * @throws NetshotException if the script doesn't exist or can't be read
 	 */
 	public DeviceJsScript get(long id) {
+		DeviceJsScript script;
 		try {
-			return this.transactions.read(dsl -> this.repository.find(dsl, id));
+			script = this.transactions.read(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the script {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the script.");
 		}
+		if (script == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "The script doesn't exist.");
+		}
+		return script;
 	}
 
 	/**
@@ -136,7 +120,7 @@ public class ScriptService {
 	 * @throws NetshotException if the driver, the name or the content is invalid, or if the script
 	 *         can't be evaluated
 	 */
-	public DeviceJsScript validate(ScriptCreation creation) {
+	public DeviceJsScript validate(ScriptDefinition creation) {
 		DeviceDriver driver = this.driverRegistry.getDriverByName(creation.deviceDriver());
 		if (driver == null) {
 			log.warn("Invalid driver name.");
@@ -170,7 +154,7 @@ public class ScriptService {
 	 * @throws NetshotException if the script is invalid (see {@link #validate}), if its name is
 	 *         already used, or if it can't be stored
 	 */
-	public DeviceJsScript create(ScriptCreation creation) {
+	public DeviceJsScript create(ScriptDefinition creation) {
 		DeviceJsScript valid = this.validate(creation);
 		DeviceJsScript script;
 		try {
@@ -202,7 +186,7 @@ public class ScriptService {
 	 * @throws NetshotException if the script doesn't exist or isn't at the expected version, the new definition is
 	 *         invalid, the name is already used, or the script can't be stored
 	 */
-	public DeviceJsScript update(long id, Function<DeviceJsScript, ScriptCreation> change, Long expectedVersion) {
+	public DeviceJsScript update(long id, Function<DeviceJsScript, ScriptDefinition> change, Long expectedVersion) {
 		DeviceJsScript script;
 		try {
 			script = this.transactions.write(dsl -> {
@@ -212,8 +196,8 @@ public class ScriptService {
 				}
 				Versions.check("script", version, expectedVersion);
 				DeviceJsScript existing = this.repository.find(dsl, id);
-				ScriptCreation creation = change.apply(existing);
-				DeviceJsScript valid = this.validate(new ScriptCreation(creation.name(), creation.deviceDriver(), creation.script(),
+				ScriptDefinition creation = change.apply(existing);
+				DeviceJsScript valid = this.validate(new ScriptDefinition(creation.name(), creation.deviceDriver(), creation.script(),
 					existing.author(), creation.folder())).withId(id);
 				this.repository.save(dsl, valid);
 				DeviceJsScript stored = this.repository.find(dsl, id);
@@ -229,16 +213,6 @@ public class ScriptService {
 		}
 		AAA_LOG.info("{} has been edited", script);
 		return script;
-	}
-
-	/**
-	 * Deletes a script.
-	 *
-	 * @param id the script ID
-	 * @throws NetshotException if the script doesn't exist or can't be deleted
-	 */
-	public void delete(long id) {
-		this.delete(id, null);
 	}
 
 	/**

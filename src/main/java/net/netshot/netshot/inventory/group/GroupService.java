@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -70,23 +69,6 @@ public class GroupService {
 		this.dynamicGroups = dynamicGroups;
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the groups.
-	 *
-	 * @param page the window on the result
-	 * @return the groups, by ID
-	 * @throws NetshotException if the groups can't be read
-	 */
-	public List<DeviceGroup> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the groups.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the groups");
-		}
 	}
 
 	/**
@@ -170,7 +152,7 @@ public class GroupService {
 					return added;
 				}
 				else if ("DynamicDeviceGroup".equals(definition.type())) {
-					String query = formatQuery(definition.query() == null ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
+					String query = formatQuery(requireQuery(definition.query()));
 					DynamicDeviceGroup added = (DynamicDeviceGroup) this.repository.add(dsl, DynamicDeviceGroup.builder()
 						.name(name)
 						.folder(definition.folder())
@@ -195,47 +177,13 @@ public class GroupService {
 	}
 
 	/**
-	 * Edits a group. The kind of the group can't change: the definition gives the new devices of
-	 * a static group, or the new query of a dynamic group (which members are then refreshed).
-	 *
-	 * @param id the group ID
-	 * @param definition the new definition of the group
-	 * @return the edited group
-	 * @throws NetshotException if the group doesn't exist, a device of a static group doesn't
-	 *         exist, the query of a dynamic group is invalid, the name is invalid or already used,
-	 *         or the group can't be stored
-	 */
-	public DeviceGroup update(long id, GroupDefinition definition) {
-		GroupDefinition replacing = definition.staticDevices() == null
-			? new GroupDefinition(definition.type(), definition.name(), List.of(), definition.query(), definition.folder(),
-				definition.hiddenFromReports())
-			: definition;
-		return this.update(id, _ -> replacing, null, false);
-	}
-
-	/**
-	 * Replaces the definition of a group, if it is at a given version. The type of a group can't change: the
+	 * Replaces the definition of a group, if it is at a given version: the new definition is computed from the
+	 * group as it is, which can't change meanwhile (to apply a patch). The type of a group can't change: the
 	 * definition gives the new devices of a static group (null to keep them), or the new query of a dynamic group
 	 * (which members are then refreshed; the default query if null).
 	 *
 	 * @param id the group ID
-	 * @param definition the new definition of the group (its type, if given, must be the one of the group)
-	 * @param expectedVersion the version the group must be at, or null for any
-	 * @return the edited group
-	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, is of another type, a
-	 *         device of a static group doesn't exist, the query of a dynamic group is invalid, the name is invalid
-	 *         or already used, or the group can't be stored
-	 */
-	public DeviceGroup update(long id, GroupDefinition definition, Long expectedVersion) {
-		return this.update(id, _ -> definition, expectedVersion, true);
-	}
-
-	/**
-	 * Replaces the definition of a group, if it is at a given version: the new definition is computed from the
-	 * group as it is, which can't change meanwhile (to apply a patch). See {@link #update(long, GroupDefinition, Long)}.
-	 *
-	 * @param id the group ID
-	 * @param change gives the new definition from the current group
+	 * @param change gives the new definition from the current group (its type, if given, must be the one of the group)
 	 * @param expectedVersion the version the group must be at, or null for any
 	 * @return the edited group
 	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, is of another type, a
@@ -243,10 +191,6 @@ public class GroupService {
 	 *         or already used, or the group can't be stored
 	 */
 	public DeviceGroup update(long id, Function<DeviceGroup, GroupDefinition> change, Long expectedVersion) {
-		return this.update(id, change, expectedVersion, true);
-	}
-
-	private DeviceGroup update(long id, Function<DeviceGroup, GroupDefinition> change, Long expectedVersion, boolean checkType) {
 		DeviceGroup group;
 		try {
 			group = this.transactions.write(dsl -> {
@@ -258,7 +202,7 @@ public class GroupService {
 				Versions.check("group", version, expectedVersion);
 				DeviceGroup existing = this.repository.find(dsl, id);
 				GroupDefinition definition = change.apply(existing);
-				if (checkType && definition.type() != null && !definition.type().equals(typeName(existing))) {
+				if (definition.type() != null && !definition.type().equals(typeName(existing))) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "The type of a group can't change.");
 				}
 				List<Long> deviceIds = null;
@@ -267,7 +211,7 @@ public class GroupService {
 					deviceIds = this.checkDevices(dsl, definition.staticDevices());
 				}
 				else if (existing instanceof DynamicDeviceGroup) {
-					query = formatQuery(definition.query() == null && checkType ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
+					query = formatQuery(requireQuery(definition.query()));
 				}
 				String name = definition.name() == null ? "" : definition.name().trim();
 				if (name.isEmpty()) {
@@ -314,39 +258,23 @@ public class GroupService {
 	}
 
 	/**
-	 * Deletes a group. This doesn't delete the devices of the group.
-	 *
-	 * @param id the group ID
-	 * @return true if the group has been deleted, false if there is no such group
-	 * @throws NetshotException if the group can't be deleted
-	 */
-	public boolean delete(long id) {
-		return this.delete(id, null);
-	}
-
-	/**
 	 * Deletes a group if it is at a given version. This doesn't delete the devices of the group.
 	 *
 	 * @param id the group ID
 	 * @param expectedVersion the version the group must be at, or null for any
-	 * @return true if the group has been deleted, false if there is no such group
-	 * @throws NetshotException if the group isn't at the expected version, or can't be deleted
+	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, or can't be deleted
 	 */
-	public boolean delete(long id, Long expectedVersion) {
+	public void delete(long id, Long expectedVersion) {
 		try {
-			boolean deleted = this.transactions.write(dsl -> {
+			this.transactions.run(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such device group of ID {}", id);
-					return false;
+					throw new NetshotException(ErrorCode.NETSHOT_GROUP_NOT_FOUND, "The group doesn't exist.");
 				}
 				Versions.check("group", version, expectedVersion);
-				return this.repository.remove(dsl, id);
+				this.repository.remove(dsl, id);
 			});
-			if (deleted) {
-				AAA_LOG.info("Device group of ID {} has been deleted.", id);
-			}
-			return deleted;
+			AAA_LOG.info("Device group of ID {} has been deleted.", id);
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to delete the group {}.", id, e);
@@ -365,6 +293,14 @@ public class GroupService {
 			}
 		}
 		return ids;
+	}
+
+	// The query of a dynamic group must be given (an empty query selects all the devices)
+	private static String requireQuery(String query) {
+		if (query == null) {
+			throw NetshotException.invalidParameter("query", "The query of a dynamic group is required.");
+		}
+		return query;
 	}
 
 	private String formatQuery(String query) {

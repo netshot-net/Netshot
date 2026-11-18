@@ -30,13 +30,13 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.DeviceReads;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
@@ -60,7 +60,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	private final DriverRegistry driverRegistry;
 
 	/** The transaction support, for the device helpers. */
-	private final Transactions transactions;
+	private final DeviceReads reads;
 
 	/** Is the script of the rule a JS-valid rule (once prepared, for the lifetime of the rule instance)? */
 	private final RuleStateCache<JavaScriptRule, Boolean> validity = new RuleStateCache<>();
@@ -70,10 +70,10 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	 *
 	 * @param runtime the JavaScript runtime of the rules
 	 * @param driverRegistry the loaded device drivers
-	 * @param transactions the transaction support, for the device helpers
+	 * @param reads the reads of the database, for the device helpers
 	 */
-	public JavaScriptRuleEvaluator(JsRuleRuntime runtime, DriverRegistry driverRegistry, Transactions transactions) {
-		this.transactions = transactions;
+	public JavaScriptRuleEvaluator(JsRuleRuntime runtime, DriverRegistry driverRegistry, DeviceReads reads) {
+		this.reads = reads;
 		this.runtime = runtime;
 		this.driverRegistry = driverRegistry;
 	}
@@ -149,7 +149,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 				if (exempted) {
 					return CheckResult.of(rule.id(), device.getId(), ResultOption.EXEMPTED);
 				}
-				JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.transactions, device, null, taskContext, true);
+				JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.reads, device, null, taskContext, true);
 				result = runBeforeDeadline(executor,
 					() -> context.getBindings("js").getMember("_check").execute(deviceHelper), deadline);
 			}

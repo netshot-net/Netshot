@@ -36,16 +36,14 @@ import java.util.Set;
 import org.graalvm.polyglot.io.FileSystem;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 
 /**
  * Implementation of the FileSystem GraalVM interface to restrict
  * Python code I/O access to the shipping GraalPython libraries,
  * in read-only mode.
- * Use {@link #newRestrictedFileSystem()} to get the file system to pass to the
+ * Use {@link #newRestrictedFileSystem(Settings)} to get the file system to pass to the
  * Python context, which also gives read access to the GraalPy standard library.
  */
 @Slf4j
@@ -66,7 +64,7 @@ public final class PythonFileSystem implements FileSystem {
 		 * @param config the configuration
 		 * @return the settings
 		 */
-		static Settings from(Config config) {
+		public static Settings from(Config config) {
 			String venv = config.get(VIRTUALENV);
 			if (venv != null) {
 				File venvFile = new File(venv);
@@ -79,17 +77,6 @@ public final class PythonFileSystem implements FileSystem {
 		}
 	}
 
-	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
-
-	/**
-	 * Gets the settings of the Python file system.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		return SETTINGS.get();
-	}
-
 	private final FileSystem delegate;
 	private final Path libFolder;
 	private final Path venvFolder;
@@ -100,15 +87,22 @@ public final class PythonFileSystem implements FileSystem {
 	 * extracted to the polyglot resource cache folder), everything in read-only mode.
 	 * The read-only wrapper matters: the internal resources are shared by all Python
 	 * contexts, so a script able to write there could inject code in the other scripts.
+	 * @param settings the settings of the Python file system
 	 * @return the file system
 	 * @throws IOException if the file system can't be initialized
 	 */
-	public static FileSystem newRestrictedFileSystem() throws IOException {
+	public static FileSystem newRestrictedFileSystem(Settings settings) throws IOException {
 		return FileSystem.newReadOnlyFileSystem(
-			FileSystem.allowInternalResourceAccess(new PythonFileSystem()));
+			FileSystem.allowInternalResourceAccess(new PythonFileSystem(settings)));
 	}
 
-	public PythonFileSystem() throws IOException {
+	/**
+	 * Creates the file system.
+	 *
+	 * @param settings the settings of the Python file system
+	 * @throws IOException if the file system can't be initialized
+	 */
+	public PythonFileSystem(Settings settings) throws IOException {
 		this.delegate = FileSystem.newDefaultFileSystem();
 		// Language folder of former GraalVM JDKs (when languages were installed within the JDK)
 		Path languagesFolder = null;
@@ -120,7 +114,7 @@ public final class PythonFileSystem implements FileSystem {
 			log.debug("No languages folder in Java home, ignoring");
 		}
 		this.libFolder = languagesFolder;
-		String venv = PythonFileSystem.settings().venvFolder();
+		String venv = settings.venvFolder();
 		if (venv == null) {
 			this.venvFolder = null;
 		}

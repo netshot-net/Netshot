@@ -28,7 +28,7 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
 
-import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.LocalSecretConverter;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.database.Versions;
@@ -45,7 +45,19 @@ public class VaultInstanceRepository {
 	/** The type (discriminator) of the HashiCorp Vault KV v2 instances. */
 	static final String HASHICORP_KV2 = "HashicorpVaultKv2Instance";
 
-	private static VaultInstance toVaultInstance(Record r) {
+	/** The converter of the encrypted columns. */
+	private final LocalSecretConverter secrets;
+
+	/**
+	 * Creates the repository.
+	 *
+	 * @param secrets the converter of the encrypted columns
+	 */
+	public VaultInstanceRepository(LocalSecretConverter secrets) {
+		this.secrets = secrets;
+	}
+
+	private VaultInstance toVaultInstance(Record r) {
 		String type = r.get(VAULT_INSTANCE.DTYPE);
 		if (HASHICORP_KV2.equals(type)) {
 			return new HashicorpVaultKv2Instance(r.get(VAULT_INSTANCE.ID), r.get(VAULT_INSTANCE.VERSION), r.get(VAULT_INSTANCE.CHANGE_DATE),
@@ -53,9 +65,9 @@ public class VaultInstanceRepository {
 				HttpsCaTrustMode.valueOf(r.get(VAULT_INSTANCE.HTTPS_CA_TRUST_MODE)), r.get(VAULT_INSTANCE.HTTPS_CUSTOM_CA_CERTIFICATE),
 				r.get(VAULT_INSTANCE.KV_MOUNT_PATH),
 				r.get(VAULT_INSTANCE.AUTH_METHOD) == null ? null : AuthMethod.valueOf(r.get(VAULT_INSTANCE.AUTH_METHOD)),
-				r.get(VAULT_INSTANCE.APP_ROLE_MOUNT_PATH), r.get(VAULT_INSTANCE.APP_ROLE_ID), r.get(VAULT_INSTANCE.APP_ROLE_SECRET_ID),
+				r.get(VAULT_INSTANCE.APP_ROLE_MOUNT_PATH), r.get(VAULT_INSTANCE.APP_ROLE_ID), this.secrets.from(r.get(VAULT_INSTANCE.APP_ROLE_SECRET_ID)),
 				r.get(VAULT_INSTANCE.JWT_MOUNT_PATH), r.get(VAULT_INSTANCE.JWT_IDP_TOKEN_ENDPOINT), r.get(VAULT_INSTANCE.JWT_CLIENT_ID),
-				r.get(VAULT_INSTANCE.JWT_CLIENT_SECRET), r.get(VAULT_INSTANCE.JWT_VAULT_ROLE), r.get(VAULT_INSTANCE.JWT_SCOPE));
+				this.secrets.from(r.get(VAULT_INSTANCE.JWT_CLIENT_SECRET)), r.get(VAULT_INSTANCE.JWT_VAULT_ROLE), r.get(VAULT_INSTANCE.JWT_SCOPE));
 		}
 		throw new IllegalStateException("Unknown type of Vault instance '%s'".formatted(type));
 	}
@@ -67,18 +79,6 @@ public class VaultInstanceRepository {
 	 */
 	static Instant now() {
 		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
-	}
-
-	/**
-	 * Lists the Vault instances, by ID.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param page the window on the result
-	 * @return the instances
-	 */
-	public List<VaultInstance> findAll(DSLContext dsl, Page page) {
-		return page.apply(dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE).orderBy(VAULT_INSTANCE.ID))
-			.fetch(VaultInstanceRepository::toVaultInstance);
 	}
 
 	/** The v1 name of the type of the HashiCorp Vault KV v2 instances. */
@@ -105,7 +105,7 @@ public class VaultInstanceRepository {
 	public List<VaultInstance> findAll(DSLContext dsl, ListQuery query) {
 		return query.page().apply(dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE)
 			.where(LIST.condition(query)).orderBy(LIST.orderBy(query)))
-			.fetch(VaultInstanceRepository::toVaultInstance);
+			.fetch(this::toVaultInstance);
 	}
 
 	/**
@@ -128,7 +128,7 @@ public class VaultInstanceRepository {
 	 */
 	public VaultInstance find(DSLContext dsl, long id) {
 		return dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE).where(VAULT_INSTANCE.ID.eq(id))
-			.fetchOne(VaultInstanceRepository::toVaultInstance);
+			.fetchOne(this::toVaultInstance);
 	}
 
 	/**
@@ -153,11 +153,11 @@ public class VaultInstanceRepository {
 				.set(VAULT_INSTANCE.AUTH_METHOD, hc.authMethod() == null ? null : hc.authMethod().name())
 				.set(VAULT_INSTANCE.APP_ROLE_MOUNT_PATH, hc.appRoleMountPath())
 				.set(VAULT_INSTANCE.APP_ROLE_ID, hc.appRoleId())
-				.set(VAULT_INSTANCE.APP_ROLE_SECRET_ID, hc.appRoleSecretId())
+				.set(VAULT_INSTANCE.APP_ROLE_SECRET_ID, this.secrets.to(hc.appRoleSecretId()))
 				.set(VAULT_INSTANCE.JWT_MOUNT_PATH, hc.jwtMountPath())
 				.set(VAULT_INSTANCE.JWT_IDP_TOKEN_ENDPOINT, hc.jwtIdpTokenEndpoint())
 				.set(VAULT_INSTANCE.JWT_CLIENT_ID, hc.jwtClientId())
-				.set(VAULT_INSTANCE.JWT_CLIENT_SECRET, hc.jwtClientSecret())
+				.set(VAULT_INSTANCE.JWT_CLIENT_SECRET, this.secrets.to(hc.jwtClientSecret()))
 				.set(VAULT_INSTANCE.JWT_VAULT_ROLE, hc.jwtVaultRole())
 				.set(VAULT_INSTANCE.JWT_SCOPE, hc.jwtScope())
 				.returning(VAULT_INSTANCE.ID)
@@ -187,11 +187,11 @@ public class VaultInstanceRepository {
 				.set(VAULT_INSTANCE.AUTH_METHOD, hc.authMethod() == null ? null : hc.authMethod().name())
 				.set(VAULT_INSTANCE.APP_ROLE_MOUNT_PATH, hc.appRoleMountPath())
 				.set(VAULT_INSTANCE.APP_ROLE_ID, hc.appRoleId())
-				.set(VAULT_INSTANCE.APP_ROLE_SECRET_ID, hc.appRoleSecretId())
+				.set(VAULT_INSTANCE.APP_ROLE_SECRET_ID, this.secrets.to(hc.appRoleSecretId()))
 				.set(VAULT_INSTANCE.JWT_MOUNT_PATH, hc.jwtMountPath())
 				.set(VAULT_INSTANCE.JWT_IDP_TOKEN_ENDPOINT, hc.jwtIdpTokenEndpoint())
 				.set(VAULT_INSTANCE.JWT_CLIENT_ID, hc.jwtClientId())
-				.set(VAULT_INSTANCE.JWT_CLIENT_SECRET, hc.jwtClientSecret())
+				.set(VAULT_INSTANCE.JWT_CLIENT_SECRET, this.secrets.to(hc.jwtClientSecret()))
 				.set(VAULT_INSTANCE.JWT_VAULT_ROLE, hc.jwtVaultRole())
 				.set(VAULT_INSTANCE.JWT_SCOPE, hc.jwtScope())
 				.where(VAULT_INSTANCE.ID.eq(hc.id()), VAULT_INSTANCE.DTYPE.eq(HASHICORP_KV2), VAULT_INSTANCE.VERSION.eq(hc.version()))

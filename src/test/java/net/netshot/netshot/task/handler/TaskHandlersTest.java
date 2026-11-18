@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRun;
@@ -36,6 +36,7 @@ import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TaskSpec;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.UnitTest;
 
 /**
@@ -51,18 +52,18 @@ class TaskHandlersTest {
 	 */
 	private static List<TaskHandler<?>> allHandlers() {
 		return new ArrayList<>(List.of(
-			new CheckComplianceHandler(null, null, null),
-			new CheckGroupComplianceHandler(null, null, null),
-			new CheckGroupSoftwareHandler(null),
-			new DiscoverDeviceTypeHandler(null, null, null, null, null),
-			new PurgeDatabaseHandler(null),
-			new RunDeviceGroupScriptHandler(null, null, null),
-			new RunDeviceScriptHandler(null, null, null, null, null),
-			new RunDiagnosticsHandler(null, null, null, null, null, null),
-			new RunGroupDiagnosticsHandler(null, null),
-			new ScanSubnetsHandler(null, null),
-			new TakeGroupSnapshotHandler(null, null),
-			new TakeSnapshotHandler(null, null, null, null, null, null, null)));
+			new CheckComplianceHandler(null, null, null, null, null, null, null, null, null, null),
+			new CheckGroupComplianceHandler(null, null, null, null, null, null, null, null, null, null),
+			new CheckGroupSoftwareHandler(null, null, null, null, null),
+			new DiscoverDeviceTypeHandler(null, null, null, null, null, null, null, null, null),
+			new PurgeDatabaseHandler(null, null, null),
+			new RunDeviceGroupScriptHandler(null, null, null, null, null),
+			new RunDeviceScriptHandler(null, null, null, null, null, null),
+			new RunDiagnosticsHandler(null, null, null, null, null, null, null, null),
+			new RunGroupDiagnosticsHandler(null, null, null, null),
+			new ScanSubnetsHandler(null, null, null),
+			new TakeGroupSnapshotHandler(null, null, null, null),
+			new TakeSnapshotHandler(null, null, null, null, null, null, null, null, TestConfig.store(), null)));
 	}
 
 	@Test
@@ -90,7 +91,7 @@ class TaskHandlersTest {
 	@DisplayName("The registry refuses two handlers for the same task type")
 	void duplicateHandlerIsRejected() {
 		List<TaskHandler<?>> handlers = allHandlers();
-		handlers.add(new PurgeDatabaseHandler(null));
+		handlers.add(new PurgeDatabaseHandler(null, null, null));
 		Assertions.assertThrows(IllegalStateException.class, () -> new TaskHandlers(handlers));
 	}
 

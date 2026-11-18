@@ -230,6 +230,11 @@ public final class V0ContractCases {
 		c.get("/devices/{id}/complianceresults", "router1", c.path("/devices/%d/complianceresults", "device.router1"));
 		c.get("/devices/{id}/diagnosticresults", "router1", c.path("/devices/%d/diagnosticresults", "device.router1"));
 		c.get("/devices/{id}/diagnosticresults", "router2", c.path("/devices/%d/diagnosticresults", "device.router2"));
+		c.get("/devices/{id}/interfaces", "paged", c.path("/devices/%d/interfaces?offset=1&limit=1", "device.router1"));
+		c.get("/devices/{id}/modules", "paged", c.path("/devices/%d/modules?history=true&offset=1&limit=1", "device.router1"));
+		for (String list : List.of("interfaces", "modules", "tasks", "configs", "complianceresults", "diagnosticresults")) {
+			c.get("/devices/{id}/" + list, "unknown", () -> "/devices/99999999/" + list);
+		}
 		c.get("/devicefamilies");
 		c.get("/partnumbers");
 		c.get("/devicetags");
@@ -255,6 +260,8 @@ public final class V0ContractCases {
 		c.get("/tasks", "dates", () -> "/tasks?after=" + (ContractSeed.D2021 - 1) + "&before=" + (ContractSeed.D2021 + 25000));
 		c.get("/tasks", "paged", () -> "/tasks?offset=2&limit=3");
 		c.get("/tasks", "parent", c.path("/tasks?parentTaskId=%d", "task.group"));
+		c.get("/tasks", "unknowntype", () -> "/tasks?type=TakeSnapshotTask&type=NoSuchTask");
+		c.get("/tasks", "onlyunknowntype", () -> "/tasks?type=NoSuchTask");
 		c.get("/tasks/{id}", "snapshot", c.path("/tasks/%d", "task.snapshot"));
 		c.get("/tasks/{id}", "failed", c.path("/tasks/%d", "task.failed"));
 		c.get("/tasks/{id}", "script", c.path("/tasks/%d", "task.script"));
@@ -383,6 +390,7 @@ public final class V0ContractCases {
 		scriptWrites(c);
 		taskWrites(c);
 		cleanupWrites(c);
+		lastWrites(c);
 	}
 
 	private static void domainWrites(Catalogue c) {
@@ -411,6 +419,12 @@ public final class V0ContractCases {
 			{"id": %d, "name": "Marseille DC 2", "description": "Renamed", "ipAddress": "10.255.2.9"}""", "new.domain"));
 		c.write("PUT", "/domains/{id}", "unknown", () -> "/domains/99999999", () -> """
 			{"id": 99999999, "name": "Nope", "description": "", "ipAddress": "10.255.2.9"}""");
+		c.write("PUT", "/domains/{id}", "blankname", c.path("/domains/%d", "new.domain"), () -> """
+			{"name": " ", "description": "Blank", "ipAddress": "10.0.0.1"}""");
+		c.write("PUT", "/domains/{id}", "duplicate", c.path("/domains/%d", "new.domain"), () -> """
+			{"name": "Paris DC", "description": "Duplicate", "ipAddress": "10.0.0.1"}""");
+		c.write("PUT", "/domains/{id}", "badaddress", c.path("/domains/%d", "new.domain"), () -> """
+			{"name": "Bad address", "description": "Bad", "ipAddress": "not an address"}""");
 		c.write("DELETE", "/domains/{id}", "unknown", () -> "/domains/99999999", null);
 		c.write("DELETE", "/domains/{id}", "inuse", c.path("/domains/%d", "domain.paris"), null);
 	}
@@ -436,6 +450,16 @@ public final class V0ContractCases {
 			 "superPassword": "changed-enable"}""", "new.cred"));
 		c.write("PUT", "/credentialsets/{id}", "unknown", () -> "/credentialsets/99999999", () -> """
 			{"type": "SSH", "id": 99999999, "name": "Nope", "username": "x"}""");
+		c.write("PUT", "/credentialsets/{id}", "blankname", c.path("/credentialsets/%d", "new.cred"), c.body("""
+			{"type": "SSH", "id": %d, "name": " ", "username": "newuser2", "password": "="}""", "new.cred"));
+		c.write("PUT", "/credentialsets/{id}", "invaliddomain", c.path("/credentialsets/%d", "new.cred"), c.body("""
+			{"type": "SSH", "id": %d, "name": "New SSH account renamed", "username": "newuser2", "password": "=",
+			 "mgmtDomain": {"id": 99999999}}""", "new.cred"));
+		c.write("PUT", "/credentialsets/{id}", "othertype", c.path("/credentialsets/%d", "new.cred"), c.body("""
+			{"type": "Telnet", "id": %d, "name": "New SSH account renamed", "username": "newuser2", "password": "="}""",
+			"new.cred"));
+		c.write("PUT", "/credentialsets/{id}", "sshkeyasssh", c.path("/credentialsets/%d", "cred.sshkey"), c.body("""
+			{"type": "SSH", "id": %d, "name": "SSH key account", "username": "x", "password": "="}""", "cred.sshkey"));
 		c.writeAs("POST", "/vaultinstances", "created", () -> "/vaultinstances", () -> """
 			{"type": "Vault KV v2", "name": "New vault", "baseUrl": "https://vault3.example.net:8200",
 			 "authMethod": "APPROLE", "appRoleId": "role-9", "appRoleSecretId": "secret-9"}""", "new.vault", null);
@@ -449,9 +473,26 @@ public final class V0ContractCases {
 			 "authMethod": "APPROLE", "appRoleId": "role-10", "appRoleSecretId": "="}""", "new.vault"));
 		c.write("PUT", "/vaultinstances/{id}", "unknown", () -> "/vaultinstances/99999999", () -> """
 			{"type": "Vault KV v2", "id": 99999999, "name": "Nope", "baseUrl": "https://x.example.net", "authMethod": "APPROLE"}""");
+		c.write("PUT", "/vaultinstances/{id}", "blankname", c.path("/vaultinstances/%d", "new.vault"), c.body("""
+			{"type": "Vault KV v2", "id": %d, "name": " ", "baseUrl": "https://vault4.example.net:8200", "authMethod": "APPROLE"}""",
+			"new.vault"));
+		c.write("PUT", "/vaultinstances/{id}", "duplicate", c.path("/vaultinstances/%d", "new.vault"), c.body("""
+			{"type": "Vault KV v2", "id": %d, "name": "Main vault", "baseUrl": "https://vault4.example.net:8200",
+			 "authMethod": "APPROLE", "appRoleId": "role-10", "appRoleSecretId": "="}""", "new.vault"));
+		// The name is trimmed
+		c.write("PUT", "/vaultinstances/{id}", "untrimmed", c.path("/vaultinstances/%d", "new.vault"), c.body("""
+			{"type": "Vault KV v2", "id": %d, "name": "  New vault spaced  ", "baseUrl": "https://vault4.example.net:8200",
+			 "authMethod": "APPROLE", "appRoleId": "role-10"}""", "new.vault"));
 		c.write("POST", "/vaultinstances/test", "unreachable", () -> "/vaultinstances/test", () -> """
 			{"type": "Vault KV v2", "name": "Unreachable", "baseUrl": "http://127.0.0.1:1",
 			 "authMethod": "APPROLE", "appRoleId": "role", "appRoleSecretId": "secret"}""");
+		// The properties of the authentication method are required
+		c.write("POST", "/vaultinstances", "norole", () -> "/vaultinstances", () -> """
+			{"type": "Vault KV v2", "name": "  Vault without role  ", "baseUrl": "https://vault5.example.net:8200",
+			 "authMethod": "APPROLE"}""");
+		c.writeAs("POST", "/credentialsets", "untrimmed", () -> "/credentialsets", () -> """
+			{"type": "Telnet", "name": "  Spaced telnet  ", "username": "other", "password": "other"}""", "new.cred.spaced", null);
+		c.write("DELETE", "/credentialsets/{id}", "untrimmed", c.path("/credentialsets/%d", "new.cred.spaced"), null);
 		c.write("DELETE", "/vaultinstances/{id}", "deleted", c.path("/vaultinstances/%d", "new.vault"), null);
 		c.write("DELETE", "/vaultinstances/{id}", "unknown", () -> "/vaultinstances/99999999", null);
 		c.write("DELETE", "/credentialsets/{id}", "deleted", c.path("/credentialsets/%d", "new.cred.snmp3"), null);
@@ -473,6 +514,8 @@ public final class V0ContractCases {
 			{"type": "StaticDeviceGroup", "name": null, "staticDevices": []}""");
 		c.write("POST", "/groups", "badtype", () -> "/groups", () -> """
 			{"type": "UnknownGroup", "name": "Bad type", "staticDevices": []}""");
+		c.writeAs("POST", "/groups", "noquery", () -> "/groups", () -> """
+			{"type": "DynamicDeviceGroup", "name": "No query", "folder": "Tests"}""", "new.group.noquery", null);
 		c.write("POST", "/groups", "badquery", () -> "/groups", () -> """
 			{"type": "DynamicDeviceGroup", "name": "Bad query", "query": "[Nope] ???"}""");
 		c.write("POST", "/groups", "unknowndevice", () -> "/groups", () -> """
@@ -485,7 +528,35 @@ public final class V0ContractCases {
 			 "query": "[Family] CONTAINS \\"Cisco\\"", "hiddenFromReports": false}""", "new.group.dynamic"));
 		c.write("PUT", "/groups/{id}", "unknown", () -> "/groups/99999999", () -> """
 			{"id": 99999999, "type": "StaticDeviceGroup", "name": "Nope", "staticDevices": []}""");
+		c.write("PUT", "/groups/{id}", "nodevices", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": "New static group renamed", "folder": "Tests/Sub",
+			 "hiddenFromReports": true}""", "new.group.static"));
+		c.write("PUT", "/groups/{id}", "noquery", c.path("/groups/%d", "new.group.dynamic"), c.body("""
+			{"id": %d, "type": "DynamicDeviceGroup", "name": "New dynamic group", "folder": "",
+			 "hiddenFromReports": false}""", "new.group.dynamic"));
+		c.write("PUT", "/groups/{id}", "othertype", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "DynamicDeviceGroup", "name": "New static group renamed", "folder": "Tests/Sub",
+			 "query": "[Name] CONTAINS \\"router\\"", "staticDevices": [%d], "hiddenFromReports": true}""",
+			"new.group.static", "device.router1"));
+		c.write("PUT", "/groups/{id}", "notype", c.path("/groups/%d", "new.group.dynamic"), c.body("""
+			{"id": %d, "name": "New dynamic group", "query": "[Name] CONTAINS \\"router\\""}""", "new.group.dynamic"));
+		c.write("PUT", "/groups/{id}", "blankname", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": " ", "staticDevices": []}""", "new.group.static"));
+		c.write("PUT", "/groups/{id}", "duplicate", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": "New dynamic group", "staticDevices": []}""", "new.group.static"));
+		c.write("PUT", "/groups/{id}", "badquery", c.path("/groups/%d", "new.group.dynamic"), c.body("""
+			{"id": %d, "type": "DynamicDeviceGroup", "name": "New dynamic group", "query": "[Nope] ???"}""", "new.group.dynamic"));
+		c.write("PUT", "/groups/{id}", "unknowndevice", c.path("/groups/%d", "new.group.static"), c.body("""
+			{"id": %d, "type": "StaticDeviceGroup", "name": "New static group renamed", "staticDevices": [99999999]}""",
+			"new.group.static"));
 		c.write("DELETE", "/groups/{id}", "unknown", () -> "/groups/99999999", null);
+		// The devices of a static group, in the order of the group (not by ID)
+		c.writeAs("POST", "/groups", "reversed", () -> "/groups", c.body("""
+			{"type": "StaticDeviceGroup", "name": "Reversed static group", "staticDevices": [%d, %d, %d]}""",
+			"device.proxy", "device.router2", "device.router1"), "new.group.reversed", null);
+		c.write("GET", "/devices", "reversedgroup", c.path("/devices?group=%d", "new.group.reversed"), null);
+		c.write("GET", "/devices", "reversedgroup-paged", c.path("/devices?group=%d&offset=1&limit=1", "new.group.reversed"), null);
+		c.write("DELETE", "/groups/{id}", "reversed", c.path("/groups/%d", "new.group.reversed"), null);
 	}
 
 	private static void deviceWrites(Catalogue c) {
@@ -546,8 +617,48 @@ public final class V0ContractCases {
 		c.add(V0ContractCase.builder("POST", "/devices/search").variant("xml").path("/devices/search")
 			.accept(V0ContractCase.XML).requestContentType(V0ContractCase.XML)
 			.body("<RsSearchCriteria><query>[Family] CONTAINS \"Cisco\"</query></RsSearchCriteria>"));
+		deviceSpecificWrites(c);
 		c.write("DELETE", "/devices/{id}", "deleted", c.path("/devices/%d", "new.device"), null);
 		c.write("DELETE", "/devices/{id}", "unknown", () -> "/devices/99999999", null);
+	}
+
+	// The edition of the device created above: specific credential sets, partial changes and invalid values
+	private static void deviceSpecificWrites(Catalogue c) {
+		Supplier<String> path = c.path("/devices/%d", "new.device");
+		c.write("PUT", "/devices/{id}", "specific", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "Telnet", "name": "ignored",
+			 "username": "user1", "password": "pass1", "superPassword": "enable1"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-keep", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "port": 2323, "specificCredentialSet": {"type": "Telnet",
+			 "username": "user2"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "noaccesses", path, c.body("""
+			{"id": %d, "comments": "Accesses unchanged"}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "enabled", path, c.body("""
+			{"id": %d, "enabled": true}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-retype", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "ssh", "specificCredentialSet": {"type": "SSH", "username": "sshuser",
+			 "password": "sshpass"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-incomplete", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "Telnet"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-incompatible", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "SSH", "username": "u",
+			 "password": "p"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-unknownaccess", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "carrier-pigeon", "specificCredentialSet": {"type": "Telnet", "username": "u",
+			 "password": "p"}}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "specific-both", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "ssh", "globalCredentialSet": {"type": "SSH", "id": %d},
+			 "specificCredentialSet": {"type": "SSH", "username": "u", "password": "p"}}]}""", "new.device", "cred.ssh"));
+		c.write("PUT", "/devices/{id}", "badport", path, c.body("""
+			{"id": %d, "accesses": [{"accessName": "ssh", "port": 70000}]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "badaddress", path, c.body("""
+			{"id": %d, "ipAddress": "not an address!"}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "baddomain", path, c.body("""
+			{"id": %d, "mgmtDomain": 99999999}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "badtag", path, c.body("""
+			{"id": %d, "tags": ["bad tag!"]}""", "new.device"));
+		c.write("PUT", "/devices/{id}", "duplicate", path, c.body("""
+			{"id": %d, "ipAddress": "10.1.1.1"}""", "new.device"));
 	}
 
 	private static void policyWrites(Catalogue c) {
@@ -585,6 +696,11 @@ public final class V0ContractCases {
 			{"type": "TextRule", "name": "Bad policy", "policy": 99999999}""");
 		c.write("POST", "/rules", "blankname", () -> "/rules", c.body("""
 			{"type": "TextRule", "name": "", "policy": %d}""", "new.policy"));
+		// The name is checked first, then the policy, then the type
+		c.write("POST", "/rules", "blanknamebadpolicy", () -> "/rules", () -> """
+			{"type": "NoSuchRule", "name": " ", "policy": 99999999}""");
+		c.write("POST", "/rules", "badtypebadpolicy", () -> "/rules", () -> """
+			{"type": "NoSuchRule", "name": "Bad type and policy", "policy": 99999999}""");
 		c.write("PUT", "/rules/{id}", "text", c.path("/rules/%d", "new.rule.text"), c.body("""
 			{"id": %d, "type": "TextRule", "name": "New text rule renamed", "policy": %d, "text": "ntp server .*",
 			 "regExp": true, "enabled": true, "invert": true, "matchAll": false, "anyBlock": true, "normalize": true,
@@ -595,6 +711,28 @@ public final class V0ContractCases {
 			 "script": "function check(device) { return { result: CONFORMING }; }"}""", "new.rule.js", "new.policy"));
 		c.write("PUT", "/rules/{id}", "unknown", () -> "/rules/99999999", () -> """
 			{"id": 99999999, "type": "TextRule", "name": "Nope", "policy": 1}""");
+		// A failed update changes nothing (the rule is read again after it)
+		c.write("PUT", "/rules/{id}", "unknownexempted", c.path("/rules/%d", "new.rule.text"), c.body("""
+			{"id": %d, "type": "TextRule", "name": "Not saved", "policy": %d, "text": "not saved", "enabled": false,
+			 "exemptions": {"%d": %d, "99999999": %d}}""", "new.rule.text", "new.policy", "device.router2",
+			ContractSeed.D2040, ContractSeed.D2040));
+		c.getJson("/policies/{pid}/rules/{id}", "afterfailedupdate", c.path("/policies/%d/rules/%d", "new.policy", "new.rule.text"));
+		c.write("PUT", "/rules/{id}", "blankname", c.path("/rules/%d", "new.rule.js"), c.body("""
+			{"id": %d, "type": "JavaScriptRule", "name": " ", "policy": %d}""", "new.rule.js", "new.policy"));
+		c.write("PUT", "/rules/{id}", "duplicate", c.path("/rules/%d", "new.rule.js"), c.body("""
+			{"id": %d, "type": "JavaScriptRule", "name": "New text rule renamed", "policy": %d}""", "new.rule.js", "new.policy"));
+		// Absent name and script: unchanged; absent exemptions: none
+		c.write("PUT", "/rules/{id}", "partial", c.path("/rules/%d", "new.rule.js"), c.body("""
+			{"id": %d, "type": "JavaScriptRule", "policy": %d, "enabled": true}""", "new.rule.js", "new.policy"));
+		// The kind of a rule doesn't change: the posted type is ignored
+		c.write("PUT", "/rules/{id}", "othertype", c.path("/rules/%d", "new.rule.python"), c.body("""
+			{"id": %d, "type": "TextRule", "name": "New Python rule", "policy": %d, "text": "ignored",
+			 "script": "def check(device):\\n  return {'result': result_option.NONCONFORMING}"}""", "new.rule.python", "new.policy"));
+		// A rule is created disabled
+		c.writeAs("POST", "/rules", "enabled", () -> "/rules", c.body("""
+			{"type": "TextRule", "name": "  Enabled text rule  ", "policy": %d, "text": "x", "enabled": true}""",
+			"new.policy"), "new.rule.enabled", null);
+		c.write("DELETE", "/rules/{id}", "enabled", c.path("/rules/%d", "new.rule.enabled"), null);
 		c.write("POST", "/rules/test", "text", () -> "/rules/test", c.body("""
 			{"type": "TextRule", "name": "Test", "policy": %d, "text": "hostname", "regExp": false, "invert": false,
 			 "matchAll": true, "anyBlock": false, "normalize": false, "context": "", "field": "runningConfig", "device": %d}""",
@@ -637,7 +775,23 @@ public final class V0ContractCases {
 		c.write("POST", "/softwarerules/{id}/sort", "before", c.path("/softwarerules/%d/sort?next=%d", "new.softwarerule2",
 			"rule.software.gold"), null);
 		c.write("POST", "/softwarerules/{id}/sort", "last", c.path("/softwarerules/%d/sort", "rule.software.gold"), null);
+		c.write("POST", "/softwarerules/{id}/sort", "forward", c.path("/softwarerules/%d/sort?next=%d", "new.softwarerule2",
+			"new.softwarerule"), null);
+		c.write("POST", "/softwarerules/{id}/sort", "self", c.path("/softwarerules/%d/sort?next=%d", "new.softwarerule",
+			"new.softwarerule"), null);
 		c.write("POST", "/softwarerules/{id}/sort", "unknown", () -> "/softwarerules/99999999/sort", null);
+		c.write("POST", "/softwarerules/{id}/sort", "unknownnext", c.path("/softwarerules/%d/sort?next=99999999",
+			"new.softwarerule"), null);
+		c.getJson("/softwarerules", "aftersort", () -> "/softwarerules");
+		c.write("PUT", "/softwarerules/{id}", "badgroup", c.path("/softwarerules/%d", "new.softwarerule"), c.body("""
+			{"id": %d, "group": 99999999, "driver": "", "version": "1", "level": "GOLD"}""", "new.softwarerule"));
+		// An unknown driver is stored as no driver (frozen behavior)
+		c.write("PUT", "/softwarerules/{id}", "unknowndriver", c.path("/softwarerules/%d", "new.softwarerule2"), c.body("""
+			{"id": %d, "group": -1, "driver": "NoSuchDriver", "version": "18.*", "versionRegExp": true, "level": "GOLD"}""",
+			"new.softwarerule2"));
+		c.writeAs("POST", "/softwarerules", "unknowndriver", () -> "/softwarerules", () -> """
+			{"group": -1, "driver": "NoSuchDriver", "version": "19", "level": "BRONZE"}""", "new.softwarerule3", null);
+		c.write("DELETE", "/softwarerules/{id}", "unknowndriver", c.path("/softwarerules/%d", "new.softwarerule3"), null);
 		c.write("DELETE", "/softwarerules/{id}", "deleted", c.path("/softwarerules/%d", "new.softwarerule"), null);
 		c.write("DELETE", "/softwarerules/{id}", "unknown", () -> "/softwarerules/99999999", null);
 
@@ -653,6 +807,15 @@ public final class V0ContractCases {
 			ContractSeed.D2040));
 		c.write("PUT", "/hardwarerules/{id}", "unknown", () -> "/hardwarerules/99999999", () -> """
 			{"id": 99999999, "group": -1, "driver": "", "partNumber": "x"}""");
+		c.write("PUT", "/hardwarerules/{id}", "badgroup", c.path("/hardwarerules/%d", "new.hardwarerule"), c.body("""
+			{"id": %d, "group": 99999999, "driver": "", "partNumber": "x"}""", "new.hardwarerule"));
+		// An unknown driver is stored as no driver (frozen behavior)
+		c.write("PUT", "/hardwarerules/{id}", "unknowndriver", c.path("/hardwarerules/%d", "new.hardwarerule"), c.body("""
+			{"id": %d, "group": -1, "driver": "NoSuchDriver", "partNumber": "x", "endOfLife": %d}""", "new.hardwarerule",
+			ContractSeed.D2040));
+		c.writeAs("POST", "/hardwarerules", "unknowndriver", () -> "/hardwarerules", () -> """
+			{"group": -1, "driver": "NoSuchDriver", "partNumber": "y", "endOfSale": 1}""", "new.hardwarerule2", null);
+		c.write("DELETE", "/hardwarerules/{id}", "unknowndriver", c.path("/hardwarerules/%d", "new.hardwarerule2"), null);
 		c.write("DELETE", "/hardwarerules/{id}", "deleted", c.path("/hardwarerules/%d", "new.hardwarerule"), null);
 		c.write("DELETE", "/hardwarerules/{id}", "unknown", () -> "/hardwarerules/99999999", null);
 
@@ -726,6 +889,15 @@ public final class V0ContractCases {
 			 "url": "https://example.net/renamed", "triggers": null}""", "new.hook"));
 		c.write("PUT", "/hooks/{id}", "unknown", () -> "/hooks/99999999", () -> """
 			{"type": "Web", "id": 99999999, "name": "Nope", "enabled": true, "action": "POST_JSON", "url": "https://example.net/x"}""");
+		c.write("PUT", "/hooks/{id}", "blankname", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": " ", "enabled": true, "action": "POST_JSON", "url": "https://example.net/x"}""", "new.hook"));
+		c.write("PUT", "/hooks/{id}", "duplicate", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": "Notify on tasks", "enabled": true, "action": "POST_JSON",
+			 "url": "https://example.net/x"}""", "new.hook"));
+		c.write("PUT", "/hooks/{id}", "badurl", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": "Bad URL", "enabled": true, "action": "POST_JSON", "url": "not a url"}""", "new.hook"));
+		c.write("PUT", "/hooks/{id}", "noaction", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": "No action", "enabled": true, "url": "https://example.net/x"}""", "new.hook"));
 		c.write("DELETE", "/hooks/{id}", "deleted", c.path("/hooks/%d", "new.hook"), null);
 		c.write("DELETE", "/hooks/{id}", "unknown", () -> "/hooks/99999999", null);
 	}
@@ -746,6 +918,12 @@ public final class V0ContractCases {
 			{"id": %d, "username": "newuser", "password": "An0ther!Passw0rd#2", "level": 500, "local": true}""", "new.user"));
 		c.write("PUT", "/users/{id}", "unknown", () -> "/users/99999999", () -> """
 			{"id": 99999999, "username": "nope", "level": 10, "local": true}""");
+		c.write("PUT", "/users/{id}", "blankname", c.path("/users/%d", "new.user"), c.body("""
+			{"id": %d, "username": " ", "level": 500, "local": true}""", "new.user"));
+		c.write("PUT", "/users/{id}", "duplicate", c.path("/users/%d", "new.user"), c.body("""
+			{"id": %d, "username": "writer", "level": 500, "local": true}""", "new.user"));
+		c.write("PUT", "/users/{id}", "weakpassword", c.path("/users/%d", "new.user"), c.body("""
+			{"id": %d, "username": "newuser", "password": "a", "level": 500, "local": true}""", "new.user"));
 		c.add(V0ContractCase.builder("POST", "/user").variant("login").path("/user").token("").body(() -> """
 			{"username": "writer", "password": "%s"}""".formatted(ContractSeed.USER_PASSWORD)));
 		c.add(V0ContractCase.builder("POST", "/user").variant("badlogin").path("/user").token("").body(() -> """
@@ -849,6 +1027,8 @@ public final class V0ContractCases {
 		c.writeAs("POST", "/tasks", "script-forbidden", () -> "/tasks", c.body("""
 			{"type": "RunDeviceScriptTask", "device": %d, "driver": "CiscoIOS12", "script": "x"}""", "device.router1"), null,
 			ContractSeed.READONLY_TOKEN);
+		c.write("PUT", "/tasks/{id}", "notcancelled", c.path("/tasks/%d", "new.task"), () -> """
+			{"cancelled": false}""");
 		c.write("PUT", "/tasks/{id}", "cancelled", c.path("/tasks/%d", "new.task"), () -> """
 			{"cancelled": true}""");
 		c.write("PUT", "/tasks/{id}", "notcancellable", c.path("/tasks/%d", "task.snapshot"), () -> """
@@ -860,6 +1040,14 @@ public final class V0ContractCases {
 	private static void cleanupWrites(Catalogue c) {
 		c.write("DELETE", "/groups/{id}", "static", c.path("/groups/%d", "new.group.static"), null);
 		c.write("DELETE", "/groups/{id}", "dynamic", c.path("/groups/%d", "new.group.dynamic"), null);
+		c.write("DELETE", "/groups/{id}", "noquery", c.path("/groups/%d", "new.group.noquery"), null);
 		c.write("DELETE", "/domains/{id}", "deleted", c.path("/domains/%d", "new.domain"), null);
+	}
+
+	// The writes which may create objects (and so shift the IDs of the objects created after them)
+	private static void lastWrites(Catalogue c) {
+		c.write("POST", "/devices", "specific-incomplete", () -> "/devices", c.body("""
+			{"autoDiscover": false, "ipAddress": "10.1.9.40", "domainId": %d, "name": "x", "deviceType": "CiscoIOS12",
+			 "accesses": [{"accessName": "telnet", "specificCredentialSet": {"type": "Telnet"}}]}""", "domain.paris"));
 	}
 }

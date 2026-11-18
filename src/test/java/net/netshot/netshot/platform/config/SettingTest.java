@@ -97,6 +97,22 @@ class SettingTest {
 	}
 
 	@Test
+	@DisplayName("A legacy key with a conversion: an inverted boolean")
+	void invertedAlias() {
+		Setting<Boolean> enabled = Setting.bool("netshot.test.enabled").alias("netshot.test.disabled", disabled -> !disabled)
+			.defaultValue(true).live();
+		Assertions.assertTrue(config(Map.of()).get(enabled), "Default value");
+		Assertions.assertFalse(config(Map.of("netshot.test.enabled", "false")).get(enabled));
+		Assertions.assertFalse(config(Map.of("netshot.test.disabled", "true")).get(enabled), "Legacy key, inverted");
+		Assertions.assertTrue(config(Map.of("netshot.test.disabled", "false")).get(enabled), "Legacy key, inverted");
+		Assertions.assertTrue(config(Map.of("netshot.test.disabled", "true", "netshot.test.enabled", "true")).get(enabled),
+			"The setting wins over the legacy key");
+		Assertions.assertFalse(config(Map.of(), Map.of("NETSHOT_TEST_DISABLED", "true")).get(enabled), "Legacy environment variable, inverted");
+		Assertions.assertTrue(config(Map.of("netshot.test.disabled", "yes")).get(enabled), "Invalid legacy value: default value, not inverted");
+		Assertions.assertTrue(enabled.matches("netshot.test.disabled"));
+	}
+
+	@Test
 	@DisplayName("The legacy key is read when the setting isn't set")
 	void alias() {
 		Setting<String> driver = Setting.text("netshot.db.driverclass").alias("netshot.db.driver_class")

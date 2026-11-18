@@ -41,8 +41,8 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.Unpaged;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.cluster.ClusterService.MasterStatus;
+import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.system.ServiceHealthService;
 
@@ -56,6 +56,7 @@ public class SystemResource {
 	private final ServerInfoService serverInfoService;
 	private final ClusterService clusterService;
 	private final ServiceHealthService serviceHealthService;
+	private final SystemMapper systemMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -69,13 +70,15 @@ public class SystemResource {
 	 * @param serverInfoService the server information use case
 	 * @param clusterService the cluster use cases
 	 * @param serviceHealthService the use cases reporting the state of the services
+	 * @param systemMapper maps the system objects
 	 */
 	@Inject
 	public SystemResource(ServerInfoService serverInfoService, ClusterService clusterService,
-		ServiceHealthService serviceHealthService) {
+		ServiceHealthService serviceHealthService, SystemMapper systemMapper) {
 		this.serverInfoService = serverInfoService;
 		this.clusterService = clusterService;
 		this.serviceHealthService = serviceHealthService;
+		this.systemMapper = systemMapper;
 	}
 
 	/**
@@ -93,7 +96,7 @@ public class SystemResource {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), SystemInfoDto.class, Selection.View.FULL),
 			SystemInfoDto.class);
-		return SystemMapper.toDto(this.serverInfoService.get(), Instant.now());
+		return this.systemMapper.toDto(this.serverInfoService.get(), Instant.now());
 	}
 
 	/**
@@ -112,7 +115,7 @@ public class SystemResource {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters(), ListParams.EXPORT);
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ClusterMemberDto.class, Selection.View.FULL),
 			ClusterMemberDto.class);
-		return single(this.clusterService.members().stream().map(SystemMapper::toDto).toList());
+		return single(this.clusterService.members().stream().map(this.systemMapper::toDto).toList());
 	}
 
 	/**
@@ -135,7 +138,7 @@ public class SystemResource {
 		if (status.clusterEnabled() && !status.master()) {
 			V1Response.status(this.request, Response.Status.SERVICE_UNAVAILABLE);
 		}
-		return SystemMapper.toDto(status);
+		return this.systemMapper.toDto(status);
 	}
 
 	/**
@@ -155,7 +158,7 @@ public class SystemResource {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters(), ListParams.EXPORT);
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ServiceDto.class, Selection.View.FULL),
 			ServiceDto.class);
-		return single(this.serviceHealthService.services().stream().map(SystemMapper::toDto).toList());
+		return single(this.serviceHealthService.services().stream().map(this.systemMapper::toDto).toList());
 	}
 
 	/**

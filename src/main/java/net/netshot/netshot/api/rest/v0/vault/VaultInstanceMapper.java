@@ -22,7 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.netshot.netshot.platform.secret.LocalSecret;
-import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.vault.SecretChange;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.VaultInstance;
 
@@ -70,32 +71,23 @@ public final class VaultInstanceMapper {
 	}
 
 	/**
-	 * Maps a request to a transient Vault instance of the matching kind, holding what the client sent.
+	 * Builds the definition of a Vault instance from a request, as the v0 API always read it: a secret which is not given
+	 * (or given as "=") is unchanged. The ID of the request is ignored.
 	 *
 	 * @param request the request
-	 * @return the Vault instance, not persisted
+	 * @return the definition
 	 */
-	public static VaultInstance toEntity(VaultInstanceRequest request) {
+	public static VaultInstanceDefinition toDefinition(VaultInstanceRequest request) {
 		if (request instanceof VaultInstanceRequest.HashicorpVaultKv2 hc) {
-			return HashicorpVaultKv2Instance.builder(hc.getName())
-				.id(hc.getId())
-				.baseUrl(hc.getBaseUrl())
-				.namespace(hc.getNamespace())
-				.httpsCaTrustMode(hc.getHttpsCaTrustMode())
-				.httpsCustomCaCertificate(hc.getHttpsCustomCaCertificate())
-				.kvMountPath(hc.getKvMountPath())
-				.authMethod(hc.getAuthMethod())
-				.appRoleMountPath(hc.getAppRoleMountPath())
-				.appRoleId(hc.getAppRoleId())
-				.appRoleSecretId(Secret.local(hc.getAppRoleSecretId()))
-				.jwtMountPath(hc.getJwtMountPath())
-				.jwtIdpTokenEndpoint(hc.getJwtIdpTokenEndpoint())
-				.jwtClientId(hc.getJwtClientId())
-				.jwtClientSecret(Secret.local(hc.getJwtClientSecret()))
-				.jwtVaultRole(hc.getJwtVaultRole())
-				.jwtScope(hc.getJwtScope())
-				.build();
+			return new VaultInstanceDefinition(hc.getName(), hc.getBaseUrl(), hc.getNamespace(), hc.getHttpsCaTrustMode(),
+				hc.getHttpsCustomCaCertificate(), hc.getKvMountPath(), hc.getAuthMethod(), hc.getAppRoleMountPath(), hc.getAppRoleId(),
+				secret(hc.getAppRoleSecretId()), hc.getJwtMountPath(), hc.getJwtIdpTokenEndpoint(), hc.getJwtClientId(),
+				secret(hc.getJwtClientSecret()), hc.getJwtVaultRole(), hc.getJwtScope());
 		}
 		throw new IllegalArgumentException("Unknown kind of Vault instance request: " + request.getClass().getName());
+	}
+
+	private static SecretChange secret(String value) {
+		return value == null ? SecretChange.UNCHANGED : new SecretChange.Local(value);
 	}
 }

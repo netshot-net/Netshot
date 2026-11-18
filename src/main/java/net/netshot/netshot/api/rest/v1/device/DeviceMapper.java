@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v1.device;
 
-import java.util.stream.Collectors;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -26,12 +25,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.LongFunction;
+import java.util.stream.Collectors;
 
-import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.api.rest.v1.StatsResponse;
+import jakarta.inject.Inject;
+
 import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.RefId;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.credentials.CredentialSetMapper;
 import net.netshot.netshot.api.rest.v1.credentials.CredentialSetRequest;
@@ -53,25 +53,52 @@ import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
+import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * Maps the devices to their v1 representation.
  */
-public final class DeviceMapper {
+public class DeviceMapper {
 
 	/** The path of the devices. */
 	public static final String PATH = "devices";
 
-	private DeviceMapper() {
+	/** The paths of the v1 objects. */
+	private final V1Links links;
+
+	/** Maps the credential set objects. */
+	private final CredentialSetMapper credentialSetMapper;
+
+	/** Maps the domain objects. */
+	private final DomainMapper domainMapper;
+
+	/** Maps the group objects. */
+	private final GroupMapper groupMapper;
+
+	/**
+	 * Instantiates the mapper.
+	 *
+	 * @param links the paths of the v1 objects
+	 * @param credentialSetMapper maps the credential set objects
+	 * @param domainMapper maps the domain objects
+	 * @param groupMapper maps the group objects
+	 */
+	@Inject
+	public DeviceMapper(V1Links links, CredentialSetMapper credentialSetMapper, DomainMapper domainMapper, GroupMapper groupMapper) {
+		this.links = links;
+		this.credentialSetMapper = credentialSetMapper;
+		this.domainMapper = domainMapper;
+		this.groupMapper = groupMapper;
 	}
 
-	private static String driverDescription(DriverRegistry driverRegistry, String driverName) {
+	private String driverDescription(DriverRegistry driverRegistry, String driverName) {
 		DeviceDriver driver = driverName == null ? null : driverRegistry.getDriverByName(driverName);
 		return driver == null ? "Unknown driver" : driver.getDescription();
 	}
 
-	private static boolean isPast(Instant date) {
+	private boolean isPast(Instant date) {
 		return date != null && date.isBefore(Instant.now());
 	}
 
@@ -82,8 +109,8 @@ public final class DeviceMapper {
 	 * @param id the device ID
 	 * @return the representation
 	 */
-	public static DeviceDto byId(long id) {
-		return new DeviceDto(id, V1Links.of(PATH, id), null, null, null, null, null, null, null, null, null, null, null,
+	public DeviceDto byId(long id) {
+		return new DeviceDto(id, this.links.of(PATH, id), null, null, null, null, null, null, null, null, null, null, null,
 			null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
 			null, null, null, null, null, null);
 	}
@@ -94,14 +121,14 @@ public final class DeviceMapper {
 	 * @param device the device
 	 * @return the IDs (possibly repeated)
 	 */
-	public static List<Long> vaultInstanceIds(Device device) {
+	public List<Long> vaultInstanceIds(Device device) {
 		List<Long> ids = new ArrayList<>();
 		for (DeviceAccess access : device.accesses()) {
 			if (access.globalCredentialSet() != null) {
-				ids.addAll(CredentialSetMapper.vaultInstanceIds(access.globalCredentialSet()));
+				ids.addAll(this.credentialSetMapper.vaultInstanceIds(access.globalCredentialSet()));
 			}
 			if (access.specificCredentialSet() != null) {
-				ids.addAll(CredentialSetMapper.vaultInstanceIds(access.specificCredentialSet()));
+				ids.addAll(this.credentialSetMapper.vaultInstanceIds(access.specificCredentialSet()));
 			}
 		}
 		return ids;
@@ -115,10 +142,10 @@ public final class DeviceMapper {
 	 * @param vaults gives the representation of a Vault instance the credentials of the accesses read from, by ID
 	 * @return the representation
 	 */
-	public static DeviceDto toDto(DriverRegistry driverRegistry, Device device, LongFunction<VaultInstanceDto> vaults) {
-		return new DeviceDto(device.id(), V1Links.of(PATH, device.id()), device.name(), (long) device.version(),
+	public DeviceDto toDto(DriverRegistry driverRegistry, Device device, LongFunction<VaultInstanceDto> vaults) {
+		return new DeviceDto(device.id(), this.links.of(PATH, device.id()), device.name(), (long) device.version(),
 			device.changeDate(), device.createdDate(), device.creator(), device.name(), device.mgmtAddress(), device.status(),
-			DomainMapper.toDto(device.mgmtDomain()), device.family(), device.driver(),
+			this.domainMapper.toDto(device.mgmtDomain()), device.family(), device.driver(),
 			driverDescription(driverRegistry, device.driver()), device.networkClass(), device.softwareVersion(),
 			device.softwareLevel(), device.serialNumber(), device.location(), device.contact(), device.comments(),
 			device.cachedIpAddress() == null ? null : device.cachedIpAddress().getHostAddress(),
@@ -126,9 +153,9 @@ public final class DeviceMapper {
 			device.eolDate(), toDto(device.eolModule()), device.eosDate(), toDto(device.eosModule()),
 			device.lastSnapshotSuccessDate(), device.lastSnapshotFailureDate(),
 			device.tags(), device.virtualDevices(), device.vrfInstances(), device.options(),
-			device.attributes() == null ? null : device.attributes().stream().map(DeviceMapper::toDto).toList(),
+			device.attributes() == null ? null : device.attributes().stream().map(this::toDto).toList(),
 			device.accesses() == null ? null : device.accesses().stream().map(a -> toDto(a, vaults)).toList(),
-			device.ownerGroups() == null ? null : device.ownerGroups().stream().map(GroupMapper::toDto).toList());
+			device.ownerGroups() == null ? null : device.ownerGroups().stream().map(this.groupMapper::toDto).toList());
 	}
 
 	/**
@@ -139,8 +166,8 @@ public final class DeviceMapper {
 	 * @param device the device summary
 	 * @return the representation
 	 */
-	public static DeviceDto toDto(DriverRegistry driverRegistry, DeviceSummary device) {
-		return new DeviceDto(device.id(), V1Links.of(PATH, device.id()), device.name(), null, null, null, null,
+	public DeviceDto toDto(DriverRegistry driverRegistry, DeviceSummary device) {
+		return new DeviceDto(device.id(), this.links.of(PATH, device.id()), device.name(), null, null, null, null,
 			device.name(), device.mgmtAddress(), device.status(), null, device.family(), device.driver(),
 			driverDescription(driverRegistry, device.driver()), device.networkClass(), null, device.softwareLevel(), null,
 			null, null, null, null, device.configCompliant(), device.eol(), device.eos(), null, null, null, null,
@@ -153,7 +180,7 @@ public final class DeviceMapper {
 	 * @param module the module (null gives null)
 	 * @return the representation
 	 */
-	public static ModuleDto toDto(Module module) {
+	public ModuleDto toDto(Module module) {
 		if (module == null) {
 			return null;
 		}
@@ -161,7 +188,7 @@ public final class DeviceMapper {
 			module.lastSeenDate(), module.removed());
 	}
 
-	private static DeviceAttributeDto toDto(DeviceAttribute attribute) {
+	private DeviceAttributeDto toDto(DeviceAttribute attribute) {
 		return switch (attribute) {
 			case DeviceTextAttribute a -> new DeviceAttributeDto(a.name(), "TEXT", a.text());
 			case DeviceLongTextAttribute a -> new DeviceAttributeDto(a.name(), "LONGTEXT", a.text());
@@ -170,9 +197,9 @@ public final class DeviceMapper {
 		};
 	}
 
-	private static DeviceAccessDto toDto(DeviceAccess access, LongFunction<VaultInstanceDto> vaults) {
+	private DeviceAccessDto toDto(DeviceAccess access, LongFunction<VaultInstanceDto> vaults) {
 		return new DeviceAccessDto(access.accessName(), access.address(), access.port(),
-			CredentialSetMapper.toDto(access.globalCredentialSet(), vaults), CredentialSetMapper.toDto(access.specificCredentialSet(), vaults),
+			this.credentialSetMapper.toDto(access.globalCredentialSet(), vaults), this.credentialSetMapper.toDto(access.specificCredentialSet(), vaults),
 			access.sshHostKeyVerification(), access.sshTrustedHostKeys(), access.sshTrustedHostKeysSince(),
 			access.httpsCaTrustMode(), access.httpsCustomCaCertificate());
 	}
@@ -186,7 +213,7 @@ public final class DeviceMapper {
 	private record Accesses(List<DeviceAccess> accesses, List<AccessSpecificCredential> specificCredentials) {
 	}
 
-	private static Accesses toAccesses(List<DeviceAccessRequest> requests) {
+	private Accesses toAccesses(List<DeviceAccessRequest> requests) {
 		List<DeviceAccess> accesses = new ArrayList<>();
 		List<AccessSpecificCredential> specifics = new ArrayList<>();
 		Set<String> names = new HashSet<>();
@@ -211,7 +238,7 @@ public final class DeviceMapper {
 				.build());
 			if (request.specificCredentialSet() != null) {
 				DeviceCredentialSetRequest cs = request.specificCredentialSet();
-				specifics.add(new AccessSpecificCredential.Definition(request.accessName(), CredentialSetMapper.toDefinition(
+				specifics.add(new AccessSpecificCredential(request.accessName(), this.credentialSetMapper.toDefinition(
 					new CredentialSetRequest("specific", cs.type(), null, cs.username(), cs.usernameVault(), cs.password(),
 						cs.passwordVault(), cs.superPassword(), cs.superPasswordVault(), cs.privateKey(), cs.privateKeyVault(),
 						cs.community(), cs.communityVault(), cs.authType(), cs.authKey(), cs.authKeyVault(), cs.privType(),
@@ -221,7 +248,7 @@ public final class DeviceMapper {
 		return new Accesses(accesses, specifics);
 	}
 
-	private static long domainId(RefId domain) {
+	private long domainId(RefId domain) {
 		if (domain == null) {
 			throw NetshotException.invalidParameter("mgmtDomain", "The management domain is required.");
 		}
@@ -236,7 +263,7 @@ public final class DeviceMapper {
 	 * @return the command
 	 * @throws NetshotException if the request is incoherent (accesses or options without a driver, bad specific credentials...)
 	 */
-	public static DeviceCreation toCreation(DeviceCreationRequest request, String author) {
+	public DeviceCreation toCreation(DeviceCreationRequest request, String author) {
 		boolean autoDiscover = request.driver() == null || request.driver().isBlank();
 		if (autoDiscover && request.accesses() != null && !request.accesses().isEmpty()) {
 			throw NetshotException.invalidParameter("accesses", "The accesses can only be given with a driver (no auto discovery).");
@@ -257,7 +284,7 @@ public final class DeviceMapper {
 	 * @return the command
 	 * @throws NetshotException if the request is incoherent
 	 */
-	public static DeviceChange toChange(DeviceRequest request) {
+	public DeviceChange toChange(DeviceRequest request) {
 		Accesses accesses = toAccesses(request.accesses());
 		return new DeviceChange(request.status(), request.comments(), request.mgmtAddress() == null ? "" : request.mgmtAddress(),
 			domainId(request.mgmtDomain()), accesses.accesses(), accesses.specificCredentials(), request.options(), request.tags());
@@ -270,18 +297,18 @@ public final class DeviceMapper {
 	 * @param device the device
 	 * @return the request
 	 */
-	public static DeviceRequest toRequest(Device device) {
+	public DeviceRequest toRequest(Device device) {
 		List<DeviceAccessRequest> accesses = device.accesses().stream()
 			.sorted(Comparator.comparing(DeviceAccess::accessName, Comparator.nullsFirst(Comparator.naturalOrder())))
-			.map(DeviceMapper::toRequest).toList();
+			.map(this::toRequest).toList();
 		return new DeviceRequest(device.mgmtAddress(), new RefId(device.mgmtDomain().id()), device.status(), device.comments(),
 			device.tags(), device.options(), accesses);
 	}
 
-	private static DeviceAccessRequest toRequest(DeviceAccess access) {
+	private DeviceAccessRequest toRequest(DeviceAccess access) {
 		DeviceCredentialSetRequest specific = null;
 		if (access.specificCredentialSet() != null) {
-			CredentialSetRequest cs = CredentialSetMapper.toRequest(access.specificCredentialSet());
+			CredentialSetRequest cs = this.credentialSetMapper.toRequest(access.specificCredentialSet());
 			specific = new DeviceCredentialSetRequest(cs.type(), null, null, null, null, null, null, null, null, null, null,
 				cs.authType(), null, null, cs.privType(), null, null);
 		}
@@ -296,8 +323,8 @@ public final class DeviceMapper {
 	 * @param searchService the device search use cases
 	 * @return the resolver
 	 */
-	public static StatsResponse.Resolver resolver(SearchService searchService) {
+	public StatsResponse.Resolver resolver(SearchService searchService) {
 		return ids -> searchService.listDeviceSummaries(ListQuery.byIds(ids), null).items().stream()
-			.collect(Collectors.toMap(DeviceSummary::id, d -> new RefDto(d.id(), V1Links.of(PATH, d.id()), d.name())));
+			.collect(Collectors.toMap(DeviceSummary::id, d -> new RefDto(d.id(), this.links.of(PATH, d.id()), d.name())));
 	}
 }

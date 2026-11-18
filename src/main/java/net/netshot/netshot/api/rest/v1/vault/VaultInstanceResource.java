@@ -53,6 +53,7 @@ import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.vault.VaultInstance;
+import net.netshot.netshot.vault.VaultInstanceDefinition;
 import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
@@ -65,6 +66,9 @@ import net.netshot.netshot.vault.VaultInstanceService;
 public class VaultInstanceResource {
 
 	private final VaultInstanceService vaultInstanceService;
+	private final ListParams lists;
+	private final V1Links links;
+	private final VaultInstanceMapper vaultInstanceMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -79,10 +83,17 @@ public class VaultInstanceResource {
 	 * Instantiates the resource.
 	 *
 	 * @param vaultInstanceService the Vault instance use cases
+	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param vaultInstanceMapper maps the vault instance objects
 	 */
 	@Inject
-	public VaultInstanceResource(VaultInstanceService vaultInstanceService) {
+	public VaultInstanceResource(VaultInstanceService vaultInstanceService, ListParams lists, V1Links links,
+		VaultInstanceMapper vaultInstanceMapper) {
 		this.vaultInstanceService = vaultInstanceService;
+		this.lists = lists;
+		this.links = links;
+		this.vaultInstanceMapper = vaultInstanceMapper;
 	}
 
 	/**
@@ -97,10 +108,10 @@ public class VaultInstanceResource {
 		+ "The secrets are never returned.")
 	@ListFilters(ListSchema.VAULT_INSTANCES)
 	public ListResponse<VaultInstanceDto> listVaultInstances() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.VAULT_INSTANCES.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.VAULT_INSTANCES.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.BRIEF),
 			VaultInstanceDto.class);
-		return ListResponse.of(this.uriInfo, query, this.vaultInstanceService.list(query), VaultInstanceMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.vaultInstanceService.list(query), this.vaultInstanceMapper::toDto);
 	}
 
 	/**
@@ -135,8 +146,8 @@ public class VaultInstanceResource {
 		+ "the authentication method must be given.")
 	public VaultInstanceDto createVaultInstance(VaultInstanceRequest vaultInstanceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		VaultInstance vaultInstance = this.vaultInstanceService.create(VaultInstanceMapper.toDefinition(vaultInstanceRequest));
-		V1Response.created(this.request, V1Links.of(VaultInstanceMapper.PATH, vaultInstance.id()));
+		VaultInstance vaultInstance = this.vaultInstanceService.create(this.vaultInstanceMapper.toDefinition(vaultInstanceRequest));
+		V1Response.created(this.request, this.links.of(VaultInstanceMapper.PATH, vaultInstance.id()));
 		return this.respond(vaultInstance, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.FULL));
 	}
 
@@ -158,8 +169,8 @@ public class VaultInstanceResource {
 	public VaultInstanceDto replaceVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") long id,
 		VaultInstanceRequest vaultInstanceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		VaultInstance vaultInstance = this.vaultInstanceService.update(id, VaultInstanceMapper.toDefinition(vaultInstanceRequest),
-			V1Response.ifMatch(this.headers));
+		VaultInstanceDefinition definition = this.vaultInstanceMapper.toDefinition(vaultInstanceRequest);
+		VaultInstance vaultInstance = this.vaultInstanceService.update(id, _ -> definition, V1Response.ifMatch(this.headers));
 		return this.respond(vaultInstance, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.FULL));
 	}
 
@@ -182,7 +193,7 @@ public class VaultInstanceResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		VaultInstance vaultInstance = this.vaultInstanceService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
-			VaultInstanceRequest.class, VaultInstanceMapper::toRequest, VaultInstanceMapper::toDefinition), V1Response.ifMatch(this.headers));
+			VaultInstanceRequest.class, this.vaultInstanceMapper::toRequest, this.vaultInstanceMapper::toDefinition), V1Response.ifMatch(this.headers));
 		return this.respond(vaultInstance, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.FULL));
 	}
 
@@ -216,7 +227,7 @@ public class VaultInstanceResource {
 		+ "anything. A failed login is a successful answer with success=false and the reason.")
 	public VaultConnectionTestDto testVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return VaultInstanceMapper.toDto(this.vaultInstanceService.test(id));
+		return this.vaultInstanceMapper.toDto(this.vaultInstanceService.test(id));
 	}
 
 	/**
@@ -235,12 +246,12 @@ public class VaultInstanceResource {
 		+ "success=false and the reason.")
 	public VaultConnectionTestDto testVaultInstanceDefinition(VaultInstanceRequest vaultInstanceRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return VaultInstanceMapper.toDto(this.vaultInstanceService.test(VaultInstanceMapper.toDefinition(vaultInstanceRequest)));
+		return this.vaultInstanceMapper.toDto(this.vaultInstanceService.test(null, this.vaultInstanceMapper.toDefinition(vaultInstanceRequest)));
 	}
 
 	private VaultInstanceDto respond(VaultInstance vaultInstance, Selection selection) {
 		V1Response.select(this.request, selection, VaultInstanceDto.class);
 		V1Response.etag(this.request, vaultInstance.version());
-		return VaultInstanceMapper.toDto(vaultInstance);
+		return this.vaultInstanceMapper.toDto(vaultInstance);
 	}
 }

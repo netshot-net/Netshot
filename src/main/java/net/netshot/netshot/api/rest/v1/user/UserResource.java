@@ -43,8 +43,8 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.aaa.user.UserDefinition;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.aaa.user.UserUpdate;
 import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
@@ -55,8 +55,6 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.auth.AuthMapper;
-import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 
 /**
@@ -67,6 +65,9 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class UserResource {
 
 	private final UserService userService;
+	private final ListParams lists;
+	private final V1Links links;
+	private final UserMapper userMapper;
 
 	@Context
 	private HttpServletRequest request;
@@ -84,10 +85,16 @@ public class UserResource {
 	 * Instantiates the resource.
 	 *
 	 * @param userService the user use cases
+	 * @param lists the reader of the list parameters
+	 * @param links the paths of the v1 objects
+	 * @param userMapper maps the user objects
 	 */
 	@Inject
-	public UserResource(UserService userService) {
+	public UserResource(UserService userService, ListParams lists, V1Links links, UserMapper userMapper) {
 		this.userService = userService;
+		this.lists = lists;
+		this.links = links;
+		this.userMapper = userMapper;
 	}
 
 	/**
@@ -101,10 +108,10 @@ public class UserResource {
 	@Operation(summary = "List the users", description = "Lists the Netshot users, in their brief view by default.")
 	@ListFilters(ListSchema.USERS)
 	public ListResponse<UserDto> listUsers() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.USERS.schema());
+		ListQuery query = this.lists.parse(this.uriInfo.getQueryParameters(), ListSchema.USERS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), UserDto.class, Selection.View.BRIEF),
 			UserDto.class);
-		return ListResponse.of(this.uriInfo, query, this.userService.list(query), UserMapper::toDto);
+		return ListResponse.of(this.uriInfo, query, this.userService.list(query), this.userMapper::toDto);
 	}
 
 	/**
@@ -138,8 +145,8 @@ public class UserResource {
 		+ "the user only gives it its permission level).")
 	public UserDto createUser(UserRequest userRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		UiUser user = this.userService.create(UserMapper.toCreation(userRequest));
-		V1Response.created(this.request, V1Links.of(AuthMapper.USERS_PATH, user.id()));
+		UiUser user = this.userService.create(this.userMapper.toDefinition(userRequest));
+		V1Response.created(this.request, this.links.of(AuthMapper.USERS_PATH, user.id()));
 		return this.respond(user);
 	}
 
@@ -160,7 +167,7 @@ public class UserResource {
 		+ "the user must still be at the given version (ETag).")
 	public UserDto replaceUser(@PathParam("id") @Parameter(description = "User ID") long id, UserRequest userRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		UserUpdate update = UserMapper.toUpdate(userRequest);
+		UserDefinition update = this.userMapper.toDefinition(userRequest);
 		return this.respond(this.userService.update(id, this.currentUsername(), _ -> update, V1Response.ifMatch(this.headers)));
 	}
 
@@ -183,7 +190,7 @@ public class UserResource {
 		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		return this.respond(this.userService.update(id, this.currentUsername(), MergePatch.of(patch, this.headers.getMediaType(),
-			UserRequest.class, UserMapper::toRequest, UserMapper::toUpdate), V1Response.ifMatch(this.headers)));
+			UserRequest.class, this.userMapper::toRequest, this.userMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -198,9 +205,7 @@ public class UserResource {
 		+ "user must still be at the given version (ETag).")
 	public void deleteUser(@PathParam("id") @Parameter(description = "User ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.userService.delete(id, this.currentUsername(), V1Response.ifMatch(this.headers))) {
-			throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
-		}
+		this.userService.delete(id, this.currentUsername(), V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 
@@ -212,6 +217,6 @@ public class UserResource {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), UserDto.class, Selection.View.FULL),
 			UserDto.class);
 		V1Response.etag(this.request, user.version());
-		return UserMapper.toDto(user);
+		return this.userMapper.toDto(user);
 	}
 }

@@ -22,14 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
-import net.netshot.netshot.report.AccessFailureDevice;
-import net.netshot.netshot.report.DailyChangeCount;
 import net.netshot.netshot.report.GroupConfigComplianceStat;
-import net.netshot.netshot.report.GroupSoftwareComplianceStat;
-import net.netshot.netshot.report.HardwareSupportCount;
-import net.netshot.netshot.report.HardwareSupportStats;
 import net.netshot.netshot.report.PolicyRuleDevice;
-import net.netshot.netshot.report.SoftwareLevelDevice;
 
 /**
  * Maps the results of the report use cases to their DTOs.

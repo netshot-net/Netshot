@@ -34,7 +34,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.testing.ApiTest;
@@ -299,7 +299,7 @@ class V1UserResourceTest {
 	@DisplayName("A user can't edit nor delete itself")
 	void noSelfEdition() throws Exception {
 		UiUser root = UiUser.withPassword("rooty", true, UiUser.LEVEL_ADMIN, "Rootypassword123");
-		long id = TestWiring.get().transactions().write(dsl -> new UserRepository().add(dsl, root));
+		long id = TestWiring.get().core().transactions().write(dsl -> new UserRepository().add(dsl, root));
 		Answer login = this.anonymous.post("/auth/session", """
 			{"username": "rooty", "password": "Rootypassword123"}""");
 		Assertions.assertEquals(201, login.status(), login.toString());

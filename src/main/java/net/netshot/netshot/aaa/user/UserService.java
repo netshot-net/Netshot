@@ -28,8 +28,8 @@ import org.slf4j.LoggerFactory;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -52,32 +52,20 @@ public class UserService {
 
 	private final Transactions transactions;
 	private final UserRepository repository;
+	/** The password policy of the local users, from the configuration. */
+	private final ConfigStore.Binding<PasswordPolicy> passwordPolicy;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the user queries
+	 * @param config the configuration store (the password policy)
 	 */
-	public UserService(Transactions transactions, UserRepository repository) {
+	public UserService(Transactions transactions, UserRepository repository, ConfigStore config) {
 		this.transactions = transactions;
 		this.repository = repository;
-	}
-
-	/**
-	 * Lists the users.
-	 *
-	 * @param page the window on the result
-	 * @return the users
-	 */
-	public List<UiUser> list(Page page) {
-		try {
-			return this.transactions.read(dsl -> this.repository.list(dsl, page));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to retrieve the users.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the users.");
-		}
+		this.passwordPolicy = config.bind(PasswordPolicy::from);
 	}
 
 	/**
@@ -137,7 +125,7 @@ public class UserService {
 	 * @throws NetshotException if the name is empty, a local user has no password or one which doesn't
 	 *         comply with the password policy, the name is taken
 	 */
-	public UiUser create(UserCreation creation) {
+	public UiUser create(UserDefinition creation) {
 		String username = creation.username();
 		if (username == null || username.trim().isEmpty()) {
 			log.warn("User posted an empty user name.");
@@ -160,7 +148,7 @@ public class UserService {
 		if (creation.local()) {
 			try {
 				valid = new UiUser(0, 0, null, username, true, creation.level(), null, List.of(), null)
-					.withPassword(password, PasswordPolicy.getMainPolicy());
+					.withPassword(password, this.passwordPolicy.get());
 			}
 			catch (PasswordPolicyException e) {
 				log.warn("New user password doesn't comply with password policy.", e);
@@ -187,20 +175,6 @@ public class UserService {
 	}
 
 	/**
-	 * Edits a user. The user making the request cannot edit itself.
-	 *
-	 * @param id the ID of the user to edit
-	 * @param currentUsername the name of the user making the request
-	 * @param update the new settings
-	 * @return the user
-	 * @throws NetshotException if the user doesn't exist, is the current one, or the new settings are invalid
-	 */
-	public UiUser update(long id, String currentUsername, UserUpdate update) {
-		return this.update(id, currentUsername, _ -> update, null,
-			new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user."));
-	}
-
-	/**
 	 * Edits a user, if it is at a given version: the new settings are computed from the user as it is, which can't
 	 * change meanwhile (to apply a patch). The user making the request cannot edit itself.
 	 *
@@ -212,27 +186,21 @@ public class UserService {
 	 * @throws NetshotException if the user doesn't exist, isn't at the expected version, is the current one, or the
 	 *         new settings are invalid
 	 */
-	public UiUser update(long id, String currentUsername, Function<UiUser, UserUpdate> change, Long expectedVersion) {
-		return this.update(id, currentUsername, change, expectedVersion,
-			new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist."));
-	}
-
-	private UiUser update(long id, String currentUsername, Function<UiUser, UserUpdate> change, Long expectedVersion,
-		NetshotException notFound) {
+	public UiUser update(long id, String currentUsername, Function<UiUser, UserDefinition> change, Long expectedVersion) {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
 					log.error("Unable to find the user {} to be edited.", id);
-					throw notFound;
+					throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
 				}
 				UiUser existing = this.repository.find(dsl, id);
 				if (existing.username().equals(currentUsername)) {
 					throw new NetshotException(ErrorCode.NETSHOT_LOCKED_USER, "Cannot edit the user who is making the request.");
 				}
 				Versions.check("user", version, expectedVersion);
-				UserUpdate update = change.apply(existing);
+				UserDefinition update = change.apply(existing);
 
 				String username = update.username();
 				if (username == null || username.trim().isEmpty()) {
@@ -251,7 +219,7 @@ public class UserService {
 					}
 					else {
 						try {
-							edited = edited.withPassword(update.password(), PasswordPolicy.getMainPolicy());
+							edited = edited.withPassword(update.password(), this.passwordPolicy.get());
 						}
 						catch (PasswordPolicyException e) {
 							log.error("New user password doesn't comply with password policy.", e);
@@ -278,34 +246,20 @@ public class UserService {
 	}
 
 	/**
-	 * Deletes a user. The user making the request cannot delete itself.
-	 *
-	 * @param id the ID of the user to delete
-	 * @param currentUsername the name of the user making the request
-	 * @return true if the user has been deleted, false if there is no such user
-	 * @throws NetshotException if the user is the current one
-	 */
-	public boolean delete(long id, String currentUsername) {
-		return this.delete(id, currentUsername, null);
-	}
-
-	/**
 	 * Deletes a user, if it is at a given version. The user making the request cannot delete itself.
 	 *
 	 * @param id the ID of the user to delete
 	 * @param currentUsername the name of the user making the request
 	 * @param expectedVersion the version the user must be at, or null for any
-	 * @return true if the user has been deleted, false if there is no such user
-	 * @throws NetshotException if the user is the current one, or isn't at the expected version
+	 * @throws NetshotException if the user doesn't exist, is the current one, or isn't at the expected version
 	 */
-	public boolean delete(long id, String currentUsername, Long expectedVersion) {
+	public void delete(long id, String currentUsername, Long expectedVersion) {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
 				Integer version = this.repository.lock(dsl, id);
 				if (version == null) {
-					log.info("No such user of ID {}", id);
-					return null;
+					throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
 				}
 				UiUser existing = this.repository.find(dsl, id);
 				if (existing.username().equals(currentUsername)) {
@@ -319,11 +273,7 @@ public class UserService {
 		catch (DataAccessException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the user.");
 		}
-		if (user == null) {
-			return false;
-		}
 		AAA_LOG.info("User {} of ID {} has been deleted", user.username(), user.id());
-		return true;
 	}
 
 	/**
@@ -350,7 +300,7 @@ public class UserService {
 				UiUser existing = this.repository.find(dsl, found.id());
 
 				try {
-					existing.checkPassword(password, PasswordPolicy.getMainPolicy());
+					existing.checkPassword(password, this.passwordPolicy.get());
 				}
 				catch (WrongPasswordException e) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_PASSWORD, "Invalid current password.");
@@ -365,7 +315,7 @@ public class UserService {
 
 				UiUser changed;
 				try {
-					changed = existing.withPassword(newPassword, PasswordPolicy.getMainPolicy());
+					changed = existing.withPassword(newPassword, this.passwordPolicy.get());
 				}
 				catch (PasswordPolicyException e) {
 					log.error("New user password doesn't comply with password policy.", e);

@@ -74,7 +74,8 @@ public class DeviceCredentialsReencryptChange implements CustomSqlChange {
 			"username", "auth_type", "auth_key", "priv_type", "priv_key",
 			"private_key"
 		};
-		String cryptPassword = net.netshot.netshot.platform.database.Database.getEncryptionPassword();
+		String cryptPassword = net.netshot.netshot.platform.database.Database.encryptionPassword(
+			net.netshot.netshot.platform.database.Database.migrationConfig());
 
 		JdbcConnection connection = (JdbcConnection) database.getConnection();
 		String select = String.format("select dtype, %s, %s from %s", idColumn,

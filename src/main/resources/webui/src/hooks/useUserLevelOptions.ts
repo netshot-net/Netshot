@@ -10,7 +10,7 @@ export const useUserLevelOptions = createOptionHook([
   {
     label: "user.role.readWritePlusScripts",
     description: "user.role.readWritePlusScriptsDescription",
-    value: Level.ExecureReadWrite,
+    value: Level.ExecuteReadWrite,
   },
   {
     label: "user.role.readWrite",
@@ -23,8 +23,8 @@ export const useUserLevelOptions = createOptionHook([
     value: Level.Operator,
   },
   {
-    label: "user.role.visitor",
-    description: "user.role.visitorDescription",
-    value: Level.Visitor,
+    label: "user.role.readOnly",
+    description: "user.role.readOnlyDescription",
+    value: Level.ReadOnly,
   },
 ])

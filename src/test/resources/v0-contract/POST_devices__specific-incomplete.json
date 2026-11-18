@@ -1,0 +1,4 @@
+{
+  "errorCode": 10,
+  "errorMsg": "The property 'username' is required for this type of credential set."
+}

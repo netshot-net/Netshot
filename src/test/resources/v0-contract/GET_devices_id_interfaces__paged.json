@@ -1,0 +1,20 @@
+[
+  {
+    "description": "Downlink",
+    "enabled": false,
+    "id": 2,
+    "interfaceName": "GigabitEthernet0/1",
+    "ip4Addresses": [
+      {
+        "addressUsage": "PRIMARY",
+        "ip": "10.0.1.1",
+        "prefixLength": 25
+      }
+    ],
+    "ip6Addresses": [ ],
+    "level3": true,
+    "macAddress": "0000.0000.0000",
+    "virtualDevice": "",
+    "vrfInstance": "VRF2"
+  }
+]

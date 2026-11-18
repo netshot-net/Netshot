@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.task;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +45,6 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
-import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -88,9 +85,6 @@ public class TaskService {
 	/** The number of items returned by the lists when the caller gives no limit. */
 	public static final int DEFAULT_LIMIT = 100;
 
-	// The final (completed) task statuses, i.e. the ones shown on the tasks time-based statistics.
-	private static final Set<Task.Status> FINAL_STATUSES =
-		Set.of(Task.Status.SUCCESS, Task.Status.FAILURE, Task.Status.CANCELLED);
 
 	private static final String SUBNET_SEPARATORS = "(\r\n|\n|;| |,)";
 	private static final Pattern SUBNET_PATTERN = Pattern.compile("^(?<ip>[0-9\\.]+)(/(?<mask>[0-9]+))?$");
@@ -100,6 +94,9 @@ public class TaskService {
 	private final TaskSubmitter taskSubmitter;
 	private final TaskEngine taskEngine;
 	private final DriverRegistry driverRegistry;
+	private final DeviceRepository deviceRepository;
+	private final DomainRepository domainRepository;
+	private final GroupRepository groupRepository;
 
 	/**
 	 * Instantiates the service.
@@ -109,33 +106,20 @@ public class TaskService {
 	 * @param taskSubmitter how to hand a new task over to the task engine
 	 * @param taskEngine how to cancel tasks and to know the size of the task engine
 	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRepository the device repository (to find the target devices)
+	 * @param domainRepository the domain repository (to find the target domains)
+	 * @param groupRepository the group repository (to find the target groups)
 	 */
 	public TaskService(Transactions transactions, TaskRepository repository, TaskSubmitter taskSubmitter, TaskEngine taskEngine,
-		DriverRegistry driverRegistry) {
+		DriverRegistry driverRegistry, DeviceRepository deviceRepository, DomainRepository domainRepository, GroupRepository groupRepository) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.taskSubmitter = taskSubmitter;
 		this.taskEngine = taskEngine;
 		this.driverRegistry = driverRegistry;
-	}
-
-	/**
-	 * Lists the tasks in their summary form.
-	 *
-	 * @param filter the criteria
-	 * @param page the window on the result; the limit defaults to {@link #DEFAULT_LIMIT}
-	 * @return the task summaries
-	 * @throws NetshotException if the tasks can't be read
-	 */
-	public List<TaskSummary> list(TaskFilter filter, Page page) {
-		Page effective = page.limit() == null ? new Page(page.offset(), DEFAULT_LIMIT) : page;
-		try {
-			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, filter, effective));
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the tasks.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks");
-		}
+		this.deviceRepository = deviceRepository;
+		this.domainRepository = domainRepository;
+		this.groupRepository = groupRepository;
 	}
 
 	/**
@@ -210,51 +194,18 @@ public class TaskService {
 	 * @throws NetshotException if the task doesn't exist or can't be read
 	 */
 	public Task get(long id) {
-		Task task = this.find(id);
-		if (task == null) {
-			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
-		}
-		return task;
-	}
-
-	/**
-	 * Lists the tasks of a device in their summary form.
-	 *
-	 * <p>As the former endpoint did, any failure, including an invalid window, is reported as
-	 * a database access error.</p>
-	 *
-	 * @param deviceId the device ID
-	 * @param offset the number of tasks to skip, or null
-	 * @param limit the maximum number of tasks to return, or null for {@link #DEFAULT_LIMIT}
-	 * @return the task summaries
-	 * @throws NetshotException if the tasks can't be read
-	 */
-	public List<TaskSummary> listByDevice(long deviceId, Integer offset, Integer limit) {
+		Task task;
 		try {
-			Page page = new Page(offset, limit == null ? DEFAULT_LIMIT : limit);
-			return this.transactions.read(dsl -> this.repository.findSummariesByDevice(dsl, deviceId, page));
-		}
-		catch (Exception e) {
-			log.error("Unable to fetch the tasks.", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks");
-		}
-	}
-
-	/**
-	 * Finds a task (see {@link TaskRepository#find} for what is loaded).
-	 *
-	 * @param id the task ID
-	 * @return the detached task, or null if there is no such task
-	 * @throws NetshotException if the task can't be read
-	 */
-	public Task find(long id) {
-		try {
-			return this.transactions.read(dsl -> this.repository.find(dsl, id));
+			task = this.transactions.read(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task");
 		}
+		if (task == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
+		}
+		return task;
 	}
 
 	/**
@@ -276,7 +227,7 @@ public class TaskService {
 					log.error("Unable to find the task {}.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
 				}
-				return mapper.map(task, deviceId -> deviceId == null ? null : new DeviceRepository().find(dsl, deviceId));
+				return mapper.map(task, deviceId -> deviceId == null ? null : this.deviceRepository.find(dsl, deviceId));
 			});
 		}
 		catch (DataAccessException e) {
@@ -328,18 +279,17 @@ public class TaskService {
 	}
 
 	/**
-	 * Edits a task. The only change is the cancellation of the task.
+	 * Cancels a task.
 	 *
 	 * @param id the task ID
-	 * @param cancel true to cancel the task
 	 * @param author the user cancelling the task
-	 * @return the task, as it is after the change (detached)
+	 * @return the task, as it is once cancelled (detached)
 	 * @throws NetshotException if the task doesn't exist, can't be cancelled or can't be read
 	 */
-	public Task update(long id, boolean cancel, String author) {
+	public Task cancel(long id, String author) {
 		Task task;
 		try {
-			task = this.transactions.write(dsl -> this.repository.find(dsl, id));
+			task = this.transactions.read(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
@@ -349,17 +299,8 @@ public class TaskService {
 			log.error("Unable to find the task {}.", id);
 			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Unable to find the task.");
 		}
-		if (cancel) {
-			this.cancel(task, author);
-			try {
-				task = this.transactions.read(dsl -> this.repository.find(dsl, id));
-			}
-			catch (DataAccessException e) {
-				log.error("Unable to fetch the task {}.", id, e);
-				throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task.");
-			}
-		}
-		return task;
+		this.cancel(task, author);
+		return this.get(id);
 	}
 
 	private void cancel(Task task, String author) {
@@ -421,56 +362,6 @@ public class TaskService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the task counts", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task counts");
-		}
-	}
-
-	/**
-	 * Gets time-based statistics (histogram) about the completed tasks over a date range.
-	 *
-	 * @param after the start of the range in milliseconds since 1970, or null for the epoch
-	 * @param before the end of the range in milliseconds since 1970, or null for now
-	 * @param buckets the number of time buckets to split the range into (at most 366), or null for 48
-	 * @return the statistics
-	 * @throws NetshotException if the tasks can't be read
-	 */
-	public TaskStats getStats(Long after, Long before, Integer buckets) {
-		long from = after == null ? 0L : after;
-		long to = before == null ? System.currentTimeMillis() : before;
-		int binCount = buckets == null ? 48 : Math.max(1, Math.min(366, buckets));
-		long span = Math.max(1L, to - from);
-		double step = ((double) span) / binCount;
-		try {
-			return this.transactions.read(dsl -> {
-				Map<Task.Status, Long> statusCounts = new HashMap<>();
-				for (Task.Status status : FINAL_STATUSES) {
-					statusCounts.put(status, 0L);
-				}
-				List<TaskStats.Bin> bins = new ArrayList<>();
-				for (int i = 0; i < binCount; i++) {
-					Instant bucketStart = Instant.ofEpochMilli(from + Math.round(i * step));
-					Instant bucketEnd = Instant.ofEpochMilli(i == binCount - 1 ? to : from + Math.round((i + 1) * step));
-					Map<Task.Status, Long> countByStatus = new HashMap<>();
-					for (Task.Status status : FINAL_STATUSES) {
-						countByStatus.put(status, 0L);
-					}
-					for (TaskStatusCount count : this.repository.countByStatus(dsl, FINAL_STATUSES, bucketStart, bucketEnd)) {
-						countByStatus.put(count.status(), count.count());
-						statusCounts.merge(count.status(), count.count(), Long::sum);
-					}
-					bins.add(new TaskStats.Bin(Date.from(bucketStart), Date.from(bucketEnd), countByStatus));
-				}
-				Instant rangeStart = Instant.ofEpochMilli(from);
-				Instant rangeEnd = Instant.ofEpochMilli(to);
-				Map<String, Long> typeCounts = new HashMap<>();
-				for (String typeName : TaskRepository.TYPE_NAMES) {
-					typeCounts.put(typeName, this.repository.countByType(dsl, typeName, FINAL_STATUSES, rangeStart, rangeEnd));
-				}
-				return new TaskStats(bins, statusCounts, typeCounts);
-			});
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to fetch the task stats", e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task stats");
 		}
 	}
 
@@ -642,7 +533,7 @@ public class TaskService {
 		Domain domain;
 		try {
 			domain = this.transactions.write(dsl -> {
-				Domain found = new DomainRepository().find(dsl, c.domain());
+				Domain found = this.domainRepository.find(dsl, c.domain());
 				if (found == null) {
 					log.error("No such domain of ID {}.", c.domain());
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
@@ -755,7 +646,7 @@ public class TaskService {
 	// Loads the target device of a device-based task.
 	private Device loadDevice(Long deviceId) {
 		return this.inTransaction(dsl -> {
-			Device device = new DeviceRepository().find(dsl, deviceId);
+			Device device = this.deviceRepository.find(dsl, deviceId);
 			if (device == null) {
 				log.error("Unable to find the device {}.", deviceId);
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, "Unable to find the device.");
@@ -765,7 +656,7 @@ public class TaskService {
 	}
 
 	private DeviceGroup loadGroup(DSLContext dsl, Long groupId) {
-		DeviceGroup group = new GroupRepository().find(dsl, groupId);
+		DeviceGroup group = this.groupRepository.find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Unable to find the group.");
@@ -777,7 +668,7 @@ public class TaskService {
 	private List<Long> resolveDeviceList(DSLContext dsl, TaskCreation c) {
 		List<Long> devices = new ArrayList<>();
 		for (Long deviceId : c.deviceList()) {
-			Device device = new DeviceRepository().find(dsl, deviceId);
+			Device device = this.deviceRepository.find(dsl, deviceId);
 			if (device == null) {
 				log.error("Unable to find the device {}.", deviceId);
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, String.format("Unable to find device %d.", deviceId));
