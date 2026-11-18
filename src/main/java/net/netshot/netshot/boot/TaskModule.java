@@ -89,7 +89,8 @@ public record TaskModule(
 
 	/**
 	 * Builds the module. The task manager and the cluster manager, or the task handlers, use each other: the task
-	 * manager receives them once built (the only two-step initialization of the wiring).
+	 * manager receives them once built ({@code setCluster}, {@code setJobFactory}: the only two-step initialization of
+	 * the wiring).
 	 *
 	 * @param core the core module
 	 * @param access the access module

@@ -25,8 +25,7 @@ import net.netshot.netshot.platform.lifecycle.ServiceStatus;
 
 /**
  * Gives the state of the services of the server (see {@link ServiceManager}): whether it is ready and healthy,
- * and the status and statistics of each service. The manager is created after the wiring (from its services), and
- * attached to this service by the startup code; as long as there is none, there is no service to report.
+ * and the status and statistics of each service.
  */
 public class ServiceHealthService {
 

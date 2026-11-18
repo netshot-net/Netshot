@@ -32,8 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Starts the services in the given order, and stops them in the reverse order.
  *
- * <p>If a service fails to start, the services already started are stopped (in the reverse order) and
- * {@link #start()} throws: the server doesn't run half started. {@link #stop()} stops every running service,
+ * <p>If a service fails to start, it is stopped (to release what its start built), then the services already
+ * started (in the reverse order), and {@link #start()} throws: the server doesn't run half started. {@link #stop()} stops every running service,
  * even if some of them fail to stop. Typically called by a JVM shutdown hook.</p>
  */
 @Slf4j
