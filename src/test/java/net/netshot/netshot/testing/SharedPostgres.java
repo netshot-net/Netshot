@@ -146,7 +146,7 @@ final class SharedPostgres implements AutoCloseable {
 
 	private Properties buildConfig(String databaseName, String schemaName) {
 		Properties config = new Properties();
-		config.setProperty("netshot.db.driver_class", "org.postgresql.Driver");
+		config.setProperty("netshot.db.driverclass", "org.postgresql.Driver");
 		config.setProperty("netshot.db.url", "jdbc:postgresql://%s:%d/%s?currentSchema=%s".formatted(
 			this.container.getHost(), this.container.getFirstMappedPort(), databaseName, schemaName));
 		config.setProperty("netshot.db.username", this.container.getUsername());
