@@ -21,8 +21,9 @@ package net.netshot.netshot.boot;
 import java.util.ArrayList;
 import java.util.List;
 
-
-import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.collector.SshServer;
+import net.netshot.netshot.api.rest.RestServer;
+import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.ConfigStore;
@@ -39,7 +40,6 @@ import net.netshot.netshot.platform.lifecycle.ServiceManager;
  * <p>The REST resources receive what they may inject through the {@code RestDependencies} of the {@link ApiModule},
  * given to the REST server. The other objects receive their dependencies by constructor.</p>
  */
-@Slf4j
 public final class Wiring {
 
 	private final CoreModule core;
@@ -112,7 +112,7 @@ public final class Wiring {
 		list.add(this.aaa.oidcDiscovery());
 		// Before the clustering manager, which can start running tasks
 		list.add(this.tasks.lockManager());
-		this.tasks.clusterManager().ifPresentOrElse(list::add, () -> disabled("cluster manager", "netshot.cluster.enabled"));
+		this.tasks.clusterManager().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(ClusterManager.NAME, ClusterManager.ENABLED));
 		list.add(this.credentials.vaultTokenRefresher());
 		// Before the task manager, which runs the tasks connecting to the devices
 		list.add(this.access.sshClientService());
@@ -120,20 +120,10 @@ public final class Wiring {
 		// The receivers submit tasks: after the task manager
 		list.add(this.tasks.syslogServer());
 		list.add(this.tasks.snmpTrapReceiver());
-		this.access.sshServer().ifPresentOrElse(list::add, () -> disabled("SSH/SCP/SFTP server", "netshot.sshserver.enabled"));
+		this.access.sshServer().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(SshServer.NAME, SshServer.ENABLED));
 		// Last: the server is ready when it accepts the requests
-		this.api.restServer().ifPresentOrElse(list::add, () -> disabled("Web/REST server", "netshot.http.enabled"));
+		this.api.restServer().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(RestServer.NAME, RestServer.ENABLED));
 		return list;
-	}
-
-	/**
-	 * Logs that a service is disabled by a setting which needs a restart.
-	 *
-	 * @param name the name of the service
-	 * @param setting the setting which disables it
-	 */
-	private static void disabled(String name, String setting) {
-		log.info("The {} is disabled by configuration ({}).", name, setting);
 	}
 
 	/**

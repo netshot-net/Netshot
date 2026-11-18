@@ -121,6 +121,9 @@ import org.apache.sshd.common.kex.KexProposalOption;
 @Slf4j
 public final class SshServer implements Service {
 
+	/** The name of the service (also while disabled, when it isn't built). */
+	public static final String NAME = "SSH/SCP/SFTP server";
+
 	/** The AAA logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
@@ -381,7 +384,7 @@ public final class SshServer implements Service {
 
 	@Override
 	public String name() {
-		return "SSH/SCP/SFTP server";
+		return NAME;
 	}
 
 	@Override
@@ -1089,7 +1092,7 @@ public final class SshServer implements Service {
 			this.sshd.setSubsystemFactories(Collections.singletonList(sftpFactory));
 		}
 		else {
-			log.info("SFTP is disabled by configuration");
+			log.info("SFTP is disabled by configuration.");
 		}
 		this.sshd.setFileSystemFactory(new DeviceVirtualFileSystemFactory());
 

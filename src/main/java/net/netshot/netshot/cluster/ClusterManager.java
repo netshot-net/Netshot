@@ -79,6 +79,9 @@ import org.postgresql.PGNotification;
 @Slf4j
 public class ClusterManager implements Service, ClusterCoordinator, ClusterLink {
 
+	/** The name of the service (also while disabled, when it isn't built). */
+	public static final String NAME = "Cluster manager";
+
 	/** Name of the PSQL notification channel. */
 	private static final String NOTIFICATION_CHANNEL = "clustering";
 
@@ -394,7 +397,7 @@ public class ClusterManager implements Service, ClusterCoordinator, ClusterLink 
 
 	@Override
 	public String name() {
-		return "Cluster manager";
+		return NAME;
 	}
 
 	@Override

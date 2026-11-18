@@ -25,7 +25,13 @@ import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
@@ -160,5 +166,25 @@ class ServiceManagerTest {
 		Assertions.assertThrows(IllegalStateException.class, () -> manager.add(service("c", false, false)));
 		manager.stop();
 		Assertions.assertEquals(List.of("start a", "start b", "stop b", "stop a"), this.calls);
+	}
+
+	@Test
+	@DisplayName("A disabled service is logged with its setting: a warning when it's enabled by default")
+	void logDisabled() {
+		Logger logger = (Logger) LoggerFactory.getLogger(ServiceManager.class);
+		ListAppender<ILoggingEvent> logs = new ListAppender<>();
+		logs.start();
+		logger.addAppender(logs);
+		try {
+			ServiceManager.logDisabled("Test server", Setting.bool("netshot.test.server.enabled").defaultValue(true).restart());
+			ServiceManager.logDisabled("Test cluster", Setting.bool("netshot.test.cluster.enabled").defaultValue(false).restart());
+		}
+		finally {
+			logger.detachAppender(logs);
+		}
+		Assertions.assertEquals(List.of(
+			"WARN The service 'Test server' is disabled by configuration (netshot.test.server.enabled).",
+			"INFO The service 'Test cluster' is disabled by configuration (netshot.test.cluster.enabled)."),
+			logs.list.stream().map(e -> e.getLevel() + " " + e.getFormattedMessage()).toList());
 	}
 }
