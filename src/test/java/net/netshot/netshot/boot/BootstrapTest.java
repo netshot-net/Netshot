@@ -44,4 +44,14 @@ class BootstrapTest {
 		Assertions.assertEquals("Unable to read the configuration: No configuration file was found (tried %s)".formatted(missing), e.getMessage());
 		Assertions.assertNull(e.getCause(), "No stack trace for a configuration error");
 	}
+
+	@Test
+	@DisplayName("The JVM check tells GraalVM 25 from the other JVMs, also without the optional vendor version")
+	void checkJvm() {
+		Assertions.assertTrue(Bootstrap.checkJvm("Oracle GraalVM 25.0.4+7.1", "Oracle Corporation", "25.0.4+7-LTS-jvmci-b01"));
+		Assertions.assertFalse(Bootstrap.checkJvm("Temurin-25.0.1+8", "Eclipse Adoptium", "25.0.1+8-LTS"));
+		Assertions.assertFalse(Bootstrap.checkJvm("Oracle GraalVM 21.0.9+7.1", "Oracle Corporation", "21.0.9+7-LTS-jvmci-23.1-b79"));
+		Assertions.assertFalse(Bootstrap.checkJvm(null, "Some vendor", "25.0.1"));
+		Assertions.assertFalse(Bootstrap.checkJvm(null, null, null));
+	}
 }
