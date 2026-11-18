@@ -82,7 +82,7 @@ public class DeviceDriverService {
 	public void reload() {
 		this.clusterReload.run();
 		try {
-			this.driverRegistry.refresh();
+			this.driverRegistry.reload();
 			AAA_LOG.info("The device drivers have been reloaded ({} drivers).", this.driverRegistry.getAllDrivers().size());
 		}
 		catch (Exception e) {

@@ -72,8 +72,8 @@ class DriverRegistryTest {
 	}
 
 	@Test
-	@DisplayName("Empty before the first refresh")
-	void emptyBeforeRefresh() {
+	@DisplayName("Empty before the first reload")
+	void emptyBeforeReload() {
 		Assertions.assertTrue(this.registry.getAllDrivers().isEmpty());
 		Assertions.assertEquals("", this.registry.getAllDriverHash());
 		Assertions.assertEquals(0L, this.registry.stats().get("loads"));
@@ -107,19 +107,19 @@ class DriverRegistryTest {
 
 	@Test
 	@DisplayName("The global hash changes when a driver changes, and only then")
-	void hashChangesOnRefresh() throws Exception {
+	void hashChangesOnReload() throws Exception {
 		this.writeUserDriver("1.0");
-		this.registry.refresh();
+		this.registry.reload();
 		String hash = this.registry.getAllDriverHash();
 		Assertions.assertTrue(hash.matches("[0-9a-f]{64}"), hash);
-		this.registry.refresh();
+		this.registry.reload();
 		Assertions.assertEquals(hash, this.registry.getAllDriverHash());
 		this.writeUserDriver("2.0");
-		this.registry.refresh();
+		this.registry.reload();
 		Assertions.assertNotEquals(hash, this.registry.getAllDriverHash());
 		Assertions.assertEquals("2.0", this.registry.getDriverByName("UserTestDriver").getVersion());
 		Files.delete(this.driversFolder.resolve("UserTestDriver.js"));
-		this.registry.refresh();
+		this.registry.reload();
 		Assertions.assertNull(this.registry.getDriverByName("UserTestDriver"));
 	}
 }

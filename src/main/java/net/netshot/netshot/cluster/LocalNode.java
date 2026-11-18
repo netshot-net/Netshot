@@ -147,7 +147,7 @@ interface LocalNode {
 
 			@Override
 			public void reloadDrivers() throws Exception {
-				driverRegistry.refresh();
+				driverRegistry.reload();
 			}
 
 			@Override

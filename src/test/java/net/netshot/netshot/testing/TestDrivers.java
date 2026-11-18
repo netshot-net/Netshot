@@ -42,7 +42,7 @@ public final class TestDrivers {
 		if (registry == null) {
 			DriverRegistry loading = new DriverRegistry(new DriverLoader(TestConfig.store()));
 			try {
-				loading.refresh();
+				loading.reload();
 			}
 			catch (Exception e) {
 				throw new IllegalStateException("Unable to load the drivers", e);
@@ -60,7 +60,7 @@ public final class TestDrivers {
 	 */
 	public static synchronized DriverRegistry reload() throws Exception {
 		DriverRegistry shared = registry();
-		shared.refresh();
+		shared.reload();
 		return shared;
 	}
 
