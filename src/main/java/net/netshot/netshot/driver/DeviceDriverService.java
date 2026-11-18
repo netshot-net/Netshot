@@ -20,6 +20,9 @@ package net.netshot.netshot.driver;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.query.InMemoryList;
 import net.netshot.netshot.platform.query.InMemoryList.Column;
@@ -36,6 +39,9 @@ import net.netshot.netshot.platform.query.SortOrder;
  */
 @Slf4j
 public class DeviceDriverService {
+
+	/** The audit log. */
+	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
 	private static final InMemoryList<DeviceDriver> LIST = new InMemoryList<>(List.of(SortOrder.asc("name")),
 		Column.<DeviceDriver>string("name", DeviceDriver::getName, true),
@@ -77,6 +83,7 @@ public class DeviceDriverService {
 		this.clusterReload.run();
 		try {
 			this.driverRegistry.refresh();
+			AAA_LOG.info("The device drivers have been reloaded ({} drivers).", this.driverRegistry.getAllDrivers().size());
 		}
 		catch (Exception e) {
 			log.error("Error while refreshing the device types.", e);
