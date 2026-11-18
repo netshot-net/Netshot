@@ -183,6 +183,9 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	/** The SNMP object. */
 	private volatile Snmp snmp;
 
+	/** Whether the receiver is started (guarded by the receiver). */
+	private boolean running;
+
 	/** The thread pool. */
 	private ThreadPool threadPool;
 
@@ -231,13 +234,17 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	}
 
 	@Override
-	public void start() {
-		this.applySettings(this.config.current());
+	public synchronized void start() {
+		this.running = true;
+		// Listening first: a reload while starting is applied, at worst twice
 		this.config.addListener(this.listener);
+		this.applySettings(this.config.current());
 	}
 
 	@Override
 	public synchronized void stop() {
+		// A reload already calling the listener mustn't open the receiver again
+		this.running = false;
 		this.config.removeListener(this.listener);
 		this.closeReceiver();
 	}
@@ -266,9 +273,14 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	 * the SNMPv3 engine ID change, closes it when the receiver is disabled; the communities and the users are applied
 	 * in place.
 	 *
+	 * Ignored once the receiver is stopped (a reload which started before the stop).
+	 *
 	 * @param newConfig the configuration
 	 */
-	private synchronized void applySettings(Config newConfig) {
+	synchronized void applySettings(Config newConfig) {
+		if (!this.running) {
+			return;
+		}
 		Settings newSettings = Settings.from(newConfig);
 		Settings oldSettings = this.settings;
 		this.settings = newSettings;
