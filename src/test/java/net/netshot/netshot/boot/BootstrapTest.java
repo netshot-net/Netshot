@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.boot;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -43,6 +44,24 @@ class BootstrapTest {
 		BootstrapException e = Assertions.assertThrows(BootstrapException.class, () -> Bootstrap.initialize(ConfigStore.ofFiles(List.of(missing))));
 		Assertions.assertEquals("Unable to read the configuration: No configuration file was found (tried %s)".formatted(missing), e.getMessage());
 		Assertions.assertNull(e.getCause(), "No stack trace for a configuration error");
+	}
+
+	@Test
+	@DisplayName("A required DB encryption password which isn't configured is a configuration error, without stack trace")
+	void encryptionPasswordRequired() throws Exception {
+		Path file = this.tempDir.resolve("netshot.conf");
+		Files.writeString(file, "netshot.db.encryptionpassword.required = true\n");
+		ConfigStore config = ConfigStore.ofFiles(List.of(file.toString()));
+		config.load();
+		BootstrapException e = Assertions.assertThrows(BootstrapException.class, () -> Bootstrap.checkSettings(config));
+		Assertions.assertTrue(e.getMessage().startsWith("Invalid configuration: The DB encryption password (netshot.db.encryptionpassword) must be configured"),
+			e.getMessage());
+		Assertions.assertNull(e.getCause());
+
+		Files.writeString(file, "netshot.db.encryptionpassword.required = true\nnetshot.db.encryptionpassword = secret\n");
+		ConfigStore configured = ConfigStore.ofFiles(List.of(file.toString()));
+		configured.load();
+		Bootstrap.checkSettings(configured);
 	}
 
 	@Test

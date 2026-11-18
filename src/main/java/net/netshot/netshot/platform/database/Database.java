@@ -129,8 +129,6 @@ public final class Database {
 	 * @throws Exception if the schema can't be migrated
 	 */
 	public static void migrate(Config config) throws Exception {
-		// Check the encryption password is available before touching the DB
-		Database.encryptionPassword(config);
 		try {
 			System.setProperty("liquibase.analytics.enabled", "false");
 			Class.forName("org.postgresql.Driver");

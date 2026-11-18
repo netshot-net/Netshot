@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigException;
 import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.platform.tls.Truststore;
 
@@ -45,7 +46,8 @@ public final class Bootstrap {
 	 * <li>the crypto libraries are registered, before anything initializes the SSH library, which checks the
 	 * available crypto providers (EdDSA, X25519...) only once;</li>
 	 * <li>the catalog of the settings is built (it initializes the classes which declare them, the SSH ones
-	 * included), and the loaded configuration is checked against it (secret files, unknown items);</li>
+	 * included), and the loaded configuration is checked against it (secret files, unknown items, required DB
+	 * encryption password); from here, an error is also logged;</li>
 	 * <li>the logging follows the changes of the configuration (first listener, so that the other changes are
 	 * logged accordingly);</li>
 	 * <li>the JVM is checked, the truststore is applied.</li>
@@ -57,8 +59,15 @@ public final class Bootstrap {
 	 */
 	public static void initialize(ConfigStore config) throws BootstrapException {
 		load(config);
-		registerCryptoLibraries(config.current());
-		checkSettings(config);
+		// The logging is set up: the next errors are logged too (the console is the only output of the ones before)
+		try {
+			registerCryptoLibraries(config.current());
+			checkSettings(config);
+		}
+		catch (BootstrapException e) {
+			log.error(e.getMessage(), e.getCause());
+			throw e;
+		}
 		config.addListener(LoggingSetup::apply);
 		checkJvm();
 		log.info("Selecting truststore.");
@@ -99,21 +108,28 @@ public final class Bootstrap {
 			BouncyCastleLoader.register(config);
 		}
 		catch (Exception e) {
-			throw new BootstrapException(String.valueOf(e.getMessage()), e);
+			throw new BootstrapException("Unable to register the crypto libraries: " + e.getMessage(), e);
 		}
 	}
 
 	/**
-	 * Sets the catalog of the settings, and checks the loaded configuration against it.
+	 * Sets the catalog of the settings, and checks the loaded configuration against it, and that the DB encryption
+	 * password is configured if it's required.
 	 *
 	 * @param config the configuration store
 	 * @throws BootstrapException if the configuration is invalid (the message tells why)
 	 */
-	private static void checkSettings(ConfigStore config) throws BootstrapException {
+	static void checkSettings(ConfigStore config) throws BootstrapException {
 		try {
 			config.setCatalog(NetshotSettings.catalog());
 		}
 		catch (ConfigException e) {
+			throw new BootstrapException("Invalid configuration: " + e.getMessage());
+		}
+		try {
+			Database.encryptionPassword(config.current());
+		}
+		catch (IllegalStateException e) {
 			throw new BootstrapException("Invalid configuration: " + e.getMessage());
 		}
 	}

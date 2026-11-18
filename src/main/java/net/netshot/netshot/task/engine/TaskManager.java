@@ -49,7 +49,6 @@ import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
-import org.slf4j.MarkerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
@@ -426,8 +425,8 @@ public final class TaskManager implements Service, TaskEngine {
 			this.masterScheduler.start();
 		}
 		catch (Exception e) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate the Master Task Manager", e);
-			throw new RuntimeException("Unable to instantiate the Master Task Manager.", e);
+			// Logged by the service manager
+			throw new IllegalStateException("Unable to instantiate the Master Task Manager", e);
 		}
 		try {
 			Properties params = new Properties();
@@ -442,8 +441,7 @@ public final class TaskManager implements Service, TaskEngine {
 			this.runnerScheduler.start();
 		}
 		catch (Exception e) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate the Runner Task Manager", e);
-			throw new RuntimeException("Unable to instantiate the Runner Task Manager.", e);
+			throw new IllegalStateException("Unable to instantiate the Runner Task Manager", e);
 		}
 	}
 
