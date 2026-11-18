@@ -38,9 +38,6 @@ public final class Application implements AutoCloseable {
 	private final Wiring wiring;
 	private final ServiceManager services;
 
-	/** Whether the application is being closed or was closed (e.g. by the shutdown hook, while it starts). */
-	private volatile boolean closed;
-
 	private Application(Wiring wiring) {
 		this.wiring = wiring;
 		this.services = wiring.services();
@@ -120,7 +117,6 @@ public final class Application implements AutoCloseable {
 	 */
 	@Override
 	public void close() {
-		this.closed = true;
 		this.services.stop();
 	}
 
@@ -131,6 +127,6 @@ public final class Application implements AutoCloseable {
 	 * @return true if closing or closed
 	 */
 	public boolean isClosed() {
-		return this.closed;
+		return this.services.isStopping();
 	}
 }

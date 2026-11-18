@@ -125,6 +125,50 @@ class ServiceManagerTest {
 	}
 
 	@Test
+	@DisplayName("A stop requested while the services start (SIGTERM) waits for the service being started, and starts no other")
+	void stopWhileStarting() throws Exception {
+		List<ServiceManager> manager = new ArrayList<>();
+		List<Thread> stopper = new ArrayList<>();
+		Service stopping = new Service() {
+			@Override
+			public String id() {
+				return "b";
+			}
+
+			@Override
+			public String name() {
+				return "b";
+			}
+
+			@Override
+			public void start() throws InterruptedException {
+				calls.add("start b");
+				Thread thread = new Thread(() -> manager.get(0).stop());
+				stopper.add(thread);
+				thread.start();
+				while (!manager.get(0).isStopping()) {
+					Thread.sleep(5);
+				}
+			}
+
+			@Override
+			public void stop() {
+				calls.add("stop b");
+			}
+
+			@Override
+			public boolean isHealthy() {
+				return true;
+			}
+		};
+		manager.add(new ServiceManager(List.of(service("a", false, false), stopping, service("c", false, false))));
+		manager.get(0).start();
+		stopper.get(0).join(5000);
+		Assertions.assertEquals(List.of("start a", "start b", "stop b", "stop a"), this.calls);
+		Assertions.assertEquals(ServiceState.NEW, manager.get(0).status().get(2).state());
+	}
+
+	@Test
 	@DisplayName("A stop failure doesn't prevent the other services from being stopped")
 	void stopFailureContinues() throws Exception {
 		ServiceManager manager = new ServiceManager(List.of(
