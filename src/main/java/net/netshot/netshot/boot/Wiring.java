@@ -69,8 +69,10 @@ public final class Wiring {
 		this.aaa = AaaModule.create(this.core);
 		// The lifecycle of the services (filled once they are all built), and the report of their state
 		this.services = new ServiceManager(List.of());
-		this.system = SystemModule.create(this.core, this.tasks, this.aaa, this.services);
+		this.system = SystemModule.create(this.tasks, this.aaa, this.services);
 		this.api = ApiModule.create(this.core, this.compliance, this.tasks, this.inventory, this.credentials, this.aaa, this.system);
+		// The channels which subscribe to the domain events
+		this.api.hookDispatcher().register(this.core.domainEvents());
 		this.serviceList().forEach(this.services::add);
 	}
 
@@ -110,7 +112,7 @@ public final class Wiring {
 		list.add(this.aaa.oidcDiscovery());
 		// Before the clustering manager, which can start running tasks
 		list.add(this.tasks.lockManager());
-		this.tasks.clusterManager().ifPresentOrElse(list::add, () -> log.info("High Availability is not enabled."));
+		this.tasks.clusterManager().ifPresentOrElse(list::add, () -> disabled("cluster manager", "netshot.cluster.enabled"));
 		list.add(this.credentials.vaultTokenRefresher());
 		// Before the task manager, which runs the tasks connecting to the devices
 		list.add(this.access.sshClientService());
@@ -118,10 +120,20 @@ public final class Wiring {
 		// The receivers submit tasks: after the task manager
 		list.add(this.tasks.syslogServer());
 		list.add(this.tasks.snmpTrapReceiver());
-		this.access.sshServer().ifPresentOrElse(list::add, () -> log.warn("The SSH server is disabled by configuration."));
+		this.access.sshServer().ifPresentOrElse(list::add, () -> disabled("SSH/SCP/SFTP server", "netshot.sshserver.enabled"));
 		// Last: the server is ready when it accepts the requests
-		this.api.restServer().ifPresentOrElse(list::add, () -> log.info("HTTP server is not enabled."));
+		this.api.restServer().ifPresentOrElse(list::add, () -> disabled("Web/REST server", "netshot.http.enabled"));
 		return list;
+	}
+
+	/**
+	 * Logs that a service is disabled by a setting which needs a restart.
+	 *
+	 * @param name the name of the service
+	 * @param setting the setting which disables it
+	 */
+	private static void disabled(String name, String setting) {
+		log.info("The {} is disabled by configuration ({}).", name, setting);
 	}
 
 	/**
