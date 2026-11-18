@@ -18,10 +18,6 @@
  */
 package net.netshot.netshot.testing;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
 import java.util.Map;
 
 import net.netshot.netshot.aaa.user.ApiToken;
@@ -36,19 +32,15 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import org.quartz.Scheduler;
 import org.quartz.impl.SchedulerRepository;
 
-
 /**
  * Extension of {@link ApiTest} and {@link ContractTest}, registered after {@link DatabaseExtension}: before
- * the annotated class, starts the task manager and the REST server of the application (waiting for it to listen; the
+ * the annotated class, starts the task manager and the REST server of the application (it listens once started; the
  * {@link DatabaseExtension} closes the application after the class). For an {@link ApiTest}, also replaces the users by the API
  * tokens of {@link TestServer#API_TOKENS} before each test, and removes the tokens after it. Resolves the
  * {@link TestServer} parameters (each API version builds its clients from it).
  */
 public final class RestServerExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback,
 	ParameterResolver {
-
-	/** How long to wait for the REST server to listen, in milliseconds. */
-	private static final long START_TIMEOUT = 30_000;
 
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
@@ -64,7 +56,6 @@ public final class RestServerExtension implements BeforeAllCallback, BeforeEachC
 			scheduler.standby();
 			scheduler.clear();
 		}
-		waitUntilListening(TestServer.of(context).apiUri());
 	}
 
 	@Override
@@ -116,27 +107,5 @@ public final class RestServerExtension implements BeforeAllCallback, BeforeEachC
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Waits for the REST server, started in its own thread, to accept connections.
-	 *
-	 * @param uri the URI of the API
-	 * @throws InterruptedException if interrupted while waiting
-	 */
-	private static void waitUntilListening(URI uri) throws InterruptedException {
-		long deadline = System.currentTimeMillis() + START_TIMEOUT;
-		while (true) {
-			try (Socket socket = new Socket()) {
-				socket.connect(new InetSocketAddress(uri.getHost(), uri.getPort()), 200);
-				return;
-			}
-			catch (IOException e) {
-				if (System.currentTimeMillis() > deadline) {
-					throw new IllegalStateException("The REST server doesn't listen on %s".formatted(uri), e);
-				}
-				Thread.sleep(50);
-			}
-		}
 	}
 }
