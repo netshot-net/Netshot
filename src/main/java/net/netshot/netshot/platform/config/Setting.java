@@ -21,6 +21,7 @@ package net.netshot.netshot.platform.config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,6 +79,9 @@ public final class Setting<T> {
 	/** The legacy key, read if the setting isn't set (null for none). */
 	private final String alias;
 
+	/** Converts the value of the legacy key to the value of the setting (e.g. inverts a boolean). */
+	private final UnaryOperator<T> aliasConversion;
+
 	/** When a change of the setting is applied. */
 	private final Reload reload;
 
@@ -90,6 +94,7 @@ public final class Setting<T> {
 		this.max = builder.max;
 		this.secret = builder.secret;
 		this.alias = builder.alias;
+		this.aliasConversion = builder.aliasConversion;
 		this.reload = reload;
 	}
 
@@ -288,6 +293,9 @@ public final class Setting<T> {
 		T value;
 		try {
 			value = this.parser.apply(textValue);
+			if (!readKey.equals(this.key)) {
+				value = this.aliasConversion.apply(value);
+			}
 		}
 		catch (IllegalArgumentException e) {
 			log.error("Unable to parse the {} value of configuration item '{}', using default value {}.",
@@ -302,20 +310,6 @@ public final class Setting<T> {
 		return value;
 	}
 
-	/**
-	 * Reads the text value of the setting, without parsing it (secret files are read).
-	 *
-	 * @param config the configuration
-	 * @return the text value, null if not set
-	 */
-	String readText(Config config) {
-		String textValue = this.readText(config, this.key);
-		if (textValue == null && this.alias != null) {
-			textValue = this.readText(config, this.alias);
-		}
-		return textValue;
-	}
-
 	private String readText(Config config, String readKey) {
 		return this.secret ? config.getSecret(readKey) : config.get(readKey);
 	}
@@ -327,6 +321,7 @@ public final class Setting<T> {
 		builder.max = this.max;
 		builder.secret = this.secret;
 		builder.alias = this.alias;
+		builder.aliasConversion = this.aliasConversion;
 		return builder;
 	}
 
@@ -350,6 +345,7 @@ public final class Setting<T> {
 		private Comparable<T> max;
 		private boolean secret;
 		private String alias;
+		private UnaryOperator<T> aliasConversion = UnaryOperator.identity();
 
 		private Builder(String key, String typeName, Function<String, T> parser) {
 			this.key = key;
@@ -399,7 +395,20 @@ public final class Setting<T> {
 		 * @return this builder
 		 */
 		public Builder<T> alias(String legacyKey) {
+			return this.alias(legacyKey, UnaryOperator.identity());
+		}
+
+		/**
+		 * Sets a legacy key, read when the setting isn't set, whose value is converted
+		 * (e.g. {@code .alias("netshot.syslog.disabled", disabled -> !disabled)} for {@code netshot.syslog.enabled}).
+		 *
+		 * @param legacyKey the legacy key
+		 * @param conversion converts the value of the legacy key to the value of the setting
+		 * @return this builder
+		 */
+		public Builder<T> alias(String legacyKey, UnaryOperator<T> conversion) {
 			this.alias = legacyKey;
+			this.aliasConversion = conversion;
 			return this;
 		}
 

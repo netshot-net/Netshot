@@ -57,7 +57,7 @@ class SyslogServerTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.syslog.port", Integer.toString(port));
 		config.setProperty("netshot.syslog.listenaddress", "127.0.0.1");
-		config.setProperty("netshot.syslog.disabled", Boolean.toString(disabled));
+		config.setProperty("netshot.syslog.enabled", Boolean.toString(!disabled));
 		TestConfig.init(config);
 	}
 

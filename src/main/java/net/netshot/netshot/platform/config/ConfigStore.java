@@ -161,9 +161,9 @@ public final class ConfigStore {
 
 	/**
 	 * Sets the known settings (at startup, after the load), and checks the current configuration against them: the
-	 * secret files of the secret settings must be readable, the unknown items are logged. The next configurations
+	 * secret files of the secret settings must be readable, the unknown and the deprecated (legacy) items are logged. The next configurations
 	 * (reloads) are checked against them too (secret files, changes of the settings which need a restart, unknown
-	 * items).
+	 * and deprecated items).
 	 *
 	 * @param newCatalog the known settings
 	 * @throws ConfigException if a secret file of the current configuration can't be read
@@ -172,6 +172,7 @@ public final class ConfigStore {
 		this.catalog = Objects.requireNonNull(newCatalog);
 		this.check(this.current);
 		this.catalog.warnUnknownItems(this.current);
+		this.catalog.warnLegacyItems(this.current);
 	}
 
 	/**
@@ -201,6 +202,7 @@ public final class ConfigStore {
 			return false;
 		}
 		this.catalog.warnUnknownItems(config);
+		this.catalog.warnLegacyItems(config);
 		this.catalog.warnRestartChanges(this.current, config);
 		this.replace(config);
 		if (config.fileName() == null) {

@@ -89,8 +89,9 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SnmpTrapReceiver.class);
 
 
-	/** Whether the trap receiver is disabled. */
-	static final Setting<Boolean> DISABLED = Setting.bool("netshot.snmptrap.disabled").defaultValue(false).live();
+	/** Whether the trap receiver is enabled (legacy: {@code netshot.snmptrap.disabled}, inverted). */
+	static final Setting<Boolean> ENABLED = Setting.bool("netshot.snmptrap.enabled")
+		.alias("netshot.snmptrap.disabled", disabled -> !disabled).defaultValue(true).live();
 
 	/** The UDP port. */
 	static final Setting<Integer> PORT = Setting.integer("netshot.snmptrap.port").defaultValue(162).range(1, 65535).live();
@@ -113,7 +114,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	/**
 	 * The settings of the trap receiver.
 	 *
-	 * @param enabled whether the receiver is enabled (not {@code netshot.snmptrap.disabled})
+	 * @param enabled whether the receiver is enabled ({@code netshot.snmptrap.enabled})
 	 * @param port the UDP port
 	 * @param listenAddress the address to listen on
 	 * @param communities the accepted SNMPv1/v2c communities
@@ -158,7 +159,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 					// Invalid: a random one is used
 				}
 			}
-			return new Settings(!config.get(DISABLED), config.get(PORT), host, Set.copyOf(communities), config.get(THREAD_COUNT),
+			return new Settings(config.get(ENABLED), config.get(PORT), host, Set.copyOf(communities), config.get(THREAD_COUNT),
 				List.copyOf(parseUsers(config.get(USER))), engineId);
 		}
 
