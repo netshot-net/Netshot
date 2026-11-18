@@ -123,15 +123,29 @@ public final class Bootstrap {
 	 */
 	private static void checkJvm() {
 		log.info("Checking current JVM.");
-		final String vendorVersion = System.getProperty("java.vendor.version"); // e.g. Oracle GraalVM 25.0.4+7.1
-		final String vendor = System.getProperty("java.vendor"); // e.g. Oracle Corporation
-		final String version = System.getProperty("java.vm.version"); // e.g. 25.0.4+7-LTS-jvmci-b01
-		log.warn("Running on JVM: {}", vendorVersion);
-		if (!vendorVersion.matches(".*GraalVM.*")) {
+		// e.g. Oracle GraalVM 25.0.4+7.1 (optional), Oracle Corporation, 25.0.4+7-LTS-jvmci-b01
+		checkJvm(System.getProperty("java.vendor.version"), System.getProperty("java.vendor"), System.getProperty("java.vm.version"));
+	}
+
+	/**
+	 * Checks the JVM from its properties, and logs an error if it's not GraalVM 25.
+	 *
+	 * @param vendorVersion the vendor version ({@code java.vendor.version}, optional: null if not set)
+	 * @param vendor the vendor ({@code java.vendor})
+	 * @param version the version of the VM ({@code java.vm.version})
+	 * @return true if the JVM looks like GraalVM 25
+	 */
+	static boolean checkJvm(String vendorVersion, String vendor, String version) {
+		log.info("Running on JVM: {}", vendorVersion);
+		boolean expected = true;
+		if (vendorVersion == null || !vendorVersion.contains("GraalVM")) {
 			log.error("The current JVM vendor version '{}' by '{}' doesn't look like GraalVM, Netshot might not work properly.", vendorVersion, vendor);
+			expected = false;
 		}
-		if (!version.matches("^25\\..*")) {
+		if (version == null || !version.startsWith("25.")) {
 			log.error("The JVM version '{}' doesn't look like version 25, Netshot might not work properly.", version);
+			expected = false;
 		}
+		return expected;
 	}
 }
