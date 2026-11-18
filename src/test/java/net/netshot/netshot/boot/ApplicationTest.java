@@ -41,7 +41,7 @@ class ApplicationTest {
 
 	private static Map<String, ServiceState> states(Application application) {
 		Map<String, ServiceState> states = new LinkedHashMap<>();
-		for (ServiceStatus status : application.services().status()) {
+		for (ServiceStatus status : application.wiring().services().status()) {
 			states.put(status.id(), status.state());
 		}
 		return states;

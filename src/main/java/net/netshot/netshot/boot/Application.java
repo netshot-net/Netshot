@@ -21,6 +21,7 @@ package net.netshot.netshot.boot;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
@@ -34,15 +35,13 @@ import net.netshot.netshot.platform.lifecycle.ServiceStartException;
 @Slf4j
 public final class Application implements AutoCloseable {
 
-	private final ConfigStore config;
 	private final Wiring wiring;
 	private final ServiceManager services;
 
 	/** Whether the application is being closed or was closed (e.g. by the shutdown hook, while it starts). */
 	private volatile boolean closed;
 
-	private Application(ConfigStore config, Wiring wiring) {
-		this.config = config;
+	private Application(Wiring wiring) {
 		this.wiring = wiring;
 		this.services = wiring.services();
 	}
@@ -54,7 +53,7 @@ public final class Application implements AutoCloseable {
 	 * @return the application
 	 */
 	public static Application create(ConfigStore config) {
-		return new Application(config, Wiring.create(config));
+		return create(config, new DriverRegistry(new DriverLoader(config)));
 	}
 
 	/**
@@ -65,16 +64,7 @@ public final class Application implements AutoCloseable {
 	 * @return the application
 	 */
 	public static Application create(ConfigStore config, DriverRegistry driverRegistry) {
-		return new Application(config, Wiring.create(config, driverRegistry));
-	}
-
-	/**
-	 * Gets the configuration store.
-	 *
-	 * @return the configuration store
-	 */
-	public ConfigStore config() {
-		return this.config;
+		return new Application(Wiring.create(config, driverRegistry));
 	}
 
 	/**
@@ -84,15 +74,6 @@ public final class Application implements AutoCloseable {
 	 */
 	public Wiring wiring() {
 		return this.wiring;
-	}
-
-	/**
-	 * Gets the manager of the services.
-	 *
-	 * @return the service manager
-	 */
-	public ServiceManager services() {
-		return this.services;
 	}
 
 	/**
@@ -131,7 +112,7 @@ public final class Application implements AutoCloseable {
 	 * @return true if the configuration was reloaded
 	 */
 	public boolean reload() {
-		return this.config.reload();
+		return this.wiring.core().config().reload();
 	}
 
 	/**
