@@ -850,13 +850,13 @@
       "role": {
         "admin": "Admin",
         "adminDescription": "Full access including user management and system settings",
-        "operatorDescription": "Visitor rights, plus trigger snapshots and subnet scans",
+        "operatorDescription": "Read-only rights, plus trigger snapshots and subnet scans",
+        "readOnly": "Read-only",
+        "readOnlyDescription": "Browse devices, configurations and tasks, without changing anything",
         "readWrite": "Read, write",
         "readWriteDescription": "Operator rights, plus manage devices, groups and policies",
         "readWritePlusScripts": "Read, write & execute scripts",
-        "readWritePlusScriptsDescription": "Read, write rights, plus create and run scripts on devices",
-        "visitor": "Visitor",
-        "visitorDescription": "Browse devices, configurations and tasks (read-only)"
+        "readWritePlusScriptsDescription": "Read, write rights, plus create and run scripts on devices"
       },
       "create": "Create User",
       "edit": "Edit User",
