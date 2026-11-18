@@ -169,8 +169,9 @@ public final class SyslogServer implements Service {
 	@Override
 	public synchronized void start() {
 		this.running = true;
-		this.applySettings(this.config.current());
+		// Listening first: a reload while starting is applied, at worst twice
 		this.config.addListener(this.listener);
+		this.applySettings(this.config.current());
 		this.executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotSyslogServer"));
 		this.executor.execute(this::run);
 	}

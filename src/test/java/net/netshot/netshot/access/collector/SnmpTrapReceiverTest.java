@@ -172,6 +172,20 @@ class SnmpTrapReceiverTest {
 		Assertions.assertFalse(used(port));
 	}
 
+	@Test
+	@DisplayName("A configuration applied after the stop (a reload already running) doesn't open the receiver again")
+	void appliedAfterStop() throws Exception {
+		int port = TestNetwork.freePort();
+		TestConfig.init(properties(port, false, "public"));
+		long threadsBefore = poolThreads();
+		SnmpTrapReceiver receiver = new SnmpTrapReceiver(null, (_, _) -> { }, TestConfig.store());
+		receiver.start();
+		receiver.stop();
+		receiver.applySettings(Config.of(properties(port, false, "public", "3")));
+		Assertions.assertFalse(used(port), "The receiver was opened again");
+		Assertions.assertEquals(threadsBefore, poolThreads());
+	}
+
 	/**
 	 * Counts the threads of the receiver pools.
 	 *

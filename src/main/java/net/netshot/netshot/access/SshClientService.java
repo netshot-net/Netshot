@@ -158,9 +158,9 @@ public final class SshClientService implements Service {
 
 	@Override
 	public void start() {
-		// The settings are applied again on each configuration change
-		this.applySettings();
+		// The settings are applied again on each configuration change (listening first: a reload while starting is applied)
 		this.config.addListener(this.listener);
+		this.applySettings();
 		this.client.start();
 	}
 
