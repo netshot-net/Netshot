@@ -49,7 +49,7 @@ public record AccessModule(
 		AccessSettings settings = new AccessSettings(config);
 		SshClientService sshClientService = new SshClientService(config, settings);
 		Connectors connectors = new Connectors(core.vaultManager(), sshClientService.client(), core.repositories().deviceReads(), settings);
-		Optional<SshServer> sshServer = config.current().get(SshServer.Settings.ENABLED) ? Optional.of(new SshServer(config)) : Optional.empty();
+		Optional<SshServer> sshServer = config.current().get(SshServer.ENABLED) ? Optional.of(new SshServer(config)) : Optional.empty();
 		return new AccessModule(sshClientService, connectors, sshServer);
 	}
 }
