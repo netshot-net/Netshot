@@ -94,6 +94,8 @@ public final class Netshot {
 		try {
 			ConfigStore config = ConfigStore.ofFiles(ConfigOption.files(commandLine));
 			Bootstrap.initialize(config);
+			System.out.println(String.format("Configuration file %s read.", config.current().fileName()));
+			log.info("Configuration file {} read.", config.current().fileName());
 
 			Application application = Application.create(config);
 			// Stops the services on SIGTERM/SIGINT (or if the startup fails), reloads the configuration on HUP

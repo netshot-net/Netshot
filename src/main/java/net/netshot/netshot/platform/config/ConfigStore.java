@@ -189,7 +189,12 @@ public final class ConfigStore {
 		this.catalog.warnUnknownItems(config);
 		this.catalog.warnRestartChanges(this.current, config);
 		this.replace(config);
-		log.warn("The configuration was reloaded.");
+		if (config.fileName() == null) {
+			log.warn("The configuration was reloaded.");
+		}
+		else {
+			log.warn("The configuration was reloaded from {}.", config.fileName());
+		}
 		return true;
 	}
 
