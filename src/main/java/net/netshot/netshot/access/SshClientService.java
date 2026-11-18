@@ -68,6 +68,9 @@ public final class SshClientService implements Service {
 	/** Applies the settings on each configuration change (while the service runs). */
 	private final Consumer<Config> listener = _ -> this.applySettings();
 
+	/** Whether the client is started: a reload which calls the listener after the stop is ignored. */
+	private volatile boolean running;
+
 	/**
 	 * Builds the client (not started).
 	 *
@@ -129,6 +132,9 @@ public final class SshClientService implements Service {
 	 * Applies the settings to the client.
 	 */
 	private void applySettings() {
+		if (!this.running) {
+			return;
+		}
 		Ssh.Settings ssh = this.settings.ssh();
 		CoreModuleProperties.NIO2_READ_TIMEOUT.set(this.client, Duration.ofMillis(ssh.receiveTimeout()));
 		CoreModuleProperties.REKEY_TIME_LIMIT.set(this.client, Duration.ofMillis(ssh.rekeyTimeLimit()));
@@ -158,6 +164,7 @@ public final class SshClientService implements Service {
 
 	@Override
 	public void start() {
+		this.running = true;
 		// The settings are applied again on each configuration change (listening first: a reload while starting is applied)
 		this.config.addListener(this.listener);
 		this.applySettings();
@@ -167,6 +174,7 @@ public final class SshClientService implements Service {
 	@Override
 	public void stop() {
 		this.config.removeListener(this.listener);
+		this.running = false;
 		this.client.stop();
 	}
 

@@ -183,8 +183,8 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	/** The SNMP object. */
 	private volatile Snmp snmp;
 
-	/** Whether the receiver is started (guarded by the receiver). */
-	private boolean running;
+	/** Whether the receiver is started: a reload which calls the listener after the stop is ignored. */
+	private volatile boolean running;
 
 	/** The thread pool. */
 	private ThreadPool threadPool;
@@ -243,9 +243,9 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 
 	@Override
 	public synchronized void stop() {
+		this.config.removeListener(this.listener);
 		// A reload already calling the listener mustn't open the receiver again
 		this.running = false;
-		this.config.removeListener(this.listener);
 		this.closeReceiver();
 	}
 

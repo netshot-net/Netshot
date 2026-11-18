@@ -76,6 +76,9 @@ public final class OidcDiscovery implements Service {
 	/** The executor running the fetches. */
 	private ScheduledExecutorService executor;
 
+	/** Whether the discovery is started: a reload which calls the listener after the stop is ignored. */
+	private volatile boolean running;
+
 	/** What is currently fetched (null if OIDC isn't configured). */
 	private Target target;
 
@@ -106,6 +109,7 @@ public final class OidcDiscovery implements Service {
 	@Override
 	public synchronized void start() {
 		this.executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("NetshotOidcIdPDiscovery"));
+		this.running = true;
 		this.config.addListener(this.listener);
 		this.applySettings();
 	}
@@ -113,6 +117,7 @@ public final class OidcDiscovery implements Service {
 	@Override
 	public void stop() throws InterruptedException {
 		this.config.removeListener(this.listener);
+		this.running = false;
 		synchronized (this) {
 			this.target = null;
 			this.executor.shutdownNow();
@@ -158,7 +163,7 @@ public final class OidcDiscovery implements Service {
 	 * Applies the current settings.
 	 */
 	private synchronized void applySettings() {
-		if (this.executor == null || this.executor.isShutdown()) {
+		if (!this.running) {
 			return;
 		}
 		Target newTarget = targetOf(this.oidc.settings());

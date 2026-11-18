@@ -134,7 +134,7 @@ public final class SyslogServer implements Service {
 	/** Incremented on each change of the listening configuration (the socket is opened again). */
 	private volatile long generation;
 
-	/** Whether the server is running. */
+	/** Whether the server is running: a reload which calls the listener after the stop is ignored. */
 	private volatile boolean running;
 
 	/** The socket (null if not open). */
@@ -216,6 +216,9 @@ public final class SyslogServer implements Service {
 	 * @param newConfig the configuration
 	 */
 	private void applySettings(Config newConfig) {
+		if (!this.running) {
+			return;
+		}
 		Settings newSettings = Settings.from(newConfig);
 		synchronized (this.lock) {
 			if (newSettings.equals(this.settings)) {
