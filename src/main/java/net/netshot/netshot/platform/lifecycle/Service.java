@@ -63,9 +63,7 @@ public interface Service {
 	 *
 	 * @return true if healthy
 	 */
-	default boolean isHealthy() {
-		return true;
-	}
+	boolean isHealthy();
 
 	/**
 	 * Gets the statistics of the service (e.g. the number of received messages), for the status.

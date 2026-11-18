@@ -64,6 +64,11 @@ class ServiceManagerTest {
 			}
 
 			@Override
+			public boolean isHealthy() {
+				return true;
+			}
+
+			@Override
 			public Map<String, Object> stats() {
 				return Map.of("name", name);
 			}
