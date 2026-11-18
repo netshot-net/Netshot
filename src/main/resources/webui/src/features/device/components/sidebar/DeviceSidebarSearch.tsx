@@ -1,12 +1,15 @@
 import { QueryBuilderTrigger } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
-import { IconButton, Input, InputGroup, Popover, Portal, Stack } from "@chakra-ui/react"
+import { NetshotError } from "@/api/httpClient"
+import { IconButton, Input, InputGroup, Popover, Portal, Stack, Text } from "@chakra-ui/react"
+import { useQueryClient } from "@tanstack/react-query"
 import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { LuCompass, LuSearch, LuX } from "react-icons/lu"
 import { useLocation, useNavigate, useSearchParams } from "react-router"
 import { useShallow } from "zustand/react/shallow"
 import DeviceGroupBadge from "@/components/entity/DeviceGroupBadge"
+import { deviceListKey, deviceListParams, useDevices } from "../../api"
 import { useDeviceSidebarStore } from "../../stores"
 import DeviceSidebarGroup from "./DeviceSidebarGroup"
 import { useDeviceGroupTree } from "./useDeviceGroupTree"
@@ -18,9 +21,17 @@ const IPV6 =
   "((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b)\\.){3}(\\b((25[0-5])|(1\\d{2})|(2[0-4]\\d)|(\\d{1,2}))\\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))"
 const MASK_V6 = "/([0-9]|[0-9][0-9]|1[01][0-9]|12[0-8])"
 
+/**
+ * Whether a search text is an expression of the query language: it starts with a [Field], a parenthesis, or a "not"
+ * before one of them (e.g. [Name] is "x", ([A] is 1) or ([B] is 2), not [C] is 3); a name such as "not-core" isn't.
+ */
+function isExpression(text: string): boolean {
+  return /^(not\s*)?[[(]/i.test(text.trim())
+}
+
 function buildQuery(text: string): string {
   const trimmed = text.trim()
-  if (trimmed.startsWith("[")) return trimmed
+  if (isExpression(trimmed)) return trimmed
 
   if (
     new RegExp(`^${IPV4}${MASK_V4}$`).test(trimmed) ||
@@ -32,6 +43,11 @@ function buildQuery(text: string): string {
     return `[IP] is ${trimmed}`
   }
   return `[Name] containsnocase "${trimmed.replace(/"/g, '\\"')}"`
+}
+
+/** The message of the error of a search: the reason the server gives for the query (e.g. the position of a syntax error). */
+function searchErrorMessage(error: NetshotError) {
+  return error.fieldErrors?.[0]?.message ?? error.description
 }
 
 export default function DeviceSidebarSearch() {
@@ -53,6 +69,7 @@ export default function DeviceSidebarSearch() {
       }))
     )
 
+  const queryClient = useQueryClient()
   const [text, setText] = useState<string>(() => searchParams.get("q") ?? "")
   const [isOpen, setIsOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -83,6 +100,33 @@ export default function DeviceSidebarSearch() {
   useEffect(() => {
     if (q) setQuery(buildQuery(q))
   }, [q, setQuery])
+
+  // The search as the server applies it (canonical form), or its error: the request of the list, shared
+  const { appliedQuery, error: searchError } = useDevices(0, query, Boolean(query))
+
+  // An expression (typed, or from the query builder) is shown as the server applies it once its search
+  // succeeded, unless the text was changed since; the simple searches (name, address) stay as typed
+  const [prevApplied, setPrevApplied] = useState(appliedQuery)
+  if (appliedQuery !== prevApplied) {
+    setPrevApplied(appliedQuery)
+    const typed = text.trim()
+    if (appliedQuery && !group && isExpression(typed) && typed === query) setText(appliedQuery)
+  }
+
+  // Then the search itself and the link follow the shown (canonical) query
+  useEffect(() => {
+    if (!appliedQuery || !isExpression(query) || query === appliedQuery || text.trim() !== appliedQuery) return
+    // The devices of the canonical query are the ones just loaded: shown at once, while they're loaded again
+    queryClient.setQueryData(
+      deviceListKey(deviceListParams(0, appliedQuery)),
+      queryClient.getQueryData(deviceListKey(deviceListParams(0, query)))
+    )
+    setQuery(appliedQuery)
+    navigate(
+      { pathname: location.pathname, search: `?q=${encodeURIComponent(appliedQuery)}` },
+      { replace: true }
+    )
+  }, [appliedQuery, text, query, queryClient, setQuery, navigate, location.pathname])
 
   // Selecting a group clears any text/advanced search shown in the box
   if (group !== prevGroup) {
@@ -131,7 +175,7 @@ export default function DeviceSidebarSearch() {
   }
 
   return (
-    <Stack p="6" gap="5">
+    <Stack p="6" gap="2">
       <Popover.Root
         open={isOpen}
         onOpenChange={(details) => setIsOpen(details.open)}
@@ -208,6 +252,11 @@ export default function DeviceSidebarSearch() {
           </Popover.Positioner>
         </Portal>
       </Popover.Root>
+      {searchError && !group && (
+        <Text fontSize="xs" color="red.fg">
+          {searchErrorMessage(searchError)}
+        </Text>
+      )}
     </Stack>
   )
 }

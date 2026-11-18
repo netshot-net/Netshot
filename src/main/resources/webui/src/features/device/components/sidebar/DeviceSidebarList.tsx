@@ -34,7 +34,7 @@ export default function DeviceSidebarList({ query = "" }: DeviceSidebarListProps
     }))
   )
 
-  const { rows: data, isPending } = useDevices(query ? 0 : (group?.id ?? 0), query)
+  const { rows: data, isPending, error } = useDevices(query ? 0 : (group?.id ?? 0), query)
   const isSuccess = !isPending
 
   useEffect(() => {
@@ -82,6 +82,11 @@ export default function DeviceSidebarList({ query = "" }: DeviceSidebarListProps
         <Spinner />
       </Stack>
     )
+  }
+
+  if (error) {
+    // Told by the search box (e.g. an invalid query)
+    return <Center flex="1" />
   }
 
   if (data?.length === 0) {
