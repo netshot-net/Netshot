@@ -1,5 +1,5 @@
 ARG NETSHOT_VERSION=0.0.1-dev
-ARG GRAALVM_VERSION=25.0.4
+ARG GRAALVM_VERSION=25.0.5.1
 # GraalPy standalone (used to create virtualenvs), matching the polyglot version of pom.xml
 # as closely as possible: GraalPy 25.0.x standalones are not published for every polyglot version
 ARG GRAALPY_VERSION=25.0.3
@@ -17,7 +17,7 @@ FROM debian:${DEBIAN_VERSION} AS debian-graalvm
 ARG GRAALVM_VERSION
 RUN apt-get -y update && apt-get -y install wget fontconfig
 WORKDIR /usr/lib/jvm
-RUN wget --quiet https://download.oracle.com/graalvm/${GRAALVM_VERSION%%.*}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \ 
+RUN wget --quiet https://gds.oracle.com/download/graal/${GRAALVM_VERSION%%.*}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \ 
     tar xvzf graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     rm -f graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     JDIR=$(ls -d graalvm-jdk-${GRAALVM_VERSION}* | tail -n 1) && \
