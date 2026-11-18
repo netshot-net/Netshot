@@ -68,7 +68,7 @@ public final class FatalError {
 			case ServiceStartException _ -> console.println(PREFIX + e.getMessage()
 				+ (e.getCause() == null ? "" : ": " + e.getCause().getMessage()) + " (see the log)");
 			default -> {
-				log.error("Fatal error", e);
+				log.error("Fatal error.", e);
 				console.println(PREFIX + e.getMessage());
 				e.printStackTrace(console);
 			}

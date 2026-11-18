@@ -94,7 +94,8 @@ public final class Netshot {
 			ConfigStore config = ConfigStore.ofFiles(ConfigOption.files(commandLine));
 			// Sets the logging up: nothing is logged before
 			Bootstrap.initialize(config);
-			log.info("Starting Netshot version {}.", BuildInfo.VERSION);
+			// The lifecycle milestones are warnings, logged at the default level
+			log.warn("Starting Netshot version {}.", BuildInfo.VERSION);
 			System.out.println(String.format("Configuration file %s read.", config.current().fileName()));
 			log.info("Configuration file {} read.", config.current().fileName());
 
@@ -105,7 +106,7 @@ public final class Netshot {
 			application.start();
 			if (!application.isClosed()) {
 				// Not when stopped while it started: the stop is logged
-				log.warn("Netshot is started");
+				log.warn("Netshot is started.");
 			}
 		}
 		catch (Exception e) {
@@ -121,7 +122,6 @@ public final class Netshot {
 	 * @param inst the instrumentation
 	 */
 	public static void agentmain(String agentArgs, Instrumentation inst) {
-		log.info("Netshot agentmain entrypoint");
 		AgentInstrumentation.set(inst);
 	}
 
