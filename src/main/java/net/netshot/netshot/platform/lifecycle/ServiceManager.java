@@ -34,8 +34,10 @@ import net.netshot.netshot.platform.config.Setting;
  * Starts the services in the given order, and stops them in the reverse order.
  *
  * <p>If a service fails to start, it is stopped (to release what its start built), then the services already
- * started (in the reverse order), and {@link #start()} throws: the server doesn't run half started. {@link #stop()} stops every running service,
- * even if some of them fail to stop. Typically called by a JVM shutdown hook.</p>
+ * started (in the reverse order), and {@link #start()} throws: the server doesn't run half started.
+ * {@link #stop()} stops every running service, even if some of them fail to stop. Typically called by a JVM
+ * shutdown hook: while the services start, it waits for the service being started, and the next ones aren't
+ * started.</p>
  */
 @Slf4j
 public final class ServiceManager {
@@ -53,6 +55,9 @@ public final class ServiceManager {
 
 	/** The services, in start order. */
 	private final List<Managed> services = new ArrayList<>();
+
+	/** Whether a stop was requested: the services not started yet aren't started any more. */
+	private volatile boolean stopping;
 
 	/**
 	 * Creates the manager.
@@ -118,6 +123,11 @@ public final class ServiceManager {
 			if (managed.state != ServiceState.NEW || !filter.test(managed.service)) {
 				continue;
 			}
+			if (this.stopping) {
+				// E.g. SIGTERM while starting: the stop waits for this start to end, then stops the started services
+				log.info("A stop was requested: the next services aren't started.");
+				return;
+			}
 			String name = managed.service.name();
 			log.info("Starting the service '{}'.", name);
 			managed.state = ServiceState.STARTING;
@@ -154,9 +164,27 @@ public final class ServiceManager {
 	}
 
 	/**
-	 * Stops the running services, in the reverse order. Can be called several times.
+	 * Stops the running services, in the reverse order. Can be called several times. Called while the services
+	 * start (from another thread), it waits for the service being started, and no other service is started.
 	 */
-	public synchronized void stop() {
+	public void stop() {
+		this.stopping = true;
+		this.stopRunning();
+	}
+
+	/**
+	 * Whether a stop was requested (it may wait for the start of a service to end).
+	 *
+	 * @return true if stopping or stopped
+	 */
+	public boolean isStopping() {
+		return this.stopping;
+	}
+
+	/**
+	 * Stops the running services, in the reverse order.
+	 */
+	private synchronized void stopRunning() {
 		for (int i = this.services.size() - 1; i >= 0; i--) {
 			Managed managed = this.services.get(i);
 			if (managed.state != ServiceState.RUNNING) {
