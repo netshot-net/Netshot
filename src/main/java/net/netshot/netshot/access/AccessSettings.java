@@ -37,6 +37,9 @@ public final class AccessSettings {
 	/** The HTTP settings. */
 	private final ConfigStore.Binding<Http.Settings> http;
 
+	/** The SNMP settings. */
+	private final ConfigStore.Binding<Snmp.Settings> snmp;
+
 	/** The collector settings. */
 	private final ConfigStore.Binding<Collector.Settings> collector;
 
@@ -49,6 +52,7 @@ public final class AccessSettings {
 		this.ssh = config.bind(Ssh.Settings::from);
 		this.telnet = config.bind(Telnet.Settings::from);
 		this.http = config.bind(Http.Settings::from);
+		this.snmp = config.bind(Snmp.Settings::from);
 		this.collector = config.bind(Collector.Settings::from);
 	}
 
@@ -86,6 +90,15 @@ public final class AccessSettings {
 	 */
 	public Http.Settings http() {
 		return this.http.get();
+	}
+
+	/**
+	 * Gets the SNMP settings.
+	 *
+	 * @return the settings
+	 */
+	public Snmp.Settings snmp() {
+		return this.snmp.get();
 	}
 
 	/**

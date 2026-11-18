@@ -228,7 +228,7 @@ class SnmpTrapReceiverTest {
 			DeviceSnmpv3Community community = DeviceSnmpv3Community.builder().name("device").username(LocalSecret.of("deviceuser"))
 				.authType(DeviceSnmpv3Community.AuthProtocol.SHA).authKey(LocalSecret.of("deviceauth1"))
 				.privType(DeviceSnmpv3Community.PrivProtocol.NONE).build();
-			new Snmp(new Network4Address("127.0.0.1"), TestNetwork.freePort(), community, SecretResolver.LOCAL).stop();
+			new Snmp(new Network4Address("127.0.0.1"), TestNetwork.freePort(), community, Snmp.Settings.from(TestConfig.store().current()), SecretResolver.LOCAL).stop();
 			sendV3Trap(port, "trapuser", "trapauth1");
 			long deadline = System.currentTimeMillis() + 10000;
 			while ((Long) receiver.stats().get("received") < 1L && System.currentTimeMillis() < deadline) {

@@ -301,6 +301,15 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 | `netshot.httpclient.connectiontimeout` | Max time (ms) to establish the connection to a device's HTTP(S) API. Default: `5000`. | Yes |
 | `netshot.httpclient.receivetimeout` | Max time (ms) to wait for data from a device's HTTP(S) API (between two reads, not for the whole response). Default: `60000`. | Yes |
 
+## SNMP requests to devices
+
+Used by the device type discovery and by the drivers' SNMP requests (SNMPv1, v2c and v3).
+
+| Parameter | Description | Reload |
+|---|---|---|
+| `netshot.snmp.timeout` | Max time (ms) to wait for the response to an SNMP request, before sending it again. Default: `1500`. | Yes |
+| `netshot.snmp.retries` | Number of times an SNMP request without response is sent again (`0` to `100`). Default: `2`. | Yes |
+
 ## JavaScript VM
 
 | Parameter | Description | Reload |

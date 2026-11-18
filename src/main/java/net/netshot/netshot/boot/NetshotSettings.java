@@ -26,6 +26,7 @@ import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.Http;
+import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.access.collector.Collector;
@@ -81,6 +82,7 @@ public final class NetshotSettings {
 			Ssh.class,
 			Telnet.class,
 			Http.class,
+			Snmp.class,
 			Collector.class,
 			SnmpTrapReceiver.class,
 			SshServer.class,

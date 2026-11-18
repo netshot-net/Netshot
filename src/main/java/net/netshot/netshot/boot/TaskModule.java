@@ -123,7 +123,7 @@ public record TaskModule(
 			new CheckGroupComplianceHandler(transactions, checker, dynamicGroups, r.policy(), r.rule(),
 				r.softwareRule(), r.hardwareRule(), r.device(), r.config(), r.group()),
 			new CheckGroupSoftwareHandler(transactions, r.softwareRule(), r.hardwareRule(), r.device(), r.group()),
-			new DiscoverDeviceTypeHandler(transactions, drivers, submitter, dynamicGroups, core.vaultManager(),
+			new DiscoverDeviceTypeHandler(transactions, drivers, submitter, dynamicGroups, connectors,
 				r.task(), r.credentialSet(), r.domain(), r.device()),
 			new PurgeDatabaseHandler(transactions, r.task(), r.binaryFiles()),
 			new RunDeviceGroupScriptHandler(transactions, orchestrator, drivers, r.device(), r.group()),

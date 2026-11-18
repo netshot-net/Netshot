@@ -32,6 +32,7 @@ import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.vault.SecretResolver;
 
 @SimulatorTest
@@ -52,7 +53,7 @@ class SnmpTest {
 
 	private static Snmp open(DeviceSnmpv3Community community) throws Exception {
 		Network4Address address = new Network4Address((Inet4Address) InetAddress.getByName(CONTAINER.getHost()), 32);
-		return new Snmp(address, DeviceSimulators.mappedUdpPort(CONTAINER, 161), community, SecretResolver.LOCAL);
+		return new Snmp(address, DeviceSimulators.mappedUdpPort(CONTAINER, 161), community, Snmp.Settings.from(TestConfig.store().current()), SecretResolver.LOCAL);
 	}
 
 	@Test

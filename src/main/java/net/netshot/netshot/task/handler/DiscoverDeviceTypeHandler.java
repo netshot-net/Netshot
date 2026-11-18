@@ -27,6 +27,7 @@ import java.util.List;
 import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -52,7 +53,6 @@ import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
-import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Discovers the type of a device.
@@ -67,8 +67,8 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
-	/** Resolves the secrets of the SNMP credentials (local or Vault-backed). */
-	private final SecretResolver secrets;
+	/** The access to the devices: the SNMP settings, the resolver of the secrets of the SNMP credentials. */
+	private final Connectors connectors;
 
 	/** The transaction support. */
 	private final Transactions transactions;
@@ -82,17 +82,17 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 	 * @param driverRegistry the driver registry
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
-	 * @param secrets resolves the secrets of the SNMP credentials (local or Vault-backed)
+	 * @param connectors the access to the devices (SNMP settings, resolver of the secrets of the SNMP credentials)
 	 * @param taskRepository the task repository
 	 * @param credentialSetRepository the credential set repository
 	 * @param domainRepository the domain repository
 	 * @param deviceRepository the device repository
 	 */
-	public DiscoverDeviceTypeHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, SecretResolver secrets,
+	public DiscoverDeviceTypeHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors,
 		TaskRepository taskRepository, CredentialSetRepository credentialSetRepository, DomainRepository domainRepository,
 		DeviceRepository deviceRepository) {
 		this.transactions = transactions;
-		this.secrets = secrets;
+		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
@@ -267,7 +267,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			task.id(), community.name());
 		run.logger.trace("Trying SNMPv1 discovery (credentials {})", community.name());
 		try {
-			Snmp poller = new Snmp(address, community, this.secrets);
+			Snmp poller = new Snmp(address, community, this.connectors.settings().snmp(), this.connectors.secrets());
 			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
@@ -286,7 +286,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			task.id(), community.name());
 		run.logger.trace("Trying SNMPv2c discovery (credential set {})", community.name());
 		try {
-			Snmp poller = new Snmp(address, community, this.secrets);
+			Snmp poller = new Snmp(address, community, this.connectors.settings().snmp(), this.connectors.secrets());
 			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
@@ -305,7 +305,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			task.id(), cred.name());
 		run.logger.trace("Trying SNMPv3 discovery (credentials {})", cred.name());
 		try {
-			Snmp poller = new Snmp(address, cred, this.secrets);
+			Snmp poller = new Snmp(address, cred, this.connectors.settings().snmp(), this.connectors.secrets());
 			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
