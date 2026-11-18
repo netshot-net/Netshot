@@ -532,6 +532,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#any-version-to-0252" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Any version to 0.25.2+
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#any-version-to-0251" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1401,6 +1412,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#any-version-to-0252" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Any version to 0.25.2+
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#any-version-to-0251" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1521,6 +1543,9 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>netshot
 </span></code></pre></div>
 <h2 id="specific-update-steps">Specific update steps<a class="headerlink" href="#specific-update-steps" title="Permanent link">&para;</a></h2>
+<h3 id="any-version-to-0252">Any version to 0.25.2+<a class="headerlink" href="#any-version-to-0252" title="Permanent link">&para;</a></h3>
+<p><strong>Java/GraalVM</strong>: the container image now ships Oracle GraalVM for JDK 21.0.12, for the latest Java security fixes. On a Linux installation, upgrade the Java environment to GraalVM 21.0.12 as described in the <a href="../installation/linux/#2-install-the-graalvm-jre">install guide</a>.</p>
+<p><strong>CVE-2026-114938</strong>: this Java vulnerability (heap overflow in the JIT-compiled Base64 decoding, on x86-64 CPUs with AVX-512 VBMI) also affects GraalVM 21.0.12. It is fixed in Oracle GraalVM for JDK 21.0.13.1, but that build is released under the GraalVM OTN license (no longer the GraalVM Free Terms and Conditions), so it can't be shipped in the container image; you may install it on your Linux server if your Oracle license allows. Netshot is now started with <code>-XX:-UseBASE64Intrinsics</code>, which disables the vulnerable code: the container image, <code>systemd-netshot</code> and <code>initd-netshot</code> include it. If you start Netshot with your own service file or command line, add <code>-XX:-UseBASE64Intrinsics</code> to the <code>java</code> options.</p>
 <h3 id="any-version-to-0251">Any version to 0.25.1+<a class="headerlink" href="#any-version-to-0251" title="Permanent link">&para;</a></h3>
 <p><strong>Clustering</strong>: the tasks working on a device (snapshot, diagnostics, compliance check) are now always assigned to the same runner while the set of available runners doesn't change; they went to a random runner, as the other tasks still do (according to the runner weights). The distribution of the tasks between the runners may change after the upgrade.</p>
 <p><strong>Reverse proxy</strong>: the session cookie is now marked as <code>Secure</code> (only sent over HTTPS) when <code>netshot.http.trustxforwardedfor</code> is enabled (as in the provided <code>compose.yaml</code>), in addition to when Netshot serves HTTPS itself. If users access Netshot over plain HTTP through a reverse proxy, set the new <code>netshot.http.securecookie</code> option to <code>false</code>, otherwise they won't be able to log in. If Netshot is accessed over HTTPS through a reverse proxy without <code>trustxforwardedfor</code>, set <code>netshot.http.securecookie</code> to <code>true</code>.</p>
