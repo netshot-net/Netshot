@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigException;
 import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.platform.tls.Truststore;
 
@@ -45,7 +46,8 @@ public final class Bootstrap {
 	 * <li>the crypto libraries are registered, before anything initializes the SSH library, which checks the
 	 * available crypto providers (EdDSA, X25519...) only once;</li>
 	 * <li>the catalog of the settings is built (it initializes the classes which declare them, the SSH ones
-	 * included), and the loaded configuration is checked against it (secret files, unknown items);</li>
+	 * included), and the loaded configuration is checked against it (secret files, unknown items, required DB
+	 * encryption password); from here, an error is also logged;</li>
 	 * <li>the logging follows the changes of the configuration (first listener, so that the other changes are
 	 * logged accordingly);</li>
 	 * <li>the JVM is checked, the truststore is applied.</li>
@@ -57,8 +59,15 @@ public final class Bootstrap {
 	 */
 	public static void initialize(ConfigStore config) throws BootstrapException {
 		load(config);
-		registerCryptoLibraries(config.current());
-		checkSettings(config);
+		// The logging is set up: the next errors are logged too (the console is the only output of the ones before)
+		try {
+			registerCryptoLibraries(config.current());
+			checkSettings(config);
+		}
+		catch (BootstrapException e) {
+			log.error(e.getMessage(), e.getCause());
+			throw e;
+		}
 		config.addListener(LoggingSetup::apply);
 		checkJvm();
 		log.info("Selecting truststore.");
@@ -99,21 +108,28 @@ public final class Bootstrap {
 			BouncyCastleLoader.register(config);
 		}
 		catch (Exception e) {
-			throw new BootstrapException(String.valueOf(e.getMessage()), e);
+			throw new BootstrapException("Unable to register the crypto libraries: " + e.getMessage(), e);
 		}
 	}
 
 	/**
-	 * Sets the catalog of the settings, and checks the loaded configuration against it.
+	 * Sets the catalog of the settings, and checks the loaded configuration against it, and that the DB encryption
+	 * password is configured if it's required.
 	 *
 	 * @param config the configuration store
 	 * @throws BootstrapException if the configuration is invalid (the message tells why)
 	 */
-	private static void checkSettings(ConfigStore config) throws BootstrapException {
+	static void checkSettings(ConfigStore config) throws BootstrapException {
 		try {
 			config.setCatalog(NetshotSettings.catalog());
 		}
 		catch (ConfigException e) {
+			throw new BootstrapException("Invalid configuration: " + e.getMessage());
+		}
+		try {
+			Database.encryptionPassword(config.current());
+		}
+		catch (IllegalStateException e) {
 			throw new BootstrapException("Invalid configuration: " + e.getMessage());
 		}
 	}
@@ -123,15 +139,29 @@ public final class Bootstrap {
 	 */
 	private static void checkJvm() {
 		log.info("Checking current JVM.");
-		final String vendorVersion = System.getProperty("java.vendor.version"); // e.g. Oracle GraalVM 25.0.4+7.1
-		final String vendor = System.getProperty("java.vendor"); // e.g. Oracle Corporation
-		final String version = System.getProperty("java.vm.version"); // e.g. 25.0.4+7-LTS-jvmci-b01
-		log.warn("Running on JVM: {}", vendorVersion);
-		if (!vendorVersion.matches(".*GraalVM.*")) {
+		// e.g. Oracle GraalVM 25.0.4+7.1 (optional), Oracle Corporation, 25.0.4+7-LTS-jvmci-b01
+		checkJvm(System.getProperty("java.vendor.version"), System.getProperty("java.vendor"), System.getProperty("java.vm.version"));
+	}
+
+	/**
+	 * Checks the JVM from its properties, and logs an error if it's not GraalVM 25.
+	 *
+	 * @param vendorVersion the vendor version ({@code java.vendor.version}, optional: null if not set)
+	 * @param vendor the vendor ({@code java.vendor})
+	 * @param version the version of the VM ({@code java.vm.version})
+	 * @return true if the JVM looks like GraalVM 25
+	 */
+	static boolean checkJvm(String vendorVersion, String vendor, String version) {
+		log.info("Running on JVM: {}", vendorVersion);
+		boolean expected = true;
+		if (vendorVersion == null || !vendorVersion.contains("GraalVM")) {
 			log.error("The current JVM vendor version '{}' by '{}' doesn't look like GraalVM, Netshot might not work properly.", vendorVersion, vendor);
+			expected = false;
 		}
-		if (!version.matches("^25\\..*")) {
+		if (version == null || !version.startsWith("25.")) {
 			log.error("The JVM version '{}' doesn't look like version 25, Netshot might not work properly.", version);
+			expected = false;
 		}
+		return expected;
 	}
 }

@@ -130,9 +130,25 @@ public final class ServiceManager {
 				managed.state = ServiceState.FAILED;
 				managed.error = String.valueOf(e.getMessage());
 				log.error("Unable to start the service '{}', stopping the started services.", name, e);
+				this.release(managed);
 				this.stop();
 				throw new ServiceStartException("Unable to start the service '%s'".formatted(name), e);
 			}
+		}
+	}
+
+	/**
+	 * Stops a service whose start failed, to release what it built before the failure (best effort: its state stays
+	 * failed).
+	 *
+	 * @param managed the service
+	 */
+	private void release(Managed managed) {
+		try {
+			managed.service.stop();
+		}
+		catch (Exception | LinkageError e) {
+			log.warn("Error while releasing the service '{}' after its failed start.", managed.service.name(), e);
 		}
 	}
 

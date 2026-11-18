@@ -31,6 +31,7 @@ import org.jooq.DSLContext;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
+import net.netshot.netshot.boot.FatalError;
 import net.netshot.netshot.boot.Repositories;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.CredentialSetRepository;
@@ -666,22 +667,21 @@ public class DemoDataCreator {
 
 
 
+	/**
+	 * Creates the demo data, in one transaction.
+	 *
+	 * @throws IllegalStateException if the database already has data
+	 */
 	public void createData() {
 		log.info("Creating data...");
-		try {
-			this.transactions.run(this::createData);
-			log.info("Success");
-		}
-		catch (Exception e) {
-			log.error("Error while creating demo data", e);
-		}
+		this.transactions.run(this::createData);
+		log.info("Success");
 	}
 
 	private void createData(DSLContext dsl) {
 		{
 			if (!this.repositories.domain().findAll(dsl, ListQuery.ALL).isEmpty()) {
-				log.error("Data already exist in the DB (domain found)");
-				return;
+				throw new IllegalStateException("Data already exist in the DB (domain found)");
 			}
 
 			// Create domains
@@ -848,8 +848,7 @@ public class DemoDataCreator {
 			}
 		}
 		catch (Exception e) {
-			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
-			log.error("Error while creating the demo data", e);
+			FatalError.report(e);
 			System.exit(1);
 		}
 	}

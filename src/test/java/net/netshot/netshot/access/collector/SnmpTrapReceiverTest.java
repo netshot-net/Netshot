@@ -89,7 +89,14 @@ class SnmpTrapReceiverTest {
 	}
 
 	private static Properties properties(int port, boolean disabled, String communities) {
+		return properties(port, disabled, communities, null);
+	}
+
+	private static Properties properties(int port, boolean disabled, String communities, String threadCount) {
 		Properties config = new Properties();
+		if (threadCount != null) {
+			config.setProperty("netshot.snmptrap.threadcount", threadCount);
+		}
 		config.setProperty("netshot.snmptrap.port", Integer.toString(port));
 		config.setProperty("netshot.snmptrap.listenaddress", "127.0.0.1");
 		config.setProperty("netshot.snmptrap.enabled", Boolean.toString(!disabled));
@@ -166,9 +173,35 @@ class SnmpTrapReceiverTest {
 	}
 
 	@Test
-	@DisplayName("Starts unhealthy, without failing, when its port is used")
+	@DisplayName("A configuration applied after the stop (a reload already running) doesn't open the receiver again")
+	void appliedAfterStop() throws Exception {
+		int port = TestNetwork.freePort();
+		TestConfig.init(properties(port, false, "public"));
+		long threadsBefore = poolThreads();
+		SnmpTrapReceiver receiver = new SnmpTrapReceiver(null, (_, _) -> { }, TestConfig.store());
+		receiver.start();
+		receiver.stop();
+		receiver.applySettings(Config.of(properties(port, false, "public", "3")));
+		Assertions.assertFalse(used(port), "The receiver was opened again");
+		Assertions.assertEquals(threadsBefore, poolThreads());
+	}
+
+	/**
+	 * Counts the threads of the receiver pools.
+	 *
+	 * @return the number of live threads of the receiver pools
+	 */
+	private static long poolThreads() {
+		return Thread.getAllStackTraces().keySet().stream()
+			.filter(thread -> thread.getName().contains("SNMP Receiver Pool") && thread.isAlive())
+			.count();
+	}
+
+	@Test
+	@DisplayName("Starts unhealthy, without failing nor leaving its threads, when its port is used")
 	void portUsed() throws Exception {
 		int port = TestNetwork.freePort();
+		long threadsBefore = poolThreads();
 		try (DatagramSocket _ = new DatagramSocket(new InetSocketAddress(InetAddress.getLoopbackAddress(), port))) {
 			TestConfig.init(properties(port, false, "public"));
 			SnmpTrapReceiver receiver = new SnmpTrapReceiver(null, (_, _) -> { }, TestConfig.store());
@@ -176,6 +209,8 @@ class SnmpTrapReceiverTest {
 			try {
 				Assertions.assertFalse(receiver.isHealthy());
 				Assertions.assertEquals(false, receiver.stats().get("listening"));
+				TestConfig.init(properties(port, false, "public", "3"));
+				Assertions.assertEquals(threadsBefore, poolThreads(), "The receiver pool threads, after the failed opening and a reload");
 			}
 			finally {
 				receiver.stop();

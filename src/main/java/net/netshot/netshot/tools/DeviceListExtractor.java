@@ -28,6 +28,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
+import net.netshot.netshot.boot.FatalError;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -74,13 +75,13 @@ public final class DeviceListExtractor {
 	public static void main(String[] args) {
 		System.out.println("Netshot Device List Extractor -- extracts and formats device data.");
 		System.out.println(String.format("Based on Netshot version %s.", BuildInfo.VERSION));
-		log.info("Starting now.");
 
 		StringBuffer output = new StringBuffer();
 
 		try {
 			ConfigStore config = ConfigStore.ofFiles(ToolCommandLine.configFiles(args));
 			Bootstrap.initialize(config);
+			log.info("Starting now.");
 			try (Application application = Application.create(config)) {
 				log.info("Initializing access to the database.");
 				application.start("database");
@@ -174,7 +175,7 @@ public final class DeviceListExtractor {
 			}
 		}
 		catch (Exception e) {
-			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
+			FatalError.report(e);
 			System.exit(1);
 		}
 	}

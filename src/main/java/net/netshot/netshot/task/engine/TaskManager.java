@@ -49,7 +49,6 @@ import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
-import org.slf4j.MarkerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.config.Config;
@@ -426,8 +425,8 @@ public final class TaskManager implements Service, TaskEngine {
 			this.masterScheduler.start();
 		}
 		catch (Exception e) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate the Master Task Manager", e);
-			throw new RuntimeException("Unable to instantiate the Master Task Manager.", e);
+			// Logged by the service manager
+			throw new IllegalStateException("Unable to instantiate the Master Task Manager", e);
 		}
 		try {
 			Properties params = new Properties();
@@ -442,8 +441,7 @@ public final class TaskManager implements Service, TaskEngine {
 			this.runnerScheduler.start();
 		}
 		catch (Exception e) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate the Runner Task Manager", e);
-			throw new RuntimeException("Unable to instantiate the Runner Task Manager.", e);
+			throw new IllegalStateException("Unable to instantiate the Runner Task Manager", e);
 		}
 	}
 
@@ -452,41 +450,75 @@ public final class TaskManager implements Service, TaskEngine {
 	 * ({@code netshot.shutdown.timeout}) to end, then the ones still running are marked as failed.
 	 */
 	public void shutdown() {
+		// Either can be missing after a failed start
 		Scheduler master = this.masterScheduler;
 		Scheduler runner = this.runnerScheduler;
-		if (master == null || runner == null) {
-			return;
-		}
 		try {
-			master.standby();
-			runner.standby();
-			long timeout = this.config.current().get(SHUTDOWN_TIMEOUT) * 1000L;
-			long deadline = System.currentTimeMillis() + timeout;
-			List<JobExecutionContext> running = runner.getCurrentlyExecutingJobs();
-			if (!running.isEmpty()) {
-				log.warn("Waiting up to {}s for {} running task(s) to end.", timeout / 1000, running.size());
+			if (master != null) {
+				master.standby();
 			}
-			while (!running.isEmpty() && System.currentTimeMillis() < deadline) {
-				Thread.sleep(200);
-				running = runner.getCurrentlyExecutingJobs();
+			if (runner != null) {
+				runner.standby();
+				this.awaitRunningTasks(runner);
 			}
-			for (JobExecutionContext job : running) {
-				Object taskId = job.getJobDetail().getJobDataMap().get(TaskJob.NETSHOT_TASK);
-				if (taskId instanceof Long id) {
-					Task task = this.transactions.read(dsl -> this.repository.find(dsl, id));
-					if (task != null && this.failInterrupted(task, "Netshot was stopped while the task was running.")) {
-						this.interruptedTasks.incrementAndGet();
-					}
-				}
-			}
-			master.shutdown(false);
-			runner.shutdown(false);
 		}
 		catch (SchedulerException | DataAccessException e) {
 			log.error("Error while stopping the task manager", e);
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
+		}
+		finally {
+			// Also when interrupted: a scheduler not shut down keeps its threads, and stays registered by its name
+			shutdownScheduler(master);
+			shutdownScheduler(runner);
+		}
+	}
+
+	/**
+	 * Waits for the running tasks to end, up to {@code netshot.shutdown.timeout}, then marks the ones still running
+	 * as failed.
+	 *
+	 * @param runner the runner scheduler, in standby
+	 * @throws SchedulerException if the running tasks can't be listed
+	 * @throws InterruptedException if interrupted while waiting
+	 */
+	private void awaitRunningTasks(Scheduler runner) throws SchedulerException, InterruptedException {
+		long timeout = this.config.current().get(SHUTDOWN_TIMEOUT) * 1000L;
+		long deadline = System.currentTimeMillis() + timeout;
+		List<JobExecutionContext> running = runner.getCurrentlyExecutingJobs();
+		if (!running.isEmpty()) {
+			log.warn("Waiting up to {}s for {} running task(s) to end.", timeout / 1000, running.size());
+		}
+		while (!running.isEmpty() && System.currentTimeMillis() < deadline) {
+			Thread.sleep(200);
+			running = runner.getCurrentlyExecutingJobs();
+		}
+		for (JobExecutionContext job : running) {
+			Object taskId = job.getJobDetail().getJobDataMap().get(TaskJob.NETSHOT_TASK);
+			if (taskId instanceof Long id) {
+				Task task = this.transactions.read(dsl -> this.repository.find(dsl, id));
+				if (task != null && this.failInterrupted(task, "Netshot was stopped while the task was running.")) {
+					this.interruptedTasks.incrementAndGet();
+				}
+			}
+		}
+	}
+
+	/**
+	 * Shuts a scheduler down, without waiting for its jobs.
+	 *
+	 * @param scheduler the scheduler, null if it wasn't created
+	 */
+	private static void shutdownScheduler(Scheduler scheduler) {
+		if (scheduler == null) {
+			return;
+		}
+		try {
+			scheduler.shutdown(false);
+		}
+		catch (SchedulerException e) {
+			log.error("Error while stopping a task scheduler", e);
 		}
 	}
 

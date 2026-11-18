@@ -44,14 +44,15 @@ public interface Service {
 	String name();
 
 	/**
-	 * Starts the service.
+	 * Starts the service. If it fails, {@link #stop()} is called to release what it built.
 	 *
 	 * @throws Exception if the service can't be started
 	 */
 	void start() throws Exception;
 
 	/**
-	 * Stops the service, releasing its resources. Called once, if the service was started.
+	 * Stops the service, releasing its resources. Called once, if the service was started, or if its start failed:
+	 * then to release what the start built before the failure, so it must accept a partial start.
 	 *
 	 * @throws Exception if the service couldn't be stopped cleanly
 	 */
