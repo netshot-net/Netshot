@@ -234,11 +234,29 @@ public final class SettingCatalog {
 		Map<String, String> keys = new TreeMap<>();
 		for (Setting<?> setting : this.settings) {
 			String alias = setting.alias();
-			if (alias != null && (config.get(alias) != null || (setting.isSecret() && config.get(alias + FILE_SUFFIX) != null))) {
+			if (alias != null && (isLegacySet(config, alias, setting.key())
+				|| (setting.isSecret() && isLegacySet(config, alias + FILE_SUFFIX, setting.key() + FILE_SUFFIX)))) {
 				keys.put(alias, setting.key());
 			}
 		}
 		return keys;
+	}
+
+	/**
+	 * Whether a legacy key is set under its own name: in the file, or as an environment variable which isn't the one of
+	 * the current key (a legacy key which differs only by case, e.g. {@code netshot.db.encryptionPassword}, has the
+	 * environment variable of the current key).
+	 *
+	 * @param config the configuration
+	 * @param legacyKey the legacy key
+	 * @param key the current key
+	 * @return true if the legacy key is set
+	 */
+	private static boolean isLegacySet(Config config, String legacyKey, String key) {
+		if (config.getFromFile(legacyKey) != null) {
+			return true;
+		}
+		return !Config.environmentName(legacyKey).equals(Config.environmentName(key)) && config.getFromEnvironment(legacyKey) != null;
 	}
 
 	/**
