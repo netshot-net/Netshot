@@ -39,6 +39,7 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
+import net.netshot.netshot.platform.runtime.BuildInfo;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDatabase;
@@ -104,8 +105,20 @@ class NetshotStartupTest {
 	 * @throws IOException if the process can't be started
 	 */
 	private Process launch(Path configFile) throws IOException {
+		// The jar has no Logback configuration: before its setup, the logging is the default one of Logback (DEBUG, on
+		// the console), not the one of the tests, which are on the classpath
+		Path logback = this.tempDir.resolve("logback-default.xml");
+		Files.writeString(logback, """
+			<configuration>
+				<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+					<encoder><pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} -- %msg%n</pattern></encoder>
+				</appender>
+				<root level="DEBUG"><appender-ref ref="CONSOLE"/></root>
+			</configuration>
+			""");
 		List<String> command = new ArrayList<>();
 		command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
+		command.add("-Dlogback.configurationFile=" + logback);
 		// As the manifest of the jar
 		command.add("--enable-native-access=ALL-UNNAMED");
 		command.add("-cp");
@@ -166,13 +179,15 @@ class NetshotStartupTest {
 	}
 
 	@Test
-	@DisplayName("Without configuration file: exits with 1, telling which file was tried, without stack trace")
+	@DisplayName("Without configuration file: exits with 1, telling which file was tried, nothing else on the console")
 	void missingConfiguration() throws Exception {
 		Path missing = this.tempDir.resolve("missing.conf");
 		Run run = this.await(this.launch(missing));
 		Assertions.assertEquals(1, run.exitCode());
 		Assertions.assertEquals("NETSHOT FATAL ERROR: Unable to read the configuration: No configuration file was found (tried %s)%n".formatted(missing),
 			run.stderr());
+		// Nothing else on the console (before the logging is set up, e.g. the stack trace of the file tried)
+		Assertions.assertEquals("Starting Netshot version %s.%n".formatted(BuildInfo.VERSION), run.stdout());
 	}
 
 	@Test
