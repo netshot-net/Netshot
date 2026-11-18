@@ -24,7 +24,6 @@ import java.util.List;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.lifecycle.Service;
@@ -56,10 +55,10 @@ public final class Wiring {
 	/**
 	 * Builds the objects of the application, module by module (each one from the modules built before it).
 	 *
-	 * @param driverRegistry the registry of the device drivers
 	 * @param config the configuration store
+	 * @param driverRegistry the registry of the device drivers
 	 */
-	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
+	private Wiring(ConfigStore config, DriverRegistry driverRegistry) {
 		this.core = CoreModule.create(config, driverRegistry);
 		this.access = AccessModule.create(this.core);
 		this.compliance = ComplianceModule.create(this.core);
@@ -77,24 +76,15 @@ public final class Wiring {
 	}
 
 	/**
-	 * Builds the wiring, without side effect: the database access is initialized by the first of the services.
-	 *
-	 * @param config the configuration store
-	 * @return the new wiring
-	 */
-	public static Wiring create(ConfigStore config) {
-		return new Wiring(new DriverRegistry(new DriverLoader(config)), config);
-	}
-
-	/**
-	 * Builds the wiring around an existing registry of drivers (loaded or not), without side effect.
+	 * Builds the wiring around a registry of drivers (loaded or not), without side effect: the database access is
+	 * initialized by the first of the services.
 	 *
 	 * @param config the configuration store
 	 * @param driverRegistry the registry of the device drivers
 	 * @return the new wiring
 	 */
 	public static Wiring create(ConfigStore config, DriverRegistry driverRegistry) {
-		return new Wiring(driverRegistry, config);
+		return new Wiring(config, driverRegistry);
 	}
 
 	/**

@@ -63,7 +63,7 @@ class WiringTest {
 		Application application = Application.create(TestConfig.store(), TestDrivers.registry());
 		Assertions.assertEquals(List.of("database", "device-drivers", "oidc-discovery", "task-lock-manager",
 			"vault-token-refresher", "ssh-client", "task-manager", "syslog-server", "snmp-trap-receiver", "ssh-server",
-			"rest-server"), application.services().status().stream().map(ServiceStatus::id).toList());
+			"rest-server"), application.wiring().services().status().stream().map(ServiceStatus::id).toList());
 	}
 
 	@Test
