@@ -2132,7 +2132,10 @@ public class Finder {
 				return binaryExpression;
 			}
 
-			throw new FinderParseException("Unknown configuration field [%s] at character %d.".formatted(tokens.get(0).value, tokens.get(0).position));
+			// A field token has no value: its name is in the keys ([Name], or [Driver > Attribute])
+			Token field = tokens.get(0);
+			String name = field.key1 == null ? field.key2 : "%s > %s".formatted(field.key1, field.key2);
+			throw new FinderParseException("Unknown field [%s] at character %d.".formatted(name, field.position));
 		}
 
 		protected static AttributeDefinition getDriverAttributeDefinition(
