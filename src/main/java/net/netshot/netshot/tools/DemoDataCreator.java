@@ -31,6 +31,7 @@ import org.jooq.DSLContext;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
+import net.netshot.netshot.boot.ConfigOption;
 import net.netshot.netshot.boot.FatalError;
 import net.netshot.netshot.boot.Repositories;
 import net.netshot.netshot.boot.Wiring;
@@ -837,7 +838,7 @@ public class DemoDataCreator {
 	 */
 	public static void main(String[] args) {
 		try {
-			ConfigStore config = ConfigStore.ofFiles(ToolCommandLine.configFiles(args));
+			ConfigStore config = ConfigStore.ofFiles(ConfigOption.files(args));
 			Bootstrap.initialize(config);
 			try (Application application = Application.create(config)) {
 				application.migrate();

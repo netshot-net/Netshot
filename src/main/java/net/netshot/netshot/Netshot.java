@@ -65,7 +65,7 @@ public final class Netshot {
 			commandLine = parser.parse(options, args);
 		}
 		catch (ParseException e) {
-			System.err.println("Error while parsing arguments. " + e.getMessage());
+			FatalError.report(ConfigOption.invalidArguments(e));
 			System.exit(1);
 			return;
 		}

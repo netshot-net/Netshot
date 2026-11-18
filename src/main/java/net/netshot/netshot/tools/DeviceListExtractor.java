@@ -28,6 +28,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
+import net.netshot.netshot.boot.ConfigOption;
 import net.netshot.netshot.boot.FatalError;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceCliAccount;
@@ -79,7 +80,7 @@ public final class DeviceListExtractor {
 		StringBuffer output = new StringBuffer();
 
 		try {
-			ConfigStore config = ConfigStore.ofFiles(ToolCommandLine.configFiles(args));
+			ConfigStore config = ConfigStore.ofFiles(ConfigOption.files(args));
 			Bootstrap.initialize(config);
 			log.info("Starting now.");
 			try (Application application = Application.create(config)) {
