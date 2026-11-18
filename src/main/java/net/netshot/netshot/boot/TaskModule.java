@@ -26,6 +26,7 @@ import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.cluster.ClusterLink;
 import net.netshot.netshot.cluster.ClusterManager;
+import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.compliance.check.ComplianceChecker;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -65,6 +66,7 @@ import net.netshot.netshot.task.handler.TakeSnapshotHandler;
  * @param autoSnapshotScheduler the scheduler of the automatic snapshots
  * @param clusterManager the cluster manager (a service), absent without clustering
  * @param cluster the link to the cluster ({@link ClusterLink#NONE} without clustering)
+ * @param clusterService the cluster use cases (its members)
  * @param diagnosticAdapters the adapters of the diagnostics
  * @param taskHandlers the task handlers
  * @param taskJobFactory the factory of the task jobs
@@ -79,6 +81,7 @@ public record TaskModule(
 	AutoSnapshotScheduler autoSnapshotScheduler,
 	Optional<ClusterManager> clusterManager,
 	ClusterLink cluster,
+	ClusterService clusterService,
 	DiagnosticAdapters diagnosticAdapters,
 	TaskHandlers taskHandlers,
 	TaskJobFactory taskJobFactory,
@@ -143,7 +146,8 @@ public record TaskModule(
 			drivers, dynamicGroups, r.domain(), r.credentialSet(), r.task(), r.credentialSetAssembler());
 		SyslogServer syslogServer = new SyslogServer(drivers, autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
 		SnmpTrapReceiver snmpTrapReceiver = new SnmpTrapReceiver(drivers, autoSnapshotScheduler::scheduleSnapshotIfNeeded, config);
-		return new TaskModule(lockManager, taskManager, autoSnapshotScheduler, clusterManager, cluster, diagnosticAdapters, taskHandlers,
+		return new TaskModule(lockManager, taskManager, autoSnapshotScheduler, clusterManager, cluster,
+			new ClusterService(cluster::getClusterMembers), diagnosticAdapters, taskHandlers,
 			taskJobFactory, taskService, deviceCreationService, syslogServer, snmpTrapReceiver);
 	}
 }
