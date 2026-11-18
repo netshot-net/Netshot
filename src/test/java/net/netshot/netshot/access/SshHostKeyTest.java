@@ -230,6 +230,22 @@ class SshHostKeyTest {
 	}
 
 	@Test
+	@DisplayName("The negotiation of the first key exchange is traced")
+	void tracesNegotiation() throws IOException {
+		FakeTaskContext context = new FakeTaskContext();
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1",
+			this.startServer(HOST_KEY), "admin", "good", context);
+		ssh.setConnectionTimeout(5000);
+		try {
+			ssh.connect(false);
+		}
+		finally {
+			ssh.disconnect();
+		}
+		Assertions.assertTrue(context.getLog().contains("SSH Protocol Negotiation Results:"), context.getLog());
+	}
+
+	@Test
 	@DisplayName("A new session for a download keeps the timeouts of the first one")
 	void newSessionKeepsTimeouts() {
 		Ssh ssh = ssh(22, "good", trustKnown(null));
