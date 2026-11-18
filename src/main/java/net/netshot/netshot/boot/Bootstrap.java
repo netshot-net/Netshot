@@ -81,7 +81,7 @@ public final class Bootstrap {
 		}
 		config.addListener(LoggingSetup::apply);
 		checkJvm();
-		log.info("Selecting truststore.");
+		log.info("Selecting the truststore.");
 		Truststore.apply(config.current());
 	}
 
@@ -114,7 +114,7 @@ public final class Bootstrap {
 	 * @throws BootstrapException if the libraries can't be registered
 	 */
 	private static void registerCryptoLibraries(Config config) throws BootstrapException {
-		log.info("Registering crypto libraries");
+		log.info("Registering the crypto libraries.");
 		try {
 			BouncyCastleLoader.register(config);
 		}
@@ -149,7 +149,7 @@ public final class Bootstrap {
 	 * Checks the JVM, and logs an error if it's not GraalVM 25.
 	 */
 	private static void checkJvm() {
-		log.info("Checking current JVM.");
+		log.info("Checking the JVM.");
 		// e.g. Oracle GraalVM 25.0.4+7.1 (optional), Oracle Corporation, 25.0.4+7-LTS-jvmci-b01
 		checkJvm(System.getProperty("java.vendor.version"), System.getProperty("java.vendor"), System.getProperty("java.vm.version"));
 	}
@@ -163,7 +163,7 @@ public final class Bootstrap {
 	 * @return true if the JVM looks like GraalVM 25
 	 */
 	static boolean checkJvm(String vendorVersion, String vendor, String version) {
-		log.info("Running on JVM: {}", vendorVersion);
+		log.info("Running on the JVM {}.", vendorVersion);
 		boolean expected = true;
 		if (vendorVersion == null || !vendorVersion.contains("GraalVM")) {
 			log.error("The current JVM vendor version '{}' by '{}' doesn't look like GraalVM, Netshot might not work properly.", vendorVersion, vendor);
