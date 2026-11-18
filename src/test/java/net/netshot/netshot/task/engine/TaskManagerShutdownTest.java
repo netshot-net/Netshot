@@ -29,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.quartz.impl.SchedulerRepository;
 
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
@@ -87,6 +88,9 @@ class TaskManagerShutdownTest {
 		TaskLockManager lockManager = TestWiring.get().tasks().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID));
 		try {
+			// The counters of the task manager are shared by the tests of the class
+			long interruptedBefore = (Long) TestWiring.get().tasks().taskManager().stats().get("interruptedOnStop");
+			long startedBefore = (Long) TestWiring.get().tasks().taskManager().stats().get("started");
 			Task task = TestWiring.get().tasks().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
 			// Claimed by its job (RUNNING), and waiting for the device
 			await(() -> TestTasks.find(task.id()).status() == Status.RUNNING, "The task isn't running");
@@ -96,9 +100,34 @@ class TaskManagerShutdownTest {
 			Task stopped = TestTasks.find(task.id());
 			Assertions.assertEquals(Status.FAILURE, stopped.status());
 			Assertions.assertTrue(stopped.log().contains("Netshot was stopped while the task was running."), stopped.log());
-			Assertions.assertEquals(1L, TestWiring.get().tasks().taskManager().stats().get("interruptedOnStop"));
-			Assertions.assertEquals(1L, TestWiring.get().tasks().taskManager().stats().get("started"));
+			Assertions.assertEquals(interruptedBefore + 1, TestWiring.get().tasks().taskManager().stats().get("interruptedOnStop"));
+			Assertions.assertEquals(startedBefore + 1, TestWiring.get().tasks().taskManager().stats().get("started"));
 			// Let the job thread end
+			TestWiring.get().tasks().taskManager().requestCancel(task.id());
+		}
+		finally {
+			lockManager.unlock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID);
+		}
+	}
+
+	@Test
+	@DisplayName("A stop interrupted while waiting for a running task still shuts the schedulers down")
+	void interruptedStop() throws Exception {
+		TaskLockManager lockManager = TestWiring.get().tasks().lockManager();
+		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID));
+		try {
+			Task task = TestWiring.get().tasks().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
+			await(() -> TestTasks.find(task.id()).status() == Status.RUNNING, "The task isn't running");
+			Thread.currentThread().interrupt();
+			try {
+				TestWiring.get().tasks().taskManager().shutdown();
+				Assertions.assertTrue(Thread.currentThread().isInterrupted(), "The interrupt status is kept");
+			}
+			finally {
+				Thread.interrupted();
+			}
+			Assertions.assertNull(SchedulerRepository.getInstance().lookup("NetshotMasterScheduler"), "The master scheduler is still registered");
+			Assertions.assertNull(SchedulerRepository.getInstance().lookup("NetshotRunnerScheduler"), "The runner scheduler is still registered");
 			TestWiring.get().tasks().taskManager().requestCancel(task.id());
 		}
 		finally {
