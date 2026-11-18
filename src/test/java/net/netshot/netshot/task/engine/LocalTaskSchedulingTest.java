@@ -66,7 +66,7 @@ class LocalTaskSchedulingTest {
 
 	@BeforeEach
 	void init() throws Exception {
-		TaskManager taskManager = TestWiring.get().tasks().taskManager();
+		TaskManager taskManager = TestWiring.get().task().taskManager();
 		taskManager.startSchedulers();
 		taskManager.setCluster(new ClusterCoordinator() {
 			@Override
@@ -101,7 +101,7 @@ class LocalTaskSchedulingTest {
 	@AfterEach
 	void cleanUp() throws Exception {
 		((Logger) LoggerFactory.getLogger(TaskManager.class)).detachAppender(this.appender);
-		TestWiring.get().tasks().taskManager().setCluster(ClusterCoordinator.NONE);
+		TestWiring.get().task().taskManager().setCluster(ClusterCoordinator.NONE);
 		this.runnerScheduler.clear();
 		this.runnerScheduler.start();
 		TestTasks.deleteAll();
@@ -129,7 +129,7 @@ class LocalTaskSchedulingTest {
 				catch (Exception e) {
 					throw new RuntimeException(e);
 				}
-				TestWiring.get().tasks().taskManager().scheduleLocalTasks();
+				TestWiring.get().task().taskManager().scheduleLocalTasks();
 			});
 			thread.start();
 			threads.add(thread);

@@ -44,7 +44,7 @@ public final class Wiring {
 	private final CoreModule core;
 	private final AccessModule access;
 	private final ComplianceModule compliance;
-	private final TaskModule tasks;
+	private final TaskModule task;
 	private final InventoryModule inventory;
 	private final CredentialsModule credentials;
 	private final AaaModule aaa;
@@ -62,14 +62,14 @@ public final class Wiring {
 		this.core = CoreModule.create(config, driverRegistry);
 		this.access = AccessModule.create(this.core);
 		this.compliance = ComplianceModule.create(this.core);
-		this.tasks = TaskModule.create(this.core, this.access, this.compliance);
-		this.inventory = InventoryModule.create(this.core, this.tasks);
-		this.credentials = CredentialsModule.create(this.core, this.tasks);
+		this.task = TaskModule.create(this.core, this.access, this.compliance);
+		this.inventory = InventoryModule.create(this.core, this.task);
+		this.credentials = CredentialsModule.create(this.core, this.task);
 		this.aaa = AaaModule.create(this.core);
 		// The lifecycle of the services (filled once they are all built), and the report of their state
 		this.services = new ServiceManager(List.of());
-		this.system = SystemModule.create(this.tasks, this.aaa, this.services);
-		this.api = ApiModule.create(this.core, this.compliance, this.tasks, this.inventory, this.credentials, this.aaa, this.system);
+		this.system = SystemModule.create(this.task, this.aaa, this.services);
+		this.api = ApiModule.create(this.core, this.compliance, this.task, this.inventory, this.credentials, this.aaa, this.system);
 		// The channels which subscribe to the domain events
 		this.api.hookDispatcher().register(this.core.domainEvents());
 		this.serviceList().forEach(this.services::add);
@@ -101,15 +101,15 @@ public final class Wiring {
 		list.add(this.core.driverRegistry());
 		list.add(this.aaa.oidcDiscovery());
 		// Before the clustering manager, which can start running tasks
-		list.add(this.tasks.lockManager());
-		this.tasks.clusterManager().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(ClusterManager.NAME, ClusterManager.ENABLED));
+		list.add(this.task.lockManager());
+		this.task.clusterManager().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(ClusterManager.NAME, ClusterManager.ENABLED));
 		list.add(this.credentials.vaultTokenRefresher());
 		// Before the task manager, which runs the tasks connecting to the devices
 		list.add(this.access.sshClientService());
-		list.add(this.tasks.taskManager());
+		list.add(this.task.taskManager());
 		// The receivers submit tasks: after the task manager
-		list.add(this.tasks.syslogServer());
-		list.add(this.tasks.snmpTrapReceiver());
+		list.add(this.task.syslogServer());
+		list.add(this.task.snmpTrapReceiver());
 		this.access.sshServer().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(SshServer.NAME, SshServer.ENABLED));
 		// Last: the server is ready when it accepts the requests
 		this.api.restServer().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(RestServer.NAME, RestServer.ENABLED));
@@ -157,8 +157,8 @@ public final class Wiring {
 	 *
 	 * @return the module
 	 */
-	public TaskModule tasks() {
-		return this.tasks;
+	public TaskModule task() {
+		return this.task;
 	}
 
 	/**

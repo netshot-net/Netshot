@@ -144,7 +144,7 @@ class HookPayloadTest {
 			for (Format format : FORMATS) {
 				tests.add(DynamicTest.dynamicTest(task.getKey() + "." + format.extension, () -> {
 					BodyWriter writer = writerFor(format);
-					TaskPayload payload = TestWiring.get().tasks().taskService().mapTask(task.getValue(),
+					TaskPayload payload = TestWiring.get().task().taskService().mapTask(task.getValue(),
 						(mapped, devices) -> TaskPayloads.toPayload(TestDrivers.registry(), mapped, devices));
 					this.contract.checkCanonical(task.getKey(), format, this.canonical(format, writer.write(payload)));
 				}));
