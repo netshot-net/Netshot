@@ -38,13 +38,12 @@ public record SystemModule(
 	/**
 	 * Builds the module.
 	 *
-	 * @param core the core module
 	 * @param tasks the task module (the cluster)
 	 * @param aaa the AAA module (the max idle time of the sessions)
 	 * @param services the manager of the services of the server
 	 * @return the module
 	 */
-	public static SystemModule create(CoreModule core, TaskModule tasks, AaaModule aaa, ServiceManager services) {
+	public static SystemModule create(TaskModule tasks, AaaModule aaa, ServiceManager services) {
 		return new SystemModule(new ClusterService(tasks.cluster()::getClusterMembers), new ServerInfoService(aaa.loginService()),
 			new ServiceHealthService(services));
 	}

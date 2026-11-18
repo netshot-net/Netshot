@@ -32,11 +32,13 @@ import net.netshot.netshot.hook.HookService;
  * (absent when disabled), with what its resources may inject.
  *
  * @param hookService the hook use cases
+ * @param hookDispatcher the dispatcher of the domain events to the hooks (subscribed by the wiring)
  * @param restDependencies what the REST resources may inject
  * @param restServer the REST server (a service), absent when disabled
  */
 public record ApiModule(
 	HookService hookService,
+	HookDispatcher hookDispatcher,
 	RestDependencies restDependencies,
 	Optional<RestServer> restServer) {
 
@@ -55,7 +57,7 @@ public record ApiModule(
 	public static ApiModule create(CoreModule core, ComplianceModule compliance, TaskModule tasks, InventoryModule inventory,
 			CredentialsModule credentials, AaaModule aaa, SystemModule system) {
 		HookService hookService = new HookService(core.transactions(), core.repositories().hook());
-		new HookDispatcher(hookService, tasks.taskService(), new WebHookSender(), core.driverRegistry()).register(core.domainEvents());
+		HookDispatcher hookDispatcher = new HookDispatcher(hookService, tasks.taskService(), new WebHookSender(), core.driverRegistry());
 		RestDependencies restDependencies = new RestDependencies(core.config(), new ClientAddress(core.config()), core.driverRegistry(),
 			inventory.deviceService(), tasks.deviceCreationService(), compliance.policyService(), compliance.ruleService(),
 			compliance.softwareRuleService(), compliance.hardwareRuleService(), tasks.taskService(), inventory.deviceCatalogService(),
@@ -67,6 +69,6 @@ public record ApiModule(
 		Optional<RestServer> restServer = core.config().current().get(RestServer.ENABLED)
 			? Optional.of(new RestServer(restDependencies, core.config()))
 			: Optional.empty();
-		return new ApiModule(hookService, restDependencies, restServer);
+		return new ApiModule(hookService, hookDispatcher, restDependencies, restServer);
 	}
 }
