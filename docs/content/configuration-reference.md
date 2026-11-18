@@ -282,7 +282,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 | `netshot.cli.telnet.receivetimeout` | Max time (ms) to wait for data on a Telnet session. | Yes |
 | `netshot.cli.telnet.commandtimeout` | Max time (ms) to wait for a command's output over Telnet. | Yes |
 | `netshot.cli.ssh.connectiontimeout` | Max time (ms) to establish an SSH session, and for the device to complete the authentication. A device which doesn't answer in time is reported as unreachable ("Unable to connect"), not as rejecting the credentials, and the other credential sets of the access aren't tried. | Yes |
-| `netshot.cli.ssh.receivetimeout` | Max time (ms) to wait for data on an SSH session. | Yes |
+| `netshot.cli.ssh.receivetimeout` | Max time (ms) to wait for data on an SSH session, also between two reads of an SCP download (a device which doesn't answer the `scp` command). | Yes |
 | `netshot.cli.ssh.commandtimeout` | Max time (ms) to wait for a command's output over SSH. | Yes |
 | `netshot.cli.ssh.kexalgorithms` | Comma-separated key exchange algorithms for device SSH connections. | Yes |
 | `netshot.cli.ssh.hostkeyalgorithms` | Comma-separated host key algorithms for device SSH connections. | Yes |

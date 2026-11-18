@@ -893,8 +893,16 @@ public class Ssh extends Cli {
 		}
 		this.taskContext.info("Downloading '{}' using SCP.", remoteFileName);
 
-		ScpClient scpClient = ScpClientCreator.instance().createScpClient(session);
-		scpClient.download(remoteFileName, localStream);
+		// The reads of the SCP channel time out after the receive timeout (they wait forever by default, e.g. when the
+		// device doesn't run the scp command): the property is read when the channel opens, the CLI channel isn't affected
+		CoreModuleProperties.WINDOW_TIMEOUT.set(this.session, Duration.ofMillis(this.receiveTimeout));
+		try {
+			ScpClient scpClient = ScpClientCreator.instance().createScpClient(session);
+			scpClient.download(remoteFileName, localStream);
+		}
+		finally {
+			CoreModuleProperties.WINDOW_TIMEOUT.remove(this.session);
+		}
 	}
 
 	/**
