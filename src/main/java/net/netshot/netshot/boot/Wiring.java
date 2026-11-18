@@ -68,7 +68,7 @@ public final class Wiring {
 		this.aaa = AaaModule.create(this.core);
 		// The lifecycle of the services (filled once they are all built), and the report of their state
 		this.services = new ServiceManager(List.of());
-		this.system = SystemModule.create(this.task, this.aaa, this.services);
+		this.system = SystemModule.create(this.aaa, this.services);
 		this.api = ApiModule.create(this.core, this.compliance, this.task, this.inventory, this.credentials, this.aaa, this.system);
 		// The channels which subscribe to the domain events
 		this.api.hookDispatcher().register(this.core.domainEvents());

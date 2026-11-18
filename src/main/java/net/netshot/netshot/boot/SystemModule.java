@@ -18,33 +18,28 @@
  */
 package net.netshot.netshot.boot;
 
-import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.system.ServiceHealthService;
 
 /**
- * The system: the cluster members, the server information and the health of the services.
+ * The system: the server information and the health of the services.
  *
- * @param clusterService the cluster use cases
  * @param serverInfoService the server information use cases
  * @param serviceHealthService the health of the services
  */
 public record SystemModule(
-	ClusterService clusterService,
 	ServerInfoService serverInfoService,
 	ServiceHealthService serviceHealthService) {
 
 	/**
 	 * Builds the module.
 	 *
-	 * @param tasks the task module (the cluster)
 	 * @param aaa the AAA module (the max idle time of the sessions)
 	 * @param services the manager of the services of the server
 	 * @return the module
 	 */
-	public static SystemModule create(TaskModule tasks, AaaModule aaa, ServiceManager services) {
-		return new SystemModule(new ClusterService(tasks.cluster()::getClusterMembers), new ServerInfoService(aaa.loginService()),
-			new ServiceHealthService(services));
+	public static SystemModule create(AaaModule aaa, ServiceManager services) {
+		return new SystemModule(new ServerInfoService(aaa.loginService()), new ServiceHealthService(services));
 	}
 }

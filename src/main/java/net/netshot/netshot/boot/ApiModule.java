@@ -63,7 +63,7 @@ public record ApiModule(
 			compliance.softwareRuleService(), compliance.hardwareRuleService(), tasks.taskService(), inventory.deviceCatalogService(),
 			inventory.deviceDriverService(), inventory.domainService(), inventory.groupService(), inventory.searchService(),
 			inventory.configService(), aaa.userService(), aaa.apiTokenService(), aaa.loginService(), aaa.oidc(), aaa.tacacs(),
-			system.clusterService(), system.serverInfoService(), system.serviceHealthService(), inventory.diagnosticService(),
+			tasks.clusterService(), system.serverInfoService(), system.serviceHealthService(), inventory.diagnosticService(),
 			inventory.scriptService(), inventory.reportService(), credentials.credentialSetService(), credentials.vaultInstanceService(),
 			hookService);
 		Optional<RestServer> restServer = core.config().current().get(RestServer.ENABLED)
