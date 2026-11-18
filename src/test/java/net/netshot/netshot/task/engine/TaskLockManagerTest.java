@@ -66,7 +66,7 @@ class TaskLockManagerTest {
 	@AfterEach
 	void closeManagers() {
 		for (TaskLockManager manager : this.managers) {
-			manager.close();
+			manager.stop();
 		}
 		this.managers.clear();
 		this.openedConnections.clear();
@@ -155,7 +155,7 @@ class TaskLockManagerTest {
 		TaskLockManager member2 = this.newDistributedManager();
 
 		Assertions.assertTrue(member1.tryLock(TaskLockManager.NS_TASK, 200, 200));
-		member1.close();
+		member1.stop();
 		Assertions.assertTrue(member2.tryLock(TaskLockManager.NS_TASK, 200, 200),
 			"The lock must be released by the database when the holder's connection is closed");
 	}

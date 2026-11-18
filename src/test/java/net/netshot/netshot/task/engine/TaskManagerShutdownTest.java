@@ -44,7 +44,7 @@ import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 /**
- * Stop of the task manager ({@link TaskManager#shutdown()}): the running tasks are given
+ * Stop of the task manager ({@link TaskManager#stop()}): the running tasks are given
  * {@code netshot.shutdown.timeout} to end, then the ones still running are marked as failed.
  * A task is kept running by holding the lock of its device (it waits for the device).
  */
@@ -95,7 +95,7 @@ class TaskManagerShutdownTest {
 			// Claimed by its job (RUNNING), and waiting for the device
 			await(() -> TestTasks.find(task.id()).status() == Status.RUNNING, "The task isn't running");
 			long start = System.currentTimeMillis();
-			TestWiring.get().tasks().taskManager().shutdown();
+			TestWiring.get().tasks().taskManager().stop();
 			Assertions.assertTrue(System.currentTimeMillis() - start >= 1000, "The running task wasn't waited for");
 			Task stopped = TestTasks.find(task.id());
 			Assertions.assertEquals(Status.FAILURE, stopped.status());
@@ -120,7 +120,7 @@ class TaskManagerShutdownTest {
 			await(() -> TestTasks.find(task.id()).status() == Status.RUNNING, "The task isn't running");
 			Thread.currentThread().interrupt();
 			try {
-				TestWiring.get().tasks().taskManager().shutdown();
+				TestWiring.get().tasks().taskManager().stop();
 				Assertions.assertTrue(Thread.currentThread().isInterrupted(), "The interrupt status is kept");
 			}
 			finally {
@@ -142,7 +142,7 @@ class TaskManagerShutdownTest {
 			.scheduledIn(60));
 		Assertions.assertTrue(TestWiring.get().tasks().taskManager().isHealthy(), "Unhealthy with started schedulers");
 		long start = System.currentTimeMillis();
-		TestWiring.get().tasks().taskManager().shutdown();
+		TestWiring.get().tasks().taskManager().stop();
 		Assertions.assertTrue(System.currentTimeMillis() - start < 1000, "The stop waited without running task");
 		Assertions.assertFalse(TestWiring.get().tasks().taskManager().isHealthy(), "Healthy once stopped");
 		Assertions.assertEquals(Status.SCHEDULED, TestTasks.find(task.id()).status());
