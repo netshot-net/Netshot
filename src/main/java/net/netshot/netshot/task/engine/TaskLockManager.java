@@ -267,9 +267,12 @@ public class TaskLockManager implements Service {
 		// The lock connection is opened when first needed
 	}
 
+	/**
+	 * Closes the lock connection (releasing all the database locks).
+	 */
 	@Override
-	public void stop() {
-		this.close();
+	public synchronized void stop() {
+		this.closeConnection();
 	}
 
 	@Override
@@ -284,13 +287,6 @@ public class TaskLockManager implements Service {
 		stats.put("heldLocks", this.heldLocks.size());
 		stats.put("connected", this.connection != null);
 		return stats;
-	}
-
-	/**
-	 * Closes the lock connection (releasing all the database locks).
-	 */
-	public synchronized void close() {
-		this.closeConnection();
 	}
 
 	/**

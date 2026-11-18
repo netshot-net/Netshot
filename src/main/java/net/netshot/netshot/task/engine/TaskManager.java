@@ -319,11 +319,6 @@ public final class TaskManager implements Service, TaskEngine {
 		this.cancelOrphanedDelayedTasks();
 	}
 
-	@Override
-	public void stop() {
-		this.shutdown();
-	}
-
 	/**
 	 * Whether the task manager runs: its schedulers are started and not shut down.
 	 *
@@ -449,7 +444,8 @@ public final class TaskManager implements Service, TaskEngine {
 	 * Stops the task manager: no task is started any more, the running tasks are given some time
 	 * ({@code netshot.shutdown.timeout}) to end, then the ones still running are marked as failed.
 	 */
-	public void shutdown() {
+	@Override
+	public void stop() {
 		// Either can be missing after a failed start
 		Scheduler master = this.masterScheduler;
 		Scheduler runner = this.runnerScheduler;
