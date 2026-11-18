@@ -47,6 +47,9 @@ import net.netshot.netshot.platform.config.Config;
 /**
  * The SSH client shared by the SSH accesses to the devices ({@link Ssh}): built with the settings of
  * the configuration (applied again on each change), started and stopped with the server.
+ *
+ * <p>Unlike the other services, the client object is built by the constructor, as the wiring gives it to the
+ * {@link Connectors}: it holds no resource (no thread, no socket) until {@link #start()}.</p>
  */
 public final class SshClientService implements Service {
 
