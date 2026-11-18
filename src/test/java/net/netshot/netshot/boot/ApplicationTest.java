@@ -58,14 +58,16 @@ class ApplicationTest {
 	}
 
 	@Test
-	@DisplayName("Starts the services it is asked for, and stops them on close (once)")
+	@DisplayName("Starts the services it is asked for, and stops them on close (once), then tells it is closed")
 	void startSomeAndClose(TestDatabase database) throws Exception {
 		Application application = Application.create(new ConfigStore(Config.of(database.netshotConfig())), TestDrivers.registry());
 		application.start("database");
 		Assertions.assertEquals(ServiceState.RUNNING, states(application).get("database"));
 		Assertions.assertEquals(ServiceState.NEW, states(application).get("task-manager"));
 		Assertions.assertEquals(1, (int) application.wiring().core().transactions().read(dsl -> dsl.selectOne().fetchOne(0, Integer.class)));
+		Assertions.assertFalse(application.isClosed());
 		application.close();
+		Assertions.assertTrue(application.isClosed());
 		application.close();
 		Assertions.assertEquals(ServiceState.STOPPED, states(application).get("database"));
 		Assertions.assertEquals(List.of(), states(application).entrySet().stream()

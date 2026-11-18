@@ -103,7 +103,10 @@ public final class Netshot {
 			Signals.register(application);
 			application.migrate();
 			application.start();
-			log.warn("Netshot is started");
+			if (!application.isClosed()) {
+				// Not when stopped while it started: the stop is logged
+				log.warn("Netshot is started");
+			}
 		}
 		catch (Exception e) {
 			FatalError.report(e);
