@@ -194,7 +194,7 @@ A `Task` record holds a task as stored: its header (target, schedule, status, lo
 
 ### Test layout
 
-A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.JsRuleTest`, `api.rest.v1.device.V1DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`, `TestLayoutTest`); the shared helpers are in `net.netshot.netshot.testing`.
+A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.JsRuleTest`, `api.rest.v1.device.V1DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the tests of the whole application (`ArchitectureTest`, `ConfigReloadTest`, `NetshotConfigTest`, `NetshotStartupTest`: the server run in its own JVM, as in production, `TestLayoutTest`); the shared helpers are in `net.netshot.netshot.testing`.
 
 The versions of the REST API are tested independently, so that a version can be removed (or added) with its packages only:
 

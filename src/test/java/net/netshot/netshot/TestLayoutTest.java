@@ -75,7 +75,7 @@ class TestLayoutTest {
 	private static final String ROOT = "net.netshot.netshot";
 
 	/** Tests allowed in the root package, as they cover the whole application. */
-	private static final Set<String> ROOT_TESTS = Set.of("ArchitectureTest", "ConfigReloadTest", "NetshotConfigTest", "TestLayoutTest");
+	private static final Set<String> ROOT_TESTS = Set.of("ArchitectureTest", "ConfigReloadTest", "NetshotConfigTest", "NetshotStartupTest", "TestLayoutTest");
 
 	/** The annotations giving the kind of a test class (see the {@code testing} package). */
 	private static final List<Class<? extends Annotation>> KINDS = List.of(
