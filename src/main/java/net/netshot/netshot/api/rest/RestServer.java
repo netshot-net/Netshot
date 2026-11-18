@@ -252,6 +252,9 @@ public final class RestServer implements Service {
 		DeploymentManager deploymentManager = Servlets
 			.defaultContainer()
 			.addDeployment(deployment);
+		// Kept at once, to be undeployed by stop() if the start fails later (e.g. port in use)
+		this.manager = deploymentManager;
+		this.servletBuilder = deployment;
 		deploymentManager.deploy();
 		HttpHandler servletHandler = deploymentManager.start();
 
@@ -291,23 +294,25 @@ public final class RestServer implements Service {
 		});
 
 		// === Start Undertow ===
-		this.server = builder.build();
-		this.server.start();
-		this.manager = deploymentManager;
-		this.servletBuilder = deployment;
+		Undertow undertow = builder.build();
+		undertow.start();
+		this.server = undertow;
 		log.info("The Web/REST server listens on {}.", baseUri);
 	}
 
 	@Override
 	public synchronized void stop() throws Exception {
-		if (this.server == null) {
-			return;
+		if (this.server != null) {
+			this.server.stop();
+			this.server = null;
 		}
-		this.server.stop();
-		this.server = null;
-		this.manager.stop();
-		this.manager.undeploy();
-		Servlets.defaultContainer().removeDeployment(this.servletBuilder);
+		if (this.manager != null) {
+			this.manager.stop();
+			this.manager.undeploy();
+			Servlets.defaultContainer().removeDeployment(this.servletBuilder);
+			this.manager = null;
+			this.servletBuilder = null;
+		}
 	}
 
 	@Override

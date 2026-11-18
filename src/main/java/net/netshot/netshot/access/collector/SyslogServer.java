@@ -183,8 +183,10 @@ public final class SyslogServer implements Service {
 			this.lock.notifyAll();
 		}
 		this.closeSocket();
-		this.executor.shutdownNow();
-		this.executor.awaitTermination(10, TimeUnit.SECONDS);
+		if (this.executor != null) {
+			this.executor.shutdownNow();
+			this.executor.awaitTermination(10, TimeUnit.SECONDS);
+		}
 	}
 
 	@Override
