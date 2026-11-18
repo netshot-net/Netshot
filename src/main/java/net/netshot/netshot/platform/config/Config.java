@@ -58,12 +58,16 @@ public final class Config {
 	/** The environment variables. */
 	private final Map<String, String> environment;
 
+	/** The name of the configuration file the items were read from (null if not read from a file). */
+	private final String fileName;
+
 	/** The secret items already read (empty if not set). */
 	private final Map<String, Optional<String>> secrets = new ConcurrentHashMap<>();
 
-	private Config(Map<String, String> file, Map<String, String> environment) {
+	private Config(Map<String, String> file, Map<String, String> environment, String fileName) {
 		this.file = Collections.unmodifiableMap(new TreeMap<>(file));
 		this.environment = Map.copyOf(environment);
+		this.fileName = fileName;
 	}
 
 	/**
@@ -84,11 +88,15 @@ public final class Config {
 	 * @return the configuration
 	 */
 	public static Config of(Properties properties, Map<String, String> environment) {
+		return of(properties, environment, null);
+	}
+
+	private static Config of(Properties properties, Map<String, String> environment, String fileName) {
 		Map<String, String> items = new TreeMap<>();
 		for (String name : properties.stringPropertyNames()) {
 			items.put(name, properties.getProperty(name));
 		}
-		return new Config(items, environment);
+		return new Config(items, environment, fileName);
 	}
 
 	/**
@@ -108,22 +116,30 @@ public final class Config {
 	 * @throws ConfigException if no file could be read, or the file is empty
 	 */
 	public static Config load(List<String> fileNames) throws ConfigException {
-		Properties properties = new Properties();
 		for (String fileName : fileNames) {
+			Properties properties = new Properties();
 			try (InputStream fileStream = new FileInputStream(fileName)) {
-				log.trace("Trying to load the configuration file {}.", fileName);
 				properties.load(fileStream);
-				log.warn("Configuration file {} successfully read.", fileName);
-				break;
 			}
 			catch (Exception e) {
-				log.warn("Unable to read the configuration file {}.", fileName);
+				log.debug("Unable to read the configuration file {}.", fileName, e);
+				continue;
 			}
+			if (properties.isEmpty()) {
+				break;
+			}
+			return of(properties, processEnvironment(), fileName);
 		}
-		if (properties.isEmpty()) {
-			throw new ConfigException("No configuration file was found (tried %s)".formatted(String.join(", ", fileNames)));
-		}
-		return of(properties);
+		throw new ConfigException("No configuration file was found (tried %s)".formatted(String.join(", ", fileNames)));
+	}
+
+	/**
+	 * Gets the name of the configuration file the items were read from.
+	 *
+	 * @return the file name, or null if the configuration wasn't read from a file
+	 */
+	public String fileName() {
+		return this.fileName;
 	}
 
 	private static Map<String, String> processEnvironment() {
@@ -374,8 +390,8 @@ public final class Config {
 
 	private String readSecret(String key) {
 		String fileKey = key + ".file";
-		String fileName = this.get(fileKey);
-		if (fileName == null) {
+		String secretFile = this.get(fileKey);
+		if (secretFile == null) {
 			return this.get(key);
 		}
 		if (this.getFromEnvironment(key) != null) {
@@ -388,24 +404,24 @@ public final class Config {
 		}
 		String value;
 		try {
-			Path path = Path.of(fileName);
+			Path path = Path.of(secretFile);
 			if (Files.size(path) > MAX_SECRET_FILE_SIZE) {
 				throw new IllegalStateException("The secret file '%s' for configuration item '%s' is too big (more than %d bytes)"
-					.formatted(fileName, key, MAX_SECRET_FILE_SIZE));
+					.formatted(secretFile, key, MAX_SECRET_FILE_SIZE));
 			}
 			value = Files.readString(path, StandardCharsets.UTF_8);
 		}
 		catch (IOException | InvalidPathException e) {
 			throw new IllegalStateException("Unable to read the secret file '%s' for configuration item '%s'"
-				.formatted(fileName, key), e);
+				.formatted(secretFile, key), e);
 		}
 		// Ignore the trailing line break(s), but keep any other whitespace
 		value = value.replaceFirst("[\\r\\n]+\\z", "");
 		if (value.isEmpty()) {
 			throw new IllegalStateException("The secret file '%s' for configuration item '%s' is empty"
-				.formatted(fileName, key));
+				.formatted(secretFile, key));
 		}
-		log.info("Configuration item '{}' was read from secret file {}.", key, fileName);
+		log.info("Configuration item '{}' was read from secret file {}.", key, secretFile);
 		return value;
 	}
 }

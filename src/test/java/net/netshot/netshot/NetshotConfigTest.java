@@ -140,6 +140,8 @@ class NetshotConfigTest {
 		Files.writeString(file, "netshot.test.item = fromfile\n", StandardCharsets.UTF_8);
 		Config config = Config.load(List.of(tempDir.resolve("missing.conf").toString(), file.toString()));
 		Assertions.assertEquals("fromfile", config.get("netshot.test.item"));
+		Assertions.assertEquals(file.toString(), config.fileName(), "The configuration tells the file it was read from");
+		Assertions.assertNull(Config.empty().fileName(), "No file name without a file");
 	}
 
 	@Test
