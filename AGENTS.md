@@ -30,7 +30,7 @@ Always use the Maven wrapper (`./mvnw`), not a system-installed `mvn` — it pin
   ```bash
   docker compose -f compose.dev.yaml up --build
   ```
-  Add `-f compose.dev.oidc.yaml` for a local OIDC IdP, or `-f compose.dev.cluster.yaml` for two clustered nodes. UI at `https://localhost:8443/`. The `router1`/`router2` simulated devices can be added using their Compose hostname and `admin`/`admin`. Rebuild (`--build`) after backend changes; the web UI hot-reloads on its own.
+  Add `-f compose.dev.oidc.yaml` for a local OIDC IdP, or `-f compose.dev.cluster.yaml` for two clustered nodes. UI at `https://localhost:8443/`. The `router1`/`router2` simulated devices can be added using their Compose hostname and an SSH credential set `admin`/`admin`; `router1` (Cisco IOS) also needs the enable password (*super password* of the credential set) `admin`, or its snapshots fail. Rebuild (`--build`) after backend changes; the web UI hot-reloads on its own.
 - Docs: managed with `uv` (see `docs/pyproject.toml` / `docs/uv.lock`) — use `uv run`/`uv sync` rather than bare `pip`/`venv` for anything under `docs/`.
 
 ## Tests and checks
