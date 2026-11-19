@@ -83,13 +83,20 @@ public class DriverLoader {
 		final String addPath = this.config.current().get(DRIVERS_PATH);
 		if (addPath != null) {
 			final File folder = new File(addPath);
-			if (folder.isDirectory()) {
-				File[] files = folder.listFiles(new FileFilter() {
-					@Override
-					public boolean accept(File pathname) {
-						return pathname.isFile() && pathname.getName().endsWith(".js");
-					}
-				});
+			File[] files = folder.isDirectory() ? folder.listFiles(new FileFilter() {
+				@Override
+				public boolean accept(File pathname) {
+					return pathname.isFile() && pathname.getName().endsWith(".js");
+				}
+			}) : null;
+			if (!folder.exists()) {
+				// Optional (the Docker configuration sets it, without the folder)
+				log.info("The folder of the user device drivers, {}, doesn't exist: no user driver to load.", addPath);
+			}
+			else if (files == null) {
+				log.error("Unable to read the folder {} to find user device drivers.", addPath);
+			}
+			else {
 				for (File file : files) {
 					log.info("Found user device driver file {}.", file);
 					Reader reader = null;
@@ -116,9 +123,6 @@ public class DriverLoader {
 						}
 					}
 				}
-			}
-			else {
-				log.error("Unable to open {} to find device drivers.", addPath);
 			}
 		}
 

@@ -21,6 +21,7 @@ package net.netshot.netshot.driver;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterEach;
@@ -29,6 +30,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
@@ -121,5 +128,44 @@ class DriverRegistryTest {
 		Files.delete(this.driversFolder.resolve("UserTestDriver.js"));
 		this.registry.reload();
 		Assertions.assertNull(this.registry.getDriverByName("UserTestDriver"));
+	}
+
+	/**
+	 * Reloads the drivers with the given user drivers path, and gets what the loader logged.
+	 *
+	 * @param path the folder of the user drivers
+	 * @return the events logged by the driver loader
+	 * @throws Exception if the reload fails
+	 */
+	private List<ILoggingEvent> reloadWithPath(Path path) throws Exception {
+		Properties config = new Properties();
+		config.setProperty("netshot.drivers.path", path.toString());
+		TestConfig.init(config);
+		Logger logger = (Logger) LoggerFactory.getLogger(DriverLoader.class);
+		ListAppender<ILoggingEvent> logs = new ListAppender<>();
+		logs.start();
+		logger.addAppender(logs);
+		try {
+			this.registry.reload();
+		}
+		finally {
+			logger.detachAppender(logs);
+		}
+		return logs.list;
+	}
+
+	@Test
+	@DisplayName("A missing user drivers folder is optional, an unreadable one is an error")
+	void userDriversFolder() throws Exception {
+		List<ILoggingEvent> missing = this.reloadWithPath(this.driversFolder.resolve("missing"));
+		Assertions.assertTrue(missing.stream().noneMatch(e -> e.getLevel() == Level.ERROR), "No error for a missing folder");
+		Assertions.assertTrue(missing.stream().anyMatch(e -> e.getLevel() == Level.INFO && e.getFormattedMessage().contains("doesn't exist")));
+		Assertions.assertNotNull(this.registry.getDriverByName(BUNDLED_DRIVER), "The bundled drivers are loaded");
+
+		Path notAFolder = Files.writeString(this.driversFolder.resolve("file"), "", StandardCharsets.UTF_8);
+		List<ILoggingEvent> unreadable = this.reloadWithPath(notAFolder);
+		Assertions.assertTrue(unreadable.stream().anyMatch(e -> e.getLevel() == Level.ERROR
+			&& e.getFormattedMessage().contains("Unable to read the folder")));
+		Assertions.assertNotNull(this.registry.getDriverByName(BUNDLED_DRIVER), "The bundled drivers are loaded");
 	}
 }
