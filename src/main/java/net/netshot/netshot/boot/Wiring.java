@@ -98,6 +98,9 @@ public final class Wiring {
 	private List<Service> serviceList() {
 		List<Service> list = new ArrayList<>();
 		list.add(this.core.database());
+		// Early: it receives the files of the snapshot tasks, and a port clash stops the start before the node joins
+		// the cluster or runs tasks
+		this.access.sshServer().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(SshServer.NAME, SshServer.ENABLED));
 		list.add(this.core.driverRegistry());
 		list.add(this.aaa.oidcDiscovery());
 		// Before the clustering manager, which can start running tasks
@@ -110,7 +113,6 @@ public final class Wiring {
 		// The receivers submit tasks: after the task manager
 		list.add(this.task.syslogServer());
 		list.add(this.task.snmpTrapReceiver());
-		this.access.sshServer().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(SshServer.NAME, SshServer.ENABLED));
 		// Last: the server is ready when it accepts the requests
 		this.api.restServer().ifPresentOrElse(list::add, () -> ServiceManager.logDisabled(RestServer.NAME, RestServer.ENABLED));
 		return list;

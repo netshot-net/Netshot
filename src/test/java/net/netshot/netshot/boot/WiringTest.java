@@ -61,8 +61,8 @@ class WiringTest {
 	@DisplayName("The services, in start order")
 	void services() {
 		Application application = Application.create(TestConfig.store(), TestDrivers.registry());
-		Assertions.assertEquals(List.of("database", "device-drivers", "oidc-discovery", "task-lock-manager",
-			"vault-token-refresher", "ssh-client", "task-manager", "syslog-server", "snmp-trap-receiver", "ssh-server",
+		Assertions.assertEquals(List.of("database", "ssh-server", "device-drivers", "oidc-discovery", "task-lock-manager",
+			"vault-token-refresher", "ssh-client", "task-manager", "syslog-server", "snmp-trap-receiver",
 			"rest-server"), application.wiring().services().status().stream().map(ServiceStatus::id).toList());
 	}
 
