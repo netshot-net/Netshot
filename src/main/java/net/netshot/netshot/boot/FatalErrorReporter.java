@@ -27,12 +27,12 @@ import net.netshot.netshot.platform.lifecycle.ServiceStartException;
  * Reports the error which stops an entry point (the server, a tool), once in the log and once on the console.
  */
 @Slf4j
-public final class FatalError {
+public final class FatalErrorReporter {
 
 	/** The prefix of the console message. */
 	static final String PREFIX = "NETSHOT FATAL ERROR: ";
 
-	private FatalError() {
+	private FatalErrorReporter() {
 	}
 
 	/**

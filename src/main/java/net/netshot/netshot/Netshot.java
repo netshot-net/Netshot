@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.ConfigOption;
-import net.netshot.netshot.boot.FatalError;
+import net.netshot.netshot.boot.FatalErrorReporter;
 import net.netshot.netshot.boot.Signals;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.runtime.AgentInstrumentation;
@@ -65,7 +65,7 @@ public final class Netshot {
 			commandLine = parser.parse(options, args);
 		}
 		catch (ParseException e) {
-			FatalError.report(ConfigOption.invalidArguments(e));
+			FatalErrorReporter.report(ConfigOption.invalidArguments(e));
 			System.exit(1);
 			return;
 		}
@@ -110,7 +110,7 @@ public final class Netshot {
 			}
 		}
 		catch (Exception e) {
-			FatalError.report(e);
+			FatalErrorReporter.report(e);
 			System.exit(1);
 		}
 	}
