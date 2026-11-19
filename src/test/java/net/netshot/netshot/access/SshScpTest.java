@@ -71,6 +71,8 @@ class SshScpTest {
 		this.server.setKeyPairProvider(hostKeys);
 		this.server.setPasswordAuthenticator((_, _, _) -> true);
 		this.server.setCommandFactory(commands);
+		// The shell of a device which never closes the session itself
+		this.server.setShellFactory(_ -> new SilentCommand());
 		this.server.setFileSystemFactory(new VirtualFileSystemFactory(this.tempDir));
 		this.server.start();
 		return this.server.getPort();
@@ -123,6 +125,17 @@ class SshScpTest {
 		ssh.setConnectionTimeout(5000);
 		ssh.setReceiveTimeout(1000);
 		return ssh;
+	}
+
+	@Test
+	@DisplayName("The disconnection doesn't wait for the device to close the session")
+	void disconnectAtOnce() throws IOException {
+		Ssh ssh = ssh(this.startServer((_, _) -> new SilentCommand()));
+		ssh.connect(true);
+		long start = System.nanoTime();
+		ssh.disconnect();
+		long elapsed = Duration.ofNanos(System.nanoTime() - start).toMillis();
+		Assertions.assertTrue(elapsed < 1000, "Disconnected in " + elapsed + " ms");
 	}
 
 	@Test

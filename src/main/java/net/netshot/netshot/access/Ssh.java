@@ -32,7 +32,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +46,6 @@ import org.apache.sshd.client.auth.password.PasswordAuthenticationReporter;
 import org.apache.sshd.client.auth.pubkey.PublicKeyAuthenticationReporter;
 import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.channel.ChannelShell;
-import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
@@ -862,7 +860,7 @@ public class Ssh extends Cli {
 	public void disconnect() {
 		try {
 			if (this.channel != null) {
-				channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), Duration.ofSeconds(3));
+				// Closed at once (cleanly): the drivers don't end the session, waiting for the device to close it was lost time
 				this.channel.close();
 				this.channel = null;
 			}
