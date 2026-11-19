@@ -153,21 +153,21 @@ public final class VaultManager implements SecretResolver {
 	/**
 	 * Creates the Vault client, reading the Vault instances from the database.
 	 *
-	 * @param config the configuration store, to read the settings from
 	 * @param transactions the transaction support, to read the Vault instances
 	 * @param repository the Vault instance repository
+	 * @param config the configuration store, to read the settings from
 	 */
-	public VaultManager(ConfigStore config, Transactions transactions, VaultInstanceRepository repository) {
-		this(config, id -> transactions.read(dsl -> repository.find(dsl, id)));
+	public VaultManager(Transactions transactions, VaultInstanceRepository repository, ConfigStore config) {
+		this(id -> transactions.read(dsl -> repository.find(dsl, id)), config);
 	}
 
 	/**
 	 * Creates the Vault client.
 	 *
-	 * @param config the configuration store, to read the settings from
 	 * @param instanceLoader reads a Vault instance, by ID (null if it doesn't exist)
+	 * @param config the configuration store, to read the settings from
 	 */
-	public VaultManager(ConfigStore config, LongFunction<VaultInstance> instanceLoader) {
+	public VaultManager(LongFunction<VaultInstance> instanceLoader, ConfigStore config) {
 		this.settings = config.bind(Settings::from);
 		this.instanceLoader = instanceLoader;
 	}

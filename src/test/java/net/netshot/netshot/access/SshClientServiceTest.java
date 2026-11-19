@@ -49,7 +49,7 @@ class SshClientServiceTest {
 	@DisplayName("Applies the SSH settings to the client when it starts, and their changes while it runs")
 	void appliesSettings() {
 		configure(12000);
-		SshClientService service = new SshClientService(TestConfig.store(), new AccessSettings(TestConfig.store()));
+		SshClientService service = new SshClientService(new AccessSettings(TestConfig.store()), TestConfig.store());
 		service.start();
 		try {
 			Assertions.assertEquals(Duration.ofMillis(12000), CoreModuleProperties.NIO2_READ_TIMEOUT.getRequired(service.client()));

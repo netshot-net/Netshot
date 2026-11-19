@@ -66,6 +66,6 @@ public record CoreModule(
 		Repositories repositories = Repositories.create(transactions, secretConverter, config);
 		return new CoreModule(config, database, transactions, secretConverter, repositories, new DomainEvents(), driverRegistry,
 			new DynamicGroups(transactions, driverRegistry, repositories.group()),
-			new VaultManager(config, transactions, repositories.vaultInstance()));
+			new VaultManager(transactions, repositories.vaultInstance(), config));
 	}
 }

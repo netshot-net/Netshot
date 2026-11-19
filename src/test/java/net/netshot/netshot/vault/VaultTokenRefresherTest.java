@@ -34,9 +34,9 @@ class VaultTokenRefresherTest {
 	@DisplayName("Healthy while it runs")
 	void health() throws Exception {
 		ConfigStore config = new ConfigStore(Config.empty());
-		VaultManager vaultManager = new VaultManager(config, _ -> null);
+		VaultManager vaultManager = new VaultManager(_ -> null, config);
 		// No database: the refresh rounds fail, the refresher keeps running
-		VaultTokenRefresher refresher = new VaultTokenRefresher(null, vaultManager, config, null);
+		VaultTokenRefresher refresher = new VaultTokenRefresher(null, vaultManager, null, config);
 		Assertions.assertFalse(refresher.isHealthy(), "Healthy before the start");
 		refresher.start();
 		Assertions.assertTrue(refresher.isHealthy(), "Unhealthy once started");

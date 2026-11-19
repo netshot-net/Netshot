@@ -72,10 +72,10 @@ public final class VaultTokenRefresher implements Service {
 	 *
 	 * @param transactions the transaction support, to read the Vault instances
 	 * @param vaultManager the Vault client, whose tokens are refreshed
-	 * @param config the configuration store
 	 * @param repository the Vault instance repository
+	 * @param config the configuration store
 	 */
-	public VaultTokenRefresher(Transactions transactions, VaultManager vaultManager, ConfigStore config, VaultInstanceRepository repository) {
+	public VaultTokenRefresher(Transactions transactions, VaultManager vaultManager, VaultInstanceRepository repository, ConfigStore config) {
 		this.transactions = transactions;
 		this.vaultManager = vaultManager;
 		this.config = config;
