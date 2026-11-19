@@ -95,7 +95,7 @@ class ConfigReloadTest {
 		Assertions.assertEquals(4321, Telnet.Settings.from(TestConfig.store().current()).receiveTimeout());
 		Assertions.assertEquals(NetworkAddress.getNetworkAddress("192.168.0.1"),
 			Collector.Settings.from(TestConfig.store().current()).clusterIpOverrides().get(InetAddress.getByName("10.0.0.1")));
-		Assertions.assertEquals(2222, new VaultManager(TestConfig.store(), _ -> null).settings().httpReadTimeoutMs());
+		Assertions.assertEquals(2222, new VaultManager(_ -> null, TestConfig.store()).settings().httpReadTimeoutMs());
 		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.Settings.from(TestConfig.store().current()).storageFolderPath());
 		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.Settings.from(TestConfig.store().current()).venvFolder());
 
@@ -105,7 +105,7 @@ class ConfigReloadTest {
 		Assertions.assertEquals(5000, Ssh.Settings.from(TestConfig.store().current()).connectionTimeout());
 		Assertions.assertEquals(60000, Telnet.Settings.from(TestConfig.store().current()).receiveTimeout());
 		Assertions.assertTrue(Collector.Settings.from(TestConfig.store().current()).clusterIpOverrides().isEmpty());
-		Assertions.assertEquals(10000, new VaultManager(TestConfig.store(), _ -> null).settings().httpReadTimeoutMs());
+		Assertions.assertEquals(10000, new VaultManager(_ -> null, TestConfig.store()).settings().httpReadTimeoutMs());
 		Assertions.assertNull(PythonFileSystem.Settings.from(TestConfig.store().current()).venvFolder());
 	}
 

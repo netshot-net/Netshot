@@ -47,7 +47,7 @@ public record AccessModule(
 	public static AccessModule create(CoreModule core) {
 		ConfigStore config = core.config();
 		AccessSettings settings = new AccessSettings(config);
-		SshClientService sshClientService = new SshClientService(config, settings);
+		SshClientService sshClientService = new SshClientService(settings, config);
 		Connectors connectors = new Connectors(core.vaultManager(), sshClientService.client(), core.repositories().deviceReads(), settings);
 		Optional<SshServer> sshServer = config.current().get(SshServer.ENABLED) ? Optional.of(new SshServer(config)) : Optional.empty();
 		return new AccessModule(sshClientService, connectors, sshServer);

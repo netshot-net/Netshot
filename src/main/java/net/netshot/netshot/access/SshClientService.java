@@ -77,10 +77,10 @@ public final class SshClientService implements Service {
 	/**
 	 * Builds the client (not started).
 	 *
-	 * @param config the configuration store, whose changes are applied to the client
 	 * @param settings the settings of the device accesses (the SSH settings)
+	 * @param config the configuration store, whose changes are applied to the client
 	 */
-	public SshClientService(ConfigStore config, AccessSettings settings) {
+	public SshClientService(AccessSettings settings, ConfigStore config) {
 		this.config = config;
 		this.settings = settings;
 		this.client = SshClient.setUpDefaultClient();

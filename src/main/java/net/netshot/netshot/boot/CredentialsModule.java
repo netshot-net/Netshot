@@ -57,6 +57,6 @@ public record CredentialsModule(
 					cluster.requestVaultInstanceReload(vaultInstanceId);
 				},
 				vaultManager::testConnection),
-			new VaultTokenRefresher(transactions, vaultManager, core.config(), r.vaultInstance()));
+			new VaultTokenRefresher(transactions, vaultManager, r.vaultInstance(), core.config()));
 	}
 }

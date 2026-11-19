@@ -77,7 +77,7 @@ class VaultTest {
 		private static final VaultContainer<?> VAULT_CONTAINER = buildVaultContainer();
 
 		/** The Vault client, reading the Vault instances from the database. */
-		private final VaultManager vault = new VaultManager(TestConfig.store(), TestWiring.get().core().transactions(), TestWiring.get().core().repositories().vaultInstance());
+		private final VaultManager vault = new VaultManager(TestWiring.get().core().transactions(), TestWiring.get().core().repositories().vaultInstance(), TestConfig.store());
 
 		/**
 		 * Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class.
