@@ -56,12 +56,12 @@ final class SharedPostgres implements AutoCloseable {
 	/** Database migrated once per run, which the database of each test class is a copy of. */
 	private static final String TEMPLATE_DATABASE = "netshot_template";
 
-	/** The default PostgreSQL image of the tests: the oldest supported version. */
-	static final String DEFAULT_IMAGE = "postgres:15";
+	/** The default PostgreSQL image of the tests: the recommended version, the only one the CI tests. */
+	static final String DEFAULT_IMAGE = "postgres:18";
 
 	/**
-	 * Gets the PostgreSQL image of the tests: the oldest supported version by default, another one with
-	 * {@code -Dnetshot.test.postgres=postgres:18} (the CI also runs the database tests on the latest version).
+	 * Gets the PostgreSQL image of the tests: the recommended version by default, another one with
+	 * {@code -Dnetshot.test.postgres=postgres:15} (to check an older supported version by hand).
 	 *
 	 * @return the image name
 	 */

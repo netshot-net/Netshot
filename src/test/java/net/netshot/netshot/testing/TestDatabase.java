@@ -49,8 +49,8 @@ public final class TestDatabase {
 	}
 
 	/**
-	 * Gets the PostgreSQL image of the tests: the oldest supported version by default, another one with
-	 * {@code -Dnetshot.test.postgres=postgres:18}.
+	 * Gets the PostgreSQL image of the tests: the recommended version by default, another one with
+	 * {@code -Dnetshot.test.postgres=postgres:15}.
 	 *
 	 * @return the image name
 	 */
