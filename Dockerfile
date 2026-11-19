@@ -24,7 +24,6 @@ RUN wget --quiet https://gds.oracle.com/download/graal/${GRAALVM_VERSION%%.*}/ar
     update-alternatives --install /usr/bin/java java /usr/lib/jvm/${JDIR}/bin/java 92100
 
 FROM debian-graalvm AS debian-graalvm-graalpy
-ARG NETSHOT_VERSION
 ARG GRAALPY_VERSION
 COPY pom.xml mvnw /build/
 COPY .mvn /build/.mvn
@@ -35,11 +34,12 @@ RUN wget --quiet https://github.com/oracle/graalpython/releases/download/graal-$
     mv graalpy-community-${GRAALPY_VERSION}-linux-amd64 graalpy
 
 FROM debian-graalvm-graalpy AS builder
-ARG NETSHOT_VERSION
 WORKDIR /build
 RUN ./mvnw dependency:resolve dependency:resolve-plugins -B
 COPY . /build
 COPY --from=webui-builder /build/webui/dist /build/src/main/resources/webui/dist
+# Declared here, so that a new version doesn't invalidate the cached layers above
+ARG NETSHOT_VERSION
 RUN sed -i -r "s/VERSION = \".*\";/VERSION = \"$NETSHOT_VERSION\";/g" \
        src/main/java/net/netshot/netshot/platform/runtime/BuildInfo.java
 RUN ./mvnw package -Dmaven.test.skip
