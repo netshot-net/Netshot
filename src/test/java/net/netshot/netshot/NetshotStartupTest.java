@@ -19,6 +19,10 @@
 package net.netshot.netshot;
 
 import java.io.IOException;
+import java.lang.foreign.FunctionDescriptor;
+import java.lang.foreign.Linker;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,6 +59,9 @@ class NetshotStartupTest {
 
 	/** How long the server may take to start or stop. */
 	private static final Duration TIMEOUT = Duration.ofMinutes(3);
+
+	/** The number of the HUP signal (the same on Linux and macOS). */
+	private static final int SIGHUP = 1;
 
 	@TempDir
 	Path tempDir;
@@ -178,6 +185,26 @@ class NetshotStartupTest {
 		return count;
 	}
 
+	/**
+	 * Sends a signal to a process, with the kill function of the C library (Java can only send TERM and KILL, and
+	 * the build image, a Debian without procps, has no kill command).
+	 *
+	 * @param pid the process ID
+	 * @param signal the signal number
+	 * @return the result of kill: 0 on success
+	 */
+	private static int sendSignal(long pid, int signal) {
+		Linker linker = Linker.nativeLinker();
+		MethodHandle kill = linker.downcallHandle(linker.defaultLookup().find("kill").orElseThrow(),
+			FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+		try {
+			return (int) kill.invokeExact((int) pid, signal);
+		}
+		catch (Throwable e) {
+			throw new IllegalStateException("Unable to call kill", e);
+		}
+	}
+
 	@Test
 	@DisplayName("Without configuration file: exits with 1, telling which file was tried, nothing else on the console")
 	void missingConfiguration() throws Exception {
@@ -227,8 +254,7 @@ class NetshotStartupTest {
 			Assertions.assertTrue(log.contains("Configuration file %s read.".formatted(configFile)), log);
 			Assertions.assertTrue(this.read("stdout.txt").contains("Configuration file %s read.".formatted(configFile)));
 
-			Process kill = new ProcessBuilder("kill", "-HUP", Long.toString(process.pid())).start();
-			Assertions.assertEquals(0, kill.waitFor());
+			Assertions.assertEquals(0, sendSignal(process.pid(), SIGHUP));
 			this.awaitLog(process, "The configuration was reloaded from %s.".formatted(configFile));
 			Assertions.assertTrue(process.isAlive(), "The server stopped on HUP");
 		}
