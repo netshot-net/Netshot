@@ -254,7 +254,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 
 | Parameter | Description | Reload |
 |---|---|---|
-| `netshot.drivers.path` | Extra directory to load [device drivers](user-guide/device-drivers.md) from, in addition to the embedded ones. | Yes |
+| `netshot.drivers.path` | Extra directory to load [device drivers](user-guide/device-drivers.md) from, in addition to the embedded ones. If it doesn't exist, no extra driver is loaded (logged at `INFO`). | Yes |
 
 ## Snapshots
 
