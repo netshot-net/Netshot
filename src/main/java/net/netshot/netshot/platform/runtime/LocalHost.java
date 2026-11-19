@@ -18,9 +18,11 @@
  */
 package net.netshot.netshot.platform.runtime;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,19 +46,32 @@ public final class LocalHost {
 
 	/** Holder of the machine hostname, read once, on first use (lazy, thread-safe class initialization). */
 	private static final class Hostname {
+		/** The hostname of the machine, on Linux (as the hostname command reads it). */
+		private static final Path KERNEL_HOSTNAME = Path.of("/proc/sys/kernel/hostname");
+
+		/** The hostname (after KERNEL_HOSTNAME: the static fields are initialized in order). */
 		static final String VALUE = read();
 
 		private static String read() {
-			String hostname = null;
 			try {
-				Process process = Runtime.getRuntime().exec(new String[] { "hostname" });
-				BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-				hostname = stdInput.readLine();
+				if (Files.isReadable(KERNEL_HOSTNAME)) {
+					String hostname = Files.readString(KERNEL_HOSTNAME, StandardCharsets.UTF_8).strip();
+					if (!hostname.isEmpty()) {
+						return hostname;
+					}
+				}
 			}
 			catch (IOException e) {
-				log.error("Error while getting local machine hostname", e);
+				log.warn("Unable to read the hostname from {}.", KERNEL_HOSTNAME, e);
 			}
-			return hostname == null ? "unknown" : hostname;
+			try {
+				// Other systems: can resolve the name
+				return InetAddress.getLocalHost().getHostName();
+			}
+			catch (IOException e) {
+				log.error("Unable to get the hostname of the local machine.", e);
+				return "unknown";
+			}
 		}
 	}
 }
