@@ -40,7 +40,7 @@ import net.netshot.netshot.testing.TestConfig;
 @DisplayName("Configuration items")
 class NetshotConfigTest {
 
-	private static final String KEY = "netshot.test.secret";
+	private static final String KEY = "test.secret";
 
 	@TempDir
 	Path tempDir;
@@ -164,6 +164,20 @@ class NetshotConfigTest {
 		config.setProperty("netshot.db.encryptionPassword", "legacy");
 		TestConfig.init(config);
 		Assertions.assertEquals("legacy", Database.encryptionPassword(TestConfig.store().current()));
+	}
+
+	@Test
+	@DisplayName("The tests refuse an unknown Netshot configuration item")
+	void unknownTestItem() {
+		Properties config = new Properties();
+		config.setProperty("netshot.db.passwrod", "typo");
+		IllegalArgumentException error = Assertions.assertThrows(IllegalArgumentException.class, () -> TestConfig.init(config));
+		Assertions.assertTrue(error.getMessage().contains("netshot.db.passwrod"), error.getMessage());
+		Properties known = new Properties();
+		known.setProperty("netshot.db.password", "netshot");
+		known.setProperty("test.item", "outside of the Netshot prefix");
+		TestConfig.init(known);
+		Assertions.assertEquals("netshot", current().get("netshot.db.password"));
 	}
 
 	@Test

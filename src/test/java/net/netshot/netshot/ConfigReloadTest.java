@@ -149,19 +149,19 @@ class ConfigReloadTest {
 	@DisplayName("Typed getters: parsing, ranges and defaults")
 	void typedGetters() {
 		Properties config = new Properties();
-		config.setProperty("netshot.test.bool", "true");
-		config.setProperty("netshot.test.badbool", "yes");
-		config.setProperty("netshot.test.int", "42");
-		config.setProperty("netshot.test.badint", "4x2");
+		config.setProperty("test.bool", "true");
+		config.setProperty("test.badbool", "yes");
+		config.setProperty("test.int", "42");
+		config.setProperty("test.badint", "4x2");
 		TestConfig.init(config);
-		Assertions.assertTrue(current().getBoolean("netshot.test.bool", false));
-		Assertions.assertFalse(current().getBoolean("netshot.test.badbool", false), "Only true/false are booleans");
-		Assertions.assertTrue(current().getBoolean("netshot.test.missing", true));
-		Assertions.assertEquals(42, current().getInt("netshot.test.int", 1));
-		Assertions.assertEquals(1, current().getInt("netshot.test.badint", 1));
-		Assertions.assertEquals(42, current().getInt("netshot.test.int", 1, 0, 100));
-		Assertions.assertEquals(1, current().getInt("netshot.test.int", 1, 0, 10), "Out of range");
-		Assertions.assertEquals("dflt", current().get("netshot.test.missing", "dflt"));
-		Assertions.assertNull(current().get("netshot.test.missing"));
+		Assertions.assertTrue(current().getBoolean("test.bool", false));
+		Assertions.assertFalse(current().getBoolean("test.badbool", false), "Only true/false are booleans");
+		Assertions.assertTrue(current().getBoolean("test.missing", true));
+		Assertions.assertEquals(42, current().getInt("test.int", 1));
+		Assertions.assertEquals(1, current().getInt("test.badint", 1));
+		Assertions.assertEquals(42, current().getInt("test.int", 1, 0, 100));
+		Assertions.assertEquals(1, current().getInt("test.int", 1, 0, 10), "Out of range");
+		Assertions.assertEquals("dflt", current().get("test.missing", "dflt"));
+		Assertions.assertNull(current().get("test.missing"));
 	}
 }
