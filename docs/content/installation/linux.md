@@ -4,21 +4,21 @@ This guide walks through installing Netshot on a Linux server: database setup, t
 
 ## 1. Database server
 
-Netshot needs PostgreSQL 15 or later. Install the database engine:
+Netshot is tested with PostgreSQL 18, the recommended version; it also accepts PostgreSQL 15 to 17. Install the database engine:
 
 ```bash
 sudo apt-get install postgresql
 # OR
-sudo yum install postgresql15-server postgresql15
+sudo yum install postgresql18-server postgresql18
 # or any other way depending on your package manager
 ```
 
 Create the database and user for Netshot:
 
 ```bash
-sudo /usr/pgsql-15/bin/postgresql-15-setup initdb # For RHEL/CentOS
-sudo systemctl enable postgresql-15.service       # For RHEL/CentOS
-sudo systemctl start postgresql-15.service        # For RHEL/CentOS
+sudo /usr/pgsql-18/bin/postgresql-18-setup initdb # For RHEL/CentOS
+sudo systemctl enable postgresql-18.service       # For RHEL/CentOS
+sudo systemctl start postgresql-18.service        # For RHEL/CentOS
 sudo -u postgres psql
 ```
 
@@ -31,7 +31,7 @@ CREATE DATABASE netshot01 WITH OWNER 'netshot' ENCODING 'UTF8' TEMPLATE template
 !!! note
     See the [Security considerations](#8-security-considerations) section below regarding the database access password.
 
-For RHEL/CentOS, ensure local MD5-based connections to the PostgreSQL DB are allowed, i.e. the presence of the following lines in `/var/lib/pgsql/15/data/pg_hba.conf`:
+For RHEL/CentOS, ensure local MD5-based connections to the PostgreSQL DB are allowed, i.e. the presence of the following lines in `/var/lib/pgsql/18/data/pg_hba.conf`:
 
 ```ini
 host    all             all             127.0.0.1/32            md5
