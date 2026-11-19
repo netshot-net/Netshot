@@ -31,11 +31,11 @@ import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Fatal error report")
-class FatalErrorTest {
+class FatalErrorReporterTest {
 
 	private static String console(Exception e) {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		FatalError.report(e, new PrintStream(out, true, StandardCharsets.UTF_8));
+		FatalErrorReporter.report(e, new PrintStream(out, true, StandardCharsets.UTF_8));
 		return out.toString(StandardCharsets.UTF_8);
 	}
 

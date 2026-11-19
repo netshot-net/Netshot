@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Application;
 import net.netshot.netshot.boot.Bootstrap;
 import net.netshot.netshot.boot.ConfigOption;
-import net.netshot.netshot.boot.FatalError;
+import net.netshot.netshot.boot.FatalErrorReporter;
 import net.netshot.netshot.boot.Repositories;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.CredentialSetRepository;
@@ -849,7 +849,7 @@ public class DemoDataCreator {
 			}
 		}
 		catch (Exception e) {
-			FatalError.report(e);
+			FatalErrorReporter.report(e);
 			System.exit(1);
 		}
 	}
