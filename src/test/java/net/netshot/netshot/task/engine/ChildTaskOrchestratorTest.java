@@ -380,7 +380,7 @@ class ChildTaskOrchestratorTest {
 		}
 
 		@Test
-		@DisplayName("Fails on a scheduling error, without scheduling the next children")
+		@DisplayName("Fails on a scheduling error, cancels the next children")
 		void failsOnSchedulingError() {
 			scheduler.unschedulable.add(1);
 			TaskRun parent = parent(ScheduleMode.SEQUENTIAL, false);
@@ -390,7 +390,8 @@ class ChildTaskOrchestratorTest {
 
 			Assertions.assertEquals(Status.FAILURE, status);
 			Assertions.assertEquals(List.of(0), scheduler.scheduled);
-			Assertions.assertEquals(Status.SUCCESS, statuses(parent).get(0));
+			// The unschedulable child failed, the next ones are cancelled, none stays DELAYED
+			Assertions.assertEquals(List.of(Status.SUCCESS, Status.FAILURE, Status.CANCELLED), statuses(parent));
 		}
 	}
 }

@@ -232,7 +232,7 @@ public class ChildTaskOrchestrator {
 
 	/**
 	 * Marks a still-DELAYED child as FAILURE because it could not be scheduled (e.g. a
-	 * Quartz or persistence error while promoting it) -- used by parallel orchestration so
+	 * Quartz or persistence error while promoting it) -- used by both orchestration modes so
 	 * an unschedulable child is reported as a concrete failure instead of being left
 	 * forever in DELAYED status.
 	 *
@@ -370,8 +370,9 @@ public class ChildTaskOrchestrator {
 		int succeeded = 0;
 		int failed = 0;
 		Long lastFailedChildId = null;
+		int i = 0;
 		try {
-			for (int i = 0; i < children.size(); i++) {
+			for (; i < children.size(); i++) {
 				Task child = children.get(i);
 				if (isTerminalStatus(child.status())) {
 					if (child.status() == Status.FAILURE) {
@@ -426,6 +427,16 @@ public class ChildTaskOrchestrator {
 			log.error("Task {}. Error during sequential child scheduling.", parent.getTask().id(), e);
 			parent.logger.error("Error during sequential scheduling: {}", e.getMessage());
 			schedulingError = true;
+			if (i < children.size()) {
+				// The child being scheduled fails, the next ones won't run: don't leave them DELAYED
+				this.markChildAsSchedulingFailure(parent, children.get(i));
+				try {
+					this.cancelRemainingDelayedChildren(parent, children, i + 1);
+				}
+				catch (Exception ce) {
+					log.error("Task {}. Error while cancelling the remaining child tasks.", parent.getTask().id(), ce);
+				}
+			}
 		}
 		Status finalStatus = SequentialScheduling.decideFinalStatus(anyFailed, parent.getTask().stopOnFailure(), cancelHonored, schedulingError);
 		parent.logger.info("Sequential scheduling finished: {} succeeded, {} failed, out of {} device(s). Final status: {}.",
