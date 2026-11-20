@@ -43,8 +43,8 @@ import net.netshot.netshot.testing.TestDevices;
 
 /**
  * Characterization of the failure paths of {@link DiscoverDeviceTypeHandler}, run through the task engine.
- * The discovery itself (SNMP answer, driver match, device creation) is not covered: the handler polls
- * the standard SNMP port only, which a simulator container doesn't offer on the host.
+ * The discovery itself (SNMP answer, driver match, device creation) is covered on simulated devices by
+ * {@link DiscoverDeviceTypeSimulatorTest}.
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
