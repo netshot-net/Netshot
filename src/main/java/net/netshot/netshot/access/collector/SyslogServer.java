@@ -224,6 +224,7 @@ public final class SyslogServer implements Service {
 			return;
 		}
 		Settings newSettings = Settings.from(newConfig);
+		DatagramSocket formerSocket;
 		synchronized (this.lock) {
 			if (newSettings.equals(this.settings)) {
 				return;
@@ -233,10 +234,15 @@ public final class SyslogServer implements Service {
 			}
 			this.settings = newSettings;
 			this.generation++;
+			// Not listening with the new settings until the loop opens the socket again
+			formerSocket = this.socket;
+			this.socket = null;
 			this.lock.notifyAll();
 		}
 		// Unblocks the receive call, the loop opens the socket again (or waits while disabled)
-		this.closeSocket();
+		if (formerSocket != null) {
+			formerSocket.close();
+		}
 	}
 
 	private void closeSocket() {
@@ -271,13 +277,15 @@ public final class SyslogServer implements Service {
 			}
 			InetSocketAddress bindAddress = new InetSocketAddress(current.listenAddress(), current.port());
 			try (DatagramSocket newSocket = new DatagramSocket(bindAddress)) {
-				this.socket = newSocket;
+				synchronized (this.lock) {
+					if (currentGeneration != this.generation) {
+						// Changed while opening the socket
+						continue;
+					}
+					this.socket = newSocket;
+				}
 				log.debug("Now listening for Syslog messages on {}.", bindAddress);
 				retryDelay = 1000;
-				if (currentGeneration != this.generation) {
-					// Changed while opening the socket
-					continue;
-				}
 				while (this.running) {
 					DatagramPacket packet = new DatagramPacket(new byte[4096], 4096);
 					newSocket.receive(packet);
@@ -297,6 +305,7 @@ public final class SyslogServer implements Service {
 				log.error("Error with the Syslog server socket ({}), retrying in {}ms.", bindAddress, retryDelay, e);
 			}
 			finally {
+				// Only this loop sets a socket: this one, or null already after a configuration change
 				this.socket = null;
 			}
 			try {
