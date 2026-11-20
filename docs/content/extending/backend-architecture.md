@@ -220,6 +220,7 @@ Each test class carries an annotation of `net.netshot.netshot.testing` giving it
 Add configuration properties with `@TestProperty(name = ..., value = ...)` (repeatable). The test methods, including `@BeforeAll` and `@BeforeEach`, receive what the kind provides as parameters: `TestDatabase` (database name, binary folder, a copy of the configuration of the class, configurations of schemas of the main database) and `TestServer` (API URL, `API_TOKENS` by permission level, `UNKNOWN_ID`), from which a test builds the client of the API version it tests (`new V1Client(server, UiUser.LEVEL_ADMIN)`). The kinds needing Docker can be combined: a task handler test running against a device simulator is `@DatabaseTest` and `@SimulatorTest`. Only the class carrying the annotation is set up: a `@Nested` class needing its own database carries `@DatabaseTest` too (see `vault.VaultTest`).
 
 The kinds decide where a test can run: the unit and script engine tests need no Docker, `./mvnw test -Pfast` runs them only (`-Pdocker` runs the others, `-Dgroups=db` a single kind).
+`-Pcoverage` measures the code coverage of the tests that run with JaCoCo (e.g. `./mvnw test -Pcoverage`, or `./mvnw test -Pfast,coverage`), the report is written in `target/site/jacoco/` (`index.html`, plus `jacoco.xml` and `jacoco.csv`); the generated jOOQ classes are left out of it.
 
 #### Helpers
 
