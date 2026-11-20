@@ -21,6 +21,7 @@ package net.netshot.netshot.access.collector;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -126,6 +127,30 @@ class SyslogServerTest {
 				Assertions.assertTrue(socket.isBound());
 			}
 			Assertions.assertEquals(0L, server.stats().get("errors"), "A configuration change isn't a socket error");
+		}
+		finally {
+			server.stop();
+		}
+	}
+
+	@Test
+	@DisplayName("After a port change, reports listening only once the new port is open")
+	void listeningMeansNewPortOpen() throws Exception {
+		SyslogServer server = server(TestNetwork.freePort());
+		server.start();
+		try {
+			await(server::isHealthy, "The server isn't listening");
+			for (int i = 0; i < 30; i++) {
+				int port = TestNetwork.freePort();
+				configure(port, false);
+				// Checked right after the change: the former socket must not count as listening on the new port
+				if (server.isHealthy() && (Integer) server.stats().get("port") == port) {
+					Assertions.assertThrows(SocketException.class,
+						() -> new DatagramSocket(port, InetAddress.getLoopbackAddress()).close(),
+						"The server reports listening on port " + port + " though it isn't open");
+				}
+				await(() -> server.isHealthy() && (Boolean) server.stats().get("listening"), "The server didn't listen again");
+			}
 		}
 		finally {
 			server.stop();
