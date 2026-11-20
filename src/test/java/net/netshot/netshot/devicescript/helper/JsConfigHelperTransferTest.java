@@ -1,0 +1,446 @@
+/**
+ * Copyright 2013-present Netshot
+ * 
+ * This file is part of Netshot project.
+ * 
+ * Netshot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Netshot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package net.netshot.netshot.devicescript.helper;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
+import org.apache.sshd.scp.client.ScpClientCreator;
+import org.apache.sshd.scp.server.ScpCommandFactory;
+import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.SftpClientFactory;
+import org.apache.sshd.sftp.server.SftpSubsystemFactory;
+import org.graalvm.polyglot.proxy.ProxyArray;
+import org.graalvm.polyglot.proxy.ProxyObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.io.TempDir;
+
+import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.Ssh;
+import net.netshot.netshot.access.collector.Collector;
+import net.netshot.netshot.access.collector.SshServer;
+import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DeviceDriver.Location;
+import net.netshot.netshot.driver.DeviceDriver.LocationType;
+import net.netshot.netshot.inventory.config.ConfigDraft;
+import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestConfig;
+import net.netshot.netshot.testing.TestConnectors;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestNetwork;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
+
+/**
+ * Transfers of binary files into the configuration attributes, through the configuration helper: downloads from
+ * the device (SCP, SFTP), and uploads by the device to the embedded SSH server (upload tickets).
+ */
+@ScriptEngineTest
+@DisplayName("Binary file transfers of the configuration helper")
+@TestInstance(Lifecycle.PER_CLASS)
+class JsConfigHelperTransferTest {
+
+	/** The driver of the test device, with a binary file and a text configuration attribute. */
+	private static final String DRIVER = "TransferTestDriver";
+
+	/** Content of the transferred file: all the byte values. */
+	private static final byte[] PAYLOAD = new byte[256];
+
+	static {
+		for (int i = 0; i < PAYLOAD.length; i++) {
+			PAYLOAD[i] = (byte) i;
+		}
+	}
+
+	@TempDir
+	Path tempDir;
+
+	Path storageDir;
+	DeviceDraft device;
+	ConfigDraft config;
+	FakeTaskContext taskContext;
+
+	@BeforeAll
+	void registerDriver() throws Exception {
+		String driverJs = """
+			var Info = { name: "%s", author: "test", description: "Test driver for the file transfers", version: "1.0" };
+			var Config = {
+				"backupArchive": { type: "BinaryFile", title: "Backup" },
+				"version": { type: "Text", title: "Version" },
+			};
+			var Device = {};
+			var CLI = { ssh: {} };
+			function snapshot(cli, device, config) {
+			}
+			""".formatted(DRIVER);
+		DeviceDriver driver = new DeviceDriver(new StringReader(driverJs), DRIVER + ".js", new Location(LocationType.EMBEDDED, DRIVER + ".js"));
+		TestDrivers.registry().getDrivers().put(DRIVER, driver);
+	}
+
+	@BeforeEach
+	void setUp() throws Exception {
+		this.storageDir = Files.createDirectories(this.tempDir.resolve("storage"));
+		Properties properties = new Properties();
+		properties.setProperty("netshot.snapshots.binary.path", this.storageDir.toString());
+		properties.setProperty("netshot.sshserver.listenaddress", "127.0.0.1");
+		properties.setProperty("netshot.sshserver.hostkeypath", Files.createDirectories(this.tempDir.resolve("keys")).toString());
+		properties.setProperty("netshot.sshserver.port", Integer.toString(TestNetwork.freePort()));
+		TestConfig.init(properties);
+		Domain domain = Domain.builder().id(1).name("Lab").description("Lab domain")
+			.server4Address(new Network4Address("127.0.0.1", 32)).build();
+		this.device = new DeviceDraft(Device.create(DRIVER, "127.0.0.1", domain, "tester"));
+		this.config = new ConfigDraft(this.device.getId());
+		this.taskContext = new FakeTaskContext();
+	}
+
+	@AfterEach
+	void resetConfig() {
+		TestConfig.init(new Properties());
+	}
+
+	private JsConfigHelper helper(JsCliHelper cli, SshServer sshServer) {
+		return new JsConfigHelper(TestDrivers.registry(), this.device, this.config, null, cli, sshServer,
+			Collector.Settings.from(TestConfig.store().current()), new BinaryFileStorage(TestConfig.store()), this.taskContext);
+	}
+
+	private ConfigBinaryFileAttribute backupAttribute() {
+		return (ConfigBinaryFileAttribute) this.config.getAttributeMap().get("backupArchive");
+	}
+
+	/**
+	 * Checks the binary file attribute: its size, checksum and stored file.
+	 *
+	 * @param originalName the expected original name of the file
+	 */
+	private void assertStoredPayload(String originalName) throws IOException {
+		ConfigBinaryFileAttribute attribute = this.backupAttribute();
+		Assertions.assertNotNull(attribute, "The binary file attribute is set");
+		Assertions.assertEquals(originalName, attribute.originalName());
+		Assertions.assertEquals(PAYLOAD.length, attribute.fileSize());
+		Assertions.assertEquals("sha256:" + DigestUtils.sha256Hex(PAYLOAD), attribute.checksum());
+		Path stored = new BinaryFileStorage(TestConfig.store()).pendingFilePath(attribute, this.device.getId());
+		Assertions.assertArrayEquals(PAYLOAD, Files.readAllBytes(stored));
+	}
+
+	/**
+	 * Lists the pending files of the storage folder (the temporary folders of the upload tickets apart).
+	 *
+	 * @return the files
+	 */
+	private List<Path> pendingFiles() throws IOException {
+		try (var files = Files.list(this.storageDir)) {
+			return files.filter(Files::isRegularFile).toList();
+		}
+	}
+
+	@Nested
+	@DisplayName("Download from the device")
+	@TestInstance(Lifecycle.PER_CLASS)
+	class Download {
+
+		org.apache.sshd.server.SshServer deviceServer;
+		Path remoteDir;
+		Ssh ssh;
+		JsCliHelper cli;
+
+		/** Starts an SSH server (the device) serving its files by SCP and SFTP, and connects to it. */
+		@BeforeEach
+		void startDevice() throws Exception {
+			this.remoteDir = Files.createDirectories(tempDir.resolve("device"));
+			Files.write(this.remoteDir.resolve("backup.tgz"), PAYLOAD);
+			this.deviceServer = org.apache.sshd.server.SshServer.setUpDefaultServer();
+			this.deviceServer.setHost("127.0.0.1");
+			this.deviceServer.setPort(0);
+			this.deviceServer.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
+			this.deviceServer.setPasswordAuthenticator((_, _, _) -> true);
+			this.deviceServer.setCommandFactory(new ScpCommandFactory());
+			this.deviceServer.setSubsystemFactories(List.of(new SftpSubsystemFactory()));
+			this.deviceServer.setFileSystemFactory(new VirtualFileSystemFactory(this.remoteDir));
+			this.deviceServer.start();
+			this.ssh = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1",
+				this.deviceServer.getPort(), "admin", "admin", taskContext);
+			this.ssh.setConnectionTimeout(5000);
+			this.ssh.connect(false);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, null);
+			accessManager.forceClientForTest(this.ssh, DeviceSshAccount.builder().username(Secret.local("admin"))
+				.password(Secret.local("admin")).name("test-ssh-account").build());
+			this.cli = new JsCliHelper(accessManager, List.of(), true, taskContext);
+		}
+
+		@AfterEach
+		void stopDevice() throws IOException {
+			this.ssh.disconnect();
+			this.deviceServer.stop(true);
+		}
+
+		@Test
+		@DisplayName("By SCP, checked against a SHA256 checksum, stored under the remote file name")
+		void scpWithSha256() throws Exception {
+			helper(this.cli, null).download("backupArchive", "scp", "backup.tgz", null, false, DigestUtils.sha256Hex(PAYLOAD).toUpperCase());
+
+			assertStoredPayload("backup.tgz");
+		}
+
+		@Test
+		@DisplayName("By SFTP in a new session, checked against an MD5 checksum, stored under the given name")
+		void sftpWithMd5() throws Exception {
+			helper(this.cli, null).download("backupArchive", "sftp", "backup.tgz", "  archive.tgz ", true, DigestUtils.md5Hex(PAYLOAD));
+
+			assertStoredPayload("archive.tgz");
+		}
+
+		@Test
+		@DisplayName("Without checksum, the file is stored as is")
+		void withoutChecksum() throws Exception {
+			helper(this.cli, null).download("backupArchive", "sftp", "backup.tgz", null, false, null);
+
+			assertStoredPayload("backup.tgz");
+		}
+
+		@Test
+		@DisplayName("A checksum mismatch fails the download, the file is removed")
+		void checksumMismatch() throws Exception {
+			JsConfigHelper helper = helper(this.cli, null);
+
+			IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("backupArchive", "scp", "backup.tgz", null, false, DigestUtils.sha256Hex("other")));
+
+			Assertions.assertTrue(thrown.getMessage().contains("Invalid computed SHA256 hash"), thrown.getMessage());
+			Assertions.assertNull(backupAttribute());
+			Assertions.assertEquals(List.of(), pendingFiles(), "The downloaded file is removed");
+		}
+
+		@Test
+		@DisplayName("A checksum of an unknown kind fails the download")
+		void unknownChecksumKind() {
+			JsConfigHelper helper = helper(this.cli, null);
+
+			IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("backupArchive", "scp", "backup.tgz", null, false, "abcdef"));
+
+			Assertions.assertTrue(thrown.getMessage().contains("checksum length (6 characters)"), thrown.getMessage());
+			Assertions.assertNull(backupAttribute());
+		}
+
+		@Test
+		@DisplayName("A missing remote file fails the download, without leftover file")
+		void missingRemoteFile() throws Exception {
+			JsConfigHelper helper = helper(this.cli, null);
+
+			Assertions.assertThrows(IOException.class, () -> helper.download("backupArchive", "sftp", "missing.tgz", null, false, null));
+
+			Assertions.assertNull(backupAttribute());
+			Assertions.assertEquals(List.of(), pendingFiles());
+		}
+
+		@Test
+		@DisplayName("Only into a known binary file attribute, with a supported method and a remote file name")
+		void invalidRequests() {
+			JsConfigHelper helper = helper(this.cli, null);
+
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("unknown", "scp", "backup.tgz", null, false, null), "Unknown attribute");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("version", "scp", "backup.tgz", null, false, null), "Not a binary file attribute");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("backupArchive", "ftp", "backup.tgz", null, false, null), "Unsupported method");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("backupArchive", null, "backup.tgz", null, false, null), "No method");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("backupArchive", "scp", null, null, false, null), "No remote file");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.download("backupArchive", "scp", "/", null, false, null), "No usable store name");
+			Assertions.assertNull(backupAttribute());
+		}
+
+		@Test
+		@DisplayName("Not without CLI access")
+		void withoutCli() {
+			IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper(null, null).download("backupArchive", "scp", "backup.tgz", null, false, null));
+
+			Assertions.assertTrue(thrown.getMessage().contains("no CLI access"), thrown.getMessage());
+		}
+	}
+
+	@Nested
+	@DisplayName("Upload by the device")
+	@TestInstance(Lifecycle.PER_CLASS)
+	class Upload {
+
+		SshServer sshServer;
+		SshClient deviceClient;
+
+		@BeforeEach
+		void startServer() throws Exception {
+			this.sshServer = new SshServer(TestConfig.store());
+			this.sshServer.start();
+			this.deviceClient = SshClient.setUpDefaultClient();
+			this.deviceClient.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
+			this.deviceClient.start();
+		}
+
+		@AfterEach
+		void stopServer() throws IOException {
+			this.deviceClient.stop();
+			this.sshServer.stop();
+		}
+
+		/**
+		 * Logs in to the embedded SSH server with the credentials of a ticket, as the device does.
+		 *
+		 * @param ticket the ticket given to the driver
+		 * @return the authenticated session
+		 */
+		private ClientSession login(ProxyObject ticket) throws IOException {
+			ClientSession session = this.deviceClient.connect((String) ticket.getMember("username"),
+				(String) ticket.getMember("host"), (Integer) ticket.getMember("port")).verify(5000).getSession();
+			session.addPasswordIdentity((String) ticket.getMember("password"));
+			session.auth().verify(5000);
+			return session;
+		}
+
+		@Test
+		@DisplayName("A file uploaded by SCP is listed once the session is over, then committed to the attribute")
+		void scpUpload() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			ProxyObject ticket = helper.requestUpload("scp", null);
+			long ticketId = (Long) ticket.getMember("id");
+			Path local = Files.write(tempDir.resolve("local.tgz"), PAYLOAD);
+			try (ClientSession session = this.login(ticket)) {
+				ScpClientCreator.instance().createScpClient(session).upload(local, "backup.tgz");
+			}
+
+			ProxyObject result = helper.awaitUpload(ticketId, 10000);
+
+			Assertions.assertEquals(true, result.getMember("completed"));
+			Assertions.assertEquals(1, result.getMember("fileCount"));
+			ProxyObject file = (ProxyObject) ((ProxyArray) result.getMember("files")).get(0);
+			Assertions.assertEquals("backup.tgz", file.getMember("name"));
+			Assertions.assertEquals((long) PAYLOAD.length, file.getMember("size"));
+
+			helper.commitUpload(ticketId, (Long) file.getMember("id"), "backupArchive", null, DigestUtils.sha256Hex(PAYLOAD));
+
+			assertStoredPayload("backup.tgz");
+			helper.release();
+			Assertions.assertEquals(0, this.sshServer.stats().get("tickets"), "The ticket is cleared with the helper");
+		}
+
+		@Test
+		@DisplayName("A file uploaded by SFTP is committed under the given name; a checksum mismatch is refused")
+		void sftpUpload() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			ProxyObject ticket = helper.requestUpload("sftp", "127.0.0.1");
+			long ticketId = (Long) ticket.getMember("id");
+			try (ClientSession session = this.login(ticket);
+				SftpClient sftp = SftpClientFactory.instance().createSftpClient(session);
+				OutputStream out = sftp.write("upload.bin")) {
+				out.write(PAYLOAD);
+			}
+			ProxyObject result = helper.awaitUpload(ticketId, 10000);
+			long fileId = (Long) ((ProxyObject) ((ProxyArray) result.getMember("files")).get(0)).getMember("id");
+
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.commitUpload(ticketId, fileId, "backupArchive", null, DigestUtils.md5Hex("other")));
+			Assertions.assertNull(backupAttribute());
+
+			// The file is still there
+			helper.commitUpload(ticketId, fileId, "backupArchive", "archive.bin", null);
+			assertStoredPayload("archive.bin");
+			helper.release();
+		}
+
+		@Test
+		@DisplayName("A device from another address than the expected one can't log in")
+		void wrongSourceAddress() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			ProxyObject ticket = helper.requestUpload("scp", "10.9.9.9");
+
+			Assertions.assertThrows(IOException.class, () -> this.login(ticket).close());
+			helper.release();
+		}
+
+		@Test
+		@DisplayName("Waiting fails after the timeout when the device doesn't upload")
+		void awaitTimeout() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			long ticketId = (Long) helper.requestUpload((String) null, null).getMember("id");
+
+			IOException thrown = Assertions.assertThrows(IOException.class, () -> helper.awaitUpload(ticketId, 200));
+
+			Assertions.assertTrue(thrown.getMessage().contains("Timeout"), thrown.getMessage());
+			helper.release();
+		}
+
+		@Test
+		@DisplayName("Unknown tickets, files or attributes are refused")
+		void invalidRequests() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			ProxyObject ticket = helper.requestUpload("scp", null);
+			long ticketId = (Long) ticket.getMember("id");
+			Path local = Files.write(tempDir.resolve("local.tgz"), PAYLOAD);
+			try (ClientSession session = this.login(ticket)) {
+				ScpClientCreator.instance().createScpClient(session).upload(local, "backup.tgz");
+			}
+			helper.awaitUpload(ticketId, 10000);
+
+			Assertions.assertNull(helper.awaitUpload(ticketId + 1, 100), "Unknown ticket");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.commitUpload(ticketId + 1, 1, "backupArchive", null, null), "Unknown ticket");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.commitUpload(ticketId, 2, "backupArchive", null, null), "Unknown file");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.commitUpload(ticketId, 1, "unknown", null, null), "Unknown attribute");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.commitUpload(ticketId, 1, "version", null, null), "Not a binary file attribute");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.requestUpload("ftp", null), "Unsupported method");
+			Assertions.assertThrows(IllegalArgumentException.class,
+				() -> helper.requestUpload("scp", "not an address"), "Invalid source address");
+			Assertions.assertNull(backupAttribute());
+			helper.release();
+		}
+	}
+}
