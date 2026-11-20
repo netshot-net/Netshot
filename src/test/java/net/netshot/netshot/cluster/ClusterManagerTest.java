@@ -575,7 +575,12 @@ class ClusterManagerTest {
 		}
 
 		private List<String> errors() {
-			return ClusterManagerTest.this.logs.list.stream()
+			// The cluster thread appends while the test reads: copy under the appender lock (AppenderBase.doAppend is synchronized)
+			List<ILoggingEvent> events;
+			synchronized (ClusterManagerTest.this.logs) {
+				events = new ArrayList<>(ClusterManagerTest.this.logs.list);
+			}
+			return events.stream()
 				.filter(e -> e.getLevel() == Level.ERROR)
 				.map(ILoggingEvent::getFormattedMessage)
 				.toList();

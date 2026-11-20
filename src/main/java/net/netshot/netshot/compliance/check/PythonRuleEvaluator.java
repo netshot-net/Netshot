@@ -156,7 +156,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 					checkResult = CheckResult.of(rule.id(), device.getId(), ResultOption.EXEMPTED);
 				}
 				else {
-					PyDeviceHelper deviceHelper = new PyDeviceHelper(this.driverRegistry, this.reads, device, taskContext, true);
+					PyDeviceHelper deviceHelper = new PyDeviceHelper(this.driverRegistry, this.reads, device, taskContext);
 					Value result = runBeforeDeadline(executor,
 						() -> ctx.getBindings("python").getMember("_check").execute(deviceHelper), deadline);
 					checkResult = this.toCheckResult(rule, result, device, taskContext);

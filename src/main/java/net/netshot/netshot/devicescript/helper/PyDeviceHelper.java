@@ -23,10 +23,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.graalvm.polyglot.HostAccess.Export;
@@ -43,26 +41,19 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
-import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
-import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
-import net.netshot.netshot.platform.net.NetworkAddress;
-import net.netshot.netshot.platform.net.PhysicalAddress;
 
 /**
- * Class used to get  and set data on a device object from Python.
+ * Gives a Python compliance rule read access to the device (and to the other devices); the rule can only
+ * change the comments and the tags of the device.
  * @author sylvain.cadilhac
  *
  */
@@ -73,23 +64,6 @@ public final class PyDeviceHelper {
 	private DeviceDraft device;
 	private final DeviceLookup lookup;
 	private TaskContext taskContext;
-	private boolean readOnly;
-
-	public static String getStringMember(Value value, String key, String defaultResult) {
-		Value result = value.getHashValue(key);
-		if (result != null) {
-			return result.asString();
-		}
-		return defaultResult;
-	}
-
-	public static boolean getBooleanMember(Value value, String key, boolean defaultResult) {
-		Value result = value.getHashValue(key);
-		if (result != null) {
-			return result.asBoolean();
-		}
-		return defaultResult;
-	}
 
 	/**
 	 * Change a pythonic key into camel case, e.g. 'running_config' into 'runningConfig'.
@@ -107,18 +81,16 @@ public final class PyDeviceHelper {
 		return field;
 	}
 
-	public PyDeviceHelper(DriverRegistry driverRegistry, DeviceReads reads, DeviceDraft device, TaskContext taskContext, boolean readOnly)
+	public PyDeviceHelper(DriverRegistry driverRegistry, DeviceReads reads, DeviceDraft device, TaskContext taskContext)
 		throws MissingDeviceDriverException {
 		this.driverRegistry = driverRegistry;
 		this.lookup = new DeviceLookup(reads);
 		this.device = device;
 		this.taskContext = taskContext;
-		this.readOnly = readOnly;
 	}
 
 	/**
-	 * Adds a tag to the device. Allowed even in read-only mode (e.g. from
-	 * compliance rules), since tags are user metadata, not snapshot data.
+	 * Adds a tag to the device. Allowed since tags are user metadata, not snapshot data.
 	 * @param tag the tag to add
 	 */
 	private void addTag(String tag) {
@@ -132,7 +104,7 @@ public final class PyDeviceHelper {
 	}
 
 	/**
-	 * Removes a tag from the device. Allowed even in read-only mode.
+	 * Removes a tag from the device.
 	 * @param tag the tag to remove
 	 */
 	private void removeTag(String tag) {
@@ -142,7 +114,7 @@ public final class PyDeviceHelper {
 	}
 
 	/**
-	 * Sets the device comments. Allowed even in read-only mode.
+	 * Sets the device comments.
 	 * @param comments the new comments
 	 * @throws IllegalArgumentException if the comments are too long (a script error)
 	 */
@@ -158,83 +130,32 @@ public final class PyDeviceHelper {
 		taskContext.trace("Setting device comments to '{}'.", comments);
 	}
 
+	/**
+	 * Adds an item to the device: only a tag (the device data come from the snapshots).
+	 *
+	 * @param key the collection (only "tag")
+	 * @param data the tag
+	 */
 	@Export
 	public void add(String key, Value data) {
-		if ("tag".equals(key)) {
-			if (data == null || !data.isString()) {
-				taskContext.error("The tag to add should be a string.");
-				return;
-			}
-			this.addTag(data.asString());
-			return;
-		}
-		if (readOnly) {
+		if (!"tag".equals(key)) {
 			log.warn("Adding key '{}' is forbidden.", key);
 			taskContext.error("Adding key {} is forbidden", key);
 			return;
 		}
-		if (data == null) {
+		if (data == null || !data.isString()) {
+			taskContext.error("The tag to add should be a string.");
 			return;
 		}
-		try {
-			if ("module".equals(key)) {
-
-				Module module = Module.builder()
-					.slot(getStringMember(data, "slot", ""))
-					.partNumber(getStringMember(data, "part_number", ""))
-					.serialNumber(getStringMember(data, "serial_number", ""))
-					.build();
-				device.addModule(module);
-			}
-			else if ("network_interface".equals(key)) {
-				NetworkInterface.NetworkInterfaceBuilder networkInterface = NetworkInterface.builder()
-					.interfaceName(data.getHashValue("name").asString())
-					.virtualDevice(getStringMember(data, "virtual_device", ""))
-					.vrfInstance(getStringMember(data, "vrf", ""))
-					.enabled(getBooleanMember(data, "enabled", true))
-					.level3(getBooleanMember(data, "level3", true))
-					.description(getStringMember(data, "description", ""))
-					.physicalAddress(new PhysicalAddress(
-						getStringMember(data, "mac", "0000.0000.0000")));
-				Set<Network4Address> ip4Addresses = new LinkedHashSet<>();
-				Set<Network6Address> ip6Addresses = new LinkedHashSet<>();
-				Value ipAddresses = data.getHashValue("ip");
-				if (ipAddresses != null) {
-					for (long i = 0; i < ipAddresses.getArraySize(); i++) {
-						Value ip = ipAddresses.getArrayElement(i);
-						NetworkAddress address = null;
-						if (ip.hasMember("ipv6")) {
-							address = new Network6Address(ip.getHashValue("ipv6").asString(), ip.getHashValue("mask").asInt());
-						}
-						else if (ip.getHashValue("mask").isNumber()) {
-							address = new Network4Address(ip.getHashValue("ip").asString(), ip.getHashValue("mask").asInt());
-						}
-						else {
-							address = new Network4Address(ip.getHashValue("ip").asString(), ip.getHashValue("mask").asString());
-						}
-						Value usage = ip.getHashValue("usage");
-						if (usage != null) {
-							address.setAddressUsage(AddressUsage.valueOf(usage.asString()));
-						}
-						NetworkInterface.addIpAddress(ip4Addresses, ip6Addresses, address);
-					}
-				}
-
-				device.addNetworkInterface(networkInterface.ip4Addresses(ip4Addresses).ip6Addresses(ip6Addresses).build());
-			}
-			else if ("vrf".equals(key)) {
-				device.addVrfInstance(data.asString());
-			}
-			else if ("virtual_device".equals(key)) {
-				device.addVirtualDevice(data.asString());
-			}
-		}
-		catch (Exception e) {
-			log.warn("Error during snapshot while adding device attribute key '{}'.", key, e);
-			taskContext.error("Can't add device attribute {}: {}", key, e.getMessage());
-		}
+		this.addTag(data.asString());
 	}
 
+	/**
+	 * Removes an item from the device: only a tag.
+	 *
+	 * @param key the collection (only "tag")
+	 * @param data the tag
+	 */
 	@Export
 	public void remove(String key, Value data) {
 		if (data == null) {
@@ -253,151 +174,36 @@ public final class PyDeviceHelper {
 		}
 	}
 
+	/**
+	 * Refused: the device data come from the snapshots.
+	 */
 	@Export
 	public void reset() {
-		if (readOnly) {
-			log.warn("Resetting device is forbidden.");
-			taskContext.error("Resetting key is forbidden");
-			return;
-		}
-		device.setFamily("");
-		device.setLocation("");
-		device.setContact("");
-		device.setSoftwareVersion("");
-		device.setNetworkClass(NetworkClass.UNKNOWN);
-		device.clearAttributes();
-		device.clearVrfInstances();
-		device.clearVirtualDevices();
-		device.clearNetworkInterfaces();
-		device.clearModules();
-		device.setEolModule(null);
-		device.setEosModule(null);
-		device.setEolDate(null);
-		device.setEosDate(null);
+		log.warn("Resetting device is forbidden.");
+		taskContext.error("Resetting key is forbidden");
 	}
 
+	/**
+	 * Sets a device field: only the comments (the device data come from the snapshots).
+	 *
+	 * @param key the field (only "comments")
+	 * @param value the comments
+	 */
 	@Export
-	public void set(String key, Boolean value) {
-		if (readOnly) {
+	public void set(String key, Value value) {
+		if (!"comments".equals(key)) {
 			log.warn("Setting key '{}' is forbidden.", key);
 			taskContext.error("Setting key {} is forbidden", key);
 			return;
 		}
-		if (value == null) {
+		if (value == null || value.isNull()) {
 			return;
 		}
-		try {
-			DeviceDriver driver = this.driverRegistry.forDevice(device);
-			for (AttributeDefinition attribute : driver.getAttributes()) {
-				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
-					switch (attribute.getType()) {
-						case BINARY:
-							device.addAttribute(new DeviceBinaryAttribute(key, value));
-							break;
-						default:
-					}
-					break;
-				}
-			}
-		}
-		catch (Exception e) {
-			log.warn("Error during snapshot while setting device attribute key '{}'.", key);
-			taskContext.error("Can't add device attribute {}: {}", key, e.getMessage());
-		}
-	}
-
-
-	@Export
-	public void set(String key, Double value) {
-		if (readOnly) {
-			log.warn("Setting key '{}' is forbidden.", key);
-			taskContext.error("Setting key {} is forbidden", key);
+		if (!value.isString()) {
+			taskContext.error("The comments should be a string.");
 			return;
 		}
-		if (value == null) {
-			return;
-		}
-		try {
-			DeviceDriver driver = this.driverRegistry.forDevice(device);
-			for (AttributeDefinition attribute : driver.getAttributes()) {
-				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
-					switch (attribute.getType()) {
-						case NUMERIC:
-							device.addAttribute(new DeviceNumericAttribute(key, value));
-							break;
-						default:
-					}
-					break;
-				}
-			}
-		}
-		catch (Exception e) {
-			log.warn("Error during snapshot while setting device attribute key '{}'.", key);
-			taskContext.error("Can't add device attribute {}: {}", key, e.getMessage());
-		}
-	}
-
-	@Export
-	public void set(String key, String value) {
-		if ("comments".equals(key)) {
-			this.setComments(value);
-			return;
-		}
-		if (readOnly) {
-			log.warn("Setting key '{}' is forbidden.", key);
-			taskContext.error("Setting key {} is forbidden", key);
-			return;
-		}
-		if (value == null) {
-			return;
-		}
-		try {
-			if ("name".equals(key)) {
-				device.setName(value);
-			}
-			else if ("family".equals(key)) {
-				device.setFamily(value);
-			}
-			else if ("location".equals(key)) {
-				device.setLocation(value);
-			}
-			else if ("contact".equals(key)) {
-				device.setContact(value);
-			}
-			else if ("software_version".equals(key)) {
-				device.setSoftwareVersion(value);
-			}
-			else if ("serial_number".equals(key)) {
-				device.setSerialNumber(value);
-			}
-			else if ("network_class".equals(key)) {
-				NetworkClass nc = NetworkClass.valueOf(value);
-				if (nc != null) {
-					device.setNetworkClass(nc);
-				}
-			}
-			else {
-				DeviceDriver driver = this.driverRegistry.forDevice(device);
-				for (AttributeDefinition attribute : driver.getAttributes()) {
-					if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
-						switch (attribute.getType()) {
-							case LONGTEXT:
-								device.addAttribute(new DeviceLongTextAttribute(key, value));
-								break;
-							case TEXT:
-								device.addAttribute(new DeviceTextAttribute(key, value));
-								break;
-							default:
-						}
-						break;
-					}
-				}
-			}
-		}
-		catch (Exception e) {
-			log.warn("Error during snapshot while setting device attribute key '{}'.", key);
-			taskContext.error("Can't add device attribute {}: {}", key, e.getMessage());
-		}
+		this.setComments(value.asString());
 	}
 
 	/**
