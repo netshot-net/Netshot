@@ -60,9 +60,10 @@ public class ChildTaskOrchestrator {
 		/**
 		 * Schedules the given (persisted) child task.
 		 * @param child the child task
+		 * @return the child task as scheduled (with its new status)
 		 * @throws SchedulerException in case of scheduling error
 		 */
-		void schedule(Task child) throws SchedulerException;
+		Task schedule(Task child) throws SchedulerException;
 	}
 
 	private final ChildScheduler scheduler;
@@ -288,7 +289,8 @@ public class ChildTaskOrchestrator {
 			}
 			parent.logger.info("Scheduling child task {} for {}.", child.id(), this.describeChildDevice(child));
 			try {
-				this.scheduler.schedule(child);
+				// The scheduled child (no longer DELAYED) is waited for below
+				children.set(i, this.scheduler.schedule(child));
 			}
 			catch (Exception e) {
 				log.error("Task {}. Error while scheduling child task {} for {}.",

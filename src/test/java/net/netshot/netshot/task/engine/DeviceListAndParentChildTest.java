@@ -132,8 +132,7 @@ class DeviceListAndParentChildTest {
 	 * @return the orchestrator
 	 */
 	private ChildTaskOrchestrator orchestrator() {
-		return new ChildTaskOrchestrator(TestWiring.get().core().transactions(), _ -> {
-		}, TestWiring.get().core().repositories().task(), TestConfig.store());
+		return new ChildTaskOrchestrator(TestWiring.get().core().transactions(), child -> child, TestWiring.get().core().repositories().task(), TestConfig.store());
 	}
 
 	@Test

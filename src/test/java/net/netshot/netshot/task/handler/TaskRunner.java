@@ -78,6 +78,7 @@ final class TaskRunner {
 		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(wiring.core().transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
+			return TestTasks.find(child.id());
 		}, r.task(), TestConfig.store());
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
 		Connectors connectors = new Connectors(wiring.core().vaultManager(), TestConnectors.sshClient(), r.deviceReads(),
