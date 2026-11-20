@@ -599,6 +599,41 @@
 			</properties>
 		</profile>
 		<profile>
+			<!-- Measures the code coverage of the tests with JaCoCo, report in target/site/jacoco (index.html, jacoco.xml, jacoco.csv):
+				./mvnw -Pcoverage test (combines with -Pfast or -Pdocker) -->
+			<id>coverage</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>0.8.14</version>
+						<configuration>
+							<excludes>
+								<!-- jOOQ classes, generated (src/main/jooq) -->
+								<exclude>net/netshot/netshot/platform/database/schema/**</exclude>
+							</excludes>
+						</configuration>
+						<executions>
+							<execution>
+								<id>coverage-agent</id>
+								<goals>
+									<goal>prepare-agent</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>coverage-report</id>
+								<phase>test</phase>
+								<goals>
+									<goal>report</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<!-- Regenerates the jOOQ classes (src/main/jooq) from a PostgreSQL migrated by Liquibase, in a container:
 				./mvnw -Pjooq-codegen process-test-classes -->
 			<id>jooq-codegen</id>
