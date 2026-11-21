@@ -325,7 +325,7 @@ These options apply to Python compliance rules (not to Python diagnostics). To u
 | `netshot.python.virtualenv` | Path to the (Graal) Python virtual environment. | Yes |
 | `netshot.python.maxexecutiontime` | Max time (ms) a Python compliance rule may run. Default: `60000`. | Yes |
 | `netshot.python.allowallaccess` | Allow all types of host access from Python scripts. **Insecure** — off by default. | Yes |
-| `netshot.python.filesystemfilter` | Set to `false` to disable filesystem access restrictions for Python scripts. **Insecure** — restrictions are on by default (read-only access to the GraalPy libraries, the virtualenv, and system-wide `/proc` entries, but not to the Netshot process's own `/proc` entries). | Yes |
+| `netshot.python.filesystemfilter` | Set to `false` to disable filesystem access restrictions for Python scripts. **Insecure** — restrictions are on by default (read-only access to the GraalPy libraries, the virtualenv, and system-wide `/proc` entries, but not to the Netshot process's own `/proc` entries; the other files can't be listed, and their existence, size, dates and link targets aren't visible either). | Yes |
 | `netshot.python.allowcreateprocess` | Allow Python scripts to spawn OS processes. **Insecure** — off by default. | Yes |
 | `netshot.python.allowcreatethread` | Allow Python scripts to create threads (needed by some packages, see [Python virtualenv](extending/python-virtualenv.md#troubleshooting)). **Insecure** — off by default. | Yes |
 | `netshot.python.allowhostfileaccess` | Allow Python scripts to access the host filesystem. **Insecure** — off by default. | Yes |

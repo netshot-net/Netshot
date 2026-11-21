@@ -93,6 +93,20 @@ class PythonFileSystemTest {
 	}
 
 	@Test
+	@DisplayName("The attributes and the real path of a file are given only in the virtualenv")
+	void metadataAccess() throws IOException {
+		Path module = this.venv.resolve("module.py");
+		Assertions.assertEquals(10L, this.fileSystem.readAttributes(module, "size").get("size"));
+		Assertions.assertEquals(module.toRealPath(), this.fileSystem.toRealPath(module));
+
+		Assertions.assertThrows(SecurityException.class, () -> this.fileSystem.readAttributes(this.outside, "size"));
+		Assertions.assertThrows(SecurityException.class, () -> this.fileSystem.toRealPath(this.outside));
+		Path link = Files.createSymbolicLink(this.venv.resolve("link.txt"), this.outside);
+		Assertions.assertThrows(SecurityException.class, () -> this.fileSystem.toRealPath(link), "The link target is revealed");
+		Assertions.assertThrows(SecurityException.class, () -> this.fileSystem.readAttributes(link, "size"));
+	}
+
+	@Test
 	@DisplayName("A missing file of the virtualenv is reported missing, a missing file elsewhere is refused")
 	void missingFile() {
 		Assertions.assertThrows(NoSuchFileException.class, () -> read(this.fileSystem, this.venv.resolve("missing/module.py")));

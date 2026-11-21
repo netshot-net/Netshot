@@ -624,7 +624,7 @@ class PyRuleTest {
 	}
 
 	@Test
-	@DisplayName("Python rule can't read or list the files outside the Python library")
+	@DisplayName("Python rule can't read, list, stat or resolve the files outside the Python library")
 	void outsideFileRule(@TempDir Path dir) throws Exception {
 		Path secret = Files.writeString(dir.resolve("secret.txt"), "secret-content");
 		rule = rule.toBuilder().script(
@@ -635,7 +635,14 @@ class PyRuleTest {
 				+ "    'list /': lambda: os.listdir('/')," + "\n"
 				+ "    'list folder': lambda: os.listdir('" + dir + "')," + "\n"
 				+ "    'read /etc/passwd': lambda: open('/etc/passwd').read()," + "\n"
+				+ "    'stat': lambda: os.stat('" + secret + "')," + "\n"
+				+ "    'stat /etc/shadow': lambda: os.stat('/etc/shadow')," + "\n"
+				+ "    'realpath': lambda: os.path.realpath('/proc/self/exe', strict=True)," + "\n"
 				+ "  }" + "\n"
+				+ "  if os.path.exists('" + secret + "'):" + "\n"
+				+ "    return { 'result': result_option.NONCONFORMING, 'comment': 'exists' }" + "\n"
+				+ "  if os.path.realpath('/proc/self/exe') != '/proc/self/exe':" + "\n"
+				+ "    return { 'result': result_option.NONCONFORMING, 'comment': 'realpath ' + os.path.realpath('/proc/self/exe') }" + "\n"
 				+ "  for name, attempt in attempts.items():" + "\n"
 				+ "    try:" + "\n"
 				+ "      attempt()" + "\n"

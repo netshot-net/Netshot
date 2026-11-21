@@ -136,7 +136,8 @@ public final class PythonFileSystem implements FileSystem {
 		}
 		if (realPath == null || !((libFolder != null && realPath.startsWith(libFolder)) || (venvFolder != null && realPath.startsWith(venvFolder))
 			|| isSystemWideProcEntry(realPath))) {
-			log.info("Access ({}) to {} [{}] is denied", reason, path, realPath);
+			// Debug only: GraalPy probes many paths outside the allowed folders at each start
+			log.debug("Access ({}) to {} [{}] is denied", reason, path, realPath);
 			throw new SecurityException("Access to " + path + " is denied.");
 		}
 	}
@@ -217,11 +218,15 @@ public final class PythonFileSystem implements FileSystem {
 
 	@Override
 	public Path toRealPath(Path path, LinkOption... linkOptions) throws IOException {
+		// The target of a link outside the readable folders isn't revealed
+		verifyAccess(path, "toRealPath");
 		return delegate.toRealPath(path, linkOptions);
 	}
 
 	@Override
 	public Map<String, Object> readAttributes(Path path, String attributes, LinkOption... options) throws IOException {
+		// The existence, size, owner and times of a file outside the readable folders aren't revealed
+		verifyAccess(path, "readAttributes");
 		return delegate.readAttributes(path, attributes, options);
 	}
 }
