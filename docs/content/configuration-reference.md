@@ -244,7 +244,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 
 | Parameter | Description | Reload |
 |---|---|---|
-| `netshot.vault.token.renewmarginms` | How long (ms) before expiry Netshot renews a Vault auth token. Default: `30000`. | Yes |
+| `netshot.vault.token.renewmarginms` | How long (ms) before expiry Netshot renews a Vault auth token, at most half the token's lease (a token without lease is kept until Vault refuses it). Default: `30000`. | Yes |
 | `netshot.vault.secret.cachettlms` | How long (ms) a secret fetched from Vault is cached before being re-fetched. Default: `60000`. | Yes |
 | `netshot.vault.http.connecttimeoutms` | HTTP connect timeout (ms) for calls to Vault. Default: `5000`. | Yes |
 | `netshot.vault.http.readtimeoutms` | HTTP read timeout (ms) for calls to Vault. Default: `10000`. | Yes |

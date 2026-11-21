@@ -73,6 +73,9 @@ class VaultManagerTest {
 	/** The namespaces received with the requests. */
 	private final List<String> namespaces = new CopyOnWriteArrayList<>();
 
+	/** The lease of the tokens of the fake Vault (s). */
+	private volatile int leaseSeconds = 3600;
+
 	/** How long the fake Vault takes to answer a read (ms). */
 	private volatile int readDelay;
 
@@ -139,7 +142,7 @@ class VaultManagerTest {
 					reply(exchange, 200, Map.of("auth", Map.of()));
 				}
 				else if ("good-secret".equals(login.path("secret_id").asText())) {
-					reply(exchange, 200, Map.of("auth", Map.of("client_token", this.newToken(), "lease_duration", 3600)));
+					reply(exchange, 200, Map.of("auth", Map.of("client_token", this.newToken(), "lease_duration", this.leaseSeconds)));
 				}
 				else {
 					reply(exchange, 400, Map.of("errors", List.of("invalid role or secret ID")));
@@ -148,7 +151,7 @@ class VaultManagerTest {
 			case "/v1/auth/jwt/login" -> {
 				JsonNode login = JSON.readTree(body);
 				if ("idp-jwt".equals(login.path("jwt").asText()) && "netshot-role".equals(login.path("role").asText())) {
-					reply(exchange, 200, Map.of("auth", Map.of("client_token", this.newToken(), "lease_duration", 3600)));
+					reply(exchange, 200, Map.of("auth", Map.of("client_token", this.newToken(), "lease_duration", this.leaseSeconds)));
 				}
 				else {
 					reply(exchange, 400, Map.of("errors", List.of("invalid JWT")));
@@ -304,6 +307,30 @@ class VaultManagerTest {
 		this.validTokens.clear();
 		Assertions.assertEquals("Secret1", vault.resolve(Secret.vault(1, "lab/device1/password")));
 		Assertions.assertEquals(2L, this.count("POST /v1/auth/approle/login"));
+	}
+
+	@Test
+	@DisplayName("A token without lease, or with a lease shorter than the renew margin, is reused")
+	void tokenLease() throws Exception {
+		for (int lease : new int[] { 0, 10 }) {
+			this.leaseSeconds = lease;
+			VaultManager vault = manager(this.appRole("good-secret"));
+			for (int i = 0; i < 3; i++) {
+				Assertions.assertEquals("Secret1", vault.resolve(Secret.vault(1, "lab/device1/password")));
+			}
+			Assertions.assertEquals(1L, vault.stats().get("logins"), "Lease of %d s: a single login".formatted(lease));
+		}
+	}
+
+	@Test
+	@DisplayName("A token is renewed within the margin before its expiry (capped to half its lease)")
+	void tokenValidity() {
+		long now = System.currentTimeMillis();
+		Assertions.assertTrue(VaultToken.of("t", 0).isValid(30000), "No lease: never expires");
+		Assertions.assertTrue(new VaultToken("t", now - 3000, now + 7000).isValid(30000), "Lease of 10 s, 3 s in: still valid");
+		Assertions.assertFalse(new VaultToken("t", now - 6000, now + 4000).isValid(30000), "Lease of 10 s, 6 s in: to renew");
+		Assertions.assertTrue(new VaultToken("t", now, now + 3600000).isValid(30000));
+		Assertions.assertFalse(new VaultToken("t", now - 3600000 + 20000, now + 20000).isValid(30000), "Within the 30 s margin");
 	}
 
 	@Test

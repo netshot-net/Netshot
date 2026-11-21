@@ -171,9 +171,8 @@ final class VaultClient {
 						.formatted(instance.name()));
 			}
 			long leaseSeconds = auth.path("lease_duration").asLong(0);
-			long expiresAt = System.currentTimeMillis() + Math.max(leaseSeconds, 1) * 1000;
 			log.trace("Vault login for instance '{}' succeeded, token lease {}s.", instance.name(), leaseSeconds);
-			return new VaultToken(clientToken, expiresAt);
+			return VaultToken.of(clientToken, leaseSeconds);
 		}
 		catch (VaultException e) {
 			throw e;
