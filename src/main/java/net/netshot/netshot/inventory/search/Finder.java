@@ -2146,6 +2146,12 @@ public class Finder {
 		protected static AttributeDefinition getDriverAttributeDefinition(
 				Token itemToken, List<AttributeType> possibleTypes) throws FinderParseException {
 			DeviceDriver driver = drivers().getDriverByDescription(itemToken.key1);
+			if (driver == null && TokenType.RULE.toString().equalsIgnoreCase(itemToken.key1.strip())) {
+				// [Rule > Policy] without the rule name: not a rule token, read as a driver attribute
+				throw new FinderParseException(
+					"Parsing error at character %d, incomplete rule reference [Rule > %s], expecting [Rule > Policy name > Rule name]."
+					.formatted(itemToken.position, itemToken.key2));
+			}
 			if (driver == null) {
 				throw new FinderParseException(
 					"Parsing error at character %d, unknown driver '%s'."
