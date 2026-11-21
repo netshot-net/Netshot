@@ -813,7 +813,7 @@ public final class JsDeviceHelper {
 		}
 		catch (Exception e) {
 			log.warn("Error during textDownload, invalid charset name '{}'.", charsetName);
-			taskContext.error("Invalid charset name '{}' in textDownload.", method);
+			taskContext.error("Invalid charset name '{}' in textDownload.", charsetName);
 			throw new IllegalArgumentException("Invalid charset");
 		}
 

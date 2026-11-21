@@ -67,6 +67,7 @@ public abstract class Hash {
 	public void digest(String input) {
 		if (input == null) {
 			this.digest(new String[] {});
+			return;
 		}
 		this.digest(new String[] { input });
 	}

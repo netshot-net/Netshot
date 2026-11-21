@@ -268,7 +268,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 		}
 		catch (InvalidOperationException e) {
 			log.error("No such method 'snapshot' while using driver {}.", driver.getName(), e);
-			this.taskContext.error("No such method 'snapshot' while using driver %s to take snapshot: '{}'.",
+			this.taskContext.error("No such method 'snapshot' while using driver {} to take snapshot: '{}'.",
 				driver.getName(), e.getMessage());
 			throw e;
 		}

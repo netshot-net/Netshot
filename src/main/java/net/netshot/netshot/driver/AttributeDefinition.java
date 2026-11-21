@@ -157,7 +157,7 @@ public final class AttributeDefinition {
 				this.type = AttributeType.BINARYFILE;
 				break;
 			default:
-				throw new IllegalArgumentException("Invalid type for item %s.");
+				throw new IllegalArgumentException("Invalid type for item %s.".formatted(name));
 		}
 		this.searchable = JsUtils.getBooleanMember(data, "searchable", false);
 		this.comparable = JsUtils.getBooleanMember(data, "comparable", false);
