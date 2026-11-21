@@ -284,7 +284,7 @@ public final class Tacacs {
 			}
 		}
 		catch (Exception e) {
-			log.error("Error while authenticating against RADIUS server.", e);
+			log.error("Error while authenticating against the TACACS+ servers.", e);
 		}
 		finally {
 			client.shutdown();
