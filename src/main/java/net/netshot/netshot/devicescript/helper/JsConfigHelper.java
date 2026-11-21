@@ -160,7 +160,11 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 					+ "invalid source IP {} vs {}.", source, this.expectedSourceIp);
 				return false;
 			}
-			return this.passwordHash.check(givenPassword);
+			if (!this.passwordHash.check(givenPassword)) {
+				taskContext.error("Upload session from {} rejected for ticket {}: wrong password.", source == null ? "unknown" : source.getIp(), this.id);
+				return false;
+			}
+			return true;
 		}
 
 		@Override
@@ -200,9 +204,29 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		public void onSessionStarted(SessionLogBuffer logBuffer) {
 			log.info("Upload session started for ticket {}", this.id);
 			taskContext.info("Upload session started for ticket {}", this.id);
-			// Indent session logs
-			StringBuffer logs = new StringBuffer();
-			for (String line : logBuffer.getLogs().split("\n")) {
+			this.traceSessionLogs(logBuffer);
+		}
+
+		@Override
+		public void onSessionRejected(SessionLogBuffer logBuffer) {
+			this.traceSessionLogs(logBuffer);
+		}
+
+		/**
+		 * Copies the logs of the SSH session (collected since the last copy) to the task log, indented.
+		 *
+		 * @param logBuffer the logs of the session, or null
+		 */
+		private void traceSessionLogs(SessionLogBuffer logBuffer) {
+			if (logBuffer == null) {
+				return;
+			}
+			String sessionLogs = logBuffer.takeLogs();
+			if (sessionLogs.isEmpty()) {
+				return;
+			}
+			StringBuilder logs = new StringBuilder();
+			for (String line : sessionLogs.split("\n")) {
 				logs.append("  ").append(line).append("\n");
 			}
 			taskContext.trace("Session logs for ticket {}:\n{}", this.id, logs);

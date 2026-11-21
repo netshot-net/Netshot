@@ -343,6 +343,20 @@ public final class SshServer implements Service {
 				buffer.setLength(0);
 			}
 		}
+
+		/**
+		 * Gets the logs collected since the last call, and clears them (so that the logs of a session given to its
+		 * ticket after a rejected login attempt aren't given again with the next attempt).
+		 *
+		 * @return the logs
+		 */
+		public String takeLogs() {
+			synchronized (buffer) {
+				String logs = buffer.toString();
+				buffer.setLength(0);
+				return logs;
+			}
+		}
 	}
 
 	/** The configuration store. */
@@ -435,6 +449,36 @@ public final class SshServer implements Service {
 	}
 
 	/**
+	 * Describes the options of a failed key exchange negotiation for which the client and the server propose no
+	 * algorithm in common, with the algorithms proposed by each side. The negotiation stops at the first of them,
+	 * which the failure reason names: this also gives the others.
+	 *
+	 * @param clientProposal the client proposal
+	 * @param serverProposal the server proposal
+	 * @return the description, e.g. "encryption algorithms (client to server) [client: 3des-cbc / server: aes128-ctr]; ..."
+	 */
+	static String noCommonAlgorithm(Map<KexProposalOption, String> clientProposal, Map<KexProposalOption, String> serverProposal) {
+		List<String> options = new ArrayList<>();
+		for (KexProposalOption option : KexProposalOption.VALUES) {
+			if (KexProposalOption.LANGUAGE_PROPOSALS.contains(option)) {
+				continue;
+			}
+			String client = clientProposal == null ? null : clientProposal.get(option);
+			String server = serverProposal == null ? null : serverProposal.get(option);
+			Set<String> common = new HashSet<>(algorithms(client));
+			common.retainAll(algorithms(server));
+			if (common.isEmpty()) {
+				options.add("%s [client: %s / server: %s]".formatted(option.getDescription(), client, server));
+			}
+		}
+		return options.isEmpty() ? "none" : String.join("; ", options);
+	}
+
+	private static List<String> algorithms(String proposal) {
+		return proposal == null || proposal.isEmpty() ? List.of() : List.of(proposal.split(","));
+	}
+
+	/**
 	 * Session listener to track session lifecycle and trigger ticket callbacks.
 	 */
 	private final class DeviceSessionListener implements SessionListener {
@@ -457,7 +501,9 @@ public final class SshServer implements Service {
 				Map<KexProposalOption, String> negotiatedOptions,
 				Throwable reason) {
 			if (reason != null) {
-				log.info("SSH Protocol Negotiation ended with error: {}", reason.getMessage());
+				log.info("SSH protocol negotiation with {} ({}) failed: {}. No algorithm in common for: {}",
+					session.getRemoteAddress(), session.getClientVersion(), reason.getMessage(),
+					noCommonAlgorithm(clientProposal, serverProposal));
 			}
 
 			SessionLogBuffer logBuffer = session.getAttribute(SESSION_LOG_BUFFER);
@@ -785,6 +831,8 @@ public final class SshServer implements Service {
 				Channel channel, Set<? extends OpenOption> options) throws IOException {
 			log.info("SSH/SFTP server close file request - session {}, path {}, options {}",
 				subsystem.getSession(), file, options);
+			// Closes the channel of the file (complete before the ticket gets the file)
+			SftpFileSystemAccessor.super.closeFile(subsystem, fileHandle, file, handle, channel, options);
 
 			// Trigger onFileWritten callback if this was a write operation
 			if (options.contains(java.nio.file.StandardOpenOption.WRITE)
@@ -793,7 +841,8 @@ public final class SshServer implements Service {
 				if (ticket != null) {
 					log.info("File written via SFTP in session {}: {}", subsystem.getSession(), file);
 					if (!ticket.onFileWritten(file)) {
-						log.warn("File {} received through session {}", subsystem.getSession(), file);
+						log.warn("File {} received through session {} refused by its ticket (not valid anymore), deleted", file,
+							subsystem.getSession());
 						Files.deleteIfExists(file);
 					}
 				}
@@ -900,6 +949,17 @@ public final class SshServer implements Service {
 		public void setFileAccessControl(SftpSubsystemProxy subsystem, Path file, List<AclEntry> acl, LinkOption... options)
 				throws IOException {
 			throwForbiddenException(subsystem, "setFileAccessControl");
+		}
+
+		/**
+		 * Ignores the permissions given by the device (with a SETSTAT, or with the attributes of an OPEN), so that it
+		 * can't make the received file (e.g. a configuration with secrets) readable by others; not refused, for the
+		 * devices which give the permissions of the new file when opening it.
+		 */
+		@Override
+		public void setFilePermissions(SftpSubsystemProxy subsystem, Path file, Set<PosixFilePermission> perms,
+				LinkOption... options) throws IOException {
+			log.info("Ignored SFTP permission change ({}) of {} in session {}", perms, file, subsystem.getSession());
 		}
 
 		@Override
@@ -1162,6 +1222,11 @@ public final class SshServer implements Service {
 				// Ignore
 			}
 			if (!ticket.checkPassword(source, password)) {
+				log.warn("Authentication failed for incoming request on embedded SSH server from {}: credentials rejected for ticket {}",
+					session.getRemoteAddress(), username);
+				AAA_LOG.warn("Authentication failed for incoming request on embedded SSH server from {}: credentials rejected for ticket {}",
+					session.getRemoteAddress(), username);
+				ticket.onSessionRejected(session.getAttribute(SESSION_LOG_BUFFER));
 				return false;
 			}
 		}

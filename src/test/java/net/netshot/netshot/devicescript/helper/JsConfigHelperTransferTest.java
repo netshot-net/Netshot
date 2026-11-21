@@ -392,6 +392,84 @@ class JsConfigHelperTransferTest {
 			helper.release();
 		}
 
+		/**
+		 * Lists the files this process holds open (Linux only: empty elsewhere).
+		 *
+		 * @param suffix the end of the names of the files to list
+		 * @return the paths of the open files
+		 */
+		private static List<String> openFiles(String suffix) throws IOException {
+			Path fds = Path.of("/proc/self/fd");
+			if (!Files.isDirectory(fds)) {
+				return List.of();
+			}
+			List<String> open = new java.util.ArrayList<>();
+			try (var links = Files.list(fds)) {
+				for (Path link : links.toList()) {
+					try {
+						String target = Files.readSymbolicLink(link).toString();
+						if (target.endsWith(suffix)) {
+							open.add(target);
+						}
+					}
+					catch (IOException e) {
+						// Closed meanwhile
+					}
+				}
+			}
+			return open;
+		}
+
+		@Test
+		@DisplayName("In an SFTP session, the device can only write files: other changes are refused, permissions ignored, and it can't leave its folder")
+		void sftpRestrictions() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			ProxyObject ticket = helper.requestUpload("sftp", null);
+			long ticketId = (Long) ticket.getMember("id");
+			try (ClientSession session = this.login(ticket);
+				SftpClient sftp = SftpClientFactory.instance().createSftpClient(session)) {
+				try (OutputStream out = sftp.write("upload.bin")) {
+					out.write(PAYLOAD);
+				}
+				try (OutputStream out = sftp.write("../../escape.bin")) {
+					out.write(PAYLOAD);
+				}
+				Assertions.assertThrows(IOException.class, () -> sftp.mkdir("folder"), "mkdir");
+				Assertions.assertThrows(IOException.class, () -> sftp.remove("upload.bin"), "rm");
+				Assertions.assertThrows(IOException.class, () -> sftp.rename("upload.bin", "moved.bin"), "rename");
+				Assertions.assertThrows(IOException.class, () -> sftp.symLink("link.bin", "upload.bin"), "symlink");
+				int permissions = sftp.stat("upload.bin").getPermissions() & 0777;
+				sftp.setStat("upload.bin", new SftpClient.Attributes().perms(0777));
+				Assertions.assertEquals(permissions, sftp.stat("upload.bin").getPermissions() & 0777, "chmod is ignored");
+				Assertions.assertEquals(0, sftp.stat(".").getPermissions() & 0077, "The folder of the ticket is private");
+				Assertions.assertEquals(PAYLOAD.length, sftp.stat("upload.bin").getSize(), "The file is still there");
+			}
+			ProxyObject result = helper.awaitUpload(ticketId, 10000);
+			Assertions.assertEquals(2, result.getMember("fileCount"));
+			Assertions.assertEquals(List.of(), openFiles(".bin"), "The received files are closed");
+			try (var files = Files.walk(tempDir)) {
+				List<Path> written = files.filter(f -> f.getFileName().toString().endsWith(".bin")).toList();
+				Assertions.assertEquals(2, written.size(), "Written once each " + written);
+				Assertions.assertEquals(written.get(0).getParent(), written.get(1).getParent(), "Both in the folder of the ticket: " + written);
+			}
+			helper.release();
+		}
+
+		@Test
+		@DisplayName("The device can't download a file by SCP")
+		void scpDownloadRefused() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			ProxyObject ticket = helper.requestUpload("scp", null);
+			Path local = Files.write(tempDir.resolve("local.tgz"), PAYLOAD);
+			try (ClientSession session = this.login(ticket)) {
+				var scp = ScpClientCreator.instance().createScpClient(session);
+				scp.upload(local, "backup.tgz");
+				Assertions.assertThrows(IOException.class, () -> scp.download("backup.tgz", tempDir.resolve("back.tgz")));
+			}
+			Assertions.assertFalse(Files.exists(tempDir.resolve("back.tgz")));
+			helper.release();
+		}
+
 		@Test
 		@DisplayName("A device from another address than the expected one can't log in")
 		void wrongSourceAddress() throws Exception {

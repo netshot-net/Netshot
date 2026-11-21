@@ -87,6 +87,13 @@ public interface UploadTicket {
 	void onSessionStarted(SessionLogBuffer logBuffer);
 
 	/**
+	 * Called when a login attempt with the ticket is rejected ({@link #checkPassword} returned false).
+	 *
+	 * @param logBuffer the SSH session logs (protocol negotiation details), or null
+	 */
+	void onSessionRejected(SessionLogBuffer logBuffer);
+
+	/**
 	 * Called when the SSH session is closed.
 	 */
 	void onSessionStopped();

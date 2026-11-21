@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.slf4j.LoggerFactory;
 import org.graalvm.polyglot.proxy.ProxyArray;
 import org.graalvm.polyglot.proxy.ProxyObject;
 
@@ -36,12 +37,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+
 import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.access.DeviceHostKeyVerifier;
+import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.TransferProtocol;
+import net.netshot.netshot.driver.protocol.SshConfig;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
@@ -78,11 +86,22 @@ class JsConfigHelperUploadTest {
 	 * @return the helper
 	 */
 	private JsConfigHelper deviceHelper(SshServer sshServer) throws Exception {
+		return this.deviceHelper(sshServer, new FakeTaskContext());
+	}
+
+	/**
+	 * Builds a helper for a device of a domain whose server address is the loopback address, logging to the given context.
+	 *
+	 * @param sshServer the SSH server
+	 * @param context the task context
+	 * @return the helper
+	 */
+	private JsConfigHelper deviceHelper(SshServer sshServer, FakeTaskContext context) throws Exception {
 		Domain domain = Domain.builder().id(1).name("Lab").description("Lab domain")
 			.server4Address(new Network4Address("127.0.0.1", 32)).build();
 		DeviceDraft device = new DeviceDraft(Device.create("CiscoIOS12", "10.0.0.1", domain, "tester"));
 		return new JsConfigHelper(null, device, null, null, null, sshServer, Collector.Settings.from(TestConfig.store().current()), new BinaryFileStorage(TestConfig.store()),
-			new FakeTaskContext());
+			context);
 	}
 
 	/**
@@ -202,4 +221,94 @@ class JsConfigHelperUploadTest {
 			second.stop();
 		}
 	}
+
+	/**
+	 * Connects to the SSH server as a device would, with the given password and (optionally) one cipher and one MAC only.
+	 *
+	 * @param port the port of the SSH server
+	 * @param ticket the ticket given to the driver
+	 * @param password the password to log in with
+	 * @param cipher the only cipher proposed by the device, or null for the default ones
+	 * @param mac the only MAC proposed by the device (with a cipher)
+	 * @return the exception which failed the connection, or null
+	 */
+	private static Exception deviceLogin(int port, ProxyObject ticket, String password, String cipher, String mac) {
+		Ssh device = new Ssh(TestConnectors.sshClient(), Ssh.Settings.from(TestConfig.store().current()), "127.0.0.1", port,
+			(String) ticket.getMember("username"), password, new FakeTaskContext());
+		device.setConnectionTimeout(5000);
+		if (cipher != null) {
+			SshConfig config = new SshConfig(Ssh.Settings.from(TestConfig.store().current()));
+			config.setCiphers(new String[] { cipher });
+			config.setMacs(new String[] { mac });
+			device.applySshConfig(config);
+		}
+		try {
+			device.connect(false);
+			return null;
+		}
+		catch (Exception e) {
+			return e;
+		}
+		finally {
+			device.disconnect();
+		}
+	}
+
+	@Test
+	@DisplayName("A login with a wrong password is reported in the task log, with the logs of the SSH session once")
+	void wrongPasswordInTaskLog() throws Exception {
+		int port = TestNetwork.freePort();
+		SshServer sshServer = this.startServer(port);
+		try {
+			FakeTaskContext context = new FakeTaskContext();
+			ProxyObject ticket = this.deviceHelper(sshServer, context).requestUpload("scp", null);
+			Exception error = deviceLogin(port, ticket, "wrong" + ticket.getMember("password"), null, null);
+			Assertions.assertInstanceOf(InvalidCredentialsException.class, error);
+			String log = context.getLog();
+			Assertions.assertTrue(log.contains("[ERROR] Upload session from 127.0.0.1 rejected for ticket"), log);
+			Assertions.assertTrue(log.contains("wrong password"), log);
+			Assertions.assertTrue(log.contains("SSH Protocol Negotiation Results:"), log);
+			// The device tries the password then keyboard-interactive: the session logs are given once
+			Assertions.assertEquals(1, log.split("SSH session created from", -1).length - 1, log);
+			Assertions.assertFalse(log.contains("Upload session started"), log);
+		}
+		finally {
+			sshServer.stop();
+		}
+	}
+
+	@Test
+	@DisplayName("A failed negotiation is logged (INFO) with each option without algorithm in common, and the algorithms of both sides")
+	void failedNegotiationLogged() throws Exception {
+		int port = TestNetwork.freePort();
+		SshServer sshServer = this.startServer(port);
+		Logger serverLogger = (Logger) LoggerFactory.getLogger(SshServer.class);
+		ListAppender<ILoggingEvent> logs = new ListAppender<>();
+		logs.start();
+		serverLogger.addAppender(logs);
+		try {
+			ProxyObject ticket = this.deviceHelper(sshServer).requestUpload("scp", null);
+			Exception error = deviceLogin(port, ticket, (String) ticket.getMember("password"), "3des-cbc", "hmac-md5");
+			Assertions.assertNotNull(error);
+			ILoggingEvent event = logs.list.stream()
+				.filter(e -> e.getFormattedMessage().startsWith("SSH protocol negotiation with"))
+				.findFirst().orElseThrow(() -> new AssertionError("No negotiation failure logged"));
+			Assertions.assertEquals(Level.INFO, event.getLevel());
+			String message = event.getFormattedMessage();
+			Assertions.assertTrue(message.contains("/127.0.0.1:"), message);
+			Assertions.assertTrue(message.contains("SSH-2.0-"), message);
+			Assertions.assertTrue(message.contains(
+				"encryption algorithms (client to server) [client: 3des-cbc / server: chacha20-poly1305@openssh.com,"), message);
+			Assertions.assertTrue(message.contains("encryption algorithms (server to client) [client: 3des-cbc / server: "), message);
+			// Not reported by the SSH library, which stops at the ciphers
+			Assertions.assertTrue(message.contains("mac algorithms (client to server) [client: hmac-md5 / server: "), message);
+			Assertions.assertFalse(message.contains("kex algorithms ["), "Key exchange algorithms in common: " + message);
+			Assertions.assertFalse(message.contains("compression algorithms"), "Compression algorithms in common: " + message);
+		}
+		finally {
+			serverLogger.detachAppender(logs);
+			sshServer.stop();
+		}
+	}
+
 }
