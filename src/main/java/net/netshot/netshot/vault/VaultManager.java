@@ -240,8 +240,17 @@ public final class VaultManager implements SecretResolver {
 				"Vault-backed field on instance '%s' is missing a path".formatted(hcInstance.name()));
 		}
 		VaultKeyPath keyPath = VaultKeyPath.parse(secret.vaultPath());
-		String token = getToken(hcInstance).clientToken();
-		JsonNode data = getSecretData(hcInstance, keyPath.getKvPath(), token);
+		VaultToken token = getToken(hcInstance);
+		JsonNode data;
+		try {
+			data = getSecretData(hcInstance, keyPath.getKvPath(), token.clientToken());
+		}
+		catch (VaultTokenRejectedException e) {
+			// Revoked or used up before the end of its lease: once more with a new token
+			AAA_LOG.warn("Vault instance '{}' refused the cached client token, logging in again.", hcInstance.name());
+			this.tokenCache.remove(hcInstance.id(), token);
+			data = getSecretData(hcInstance, keyPath.getKvPath(), getToken(hcInstance).clientToken());
+		}
 		JsonNode value = keyPath.resolve(data);
 		if (value.isMissingNode()) {
 			throw new VaultException("Key '%s' not found at Vault path '%s' on instance '%s'"

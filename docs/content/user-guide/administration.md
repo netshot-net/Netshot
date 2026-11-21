@@ -118,7 +118,7 @@ Instead of storing device credential secrets locally, Netshot can resolve them a
 
 Use **Test connection** after configuring an instance to confirm it can authenticate and reach the KV mount. Instances configured over plain HTTP (rather than HTTPS) are flagged with a warning.
 
-Once an instance exists, individual credential fields on a device credential set can be switched from Local to Vault-backed, pointing at a path within that instance's KV mount (e.g. `app/creds/username`). Vault-issued auth tokens are refreshed automatically in the background before they expire, and resolved secrets are cached briefly to limit load on Vault — both behaviors are tunable via the `netshot.vault.*` settings in the [configuration reference](../configuration-reference.md#vault-integration).
+Once an instance exists, individual credential fields on a device credential set can be switched from Local to Vault-backed, pointing at a path within that instance's KV mount (e.g. `app/creds/username`). Vault-issued auth tokens are refreshed automatically in the background before they expire (a token which Vault refuses before then, e.g. revoked or out of uses, is replaced by a new login), and resolved secrets are cached briefly to limit load on Vault — both behaviors are tunable via the `netshot.vault.*` settings in the [configuration reference](../configuration-reference.md#vault-integration).
 
 ## Device types
 

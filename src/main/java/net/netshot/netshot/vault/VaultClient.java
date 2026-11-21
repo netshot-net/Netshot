@@ -213,8 +213,12 @@ final class VaultClient {
 			Response response = request.get();
 			String responseBody = response.readEntity(String.class);
 			if (response.getStatus() != 200) {
-				throw new VaultException("Vault read failed for instance '%s' path '%s' (HTTP %d): %s"
-					.formatted(instance.name(), path, response.getStatus(), responseBody));
+				String message = "Vault read failed for instance '%s' path '%s' (HTTP %d): %s"
+					.formatted(instance.name(), path, response.getStatus(), responseBody);
+				if (response.getStatus() == 403) {
+					throw new VaultTokenRejectedException(message);
+				}
+				throw new VaultException(message);
 			}
 			JsonNode root = JSON.readTree(responseBody);
 			log.trace("Vault read of path '{}' on instance '{}' succeeded.", path, instance.name());
