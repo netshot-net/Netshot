@@ -58,6 +58,9 @@ public class DriverLoader {
 	public record LoadedDrivers(Map<String, DeviceDriver> drivers, String hash) {
 	}
 
+	/** The path of the embedded drivers, in the class path. */
+	private static final String EMBEDDED_PATH = "drivers/";
+
 	/** The configuration store (the folder of the additional drivers). */
 	private final ConfigStore config;
 
@@ -78,6 +81,18 @@ public class DriverLoader {
 	 *                       something bad
 	 */
 	public LoadedDrivers load() throws Exception {
+		return this.load(DeviceDriver.class.getResource("/" + EMBEDDED_PATH));
+	}
+
+	/**
+	 * Reads all the drivers: the user drivers (from {@link #DRIVERS_PATH}), then the embedded ones, from a folder or
+	 * from the Netshot jar; a user driver replaces the embedded driver of the same name.
+	 *
+	 * @param driverUrl the location of the embedded drivers (a file: or jar: URL), or null
+	 * @return the drivers, and their global hash
+	 * @throws Exception something bad
+	 */
+	LoadedDrivers load(URL driverUrl) throws Exception {
 		Map<String, DeviceDriver> newDrivers = new HashMap<>();
 
 		final String addPath = this.config.current().get(DRIVERS_PATH);
@@ -126,8 +141,7 @@ public class DriverLoader {
 			}
 		}
 
-		String driverPathName = "drivers/";
-		final URL driverUrl = DeviceDriver.class.getResource("/" + driverPathName);
+		String driverPathName = EMBEDDED_PATH;
 		if (driverUrl != null && "file".equals(driverUrl.getProtocol())) {
 			log.debug("Scanning folder {} for device drivers (.js).", driverUrl);
 			final File folder = new File(driverUrl.toURI());
@@ -148,8 +162,7 @@ public class DriverLoader {
 						DeviceDriver driver = new DeviceDriver(reader, file.getName(),
 							new DeviceDriver.Location(DeviceDriver.LocationType.EMBEDDED, file.getAbsolutePath()));
 						if (newDrivers.containsKey(driver.getName())) {
-							log.warn(
-								"Skipping user device driver file {}, because a similar driver {} is already loaded.",
+							log.warn("Skipping the embedded device driver {}, because the user driver {} replaces it.",
 								file, driver.getName());
 						}
 						else {
@@ -171,40 +184,30 @@ public class DriverLoader {
 			String path = driverUrl.getFile();
 			path = path.substring(0, path.lastIndexOf('!'));
 			File file = new File(new URI(path));
-			try {
-				JarFile jar = new JarFile(file);
+			try (JarFile jar = new JarFile(file)) {
 				final Enumeration<JarEntry> e = jar.entries();
 				while (e.hasMoreElements()) {
 					final JarEntry je = e.nextElement();
-					if (!je.isDirectory() && je.getName().startsWith(driverPathName)) {
-						log.info("Found Netshot device driver file {} (in jar).", je.getName());
-						Reader reader = null;
-						try {
-							InputStream stream = jar.getInputStream(je);
-							reader = new InputStreamReader(stream);
-							DeviceDriver driver = new DeviceDriver(reader,
-								je.getName().replace(driverPathName, ""),
-								new DeviceDriver.Location(DeviceDriver.LocationType.EMBEDDED, jar.getName()));
-							if (newDrivers.containsKey(driver.getName())) {
-								log.warn(
-									"Skipping user device driver file {}, because a similar driver {} is already loaded.",
-									file, driver.getName());
-							}
-							else {
-								newDrivers.put(driver.getName(), driver);
-							}
+					if (je.isDirectory() || !je.getName().startsWith(driverPathName) || !je.getName().endsWith(".js")) {
+						continue;
+					}
+					log.info("Found Netshot device driver file {} (in jar).", je.getName());
+					try (Reader reader = new InputStreamReader(jar.getInputStream(je))) {
+						DeviceDriver driver = new DeviceDriver(reader,
+							je.getName().replace(driverPathName, ""),
+							new DeviceDriver.Location(DeviceDriver.LocationType.EMBEDDED, jar.getName()));
+						if (newDrivers.containsKey(driver.getName())) {
+							log.warn("Skipping the embedded device driver {}, because the user driver {} replaces it.",
+								je.getName(), driver.getName());
 						}
-						catch (Exception e1) {
-							log.error("Error while loading the device driver {} from jar file.", file, e1);
-						}
-						finally {
-							if (reader != null) {
-								reader.close();
-							}
+						else {
+							newDrivers.put(driver.getName(), driver);
 						}
 					}
+					catch (Exception e1) {
+						log.error("Error while loading the device driver {} from jar file {}.", je.getName(), file, e1);
+					}
 				}
-				jar.close();
 			}
 			catch (Exception e) {
 				log.error("While looking for device drivers in {}.", path, e);
