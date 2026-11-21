@@ -22,6 +22,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -35,7 +36,16 @@ import org.snmp4j.ScopedPDU;
 import org.snmp4j.UserTarget;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.mp.SnmpConstants;
+import org.snmp4j.security.AuthHMAC128SHA224;
+import org.snmp4j.security.AuthHMAC192SHA256;
+import org.snmp4j.security.AuthHMAC256SHA384;
+import org.snmp4j.security.AuthHMAC384SHA512;
+import org.snmp4j.security.AuthMD5;
 import org.snmp4j.security.AuthSHA;
+import org.snmp4j.security.Priv3DES;
+import org.snmp4j.security.PrivAES192;
+import org.snmp4j.security.PrivAES256;
+import org.snmp4j.security.PrivDES;
 import org.snmp4j.security.PrivAES128;
 import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.USM;
@@ -81,6 +91,44 @@ class SnmpTrapReceiverTest {
 		Assertions.assertEquals(PrivAES128.ID, users.get(0).getPrivacyProtocol());
 		Assertions.assertEquals("user2", users.get(1).getSecurityName().toString());
 		Assertions.assertNull(users.get(1).getPrivacyProtocol());
+	}
+
+	@Test
+	@DisplayName("SNMPv3 users: every protocol, one user per combination, a user without authentication")
+	void allProtocols() {
+		List<UsmUser> users = SnmpTrapReceiver.parseUsers(
+			"u1 DES|MD5 authpass1 privpass1 u2 3DES|AES192|AES256|HMAC128SHA224|HMAC192SHA256|HMAC256SHA384|HMAC384SHA512 authpass2 privpass2"
+			+ " u3 SHA1 authpass3");
+		Assertions.assertEquals(1 + 3 * 4 + 1, users.size());
+		UsmUser u1 = users.get(0);
+		Assertions.assertEquals(AuthMD5.ID, u1.getAuthenticationProtocol());
+		Assertions.assertEquals(PrivDES.ID, u1.getPrivacyProtocol());
+		Assertions.assertEquals(new OctetString("authpass1"), u1.getAuthenticationPassphrase());
+		Assertions.assertEquals(new OctetString("privpass1"), u1.getPrivacyPassphrase());
+		Set<OID> u2Auth = new HashSet<>();
+		Set<OID> u2Priv = new HashSet<>();
+		for (UsmUser user : users.subList(1, 13)) {
+			Assertions.assertEquals("u2", user.getSecurityName().toString());
+			u2Auth.add(user.getAuthenticationProtocol());
+			u2Priv.add(user.getPrivacyProtocol());
+		}
+		Assertions.assertEquals(Set.of(AuthHMAC128SHA224.ID, AuthHMAC192SHA256.ID, AuthHMAC256SHA384.ID, AuthHMAC384SHA512.ID), u2Auth);
+		Assertions.assertEquals(Set.of(Priv3DES.ID, PrivAES192.ID, PrivAES256.ID), u2Priv);
+		Assertions.assertEquals(AuthSHA.ID, users.get(13).getAuthenticationProtocol());
+		Assertions.assertNull(users.get(13).getPrivacyProtocol());
+
+		List<UsmUser> noAuth = SnmpTrapReceiver.parseUsers("lonely");
+		Assertions.assertEquals(1, noAuth.size());
+		Assertions.assertNull(noAuth.get(0).getAuthenticationProtocol());
+	}
+
+	@Test
+	@DisplayName("An invalid SNMPv3 user (unknown protocol, missing key) drops itself and the next ones, the former ones stay")
+	void invalidUsers() {
+		List<UsmUser> users = SnmpTrapReceiver.parseUsers("good SHA authpass1 bad BLOWFISH|SHA authpass2 next SHA authpass3");
+		Assertions.assertEquals(List.of("good"), users.stream().map(u -> u.getSecurityName().toString()).toList());
+		Assertions.assertEquals(List.of(), SnmpTrapReceiver.parseUsers("nokey SHA"));
+		Assertions.assertEquals(List.of(), SnmpTrapReceiver.parseUsers("nopriv AES128|SHA authpass1"));
 	}
 
 	@AfterEach

@@ -19,6 +19,7 @@ responsible for.
 - `src/main/resources/webui/` — React + TypeScript web UI (own `package.json`)
 - `docs/content/` — user/admin/developer documentation source (Markdown), built with [Zensical](docs/content/index.md); `docs/` itself also holds the Zensical/uv tooling (`docs/pyproject.toml`, `docs/uv.lock`) — keep it that way, content must stay under `docs/content/` and out of `docs/` directly, or the build breaks (Zensical copies everything under `docs_dir` verbatim, and a stray `docs/.venv` silently kills the theme asset build)
 - `dev/device-simulator/`, `dev/oidc-idp/` — containers used by the Docker Compose dev stack and by driver tests
+- `dev/radius-server/`, `dev/tacacs-server/` — RADIUS (FreeRADIUS) and TACACS+ (tac_plus-ng) servers with test users, used by the RADIUS/TACACS+ tests (`aaa.auth`)
 - `compose.dev*.yaml` — dev stacks (basic, OIDC, clustering)
 
 ## Building and running
