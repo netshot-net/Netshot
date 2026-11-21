@@ -612,10 +612,9 @@ public class Ssh extends Cli {
 			CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.session, this.sshConfig.getRekeyPacketsLimit());
 			if (privateKey == null) {
 				this.session.addPasswordIdentity(this.password);
-				if (Ssh.this.sshConfig.getInteractionInstructions() != null) {
-					PropertyResolverUtils.updateProperty(
-						this.session, UserInteraction.AUTO_DETECT_PASSWORD_PROMPT, false);
-				}
+				// Our interaction answers the password prompts too, and logs them (MINA's detection doesn't)
+				PropertyResolverUtils.updateProperty(
+					this.session, UserInteraction.AUTO_DETECT_PASSWORD_PROMPT, false);
 				this.session.setUserInteraction(new UserInteraction() {
 					@Override
 					public String[] interactive(ClientSession sshSession, String name, String instruction, String lang,

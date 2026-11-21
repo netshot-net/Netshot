@@ -160,10 +160,11 @@ class SshInteractiveAuthenticationTest {
 	}
 
 	@Test
-	@DisplayName("A single \"Password:\" prompt gets the password (answered by the SSH library); the banner is in the task log")
+	@DisplayName("A single \"Password:\" prompt gets the password; the prompt and the banner are in the task log")
 	void singlePasswordPrompt() {
 		FakeTaskContext context = new FakeTaskContext();
 		Assertions.assertNull(connect("single", "good", null, context), context.getLog());
+		Assertions.assertTrue(context.getLog().contains("Password requested in user interactive mode (prompt 'Password: ')"), context.getLog());
 		Assertions.assertTrue(context.getLog().contains("[DEBUG] Welcome banner: Authorized access only"), context.getLog());
 	}
 
