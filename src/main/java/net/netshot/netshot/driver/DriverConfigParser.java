@@ -19,7 +19,7 @@
 package net.netshot.netshot.driver;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,7 +89,7 @@ public final class DriverConfigParser {
 			{
 				Value kexAlgorithms = cliSshConfig.getMember("kexAlgorithms");
 				if (kexAlgorithms != null && kexAlgorithms.hasArrayElements()) {
-					Set<String> algos = new HashSet<>();
+					Set<String> algos = new LinkedHashSet<>();
 					for (long i = 0; i < kexAlgorithms.getArraySize(); i++) {
 						Value algo = kexAlgorithms.getArrayElement(i);
 						algos.add(algo.asString());
@@ -100,7 +100,7 @@ public final class DriverConfigParser {
 			{
 				Value hostKeyAlgorithms = cliSshConfig.getMember("hostKeyAlgorithms");
 				if (hostKeyAlgorithms != null && hostKeyAlgorithms.hasArrayElements()) {
-					Set<String> algos = new HashSet<>();
+					Set<String> algos = new LinkedHashSet<>();
 					for (long i = 0; i < hostKeyAlgorithms.getArraySize(); i++) {
 						Value algo = hostKeyAlgorithms.getArrayElement(i);
 						algos.add(algo.asString());
@@ -111,7 +111,7 @@ public final class DriverConfigParser {
 			{
 				Value ciphers = cliSshConfig.getMember("ciphers");
 				if (ciphers != null && ciphers.hasArrayElements()) {
-					Set<String> algos = new HashSet<>();
+					Set<String> algos = new LinkedHashSet<>();
 					for (long i = 0; i < ciphers.getArraySize(); i++) {
 						Value algo = ciphers.getArrayElement(i);
 						algos.add(algo.asString());
@@ -122,7 +122,7 @@ public final class DriverConfigParser {
 			{
 				Value macs = cliSshConfig.getMember("macs");
 				if (macs != null && macs.hasArrayElements()) {
-					Set<String> algos = new HashSet<>();
+					Set<String> algos = new LinkedHashSet<>();
 					for (long i = 0; i < macs.getArraySize(); i++) {
 						Value algo = macs.getArrayElement(i);
 						algos.add(algo.asString());
@@ -133,7 +133,7 @@ public final class DriverConfigParser {
 			{
 				Value compressionAlgorithms = cliSshConfig.getMember("compressionAlgorithms");
 				if (compressionAlgorithms != null && compressionAlgorithms.hasArrayElements()) {
-					Set<String> algos = new HashSet<>();
+					Set<String> algos = new LinkedHashSet<>();
 					for (long i = 0; i < compressionAlgorithms.getArraySize(); i++) {
 						Value algo = compressionAlgorithms.getArrayElement(i);
 						algos.add(algo.asString());
