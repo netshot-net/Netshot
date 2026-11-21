@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -218,9 +219,9 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	@Getter
 	private int priority;
 
-	/** The device attributed provided by this driver. */
+	/** The attributes provided by this driver, in the order of declaration (e.g. the order of the configuration dump). */
 	@Getter
-	private Set<AttributeDefinition> attributes = new HashSet<>();
+	private Set<AttributeDefinition> attributes = new LinkedHashSet<>();
 
 	/** The device attributes as map for faster lookup. */
 	private Map<AttributeDefinition.AttributeLevel, Map<String, AttributeDefinition>> attributesByName;
