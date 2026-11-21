@@ -136,4 +136,64 @@ class OrphanBinaryFilePurgeTest {
 		Assertions.assertFalse(Files.exists(oldPendingOrphan),
 			"An old pending file with no DB row at all is a genuine orphan and must be deleted");
 	}
+
+	/**
+	 * Runs a purge with the given specification.
+	 *
+	 * @param spec the purge to run
+	 * @return the run of the task
+	 */
+	private TaskRun purge(PurgeDatabaseTask spec) {
+		Task task = Task.of(spec, "Test", "Global", "tester");
+		TaskRun run = new TaskRun(task);
+		new PurgeDatabaseHandler(TestWiring.get().core().transactions(), TestWiring.get().core().repositories().task(),
+			TestWiring.get().core().repositories().binaryFiles()).run(task, spec, run);
+		return run;
+	}
+
+	@Test
+	@DisplayName("The orphan sweep leaves the files which aren't binary attribute files")
+	void removeOrphanFilesSkipsOtherFiles() throws Exception {
+		Path notData = storagePath.resolve("%s.txt".formatted(UUID.randomUUID()));
+		Files.write(notData, "notes".getBytes());
+		Path notUuid = storagePath.resolve("999_cfg1_attr_not-a-uid.data");
+		Files.write(notUuid, "other".getBytes());
+		this.setOldMtime(notUuid);
+
+		TaskRun run = this.purge(PurgeDatabaseTask.builder().configDays(0).moduleDays(0).removeOrphanFiles(true).build());
+
+		Assertions.assertEquals(Status.SUCCESS, run.getStatus());
+		Assertions.assertTrue(Files.exists(notData), "A file without the .data extension is kept");
+		Assertions.assertTrue(Files.exists(notUuid), "A .data file not named after an attribute UID is kept");
+		Files.delete(notData);
+		Files.delete(notUuid);
+	}
+
+	@Test
+	@DisplayName("Purging an old configuration deletes its binary files, the last configuration keeps its own")
+	void configPurgeDeletesBinaryFiles() throws Exception {
+		Domain domain = TestDevices.addDomain("Test domain", "Fake domain for tests");
+		ConfigBinaryFileAttribute oldAttribute = ConfigBinaryFileAttribute.create("backup", "old.tgz");
+		ConfigBinaryFileAttribute lastAttribute = ConfigBinaryFileAttribute.create("backup", "last.tgz");
+		Device device = TestDevices.add(Device.create("CiscoIOS12", null, domain, "test"),
+			Config.builder().author("").attributes(List.of(lastAttribute)).build());
+		long lastConfigId = device.lastConfigId();
+		long oldConfigId = TestDevices.addOldConfig(device.id(), Config.builder().author("").attributes(List.of(oldAttribute))
+			.changeDate(Instant.now().minus(40, ChronoUnit.DAYS)).build());
+		var binaryFiles = TestWiring.get().core().repositories().binaryFiles();
+		Files.write(binaryFiles.pendingFilePath(oldAttribute, device.id()), "old".getBytes());
+		binaryFiles.finalizeStorage(oldAttribute, device.id(), oldConfigId);
+		Files.write(binaryFiles.pendingFilePath(lastAttribute, device.id()), "last".getBytes());
+		binaryFiles.finalizeStorage(lastAttribute, device.id(), lastConfigId);
+		Path oldFile = binaryFiles.filePath(oldAttribute, device.id(), oldConfigId);
+		Path lastFile = binaryFiles.filePath(lastAttribute, device.id(), lastConfigId);
+		Assertions.assertTrue(Files.exists(oldFile) && Files.exists(lastFile));
+
+		TaskRun run = this.purge(PurgeDatabaseTask.builder().configDays(30).moduleDays(0).build());
+
+		Assertions.assertEquals(Status.SUCCESS, run.getStatus());
+		Assertions.assertFalse(Files.exists(oldFile), "The file of the purged configuration is deleted");
+		Assertions.assertTrue(Files.exists(lastFile), "The file of the last configuration is kept");
+		Assertions.assertTrue(run.getLog().contains("Cleaning up done on configurations, 1 entries affected."), run.getLog());
+	}
 }

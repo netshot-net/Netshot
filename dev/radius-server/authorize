@@ -1,0 +1,14 @@
+# Test users: one per Service-Type mapped to a Netshot level, and one without Service-Type
+admin	Cleartext-Password := "AdminPass1"
+	Service-Type = Administrative-User
+
+outbound	Cleartext-Password := "OutboundPass1"
+	Service-Type = Outbound-User
+
+nasprompt	Cleartext-Password := "NasPromptPass1"
+	Service-Type = NAS-Prompt-User
+
+authonly	Cleartext-Password := "AuthOnlyPass1"
+	Service-Type = Authenticate-Only
+
+plain	Cleartext-Password := "PlainPass1"
