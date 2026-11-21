@@ -28,6 +28,7 @@ import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -210,6 +211,12 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		@Override
 		public void onSessionRejected(SessionLogBuffer logBuffer) {
 			this.traceSessionLogs(logBuffer);
+		}
+
+		@Override
+		public void onProtocolRefused(TransferProtocol protocol) {
+			log.warn("Upload with {} refused for ticket {}, which allows {} only", protocol, this.id, this.protocols);
+			taskContext.error("Upload with {} refused for ticket {}, which allows {} only.", protocol, this.id, this.protocols);
 		}
 
 		/**
@@ -707,14 +714,23 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 				+ "the embedded SSH server is not running.");
 			throw new IOException("The SSH server is not running.");
 		}
+		// The ticket allows the requested protocols which the server runs
+		Set<TransferProtocol> enabledProtocols = EnumSet.noneOf(TransferProtocol.class);
 		for (TransferProtocol protocol : protocols) {
-			if (!this.sshServer.isRunning(protocol)) {
-				log.warn("Error during snapshot while requesting upload ticket: "
-					+ "the transfer protocol {} is not enabled.", protocol);
-				taskContext.error("Error while requesting upload ticket: "
-					+ "the transfer protocol {} is not enabled.", protocol);
-				throw new IOException("The SSH server is not running.");
+			if (this.sshServer.isRunning(protocol)) {
+				enabledProtocols.add(protocol);
 			}
+			else {
+				log.warn("Upload ticket requested with transfer protocol {}, which is not enabled on the SSH server.", protocol);
+				taskContext.warn("Upload ticket requested with transfer protocol {}, which is not enabled on the SSH server.", protocol);
+			}
+		}
+		if (enabledProtocols.isEmpty()) {
+			log.warn("Error during snapshot while requesting upload ticket: "
+				+ "none of the requested transfer protocols {} is enabled.", protocols);
+			taskContext.error("Error while requesting upload ticket: "
+				+ "none of the requested transfer protocols {} is enabled.", protocols);
+			throw new IOException("None of the requested transfer protocols %s is enabled on the SSH server.".formatted(protocols));
 		}
 
 		long ticketId = this.uploadTickets.size() + 1;
@@ -729,7 +745,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		Path rootPath = this.binaryFiles.makeTempFolder(username);
 
 		ConfigUploadTicket ticket = new ConfigUploadTicket(ticketId,
-			protocols, username, password, sourceIp, rootPath);
+			Collections.unmodifiableSet(enabledProtocols), username, password, sourceIp, rootPath);
 		this.uploadTickets.put(ticketId, ticket);
 
 		this.sshServer.registerUploadTicket(ticket);

@@ -94,6 +94,14 @@ public interface UploadTicket {
 	void onSessionRejected(SessionLogBuffer logBuffer);
 
 	/**
+	 * Called when an authenticated session tries a transfer protocol the ticket doesn't allow
+	 * (see {@link #getAllowedProtocols}). The transfer is refused.
+	 *
+	 * @param protocol the refused protocol
+	 */
+	void onProtocolRefused(TransferProtocol protocol);
+
+	/**
 	 * Called when the SSH session is closed.
 	 */
 	void onSessionStopped();

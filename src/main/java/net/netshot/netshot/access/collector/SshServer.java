@@ -27,6 +27,7 @@ import java.net.UnknownHostException;
 import java.nio.channels.Channel;
 import java.nio.channels.FileLock;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
@@ -85,16 +86,22 @@ import org.apache.sshd.scp.common.ScpTargetStreamResolver;
 import org.apache.sshd.scp.common.helpers.DefaultScpFileOpener;
 import org.apache.sshd.scp.common.helpers.ScpTimestampCommandDetails;
 import org.apache.sshd.scp.server.ScpCommandFactory;
+import org.apache.sshd.server.Environment;
+import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.ServerBuilder;
 import org.apache.sshd.server.auth.AsyncAuthException;
 import org.apache.sshd.server.auth.keyboard.InteractiveChallenge;
 import org.apache.sshd.server.auth.keyboard.KeyboardInteractiveAuthenticator;
 import org.apache.sshd.server.auth.password.PasswordAuthenticator;
 import org.apache.sshd.server.auth.password.PasswordChangeRequiredException;
+import org.apache.sshd.server.channel.ChannelSession;
+import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.forward.RejectAllForwardingFilter;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.server.session.ServerSession;
+import org.apache.sshd.server.subsystem.SubsystemFactory;
 import org.apache.sshd.sftp.SftpModuleProperties;
+import org.apache.sshd.sftp.common.SftpConstants;
 import org.apache.sshd.sftp.server.DirectoryHandle;
 import org.apache.sshd.sftp.server.FileHandle;
 import org.apache.sshd.sftp.server.SftpFileSystemAccessor;
@@ -1137,22 +1144,53 @@ public final class SshServer implements Service {
 
 		this.sshd.setShellFactory(null);
 		if (this.settings.isProtocolEnabled(TransferProtocol.SCP)) {
-			ScpCommandFactory scpCommandFactory = new ScpCommandFactory();
+			ScpCommandFactory scpCommandFactory = new ScpCommandFactory() {
+				@Override
+				public Command createCommand(ChannelSession channel, String command) throws IOException {
+					if (this.isSupportedCommand(channel, command) && !isTicketProtocolAllowed(channel, TransferProtocol.SCP)) {
+						return new RefusedTransfer("SCP is not allowed for this upload");
+					}
+					return super.createCommand(channel, command);
+				}
+			};
 			scpCommandFactory.setScpFileOpener(new DeviceScpFileOpener());
 			this.sshd.setCommandFactory(scpCommandFactory);
 		}
 		else {
 			log.info("SCP is disabled by configuration.");
+			this.sshd.setCommandFactory((channel, command) -> {
+				log.warn("Command '{}' refused for session from {}: SCP is disabled", command, channel.getServerSession().getRemoteAddress());
+				return new RefusedTransfer("SCP is disabled on this server");
+			});
 		}
 
 		if (this.settings.isProtocolEnabled(TransferProtocol.SFTP)) {
-			SftpSubsystemFactory sftpFactory = new SftpSubsystemFactory.Builder()
-				.withFileSystemAccessor(new DeviceSftpFileSystemAccessor())
-				.build();
+			SftpSubsystemFactory sftpFactory = new SftpSubsystemFactory() {
+				@Override
+				public Command createSubsystem(ChannelSession channel) throws IOException {
+					if (!isTicketProtocolAllowed(channel, TransferProtocol.SFTP)) {
+						return new RefusedTransfer("SFTP is not allowed for this upload");
+					}
+					return super.createSubsystem(channel);
+				}
+			};
+			sftpFactory.setFileSystemAccessor(new DeviceSftpFileSystemAccessor());
 			this.sshd.setSubsystemFactories(Collections.singletonList(sftpFactory));
 		}
 		else {
 			log.info("SFTP is disabled by configuration.");
+			this.sshd.setSubsystemFactories(Collections.singletonList(new SubsystemFactory() {
+				@Override
+				public String getName() {
+					return SftpConstants.SFTP_SUBSYSTEM_NAME;
+				}
+
+				@Override
+				public Command createSubsystem(ChannelSession channel) {
+					log.warn("SFTP refused for session from {}: SFTP is disabled", channel.getServerSession().getRemoteAddress());
+					return new RefusedTransfer("SFTP is disabled on this server");
+				}
+			}));
 		}
 		this.sshd.setFileSystemFactory(new DeviceVirtualFileSystemFactory());
 
@@ -1238,6 +1276,77 @@ public final class SshServer implements Service {
 		SessionLogBuffer logBuffer = session.getAttribute(SESSION_LOG_BUFFER);
 		ticket.onSessionStarted(logBuffer);
 		return true;
+	}
+
+	/**
+	 * Check whether the upload ticket of the session allows a transfer protocol (the ticket is told otherwise).
+	 * @param channel the channel of the transfer
+	 * @param protocol the transfer protocol
+	 * @return true if the ticket allows the protocol
+	 */
+	private boolean isTicketProtocolAllowed(ChannelSession channel, TransferProtocol protocol) {
+		ServerSession session = channel.getServerSession();
+		UploadTicket ticket = session.getAttribute(UPLOAD_TICKET);
+		if (ticket != null && ticket.getAllowedProtocols().contains(protocol)) {
+			return true;
+		}
+		log.warn("{} transfer refused for session from {} with ticket {}: protocol not allowed by the ticket",
+			protocol, session.getRemoteAddress(), session.getUsername());
+		if (ticket != null) {
+			ticket.onProtocolRefused(protocol);
+		}
+		return false;
+	}
+
+	/**
+	 * Command replacing a refused transfer (protocol disabled, or not allowed by the ticket): it writes the error and exits
+	 * with status 1, which closes the channel (a failed channel request alone would leave
+	 * the clients which don't wait for the reply hanging).
+	 */
+	private static final class RefusedTransfer implements Command {
+		private final String message;
+		private OutputStream err;
+		private ExitCallback exitCallback;
+
+		RefusedTransfer(String message) {
+			this.message = message;
+		}
+
+		@Override
+		public void setInputStream(InputStream in) {
+			// Not read
+		}
+
+		@Override
+		public void setOutputStream(OutputStream out) {
+			// Not written
+		}
+
+		@Override
+		public void setErrorStream(OutputStream errorStream) {
+			this.err = errorStream;
+		}
+
+		@Override
+		public void setExitCallback(ExitCallback callback) {
+			this.exitCallback = callback;
+		}
+
+		@Override
+		public void start(ChannelSession channel, Environment env) throws IOException {
+			try {
+				this.err.write((this.message + "\n").getBytes(StandardCharsets.UTF_8));
+				this.err.flush();
+			}
+			finally {
+				this.exitCallback.onExit(1, this.message);
+			}
+		}
+
+		@Override
+		public void destroy(ChannelSession channel) {
+			// Nothing to release
+		}
 	}
 
 	/**

@@ -474,7 +474,7 @@ Other methods: `tryNextCredentials()` (manual credential fallback, see above), `
 
 #### Uploads to Netshot
 
-`config.requestUpload(options)` registers a one-time upload ticket on the embedded SSH server and returns it. `options` (optional): `method` (`scp` or `sftp`, both allowed by default) and `sourceIp` (the only address the device may connect from). It fails when the SSH server isn't running. The ticket holds:
+`config.requestUpload(options)` registers a one-time upload ticket on the embedded SSH server and returns it. `options` (optional): `method` (`scp` or `sftp`, both allowed by default) and `sourceIp` (the only address the device may connect from). The device can only use the protocol(s) of the ticket: another one is refused, with an error in the task log. Note that the `scp` command of OpenSSH 9.0 and later transfers over SFTP by default: for such devices, request `sftp` (or both). A requested protocol which is disabled on the SSH server (`netshot.sshserver.scp.enabled`, `netshot.sshserver.sftp.enabled`) is left out of the ticket, with a warning in the task log. It fails when the SSH server isn't running, or when none of the requested protocols is enabled. The ticket holds:
 
 | Field | Content |
 |---|---|

@@ -471,6 +471,66 @@ class JsConfigHelperTransferTest {
 		}
 
 		@Test
+		@DisplayName("The device can only use the protocol of the ticket, the refusal is in the task log")
+		void ticketProtocol() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			Path local = Files.write(tempDir.resolve("local.tgz"), PAYLOAD);
+
+			ProxyObject sftpTicket = helper.requestUpload("sftp", null);
+			try (ClientSession session = this.login(sftpTicket)) {
+				var scp = ScpClientCreator.instance().createScpClient(session);
+				Assertions.assertThrows(IOException.class, () -> scp.upload(local, "backup.tgz"));
+			}
+			ProxyObject scpTicket = helper.requestUpload("scp", null);
+			try (ClientSession session = this.login(scpTicket)) {
+				Assertions.assertThrows(IOException.class, () -> SftpClientFactory.instance().createSftpClient(session));
+			}
+
+			for (ProxyObject ticket : List.of(sftpTicket, scpTicket)) {
+				ProxyObject result = helper.awaitUpload((Long) ticket.getMember("id"), 10000);
+				Assertions.assertEquals(0L, ((Number) result.getMember("fileCount")).longValue(), "No file received");
+			}
+			String log = taskContext.getLog();
+			Assertions.assertTrue(log.contains("Upload with SCP refused for ticket 1, which allows [SFTP] only."), log);
+			Assertions.assertTrue(log.contains("Upload with SFTP refused for ticket 2, which allows [SCP] only."), log);
+			helper.release();
+		}
+
+		@Test
+		@DisplayName("A ticket allows the requested protocols the server runs, each disabled one is logged; none of them is an error")
+		void disabledProtocol() throws Exception {
+			this.sshServer.stop();
+			Properties properties = TestConfig.properties();
+			properties.setProperty("netshot.sshserver.scp.enabled", "false");
+			properties.setProperty("netshot.sshserver.port", Integer.toString(TestNetwork.freePort()));
+			TestConfig.init(properties);
+			this.sshServer = new SshServer(TestConfig.store());
+			this.sshServer.start();
+			JsConfigHelper helper = helper(null, this.sshServer);
+
+			IOException thrown = Assertions.assertThrows(IOException.class, () -> helper.requestUpload("scp", null));
+			Assertions.assertEquals("None of the requested transfer protocols [SCP] is enabled on the SSH server.", thrown.getMessage());
+			Assertions.assertTrue(taskContext.getLog().contains(
+				"[WARN] Upload ticket requested with transfer protocol SCP, which is not enabled on the SSH server."), taskContext.getLog());
+
+			// SCP and SFTP requested: SFTP only
+			ProxyObject ticket = helper.requestUpload((String) null, null);
+			Path local = Files.write(tempDir.resolve("local.tgz"), PAYLOAD);
+			try (ClientSession session = this.login(ticket)) {
+				var scp = ScpClientCreator.instance().createScpClient(session);
+				Assertions.assertThrows(IOException.class, () -> scp.upload(local, "backup.tgz"));
+			}
+			try (ClientSession session = this.login(ticket);
+				SftpClient sftp = SftpClientFactory.instance().createSftpClient(session);
+				OutputStream out = sftp.write("upload.bin")) {
+				out.write(PAYLOAD);
+			}
+			ProxyObject result = helper.awaitUpload((Long) ticket.getMember("id"), 10000);
+			Assertions.assertEquals(1L, ((Number) result.getMember("fileCount")).longValue());
+			helper.release();
+		}
+
+		@Test
 		@DisplayName("A device from another address than the expected one can't log in")
 		void wrongSourceAddress() throws Exception {
 			JsConfigHelper helper = helper(null, this.sshServer);
