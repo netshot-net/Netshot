@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +41,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 @ScriptEngineTest
 @DisplayName("Python Rule")
@@ -587,6 +590,94 @@ class PyRuleTest {
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
 		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.result(),
 			"The Python rule couldn't use the standard library: " + taskContext.getLog());
+	}
+
+	@Test
+	@DisplayName("A disabled rule isn't run; an exempted device gets EXEMPTED")
+	void disabledAndExempted() {
+		Assertions.assertEquals(CheckResult.ResultOption.EXEMPTED, evaluators.evaluate(rule, device, true, taskContext).result());
+		rule = rule.toBuilder().enabled(false).script("raise Exception('run')").build();
+		Assertions.assertEquals(CheckResult.ResultOption.DISABLED, evaluators.evaluate(rule, device, false, taskContext).result());
+		Assertions.assertFalse(taskContext.getLog().contains("run"), taskContext.getLog());
+	}
+
+	@Test
+	@DisplayName("A script without check function, with a syntax error or returning an unknown result is an invalid rule")
+	void invalidScripts() {
+		String[][] cases = {
+			{ "def other(device):\n  return result_option.CONFORMING\n", "The 'check' sub couldn't be found in the script." },
+			{ "check = 1\n", "The 'check' sub couldn't be found in the script." },
+			{ "def check(device)\n  return 1\n", "Error while running the script: " },
+			{ "def check(device):\n  return 'MAYBE'\n", null },
+			{ "def check(device):\n  return 42\n", null },
+			{ "def check(device):\n  return { 'comment': 'no result' }\n", null },
+		};
+		for (String[] invalid : cases) {
+			FakeTaskContext context = new FakeTaskContext();
+			PythonRule invalidRule = rule.toBuilder().script(invalid[0]).build();
+			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE,
+				evaluators.evaluate(invalidRule, device, false, context).result(), invalid[0]);
+			if (invalid[1] != null) {
+				Assertions.assertTrue(context.getLog().contains("[ERROR] " + invalid[1]), context.getLog());
+			}
+		}
+	}
+
+	@Test
+	@DisplayName("Python rule can't read or list the files outside the Python library")
+	void outsideFileRule(@TempDir Path dir) throws Exception {
+		Path secret = Files.writeString(dir.resolve("secret.txt"), "secret-content");
+		rule = rule.toBuilder().script(
+			"import os" + "\n"
+				+ "def check(device):" + "\n"
+				+ "  attempts = {" + "\n"
+				+ "    'read': lambda: open('" + secret + "').read()," + "\n"
+				+ "    'list /': lambda: os.listdir('/')," + "\n"
+				+ "    'list folder': lambda: os.listdir('" + dir + "')," + "\n"
+				+ "    'read /etc/passwd': lambda: open('/etc/passwd').read()," + "\n"
+				+ "  }" + "\n"
+				+ "  for name, attempt in attempts.items():" + "\n"
+				+ "    try:" + "\n"
+				+ "      attempt()" + "\n"
+				+ "      return { 'result': result_option.NONCONFORMING, 'comment': name }" + "\n"
+				+ "    except PermissionError:" + "\n"
+				+ "      pass" + "\n"
+				+ "  return result_option.CONFORMING" + "\n"
+		).build();
+		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
+		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.result(),
+			"The Python rule could " + result.comment() + ": " + taskContext.getLog());
+	}
+
+	@Test
+	@DisplayName("Python rule imports the modules of the virtualenv, but can't follow a link from it to a file outside")
+	void virtualenvRule(@TempDir Path dir) throws Exception {
+		Path venv = Files.createDirectories(dir.resolve("venv"));
+		Files.createDirectories(venv.resolve("bin"));
+		Files.writeString(venv.resolve("bin/graalpy"), "");
+		Files.writeString(venv.resolve("pyvenv.cfg"), "home = " + venv.resolve("bin") + "\n");
+		// The folder name depends on the Python version of GraalPy
+		for (int minor = 10; minor <= 16; minor++) {
+			Path sitePackages = Files.createDirectories(venv.resolve("lib/python3.%d/site-packages".formatted(minor)));
+			Files.writeString(sitePackages.resolve("netshot_venv_module.py"), "VALUE = 'from the virtualenv'\n");
+		}
+		Path outside = Files.writeString(dir.resolve("outside.txt"), "outside");
+		Files.createSymbolicLink(venv.resolve("link.txt"), outside);
+		Properties config = TestConfig.properties();
+		config.setProperty("netshot.python.virtualenv", venv.toString());
+		TestConfig.init(config);
+		rule = rule.toBuilder().script(
+			"import netshot_venv_module" + "\n"
+				+ "def check(device):" + "\n"
+				+ "  try:" + "\n"
+				+ "    open('" + venv.resolve("link.txt") + "').read()" + "\n"
+				+ "    return { 'result': result_option.NONCONFORMING, 'comment': 'link followed' }" + "\n"
+				+ "  except PermissionError:" + "\n"
+				+ "    return { 'result': result_option.CONFORMING, 'comment': netshot_venv_module.VALUE }" + "\n"
+		).build();
+		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
+		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.result(), taskContext.getLog());
+		Assertions.assertEquals("from the virtualenv", result.comment());
 	}
 
 	@Test

@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.vault;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -169,6 +171,42 @@ class VaultTest {
 			Secret secret = Secret.vault(wrongInstanceId, SECRET_PATH + "/username");
 
 			Assertions.assertThrows(VaultException.class, () -> this.vault.resolve(secret));
+		}
+
+		@Test
+		@DisplayName("The token refresher logs in to each Vault instance ahead of the resolutions, and counts the failed logins")
+		void tokenRefresher() throws Exception {
+			HashicorpVaultKv2Instance wrongInstance = HashicorpVaultKv2Instance.builder("test-vault-refresher-bad-creds")
+				.baseUrl(VAULT_CONTAINER.getHttpHostAddress())
+				.kvMountPath("secret")
+				.authMethod(AuthMethod.APPROLE)
+				.appRoleId(ROLE_ID)
+				.appRoleSecretId(Secret.local("not-the-right-secret-id"))
+				.build();
+			long wrongInstanceId = TestWiring.get().core().transactions().write(dsl -> TestWiring.get().core().repositories().vaultInstance().add(dsl, wrongInstance)).id();
+			VaultTokenRefresher refresher = new VaultTokenRefresher(TestWiring.get().core().transactions(), this.vault,
+				TestWiring.get().core().repositories().vaultInstance(), TestConfig.store());
+			refresher.start();
+			try {
+				long end = System.currentTimeMillis() + 10000;
+				while ((Long) refresher.stats().get("rounds") < 1 && System.currentTimeMillis() < end) {
+					Thread.sleep(100);
+				}
+				Map<String, Object> stats = refresher.stats();
+				Assertions.assertEquals(1L, stats.get("rounds"));
+				Assertions.assertTrue((Long) stats.get("refreshFailures") >= 1, "No failure counted: " + stats);
+				long logins = (Long) stats.get("logins");
+				Assertions.assertTrue(logins >= 1, "No login: " + stats);
+
+				// The token is already there: no login for the resolution
+				Assertions.assertEquals("vaultadmin", this.vault.resolve(Secret.vault(vaultInstanceId, SECRET_PATH + "/username")));
+				Assertions.assertEquals(logins, this.vault.stats().get("logins"));
+			}
+			finally {
+				refresher.stop();
+				TestWiring.get().core().transactions().write(dsl -> TestWiring.get().core().repositories().vaultInstance().remove(dsl, wrongInstanceId));
+			}
+			Assertions.assertFalse(refresher.isHealthy());
 		}
 
 	}

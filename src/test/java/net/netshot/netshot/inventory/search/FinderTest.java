@@ -964,4 +964,90 @@ class FinderTest {
 		return countedQueries().stream().map(c -> DynamicTest.dynamicTest(c.getKey(),
 			() -> Assertions.assertEquals(c.getValue().intValue(), findDeviceNames(new Finder(c.getKey(), TestDrivers.registry(), TestWiring.get().core().transactions())).size())));
 	}
+
+	@TestFactory
+	@DisplayName("An invalid query is refused, with the position of the error")
+	Stream<DynamicTest> parseErrors() {
+		List<Entry<String, String>> cases = List.of(
+			Map.entry("([Name] is \"a\"", "Parsing error, missing closing bracket."),
+			Map.entry("[Name] is \"a\")", "Parsing error, unexpected closing bracket."),
+			Map.entry("()", "Parsing error, no more token to parse"),
+			Map.entry("\"a\"", "Parsing error at character 1."),
+			Map.entry("[Name] is \"a\\", "Parsing error, unknown token at character 10."),
+			Map.entry("[Name] matches \"(\"", "Parsing error, invalid regular expression, at character 15."),
+			Map.entry("[Name] is \"a\" not", "Parsing error, misplaced NOT at character 14."),
+			Map.entry("and [Name] is \"a\"", "Parsing error, nothing before AND at character 1."),
+			Map.entry("[Name] is \"a\" and", "Parsing error, nothing after last AND."),
+			Map.entry("or [Name] is \"a\"", "Parsing error, nothing before OR at character 1."),
+			Map.entry("[Name] is \"a\" or", "Parsing error, nothing after last OR."),
+			Map.entry("[Name] is", "Incomplete or incorrect expression after text item at character 1."),
+			Map.entry("[Module] is 1", "Expecting a quoted string for MODULE at character 12."),
+			Map.entry("[Module] lessthan \"x\"", "Invalid operator after MODULE at character 9."),
+			Map.entry("[Interface] is 1", "Expecting a quoted string for INTERFACE at character 15."),
+			Map.entry("[Interface] lessthan \"x\"", "Invalid operator after INTERFACE at character 12."),
+			Map.entry("[ID] contains 1", "Invalid operator after ID at character 5."),
+			Map.entry("[ID] is \"x\"", "Expecting a numeric value for ID at character 8."),
+			Map.entry("[Domain] contains 1", "Invalid operator after DOMAIN at character 9."),
+			Map.entry("[Domain] is \"x\"", "Expecting a numeric value for DOMAIN at character 12."),
+			Map.entry("[Driver] is 1", "Expecting a quoted string for DRIVER at character 12."),
+			Map.entry("[Driver] lessthan \"x\"", "Invalid operator after DRIVER at character 9."),
+			Map.entry("[MAC]", "Incomplete or incorrect expression after MAC at character 1."),
+			Map.entry("[MAC] in 0011.2233.4455", "Invalid operator for simple MAC at character 6."),
+			Map.entry("[MAC] is 0011.2233.0000/32", "Invalid operator for MAC with mask at character 6."),
+			Map.entry("[IP]", "Incomplete or incorrect expression after IP at character 1."),
+			Map.entry("[IP] in 10.0.0.1", "Invalid operator for simple IP at character 5."),
+			Map.entry("[IP] lessthan 10.0.0.1", "Invalid operator for simple IP at character 5."),
+			Map.entry("[IP] is 999.1.1.1", "Error while parsing IP address at character 8."),
+			Map.entry("[IP] in 10.0.0.0/33", "Incomplete or incorrect expression after IP at character 1."),
+			Map.entry("[IP] in 2016:1::1", "Invalid operator for simple IP at character 5."),
+			Map.entry("[Diagnostic > CPU Usage]", "Invalid expression for diagnostic 'CPU Usage' at character 1."),
+			Map.entry("[Diagnostic > CPU Usage] is \"x\"", "Parsing error, invalid value for numeric diagnostic 'CPU Usage' at position 28."),
+			Map.entry("[Diagnostic > CPU Usage] contains 1", "Invalid operator for a numeric diagnostic 'CPU Usage' at character 25."),
+			Map.entry("[Diagnostic > Is Reachable] is 1", "Parsing error, invalid value for binary diagnostic 'Is Reachable' at position 31, should be 'true' or 'false'."),
+			Map.entry("[Diagnostic > Is Reachable] contains \"x\"", "Invalid operator for a binary diagnostic 'Is Reachable' at character 28."),
+			Map.entry("[Diagnostic > System Status] lessthan \"x\"", "Invalid operator for a text diagnostic 'System Status' at character 29."),
+			Map.entry("[Diagnostic > System Status] is 1", "Parsing error, invalid value for text diagnostic 'System Status' at position 32, should be a quoted text."),
+			Map.entry("[Rule > Security Policy > Password Check] is MAYBE", "Invalid value for rule result at character 45."),
+			Map.entry("[Rule > Security Policy > Password Check] contains \"x\"", "Invalid operator for a rule item at character 42."),
+			Map.entry("[Creation Date] is \"notadate\"", "Invalid date/time at position 19."),
+			Map.entry("[Creation Date] after \"2020-13-45\"", "Invalid date/time at position 22."),
+			Map.entry("[Creation Date] lessthan \"2020-01-01\"", "Parsing error, invalid date operator at position 16."),
+			Map.entry("[Creation Date] is 1", "Parsing error, should be a quoted date at character 19."),
+			Map.entry("[Cisco IOS and IOS-XE > Main memory size (MB)] is \"x\"", "Parsing error, should be a numeric value at character 50."),
+			Map.entry("[Cisco IOS and IOS-XE > Main memory size (MB)] contains 1", "Parsing error, invalid numeric operator at position 47."),
+			Map.entry("[Cisco IOS and IOS-XE > Configuration saved] is 1", "Parsing error, invalid value at position 48, should be 'true' or 'false'."),
+			Map.entry("[Cisco IOS and IOS-XE > Configuration saved] contains \"x\"", "Parsing error, invalid operator at position 45, should be 'is'."),
+			Map.entry("[Cisco IOS and IOS-XE > IOS version] is 1", "Parsing error, should be a quoted text, at character 40."),
+			Map.entry("[Cisco IOS and IOS-XE > IOS version] lessthan \"x\"", "Invalid operator for a text item at character 37."),
+			Map.entry("[Cisco IOS and IOS-XE > Unknown attribute] is \"x\"",
+				"Parsing error at character 1, attribute 'Unknown attribute' of driver 'Cisco IOS and IOS-XE' does not exist."),
+			Map.entry("[Unknown driver > IOS version] is \"x\"", "Parsing error at character 1, unknown driver 'Unknown driver'."),
+			Map.entry("[Status] is \"NOPE\"", "Invalid value for item Status at character 12."),
+			Map.entry("[Status] contains \"x\"", "Parsing error, invalid operator at position 9, should be 'is'."),
+			Map.entry("[Network Class] is \"NOPE\"", "Invalid value for item Network Class at character 19."),
+			Map.entry("[VRF] is 1", "Expecting a quoted string for VRF at character 9."),
+			Map.entry("[VRF] lessthan \"x\"", "Invalid operator after VRF at character 6."),
+			Map.entry("[Virtual Name] is 1", "Expecting a quoted string for VirtualName at character 18."),
+			Map.entry("[Virtual Name] lessthan \"x\"", "Invalid operator after VirtualName at character 15."),
+			Map.entry("[Tag] is 1", "Expecting a quoted string for Tag at character 9."));
+		return cases.stream().map(c -> DynamicTest.dynamicTest(c.getKey(), () -> {
+			FinderParseException error = Assertions.assertThrows(FinderParseException.class,
+				() -> new Finder(c.getKey(), TestDrivers.registry(), TestWiring.get().core().transactions()));
+			Assertions.assertEquals(c.getValue(), error.getMessage());
+		}));
+	}
+
+	@TestFactory
+	@DisplayName("A query is formatted in its canonical form")
+	Stream<DynamicTest> formattedQueries() {
+		List<Entry<String, String>> cases = List.of(
+			Map.entry("[MAC] is 0011.2233.4455", "[MAC] is 0011.2233.4455"),
+			Map.entry("[mac] IN 0011.2233.0000/32", "[MAC] in 0011.2233.0000/32"),
+			Map.entry("[IP] is 10.0.0.0/8", "[IP] is 10.0.0.0/8"),
+			Map.entry("[IP] is 2016:1::1/64", "[IP] is 2016:1:0:0:0:0:0:1/64"),
+			Map.entry("[Domain] is 42", "[Domain] is 42"),
+			Map.entry("not not [Name] is \"a\"", "not (not ([Name] is \"a\"))"));
+		return cases.stream().map(c -> DynamicTest.dynamicTest(c.getKey(), () -> Assertions.assertEquals(c.getValue(),
+			new Finder(c.getKey(), TestDrivers.registry(), TestWiring.get().core().transactions()).getFormattedQuery())));
+	}
 }
