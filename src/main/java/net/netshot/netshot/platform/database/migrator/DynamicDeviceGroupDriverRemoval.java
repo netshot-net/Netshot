@@ -53,6 +53,55 @@ import org.graalvm.polyglot.Value;
 @Slf4j
 public class DynamicDeviceGroupDriverRemoval implements CustomSqlChange {
 
+	/**
+	 * Names and descriptions of the embedded drivers which existed when the driver column was removed. The query given
+	 * to a group selects the driver by description ([Driver] is "..."), which must be the description of the
+	 * driver at the time of the migration: an upgrade from an old version runs this migration with the current
+	 * drivers (DynamicDeviceGroupDriverRemovalTest checks this).
+	 */
+	static final Map<String, String> WELL_KNOWN_DRIVERS = Map.ofEntries(
+		Map.entry("A10ACOS", "A10 ACOS"),
+		Map.entry("AlcatelLucentTiMOS", "Alcatel-Lucent TiMOS"),
+		Map.entry("ArborArbOS", "Arbor ArbOS 7.2+"),
+		Map.entry("AristaEOS", "Arista EOS"),
+		Map.entry("AristaMOS", "Arista Metamako OS"),
+		Map.entry("AudioCodesMediant", "AudioCodes Mediant MG/SBC"),
+		Map.entry("AvayaERS", "Avaya ERS"),
+		Map.entry("AvocentACS", "Avocent ACS"),
+		Map.entry("BrocadeFastIron", "Brocade FastIron"),
+		Map.entry("CheckpointGaia", "Checkpoint GAiA OS"),
+		Map.entry("CheckpointSPLAT", "Checkpoint SPLAT"),
+		Map.entry("CienaSAOS", "Ciena SAOS"),
+		Map.entry("CiscoACE", "Cisco ACE"),
+		Map.entry("CiscoASA", "Cisco ASA"),
+		Map.entry("CiscoAireOS", "Cisco AireOS"),
+		Map.entry("CiscoFirepowerMC", "Cisco Firepower Management Center"),
+		Map.entry("CiscoIOS12", "Cisco IOS and IOS-XE"),
+		Map.entry("CiscoIOSXR", "Cisco IOS-XR"),
+		Map.entry("CiscoNXOS", "Cisco NX-OS 5+"),
+		Map.entry("CiscoStarOS", "Cisco StarOS"),
+		Map.entry("CiscoSx", "Cisco Small Business 2/3/5xx and Sx220 series"),
+		Map.entry("CiscoViptela", "Viptela Operating System"),
+		Map.entry("CitrixNetscaler", "Citrix NetScaler"),
+		Map.entry("CitrixNetscalerSDX", "Citrix NetScaler SDX"),
+		Map.entry("F5TMOS", "F5 TM-OS, 11.x and newer"),
+		Map.entry("FortinetFortiMail", "Fortinet FortiMail"),
+		Map.entry("FortinetFortiManager", "Fortinet FortiManager and FortiAnalyzer"),
+		Map.entry("FortinetFortiOS", "Fortinet FortiOS"),
+		Map.entry("GenericSNMP", "Generic SNMP device"),
+		Map.entry("GigamonGigaVUE", "Gigamon GigaVUE"),
+		Map.entry("HPEArubaOSCX", "HPE ArubaOS CX"),
+		Map.entry("HPEArubaOSSwitch", "HPE ArubaOS-Switch"),
+		Map.entry("HPEComware", "HPE Comware OS"),
+		Map.entry("HuaweiNE", "Huawei NE Router"),
+		Map.entry("JuniperJunos", "Juniper Junos"),
+		Map.entry("JuniperScreenOS", "Juniper ScreenOS"),
+		Map.entry("PaloAltoPANOS", "Palo Alto PAN-OS"),
+		Map.entry("RiverbedRiOS", "Riverbed RiOS"),
+		Map.entry("SkyhighSWG", "Skyhigh Secure Web Gateway"),
+		Map.entry("SmartEdgeOS", "Redback Networks SmartEdge OS"),
+		Map.entry("ZPENodeGrid", "ZPE NodeGrid"));
+
 	/** Driver names to descriptions. */
 	private Map<String, String> driverDescriptions = new HashMap<>();
 
@@ -63,7 +112,7 @@ public class DynamicDeviceGroupDriverRemoval implements CustomSqlChange {
 
 	@Override
 	public void setUp() throws SetupException {
-		this.addWellKnownDrivers();
+		this.driverDescriptions.putAll(WELL_KNOWN_DRIVERS);
 		this.readAdditionalDrivers();
 	}
 
@@ -75,52 +124,6 @@ public class DynamicDeviceGroupDriverRemoval implements CustomSqlChange {
 	@Override
 	public ValidationErrors validate(Database database) {
 		return null;
-	}
-
-	private void addWellKnownDrivers() {
-		this.driverDescriptions.putAll(new HashMap<>() {{
-			this.put("A10ACOS", "A10 ACOS");
-			this.put("AlcatelLucentTiMOS", "Alcatel-Lucent TiMOS");
-			this.put("ArborArbOS", "Arbor ArbOS 7.2+");
-			this.put("AristaEOS", "Arista EOS");
-			this.put("AristaMOS", "Arista Metamako OS");
-			this.put("AudioCodesMediant", "AudioCodes Mediant MG/SBC");
-			this.put("AvayaERS", "Avaya ERS");
-			this.put("AvocentACS", "Avocent ACS");
-			this.put("BrocadeFastIron", "Brocade FastIron");
-			this.put("CheckpointGaia", "Checkpoint Gaia");
-			this.put("CheckpointSPLAT", "Checkpoint SPLAT");
-			this.put("CienaSAOS", "Ciena SAOS");
-			this.put("CiscoACE", "Cisco ACE");
-			this.put("CiscoASA", "Cisco ASA");
-			this.put("CiscoAireOS", "Cisco AireOS");
-			this.put("CiscoFirepowerMC", "Cisco Firepower Management Center");
-			this.put("CiscoIOS12", "Cisco IOS and IOS-XE");
-			this.put("CiscoIOSXR", "Cisco IOS-XR");
-			this.put("CiscoNXOS", "Cisco NX-OS 5+");
-			this.put("CiscoStarOS", "Cisco StarOS");
-			this.put("CiscoSx", "Cisco Small Business 2/3/500 series");
-			this.put("CiscoViptela", "Viptela Operating System");
-			this.put("CitrixNetscaler", "Citrix NetScaler");
-			this.put("CitrixNetscalerSDX", "Citrix NetScaler SDX");
-			this.put("F5TMOS", "F5 TM-OS, 11.x and newer");
-			this.put("FortinetFortiMail", "Fortinet FortiMail");
-			this.put("FortinetFortiManager", "Fortinet FortiManager and FortiAnalyzer");
-			this.put("FortinetFortiOS", "Fortinet FortiOS");
-			this.put("GenericSNMP", "Generic SNMP device");
-			this.put("GigamonGigaVUE", "Gigamon GigaVUE");
-			this.put("HPEArubaOSCX", "HPE ArubaOS CX");
-			this.put("HPEArubaOSSwitch", "HPE ArubaOS-Switch");
-			this.put("HPEComware", "HPE Comware OS");
-			this.put("HuaweiNE", "Huawei NE Router");
-			this.put("JuniperJunos", "Juniper Junos");
-			this.put("JuniperScreenOS", "Juniper ScreenOS");
-			this.put("PaloAltoPANOS", "Palo Alto PAN-OS");
-			this.put("RiverbedRiOS", "Riverbed RiOS");
-			this.put("SkyhighSWG", "Skyhigh Secure Web Gateway");
-			this.put("SmartEdgeOS", "Redback Networks SmartEdge OS");
-			this.put("ZPENodeGrid", "ZPE NodeGrid");
-		}});
 	}
 
 	private void readAdditionalDrivers() {

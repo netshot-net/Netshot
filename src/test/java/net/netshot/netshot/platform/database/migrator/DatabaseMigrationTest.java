@@ -20,6 +20,8 @@ package net.netshot.netshot.platform.database.migrator;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import liquibase.UpdateSummaryOutputEnum;
 import liquibase.changelog.ChangeLogParameters;
@@ -50,6 +53,8 @@ import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
 import net.netshot.netshot.testing.TestConfig;
+import net.netshot.netshot.platform.crypto.Md5DesPasswordBasedEncryptor;
+import net.netshot.netshot.platform.crypto.Sha2AesPasswordBasedEncryptor;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
@@ -941,6 +946,124 @@ class DatabaseMigrationTest {
 						List.of("1203", "none", "2026-05-01 10:00:00")),
 					rows(statement, "select id, coalesce(to_char(last_snapshot_success_date, 'YYYY-MM-DD HH24:MI:SS'), 'none'), "
 						+ "coalesce(to_char(last_snapshot_failure_date, 'YYYY-MM-DD HH24:MI:SS'), 'none') from device order by id", 3));
+			}
+		}
+	}
+
+	@Nested
+	@DisplayName("0.21.0_1 - DeviceCredentialsReencryptChange (credentials re-encrypted from MD5/DES to SHA-2/AES)")
+	class DeviceCredentialsReencryptTest {
+
+		@Test
+		@DisplayName("The secrets are re-encrypted, the SNMPv3 user and algorithms stored in clear, the other user names kept")
+		void reencryptsCredentials() throws Exception {
+			Properties config = DatabaseMigrationTest.this.getFreshDatabaseConfig("credentialsreencrypttest");
+			config.setProperty("netshot.db.encryptionpassword", "migration-key");
+			TestConfig.init(config);
+			updateToChangeSet("0.20.2_3", "netshot (generated)");
+
+			Md5DesPasswordBasedEncryptor legacy = new Md5DesPasswordBasedEncryptor("migration-key");
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
+					Statement statement = connection.createStatement()) {
+				String columns = "insert into device_credential_set (id, dtype, name, version, device_specific, "
+					+ "username, password, super_password, community, auth_type, auth_key, priv_type, priv_key, private_key) values ";
+				statement.execute(columns + "(1, 'DeviceSshAccount', 'ssh', 0, false, 'admin', '%s', '%s', null, null, null, null, null, null)"
+					.formatted(legacy.encrypt("SshPass"), legacy.encrypt("EnablePass")));
+				statement.execute(columns + "(2, 'DeviceSnmpv2cCommunity', 'snmp', 0, false, null, null, null, '%s', null, null, null, null, null)"
+					.formatted(legacy.encrypt("public-community")));
+				statement.execute(columns + "(3, 'DeviceSnmpv3Community', 'snmpv3', 0, false, '%s', null, null, null, '%s', '%s', '%s', '%s', null)"
+					.formatted(legacy.encrypt("snmpuser"), legacy.encrypt("SHA"), legacy.encrypt("AuthKey1"),
+						legacy.encrypt("AES"), legacy.encrypt("PrivKey1")));
+				statement.execute(columns + "(4, 'DeviceSshKeyAccount', 'key', 0, false, 'keyuser', '%s', null, null, null, null, null, null, '%s')"
+					.formatted(legacy.encrypt("KeyPassphrase"), legacy.encrypt("-----BEGIN KEY-----")));
+			}
+
+			updateNext(1);
+
+			Sha2AesPasswordBasedEncryptor current = new Sha2AesPasswordBasedEncryptor("migration-key");
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
+					Statement statement = connection.createStatement()) {
+				List<List<String>> sets = rows(statement, "select username, password, super_password, community, auth_type, auth_key, "
+					+ "priv_type, priv_key, private_key from device_credential_set order by id", 9);
+				List<String> ssh = sets.get(0);
+				Assertions.assertEquals("admin", ssh.get(0), "The SSH user name (in clear) is kept as it was");
+				Assertions.assertEquals("SshPass", current.decrypt(ssh.get(1)));
+				Assertions.assertEquals("EnablePass", current.decrypt(ssh.get(2)));
+				Assertions.assertEquals("public-community", current.decrypt(sets.get(1).get(3)));
+				List<String> snmpv3 = sets.get(2);
+				Assertions.assertEquals(List.of("snmpuser", "SHA", "AES"), List.of(snmpv3.get(0), snmpv3.get(4), snmpv3.get(6)),
+					"The SNMPv3 user name and algorithms are stored in clear");
+				Assertions.assertEquals("AuthKey1", current.decrypt(snmpv3.get(5)));
+				Assertions.assertEquals("PrivKey1", current.decrypt(snmpv3.get(7)));
+				List<String> key = sets.get(3);
+				Assertions.assertEquals("keyuser", key.get(0));
+				Assertions.assertEquals("KeyPassphrase", current.decrypt(key.get(1)));
+				Assertions.assertEquals("-----BEGIN KEY-----", current.decrypt(key.get(8)));
+				Assertions.assertEquals("null", key.get(2), "A missing secret stays missing (SQL null)");
+			}
+		}
+
+		@Test
+		@DisplayName("A secret which can't be decrypted (another encryption password) stops the migration")
+		void wrongEncryptionPassword() throws Exception {
+			Properties config = DatabaseMigrationTest.this.getFreshDatabaseConfig("credentialsreencryptwrongtest");
+			config.setProperty("netshot.db.encryptionpassword", "migration-key");
+			TestConfig.init(config);
+			updateToChangeSet("0.20.2_3", "netshot (generated)");
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into device_credential_set (id, dtype, name, version, device_specific, password) "
+					+ "values (7, 'DeviceSshAccount', 'ssh', 0, false, '%s')".formatted(new Md5DesPasswordBasedEncryptor("other-key").encrypt("SshPass")));
+			}
+			Exception error = Assertions.assertThrows(Exception.class, () -> updateNext(1));
+			Throwable cause = error;
+			boolean found = false;
+			while (cause != null) {
+				found |= String.valueOf(cause.getMessage()).contains("Crypto error while processing table 'device_credential_set', column 'password' for id 7");
+				cause = cause.getCause();
+			}
+			Assertions.assertTrue(found, "The error names the row and the column: " + error);
+		}
+	}
+
+	@Nested
+	@DisplayName("0.24.0_2 - DynamicDeviceGroupDriverRemoval (the driver of a dynamic group moved to its query)")
+	class DynamicDeviceGroupDriverRemovalMigrationTest {
+
+		@Test
+		@DisplayName("The driver becomes a [Driver] criterion of the query, by description; groups without driver are unchanged")
+		void movesDriverToQuery(@TempDir Path driversPath) throws Exception {
+			// A user driver, from the drivers folder, and a file which isn't a valid driver
+			Files.writeString(driversPath.resolve("lab.js"), "var Info = { name: \"LabOS\", description: \"Lab OS\" };");
+			Files.writeString(driversPath.resolve("broken.js"), "var Info = ;");
+			Files.writeString(driversPath.resolve("notes.txt"), "Not a driver");
+			Properties config = DatabaseMigrationTest.this.getFreshDatabaseConfig("groupdriverremovaltest");
+			config.setProperty("netshot.drivers.path", driversPath.toString());
+			TestConfig.init(config);
+			updateToChangeSet("0.24.0_1", "netshot");
+
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into device_group (id, name, version, hidden_from_reports) values "
+					+ "(1, 'ios', 0, false), (2, 'gaia', 0, false), (3, 'lab', 0, false), (4, 'unknown', 0, false), (5, 'any', 0, false), "
+					+ "(6, 'blank', 0, false)");
+				statement.execute("insert into dynamic_device_group (id, driver, query) values "
+					+ "(1, 'CiscoIOS12', '[Name] is \"r1\"'), (2, 'CheckpointGaia', null), (3, 'LabOS', ' '), "
+					+ "(4, 'GoneOS', '[Name] is \"x\"'), (5, null, '[Name] is \"y\"'), (6, ' ', null)");
+			}
+
+			updateNext(1);
+
+			try (Connection connection = Database.openUnpooledConnection(TestConfig.store().current());
+					Statement statement = connection.createStatement()) {
+				Assertions.assertEquals(List.of(
+					List.of("1", "([Driver] is \"Cisco IOS and IOS-XE\") and ([Name] is \"r1\")"),
+					List.of("2", "[Driver] is \"Checkpoint GAiA OS\""),
+					List.of("3", "[Driver] is \"Lab OS\""),
+					List.of("4", "([Driver] is \"GoneOS\") and ([Name] is \"x\")"),
+					List.of("5", "[Name] is \"y\""),
+					List.of("6", "none")),
+					rows(statement, "select id, coalesce(query, 'none') from dynamic_device_group order by id", 2));
 			}
 		}
 	}
