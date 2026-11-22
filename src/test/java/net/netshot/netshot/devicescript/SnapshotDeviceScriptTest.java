@@ -292,19 +292,21 @@ class SnapshotDeviceScriptTest {
 	}
 
 	@Test
-	@DisplayName("Downloads text files from the device, by SFTP or SCP, in the given charset")
+	@DisplayName("Downloads text files from the device, by SFTP or SCP, in the given charset; by SFTP in UTF-8 by default")
 	void textDownload() throws Exception {
 		Path folder = Files.createDirectories(this.tempDir.resolve("device"));
 		Files.writeString(folder.resolve("config.txt"), "hostname caf\u00e9\n", StandardCharsets.ISO_8859_1);
+		Files.writeString(folder.resolve("banner.txt"), "Welcome to the caf\u00e9\n", StandardCharsets.UTF_8);
 		this.startDevice(folder);
 		register("SnapshotDownloadDriver", """
 			const sftp = device.textDownload("config.txt", { method: "sftp", charset: "ISO-8859-1" });
 			const scp = device.textDownload("config.txt", { method: "scp", charset: "ISO-8859-1", newSession: true });
+			const defaults = device.textDownload("banner.txt") + device.textDownload("banner.txt", { newSession: true });
 			const errors = [];
 			for (const download of [
 				() => device.textDownload("config.txt", { method: "sftp", charset: "NOT-A-CHARSET" }),
 				() => device.textDownload("config.txt", { method: "ftp" }),
-				() => device.textDownload("config.txt"),
+				() => device.textDownload("config.txt", "sftp"),
 			]) {
 				try {
 					download();
@@ -313,12 +315,12 @@ class SnapshotDeviceScriptTest {
 					errors.push(String(e).length > 0);
 				}
 			}
-			config.set("configuration", sftp + scp + errors.join(","));
+			config.set("configuration", sftp + scp + defaults + errors.join(","));
 			""");
 		DeviceDraft device = device("SnapshotDownloadDriver");
 		this.snapshot(device, null);
 
-		Assertions.assertEquals("hostname caf\u00e9\nhostname caf\u00e9\ntrue,true,true",
+		Assertions.assertEquals("hostname caf\u00e9\nhostname caf\u00e9\nWelcome to the caf\u00e9\nWelcome to the caf\u00e9\ntrue,true,true",
 			device.getNewConfig().getAttribute("configuration").getAsText());
 		Assertions.assertTrue(this.taskContext.getLog().contains("Invalid charset name 'NOT-A-CHARSET'"), this.taskContext.getLog());
 	}

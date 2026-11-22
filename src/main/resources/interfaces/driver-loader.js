@@ -1071,11 +1071,11 @@ const _connect = (_function, _options) => {
 				if (options.method === "sftp" || options.method === "scp") {
 					method = options.method;
 				}
-				else {
+				else if (typeof options.method !== "undefined") {
 					throw "Invalid 'method' option in device.textDownload";
 				}
 			}
-			else {
+			else if (typeof options !== "undefined") {
 				throw "Invalid argument in device.textDownload";
 			}
 			return _options.getDeviceHelper().textDownload(method, fileName, charset, newSession);

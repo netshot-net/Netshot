@@ -376,6 +376,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		}
 		catch (Exception e) {
 			log.warn("Error during snapshot while setting config attribute key '{}'.", key, e);
+			taskContext.error("Can't set config attribute {}: {}", key, e.getMessage());
 		}
 	}
 
@@ -525,53 +526,41 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			throw new IllegalArgumentException("Unable to generate a proper store file name in download request");
 		}
 
-		if (TransferProtocol.SCP.equals(protocol) || TransferProtocol.SFTP.equals(protocol)) {
-			if (defaultCliHelper == null) {
-				throw new IllegalArgumentException("Can't use SCP/SFTP download method as no CLI access exists in the current context.");
-			}
+		if (defaultCliHelper == null) {
+			throw new IllegalArgumentException("Can't use SCP/SFTP download method as no CLI access exists in the current context.");
+		}
 
-			Cli cli = defaultCliHelper.getUnderlyingCli();
-			if (cli instanceof Ssh sshCli) {
-				try {
-					ConfigBinaryFileAttribute fileAttribute = ConfigBinaryFileAttribute.create(attribute.getName(), storeName);
-					Path tempPath = this.binaryFiles.pendingFilePath(fileAttribute, this.device.getId());
-					tempPath.toFile().deleteOnExit();
-					log.trace("Temporary file path for download is {}", tempPath);
-					try {
-						if (TransferProtocol.SCP.equals(protocol)) {
-							sshCli.scpDownload(remoteFileName, tempPath, newSession);
-						}
-						else if (TransferProtocol.SFTP.equals(protocol)) {
-							sshCli.sftpDownload(remoteFileName, tempPath, newSession);
-						}
-					}
-					catch (IOException e) {
-						log.debug("Removing temporary file path {}", tempPath);
-						Files.deleteIfExists(tempPath);
-						throw e;
-					}
-					this.finalizeBinaryFile(fileAttribute, tempPath, expectedHash);
-					return;
-				}
-				catch (Exception e) {
-					log.warn(
-						"Error during snapshot while downloading file for attribute key '{}'.",
-						attribute.getName());
-					taskContext.error("Error while downloading file for attribute key {}: {}",
-						attribute.getName(), e.getMessage());
-					throw e;
-				}
-			}
-
-			// Not SSH-based CLI session
+		Cli cli = defaultCliHelper.getUnderlyingCli();
+		if (!(cli instanceof Ssh sshCli)) {
 			log.warn("Error during snapshot: can't use SCP/SFTP method with non-SSH CLI access (for attribute '{}').", attribute.getName());
 			taskContext.error("Can't use SCP/SFTP method with non-SSH CLI access (for attribute '{}').", attribute.getName());
 			throw new IllegalArgumentException("Can't use SCP/SFTP method with non-SSH CLI access.");
 		}
-
-		log.warn("Error during snapshot: unsupported download protocol '{}' (for attribute '{}').", protocol, attribute.getName());
-		taskContext.error("Unsupported download protocol '{}' (for attribute '{}').", protocol, attribute.getName());
-		throw new IllegalArgumentException("Unsupported download protocol.");
+		try {
+			ConfigBinaryFileAttribute fileAttribute = ConfigBinaryFileAttribute.create(attribute.getName(), storeName);
+			Path tempPath = this.binaryFiles.pendingFilePath(fileAttribute, this.device.getId());
+			tempPath.toFile().deleteOnExit();
+			log.trace("Temporary file path for download is {}", tempPath);
+			try {
+				if (protocol == TransferProtocol.SCP) {
+					sshCli.scpDownload(remoteFileName, tempPath, newSession);
+				}
+				else {
+					sshCli.sftpDownload(remoteFileName, tempPath, newSession);
+				}
+			}
+			catch (IOException e) {
+				log.debug("Removing temporary file path {}", tempPath);
+				Files.deleteIfExists(tempPath);
+				throw e;
+			}
+			this.finalizeBinaryFile(fileAttribute, tempPath, expectedHash);
+		}
+		catch (Exception e) {
+			log.warn("Error during snapshot while downloading file for attribute key '{}'.", attribute.getName());
+			taskContext.error("Error while downloading file for attribute key {}: {}", attribute.getName(), e.getMessage());
+			throw e;
+		}
 	}
 
 	/**
@@ -662,6 +651,23 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	}
 
 	/**
+	 * Reads a transfer method given by a driver.
+	 * @param method "scp" or "sftp", whatever the case
+	 * @return the transfer protocol, null if the method is null or unknown
+	 */
+	private static TransferProtocol transferProtocol(String method) {
+		if (method == null) {
+			return null;
+		}
+		try {
+			return TransferProtocol.valueOf(method.toUpperCase());
+		}
+		catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	/**
 	 * Download a binary file from the device - to be called from JS.
 	 * @param key the name of the config attribute
 	 * @param method "scp" or "sftp"
@@ -674,11 +680,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	public void download(String key, String method, String remoteFileName, String storeFileName,
 		boolean newSession, String expectedHash) throws Exception {
 
-		TransferProtocol protocol = null;
-		if (method != null) {
-			protocol = TransferProtocol.valueOf(method.toUpperCase());
-		}
-
+		TransferProtocol protocol = transferProtocol(method);
 		if (protocol == null) {
 			log.warn("Error during snapshot, invalid download method '{}'.", method);
 			taskContext.error("Invalid download method '{}'.", method);
@@ -758,7 +760,13 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		Set<TransferProtocol> protocols =
 			new HashSet<>(Arrays.asList(TransferProtocol.SCP, TransferProtocol.SFTP));
 		if (method != null) {
-			protocols = Collections.singleton(TransferProtocol.valueOf(method.toUpperCase()));
+			TransferProtocol protocol = transferProtocol(method);
+			if (protocol == null) {
+				log.warn("Error during snapshot, invalid upload method '{}'.", method);
+				taskContext.error("Invalid upload method '{}'.", method);
+				throw new IllegalArgumentException("Invalid upload method");
+			}
+			protocols = Collections.singleton(protocol);
 		}
 
 		NetworkAddress sourceAddress = null;

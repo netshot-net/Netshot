@@ -1266,6 +1266,8 @@ public final class SshServer implements Service {
 			if (!ticket.isValid()) {
 				log.warn("Authentication failed for incoming request on embedded SSH server from {}: invalid ticket {}",
 					session.getRemoteAddress(), username);
+				AAA_LOG.warn("Authentication failed for incoming request on embedded SSH server from {}: invalid ticket {}",
+					session.getRemoteAddress(), username);
 				return false;
 			}
 			NetworkAddress source = null;

@@ -462,13 +462,13 @@ Other methods: `tryNextCredentials()` (manual credential fallback, see above), `
 | `device.add(collection, value)` | Appends to a device collection attribute (e.g. `networkInterface`, `module`), or adds a user tag (`tag`). |
 | `device.remove(collection, value)` | Removes an item from a device collection — only `tag` is supported. Tags are user metadata, not reset by `snapshot`; drivers normally leave them alone. |
 | `device.get(key, id)` | Reads back a previously-set value or collection entry. |
-| `device.textDownload(fileName, options)` | Pulls a text file off the device over SCP/SFTP (`options.method`, `options.charset`, `options.newSession`). |
+| `device.textDownload(fileName, options)` | Pulls a text file off the device over SCP/SFTP. The options are optional: `method` (`"sftp"`, the default, or `"scp"`), `charset` (default `UTF-8`), `newSession` (default `false`). |
 
 ### `config`
 
 | Method | Purpose |
 |---|---|
-| `config.set(key, value)` | Sets a config attribute (or `author`) for the configuration being captured this snapshot. |
+| `config.set(key, value)` | Sets a config attribute (or `author`) for the configuration being captured this snapshot. A value which doesn't match the type of the attribute (e.g. a string for a `Numeric` attribute) is ignored, with an error in the task log. |
 | `config.download(key, fileName, options)` | Pulls a file off the device over SCP/SFTP into a `BinaryFile` config attribute. `options`: `method` (`sftp`/`scp`), `storeFileName`, `newSession`, `checksum`. |
 | `config.commitDownload(key, tempFilePath, options)` | The HTTP counterpart to `download()`: moves a file already fetched via `http.download(...)` into a `BinaryFile` config attribute. `options`: `storeFileName`, `checksum`. |
 | `config.computeHash(...parts)` / `getHash()` / `getLastHash()` / `isChangedHash()` | Build and compare a custom hash across arbitrary text parts, for drivers whose "did anything change" logic isn't a simple field comparison. |

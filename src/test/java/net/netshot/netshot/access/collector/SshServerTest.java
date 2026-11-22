@@ -154,7 +154,7 @@ class SshServerTest {
 	}
 
 	@Test
-	@DisplayName("A device can't log in with an unknown ticket, a ticket which isn't valid anymore, or a wrong password; unknown tickets and wrong passwords are audited")
+	@DisplayName("A device can't log in with an unknown ticket, a ticket which isn't valid anymore, or a wrong password; the refusals are audited")
 	void ticketRefusals() throws Exception {
 		int port = TestNetwork.freePort();
 		Properties config = new Properties();
@@ -186,6 +186,7 @@ class SshServerTest {
 			List<String> messages = audit.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
 			Assertions.assertTrue(messages.stream().anyMatch(m -> m.contains(": unknown ticket unknown-ticket")), messages.toString());
 			Assertions.assertTrue(messages.stream().anyMatch(m -> m.contains(": credentials rejected for ticket valid-ticket")), messages.toString());
+			Assertions.assertTrue(messages.stream().anyMatch(m -> m.contains(": invalid ticket old-ticket")), messages.toString());
 		}
 		finally {
 			aaa.detachAppender(audit);

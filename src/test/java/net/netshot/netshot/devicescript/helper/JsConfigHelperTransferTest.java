@@ -190,7 +190,7 @@ class JsConfigHelperTransferTest {
 	}
 
 	@Test
-	@DisplayName("The driver sets the author and the configuration attributes of each type; unknown keys and wrong value types are ignored")
+	@DisplayName("The driver sets the author and the configuration attributes of each type; unknown keys are ignored, wrong value types are logged")
 	void setAttributes() {
 		JsConfigHelper helper = helper(null, null);
 		helper.set("author", Value.asValue("admin"));
@@ -214,6 +214,8 @@ class JsConfigHelperTransferTest {
 			"a value of the wrong type is ignored");
 		Assertions.assertEquals(new ConfigNumericAttribute("ports", 24.0), this.config.getAttributeMap().get("ports"),
 			"a value of the wrong type is ignored");
+		Assertions.assertTrue(this.taskContext.getLog().contains("[ERROR] Can't set config attribute compliant: Cannot convert"), this.taskContext.getLog());
+		Assertions.assertTrue(this.taskContext.getLog().contains("[ERROR] Can't set config attribute ports: Cannot convert"), this.taskContext.getLog());
 	}
 
 	@Test
@@ -365,6 +367,7 @@ class JsConfigHelperTransferTest {
 				() -> helper.download("version", "scp", "backup.tgz", null, false, null), "Not a binary file attribute");
 			Assertions.assertThrows(IllegalArgumentException.class,
 				() -> helper.download("backupArchive", "ftp", "backup.tgz", null, false, null), "Unsupported method");
+			Assertions.assertTrue(taskContext.getLog().contains("Invalid download method 'ftp'."), taskContext.getLog());
 			Assertions.assertThrows(IllegalArgumentException.class,
 				() -> helper.download("backupArchive", null, "backup.tgz", null, false, null), "No method");
 			Assertions.assertThrows(IllegalArgumentException.class,
@@ -687,6 +690,7 @@ class JsConfigHelperTransferTest {
 				() -> helper.commitUpload(ticketId, 1, "version", null, null), "Not a binary file attribute");
 			Assertions.assertThrows(IllegalArgumentException.class,
 				() -> helper.requestUpload("ftp", null), "Unsupported method");
+			Assertions.assertTrue(taskContext.getLog().contains("Invalid upload method 'ftp'."), taskContext.getLog());
 			Assertions.assertThrows(IllegalArgumentException.class,
 				() -> helper.requestUpload("scp", "not an address"), "Invalid source address");
 			Assertions.assertNull(backupAttribute());
