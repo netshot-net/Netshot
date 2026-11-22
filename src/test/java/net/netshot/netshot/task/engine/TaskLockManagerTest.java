@@ -244,7 +244,7 @@ class TaskLockManagerTest {
 	}
 
 	@Test
-	@DisplayName("Distributed mode: the manager is unhealthy while the lock connection can't be reopened, and healthy again once it can")
+	@DisplayName("Distributed mode: the manager is unhealthy while the lock connection can't be reopened, the periodic check reconnects and re-acquires the locks")
 	void connectionLost() throws Exception {
 		AtomicBoolean databaseDown = new AtomicBoolean();
 		TaskLockManager member1 = new TaskLockManager(true, () -> {
@@ -277,15 +277,15 @@ class TaskLockManagerTest {
 		SQLException thrown = Assertions.assertThrows(SQLException.class, () -> member1.isHeld(TaskLockManager.NS_TASK, 701));
 		Assertions.assertEquals("Connection refused", thrown.getMessage());
 
-		// The periodic check doesn't reopen a closed connection: the next lock operation does
+		member1.check();
+		Assertions.assertFalse(member1.isHealthy(), "still down");
+
+		// The periodic check reconnects on its own, without waiting for a lock operation
 		databaseDown.set(false);
 		member1.check();
-		Assertions.assertFalse(member1.isHealthy());
-		Assertions.assertFalse(member2.isHeld(TaskLockManager.NS_TASK, 700), "the held lock isn't re-acquired yet");
-		Assertions.assertTrue(member1.tryLock(TaskLockManager.NS_TASK, 702, 702));
-		Assertions.assertTrue(member2.isHeld(TaskLockManager.NS_TASK, 700), "the held lock was re-acquired");
-		member1.check();
 		Assertions.assertTrue(member1.isHealthy());
+		Assertions.assertTrue(member2.isHeld(TaskLockManager.NS_TASK, 700), "the held lock was re-acquired");
+		Assertions.assertEquals(Map.of("distributed", true, "heldLocks", 1, "connected", true), member1.stats());
 	}
 
 	@Test

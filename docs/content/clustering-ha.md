@@ -56,6 +56,8 @@ Running tasks hold PostgreSQL advisory locks (on one dedicated database connecti
 
 When a member is considered gone, the master reassigns its tasks to the other runners, except the tasks still holding their lock: a member which only stopped sending hello messages for a while (but is still connected to the database and running its tasks) is left to complete them. If the member really died, PostgreSQL releases its locks once its connection is detected as dead (TCP keepalives, about one minute), and the master then reassigns these tasks within the next minute. A task the member had already started is not run again (a script, for instance, must not be applied twice): it is marked as failed, and the next occurrence of a repeating task is scheduled; a group task (snapshot, diagnostics or script on a group) resumes on another member, with the device tasks it had already created.
 
+If a member loses its lock connection (database restart, network outage), it checks it periodically and reconnects as soon as the database answers again, taking back the locks of its running tasks; a lock another member took meanwhile can't be taken back, which is logged as an error. Until it reconnects, the task lock manager is reported unhealthy.
+
 Advisory locks (as well as the notification system) require session-level database connections: when using a connection pooler such as PgBouncer in front of PostgreSQL, it must be in *session* pooling mode.
 
 ### User interface

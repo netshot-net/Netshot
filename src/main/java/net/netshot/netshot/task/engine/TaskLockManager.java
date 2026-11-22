@@ -230,10 +230,11 @@ public class TaskLockManager implements Service {
 	/**
 	 * Checks the health of the lock connection (distributed mode), reconnecting (and re-acquiring
 	 * the held locks) if needed. To be called periodically, so that a lost connection is noticed
-	 * even when no task starts or ends.
+	 * even when no task starts or ends. After a failed reconnection (no connection anymore), keeps
+	 * trying to reconnect, so that the locks of the running tasks are re-acquired as soon as possible.
 	 */
 	public synchronized void check() {
-		if (!this.distributed || this.connection == null) {
+		if (!this.distributed || (this.connection == null && !this.connectionLost)) {
 			return;
 		}
 		try {
