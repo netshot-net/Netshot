@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,7 +33,9 @@ import org.junit.jupiter.api.function.Executable;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
@@ -376,6 +379,79 @@ class DiagnosticServiceTest {
 		Assertions.assertEquals("value", Assertions.assertInstanceOf(DiagnosticTextResult.class, result).text());
 		Assertions.assertEquals(1, this.service.listResults(this.ofDevice(this.deviceId, new Page(0, 1))).items().size());
 		Assertions.assertTrue(this.service.listResults(this.ofDevice(99999999L, Page.ALL)).items().isEmpty());
+	}
+
+	@Test
+	@DisplayName("listResults() counts the matching results when the query asks for it")
+	void countResults() {
+		Diagnostic diagnostic = this.service.create(js(this.name("Counted"), -1, "x"));
+		this.addResult(diagnostic.id());
+		ListQuery query = new ListQuery(List.of(new Criterion("diagnostic", Lookup.EXACT, List.of(diagnostic.id()))), null, List.of(),
+			Page.ALL, true);
+		Assertions.assertEquals(1L, this.service.listResults(query).count());
+		Assertions.assertNull(this.service.listResults(this.ofDevice(this.deviceId, Page.ALL)).count(), "not counted unless asked");
+	}
+
+	@Test
+	@DisplayName("A diagnostic result giving the same value again only updates the last check date, a new value replaces the result")
+	void resultUpdates() {
+		Instant day1 = Instant.parse("2026-01-01T00:00:00Z");
+		Instant day2 = Instant.parse("2026-01-02T00:00:00Z");
+		Instant day3 = Instant.parse("2026-01-03T00:00:00Z");
+		Diagnostic text = this.service.create(js(this.name("Text"), -1, "x"));
+		Diagnostic number = this.service.create(js(this.name("Number"), -1, "x"));
+		Diagnostic binary = this.service.create(js(this.name("Binary"), -1, "x"));
+		Diagnostic longText = this.service.create(js(this.name("Long text"), -1, "x"));
+		long longTexts = this.countLongTexts();
+
+		this.saveResults(DiagnosticTextResult.of(text.id(), text.name(), "up").withDates(day1, day1),
+			DiagnosticNumericResult.of(number.id(), number.name(), 1.5).withDates(day1, day1),
+			DiagnosticBinaryResult.of(binary.id(), binary.name(), true).withDates(day1, day1),
+			DiagnosticLongTextResult.of(longText.id(), longText.name(), "line 1\nline 2").withDates(day1, day1));
+		Assertions.assertEquals(longTexts + 1, this.countLongTexts());
+
+		// Same values
+		this.saveResults(DiagnosticTextResult.of(text.id(), text.name(), "up").withDates(day2, day2),
+			DiagnosticNumericResult.of(number.id(), number.name(), 1.5).withDates(day2, day2),
+			DiagnosticBinaryResult.of(binary.id(), binary.name(), true).withDates(day2, day2),
+			DiagnosticLongTextResult.of(longText.id(), longText.name(), "line 1\nline 2").withDates(day2, day2));
+		for (Diagnostic diagnostic : List.of(text, number, binary, longText)) {
+			DiagnosticResult result = this.storedResult(diagnostic.id());
+			Assertions.assertEquals(day1, result.creationDate(), diagnostic.name());
+			Assertions.assertEquals(day2, result.lastCheckDate(), diagnostic.name());
+			Assertions.assertEquals(1, this.countResults(diagnostic.id()));
+		}
+		Assertions.assertEquals(longTexts + 1, this.countLongTexts(), "no new long text for the same value");
+
+		// New values
+		this.saveResults(DiagnosticTextResult.of(text.id(), text.name(), "down").withDates(day3, day3),
+			DiagnosticNumericResult.of(number.id(), number.name(), 2.0).withDates(day3, day3),
+			DiagnosticBinaryResult.of(binary.id(), binary.name(), false).withDates(day3, day3),
+			DiagnosticLongTextResult.of(longText.id(), longText.name(), "line 3").withDates(day3, day3));
+		for (Diagnostic diagnostic : List.of(text, number, binary, longText)) {
+			DiagnosticResult result = this.storedResult(diagnostic.id());
+			Assertions.assertEquals(day3, result.creationDate(), diagnostic.name());
+			Assertions.assertEquals(day3, result.lastCheckDate(), diagnostic.name());
+			Assertions.assertEquals(1, this.countResults(diagnostic.id()));
+		}
+		Assertions.assertEquals("down", Assertions.assertInstanceOf(DiagnosticTextResult.class, this.storedResult(text.id())).text());
+		Assertions.assertEquals(2.0, Assertions.assertInstanceOf(DiagnosticNumericResult.class, this.storedResult(number.id())).number());
+		Assertions.assertFalse(Assertions.assertInstanceOf(DiagnosticBinaryResult.class, this.storedResult(binary.id())).assumption());
+		Assertions.assertEquals("line 3", Assertions.assertInstanceOf(DiagnosticLongTextResult.class, this.storedResult(longText.id())).text());
+		Assertions.assertEquals(longTexts + 1, this.countLongTexts(), "the long text of the replaced result is deleted");
+
+		// Another type of value
+		this.saveResults(DiagnosticNumericResult.of(text.id(), text.name(), 3.0).withDates(day3, day3));
+		Assertions.assertEquals(3.0, Assertions.assertInstanceOf(DiagnosticNumericResult.class, this.storedResult(text.id())).number());
+		Assertions.assertEquals(1, this.countResults(text.id()));
+	}
+
+	private void saveResults(DiagnosticResult... results) {
+		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId, List.of(results)));
+	}
+
+	private DiagnosticResult storedResult(long diagnosticId) {
+		return TestDevices.diagnosticResults(this.deviceId).stream().filter(r -> r.diagnosticId() == diagnosticId).findFirst().orElseThrow();
 	}
 
 	private ListQuery ofDevice(long device, Page page) {

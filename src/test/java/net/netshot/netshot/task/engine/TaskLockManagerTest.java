@@ -25,7 +25,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.AfterEach;
@@ -188,5 +190,114 @@ class TaskLockManagerTest {
 		Assertions.assertTrue(member2.isHeld(TaskLockManager.NS_TASK, 300),
 			"Member 1 must have re-acquired its lock after reconnection");
 		Assertions.assertFalse(member2.tryLock(TaskLockManager.NS_TASK, 300, 300));
+	}
+
+	/**
+	 * Kills the database session of a connection, as the server does after missed TCP keepalives.
+	 *
+	 * @param connection the connection
+	 */
+	private void killSession(Connection connection) throws Exception {
+		int pid;
+		try (Statement statement = connection.createStatement();
+				ResultSet result = statement.executeQuery("SELECT pg_backend_pid()")) {
+			result.next();
+			pid = result.getInt(1);
+		}
+		try (Connection admin = this.openConnection(); Statement statement = admin.createStatement()) {
+			statement.execute("SELECT pg_terminate_backend(%d)".formatted(pid));
+		}
+		Thread.sleep(500);
+	}
+
+	@Test
+	@DisplayName("Distributed mode: a failed release resets the connection, the other held locks are re-acquired")
+	void releaseFailure() throws Exception {
+		TaskLockManager member1 = this.newDistributedManager();
+		TaskLockManager member2 = this.newDistributedManager();
+		Assertions.assertTrue(member1.tryLock(TaskLockManager.NS_TASK, 400, 400));
+		Assertions.assertTrue(member1.tryLock(TaskLockManager.NS_DEVICE, 401, 400));
+		this.killSession(this.openedConnections.get(0));
+
+		member1.unlock(TaskLockManager.NS_TASK, 400, 400);
+
+		Assertions.assertNull(member1.getLocalOwner(TaskLockManager.NS_TASK, 400));
+		Assertions.assertFalse(member2.isHeld(TaskLockManager.NS_TASK, 400), "The released lock is free");
+		Assertions.assertTrue(member2.isHeld(TaskLockManager.NS_DEVICE, 401), "The other lock was re-acquired on the new connection");
+		Assertions.assertEquals(3, this.openedConnections.size(), "member 1 reconnected");
+	}
+
+	@Test
+	@DisplayName("Distributed mode: a lock taken by another member meanwhile isn't re-acquired after a reconnection")
+	void reacquireConflict() throws Exception {
+		TaskLockManager member1 = this.newDistributedManager();
+		TaskLockManager member2 = this.newDistributedManager();
+		Assertions.assertTrue(member1.tryLock(TaskLockManager.NS_TASK, 500, 500));
+		this.killSession(this.openedConnections.get(0));
+		Assertions.assertTrue(member2.tryLock(TaskLockManager.NS_TASK, 500, 600), "the lock is free once member 1's session is gone");
+
+		member1.check();
+
+		Assertions.assertTrue(member1.isHealthy());
+		Assertions.assertEquals(500L, member1.getLocalOwner(TaskLockManager.NS_TASK, 500), "member 1 still records its task as the owner");
+		Assertions.assertEquals(600L, member2.getLocalOwner(TaskLockManager.NS_TASK, 500), "member 2 keeps the lock");
+	}
+
+	@Test
+	@DisplayName("Distributed mode: the manager is unhealthy while the lock connection can't be reopened, and healthy again once it can")
+	void connectionLost() throws Exception {
+		AtomicBoolean databaseDown = new AtomicBoolean();
+		TaskLockManager member1 = new TaskLockManager(true, () -> {
+			if (databaseDown.get()) {
+				throw new IllegalStateException("Unable to open the task lock DB connection", new SQLException("Connection refused"));
+			}
+			try {
+				Connection connection = this.openConnection();
+				this.openedConnections.add(connection);
+				return connection;
+			}
+			catch (SQLException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+		this.managers.add(member1);
+		TaskLockManager member2 = this.newDistributedManager();
+		member1.check();
+		Assertions.assertTrue(member1.isHealthy(), "nothing to check before the connection is opened");
+		Assertions.assertEquals(Map.of("distributed", true, "heldLocks", 0, "connected", false), member1.stats());
+
+		Assertions.assertTrue(member1.tryLock(TaskLockManager.NS_TASK, 700, 700));
+		Assertions.assertEquals(Map.of("distributed", true, "heldLocks", 1, "connected", true), member1.stats());
+		this.killSession(this.openedConnections.get(0));
+		databaseDown.set(true);
+
+		member1.check();
+		Assertions.assertFalse(member1.isHealthy());
+		Assertions.assertEquals(Map.of("distributed", true, "heldLocks", 1, "connected", false), member1.stats());
+		SQLException thrown = Assertions.assertThrows(SQLException.class, () -> member1.isHeld(TaskLockManager.NS_TASK, 701));
+		Assertions.assertEquals("Connection refused", thrown.getMessage());
+
+		// The periodic check doesn't reopen a closed connection: the next lock operation does
+		databaseDown.set(false);
+		member1.check();
+		Assertions.assertFalse(member1.isHealthy());
+		Assertions.assertFalse(member2.isHeld(TaskLockManager.NS_TASK, 700), "the held lock isn't re-acquired yet");
+		Assertions.assertTrue(member1.tryLock(TaskLockManager.NS_TASK, 702, 702));
+		Assertions.assertTrue(member2.isHeld(TaskLockManager.NS_TASK, 700), "the held lock was re-acquired");
+		member1.check();
+		Assertions.assertTrue(member1.isHealthy());
+	}
+
+	@Test
+	@DisplayName("Local mode: stats, and nothing to check")
+	void localStats() {
+		TaskLockManager manager = new TaskLockManager(false, () -> {
+			throw new AssertionError("No DB connection should be opened in local mode");
+		});
+		manager.start();
+		manager.check();
+		Assertions.assertTrue(manager.isHealthy());
+		Assertions.assertEquals("task-lock-manager", manager.id());
+		Assertions.assertEquals(Map.of("distributed", false, "heldLocks", 0, "connected", false), manager.stats());
 	}
 }

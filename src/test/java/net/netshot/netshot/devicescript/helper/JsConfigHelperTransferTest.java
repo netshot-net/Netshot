@@ -41,6 +41,7 @@ import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.apache.sshd.sftp.client.extensions.CopyFileExtension;
 import org.apache.sshd.sftp.client.extensions.openssh.OpenSSHFsyncExtension;
 import org.apache.sshd.sftp.server.SftpSubsystemFactory;
+import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyArray;
 import org.graalvm.polyglot.proxy.ProxyObject;
 import org.junit.jupiter.api.AfterEach;
@@ -56,16 +57,22 @@ import org.junit.jupiter.api.io.TempDir;
 
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.Ssh;
+import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.Location;
 import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.config.ConfigDraft;
 import net.netshot.netshot.inventory.config.attribute.BinaryFileStorage;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.net.Network4Address;
@@ -113,6 +120,9 @@ class JsConfigHelperTransferTest {
 			var Config = {
 				"backupArchive": { type: "BinaryFile", title: "Backup" },
 				"version": { type: "Text", title: "Version" },
+				"compliant": { type: "Binary", title: "Compliant" },
+				"ports": { type: "Numeric", title: "Ports" },
+				"banner": { type: "LongText", title: "Banner" },
 			};
 			var Device = {};
 			var CLI = { ssh: {} };
@@ -177,6 +187,71 @@ class JsConfigHelperTransferTest {
 		try (var files = Files.list(this.storageDir)) {
 			return files.filter(Files::isRegularFile).toList();
 		}
+	}
+
+	@Test
+	@DisplayName("The driver sets the author and the configuration attributes of each type; unknown keys and wrong value types are ignored")
+	void setAttributes() {
+		JsConfigHelper helper = helper(null, null);
+		helper.set("author", Value.asValue("admin"));
+		helper.set("compliant", Value.asValue(true));
+		helper.set("ports", Value.asValue(24));
+		helper.set("banner", Value.asValue("Line 1\nLine 2"));
+		helper.set("version", Value.asValue("15.2"));
+		helper.set("unknown", Value.asValue("value"));
+		helper.set("version", null);
+
+		Assertions.assertEquals("admin", this.config.getAuthor());
+		Assertions.assertEquals(new ConfigBinaryAttribute("compliant", true), this.config.getAttributeMap().get("compliant"));
+		Assertions.assertEquals(new ConfigNumericAttribute("ports", 24.0), this.config.getAttributeMap().get("ports"));
+		Assertions.assertEquals(new ConfigLongTextAttribute("banner", "Line 1\nLine 2"), this.config.getAttributeMap().get("banner"));
+		Assertions.assertEquals(new ConfigTextAttribute("version", "15.2"), this.config.getAttributeMap().get("version"));
+		Assertions.assertFalse(this.config.getAttributeMap().containsKey("unknown"));
+
+		helper.set("compliant", Value.asValue("yes"));
+		helper.set("ports", Value.asValue("many"));
+		Assertions.assertEquals(new ConfigBinaryAttribute("compliant", true), this.config.getAttributeMap().get("compliant"),
+			"a value of the wrong type is ignored");
+		Assertions.assertEquals(new ConfigNumericAttribute("ports", 24.0), this.config.getAttributeMap().get("ports"),
+			"a value of the wrong type is ignored");
+	}
+
+	@Test
+	@DisplayName("An HTTP download is only stored into a known binary file attribute, under a usable name")
+	void httpDownloadPreparation() throws Exception {
+		JsConfigHelper helper = helper(null, null);
+
+		Assertions.assertThrows(IllegalArgumentException.class, () -> helper.prepareBinaryFileDownload("unknown", null, "/backup.tgz"));
+		Assertions.assertTrue(this.taskContext.getLog().contains("Requested attribute key 'unknown' doesn't exist."), this.taskContext.getLog());
+		Assertions.assertThrows(IllegalArgumentException.class, () -> helper.prepareBinaryFileDownload("version", null, "/backup.tgz"));
+		Assertions.assertTrue(this.taskContext.getLog().contains("Can't download into attribute 'version' (not a binary file attribute)."),
+			this.taskContext.getLog());
+		Assertions.assertThrows(IllegalArgumentException.class, () -> helper.prepareBinaryFileDownload("backupArchive", null, "/"));
+		Assertions.assertTrue(this.taskContext.getLog().contains("Unable to generate a store file name for attribute 'backupArchive'."),
+			this.taskContext.getLog());
+
+		ConfigBinaryFileAttribute prepared = helper.prepareBinaryFileDownload("backupArchive", null, "/files/backup.tgz");
+		Assertions.assertEquals("backupArchive", prepared.name());
+		Assertions.assertEquals("backup.tgz", prepared.originalName());
+		Assertions.assertEquals("stored.tgz", helper.prepareBinaryFileDownload("backupArchive", "stored.tgz", "/files/backup.tgz").originalName());
+		Assertions.assertNull(backupAttribute(), "the attribute is only set once the file is downloaded");
+	}
+
+	@Test
+	@DisplayName("A download by SCP or SFTP needs an SSH session: refused on a Telnet session")
+	void downloadOverTelnet() {
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, this.device, null, this.taskContext, null);
+		accessManager.forceClientForTest(new Telnet("127.0.0.1", this.taskContext), DeviceTelnetAccount.builder().username(Secret.local("admin"))
+			.password(Secret.local("admin")).name("test-telnet-account").build());
+		JsConfigHelper helper = helper(new JsCliHelper(accessManager, List.of(), true, this.taskContext), null);
+
+		IllegalArgumentException thrown = Assertions.assertThrows(IllegalArgumentException.class,
+			() -> helper.download("backupArchive", "scp", "backup.tgz", null, false, null));
+
+		Assertions.assertEquals("Can't use SCP/SFTP method with non-SSH CLI access.", thrown.getMessage());
+		Assertions.assertTrue(this.taskContext.getLog().contains("Can't use SCP/SFTP method with non-SSH CLI access (for attribute 'backupArchive')."),
+			this.taskContext.getLog());
+		Assertions.assertNull(backupAttribute());
 	}
 
 	@Nested

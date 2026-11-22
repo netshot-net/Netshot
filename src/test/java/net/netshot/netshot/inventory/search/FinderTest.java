@@ -25,6 +25,7 @@ import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -654,6 +655,24 @@ class FinderTest {
 		assertFinder("[CREATION DATE] IS \"2023-01-02\"",
 			"[Creation Date] is \"2023-01-02\"",
 			List.of("router00015"));
+	}
+
+	@Test
+	@DisplayName("Query device by creation date with a local date and time")
+	void queryByChangeDateTime() throws Exception {
+		assertFinder("[Creation Date] is \"2023-01-02T00:00\"", null, List.of("router00015"));
+		assertFinder("[Creation Date] before \"2023-01-01T23:59:59\"", null, List.of());
+		assertFinder("[Creation Date] after \"2070-10-10T00:00\"", null, List.of("router00014"));
+	}
+
+	@Test
+	@DisplayName("Query device by creation date with an ISO 8601 date and time with its zone")
+	void queryByChangeDateTimeIso() throws Exception {
+		String start = startOfDay("2023-01-02").toString();
+		String formatted = ZonedDateTime.parse(start).toString();
+		assertFinder("[Creation Date] is \"%s\"".formatted(start), "[Creation Date] is \"%s\"".formatted(formatted), List.of("router00015"));
+		assertFinder("[Creation Date] before \"2023-01-01T00:00:00+14:00\"", "[Creation Date] before \"2023-01-01T00:00+14:00\"", List.of());
+		assertFinder("[Creation Date] after \"2070-10-01T00:00:00Z\"", "[Creation Date] after \"2070-10-01T00:00Z\"", List.of("router00014"));
 	}
 
 	@Test
