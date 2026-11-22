@@ -419,6 +419,7 @@ public class Snmp extends Poller implements Client {
 	 * (OctetStrings are rendered as text if printable, as hex otherwise).
 	 * @param oid The base OID
 	 * @return a map of OIDs -> values
+	 * @throws IOException when the walk fails, see {@link #walkAsString(String, boolean)}
 	 */
 	public Map<String, String> walkAsString(String oid) throws IOException {
 		return walkAsString(oid, false);
@@ -429,6 +430,8 @@ public class Snmp extends Poller implements Client {
 	 * @param oid The base OID
 	 * @param hex whether to always render OctetStrings as hex
 	 * @return a map of OIDs -> values
+	 * @throws IOException when the device doesn't answer (even after a part of the subtree), refuses the request (report)
+	 *     or answers with an SNMP error; an agent returning the OIDs out of order only cuts the walk short
 	 */
 	public Map<String, String> walkAsString(String oid, boolean hex) throws IOException {
 		Map<String, String> results = new TreeMap<String, String>();
@@ -436,8 +439,15 @@ public class Snmp extends Poller implements Client {
 		List<TreeEvent> events = treeUtils.getSubtree(target, new OID(oid));
 		if (events != null) {
 			for (TreeEvent event : events) {
-				if (event == null || event.isError()) {
+				if (event == null) {
 					continue;
+				}
+				if (event.isError()) {
+					if (event.getStatus() == TreeEvent.STATUS_WRONG_ORDER || event.getStatus() == PDU.noSuchName) {
+						// Broken agent (OIDs out of order, or SNMPv1-style end of the MIB): keep what was received so far
+						continue;
+					}
+					throw new IOException("SNMP walk of %s failed: %s".formatted(oid, event.getErrorMessage()));
 				}
 				VariableBinding[] varBindings = event.getVariableBindings();
 				if (varBindings != null) {

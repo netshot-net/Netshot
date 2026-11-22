@@ -312,6 +312,8 @@ An SNMP client (`client.create("snmp")`) exposes:
 * `poller.get(oid, options)`: returns the value of a single OID, as a string.
 * `poller.walk(oid, reindex, options)`: walks the subtree under `oid` and returns an object mapping each OID to its value; with `reindex` set to `true`, the keys are the OID suffixes relative to `oid` (e.g. the `ifIndex` when walking an `ifTable` column).
 
+Both throw an error when the device doesn't answer, refuses the request (e.g. unknown SNMPv3 user) or returns an SNMP error; a walk also fails when the device stops answering in the middle of the subtree, rather than returning a part of it. Only an agent returning the OIDs out of order cuts a walk short without an error.
+
 By default (`format: "auto"`), an OCTET STRING value is returned as text when all its bytes are printable, and as colon-separated hex (`00:1a:2b:3c:4d:5e`) otherwise. For binary values such as MAC addresses, this means the result depends on the actual bytes; pass `{ format: "hex" }` to always get colon-separated hex:
 
 ```js

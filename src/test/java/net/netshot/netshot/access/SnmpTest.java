@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.access;
 
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 
@@ -65,6 +66,22 @@ class SnmpTest {
 			Assertions.assertEquals("snmphost", device.getAsString(SYS_NAME));
 			Assertions.assertThrows(Exception.class, () -> other.getAsString(SYS_NAME), "Unknown user on the device");
 			Assertions.assertEquals("snmphost", device.getAsString(SYS_NAME));
+		}
+		finally {
+			device.stop();
+			other.stop();
+		}
+	}
+
+	@Test
+	@DisplayName("A walk with an unknown SNMPv3 user fails with the report of the device, instead of returning nothing")
+	void walkUnknownUser() throws Exception {
+		Snmp device = open(v3("netshotv3", "admin1234"));
+		Snmp other = open(v3("otheruser", "otherpass1"));
+		try {
+			Assertions.assertTrue(device.walkAsString("1.3.6.1.2.1.1").containsValue("snmphost"));
+			IOException error = Assertions.assertThrows(IOException.class, () -> other.walkAsString("1.3.6.1.2.1.1"));
+			Assertions.assertTrue(error.getMessage().startsWith("SNMP walk of 1.3.6.1.2.1.1 failed: Report: 1.3.6.1.6.3.15.1.1.3.0"), error.getMessage());
 		}
 		finally {
 			device.stop();
