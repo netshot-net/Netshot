@@ -37,6 +37,7 @@ import net.netshot.netshot.access.Client;
 import net.netshot.netshot.access.Http.HttpDownloadResult;
 import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.access.Http;
+import net.netshot.netshot.access.HttpLoginException;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
@@ -233,33 +234,64 @@ public class JsHttpHelper {
 	 */
 	private <T> T withCredentialRetry(IOSupplier<T> attempt, ToIntFunction<T> statusOf) throws IOException {
 		this.ensureResolved();
-		T result = attempt.get();
-		if (!this.firstRequestDone) {
-			this.firstRequestDone = true;
-			if (this.isAuthStatus(statusOf.applyAsInt(result))) {
-				if (this.autoTryCredentials) {
-					while (this.isAuthStatus(statusOf.applyAsInt(result))) {
-						if (!this.tryNextCredentials()) {
-							break;
-						}
-						result = attempt.get();
-					}
-					if (this.isAuthStatus(statusOf.applyAsInt(result))) {
-						throw new InvalidCredentialsException(
-							"Couldn't find valid HTTP credentials (last status " + statusOf.applyAsInt(result) + ").");
-					}
+		if (this.firstRequestDone) {
+			return attempt.get();
+		}
+		this.firstRequestDone = true;
+		Attempt<T> outcome = this.tryAttempt(attempt, statusOf);
+		if (this.isAuthStatus(outcome.status())) {
+			if (this.autoTryCredentials) {
+				while (this.isAuthStatus(outcome.status()) && this.tryNextCredentials()) {
+					outcome = this.tryAttempt(attempt, statusOf);
 				}
-				else {
-					throw new AccessAuthenticationException(
-						"Authentication failed for this access (HTTP status " + statusOf.applyAsInt(result) + ").");
+				if (this.isAuthStatus(outcome.status())) {
+					throw new InvalidCredentialsException(
+						"Couldn't find valid HTTP credentials (last status " + outcome.status() + ").");
 				}
 			}
-			// The first attempt came back without an auth-status rejection (either
-			// from the start, or after tryNextCredentials() found one that works),
-			// so the credentials are confirmed valid.
-			this.resolution.confirmCredentialWorks();
+			else {
+				throw new AccessAuthenticationException(
+					"Authentication failed for this access (HTTP status " + outcome.status() + ").");
+			}
 		}
-		return result;
+		// The first attempt came back without an auth-status rejection (either
+		// from the start, or after tryNextCredentials() found one that works),
+		// so the credentials are confirmed valid.
+		this.resolution.confirmCredentialWorks();
+		return outcome.result();
+	}
+
+	/**
+	 * The outcome of one attempt: its result and HTTP status, or no result and the status of a refused
+	 * (401/403) "cookie" authentication login.
+	 *
+	 * @param <T> the attempt's result type
+	 * @param result the result (null if the login was refused)
+	 * @param status the HTTP status
+	 */
+	private record Attempt<T>(T result, int status) {
+	}
+
+	/**
+	 * Runs one attempt, a refused login of the "cookie" authentication counting as an auth status.
+	 *
+	 * @param <T> the attempt's result type
+	 * @param attempt performs one request/download
+	 * @param statusOf extracts the HTTP status from the result
+	 * @return the outcome
+	 * @throws IOException on connection failure, or a login failure other than 401/403
+	 */
+	private <T> Attempt<T> tryAttempt(IOSupplier<T> attempt, ToIntFunction<T> statusOf) throws IOException {
+		try {
+			T result = attempt.get();
+			return new Attempt<>(result, statusOf.applyAsInt(result));
+		}
+		catch (HttpLoginException e) {
+			if (!this.isAuthStatus(e.getStatus())) {
+				throw e;
+			}
+			return new Attempt<>(null, e.getStatus());
+		}
 	}
 
 	/**

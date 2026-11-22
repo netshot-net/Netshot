@@ -351,7 +351,7 @@ The key (`http` or `https`) selects plain HTTP or TLS. The optional `auth` block
 |---|---|---|
 | `http` | `scheme`: `basic` (default) or `bearer` | Standard `Authorization` header, built from the resolved HTTP credential set. |
 | `apiKey` | `in`: `header` (default), `query`, or `cookie`; `name` (required) | Sends the credential's key/value at the given location. |
-| `cookie` | `method`: `post` (default) or `put`; `path` (required); `data` (optional body template); `contentType`: `json` (default) or `form` | Logs in by calling `path` once, then replays the session cookie the device returns on every later request. `$$NetshotUsername$$`/`$$NetshotPassword$$` placeholders in `data` are substituted with the resolved credential set. |
+| `cookie` | `method`: `post` (default) or `put`; `path` (required); `data` (optional body template); `contentType`: `json` (default) or `form` | Logs in by calling `path` once, then replays the session cookie the device returns on every later request. `$$NetshotUsername$$`/`$$NetshotPassword$$` placeholders in `data` (also inside nested objects and lists) are substituted with the resolved credential set. A login refused with 401/403 counts as a refusal of the credential set, as for a request. |
 | `oauth2` / `openIdConnect` | — | Recognized but not yet implemented — reserved for a future release. |
 
 Without an `auth` block, requests go out unauthenticated (or however the driver's own script handles auth manually).

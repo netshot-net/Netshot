@@ -128,7 +128,18 @@ class JsHttpHelperTest {
 			Map.copyOf(exchange.getRequestHeaders()), body));
 		int status;
 		String response;
-		if (!basic(GOOD_PASSWORD).equals(exchange.getRequestHeaders().getFirst("Authorization")) || path.equals("/api/forbidden")) {
+		String cookie = exchange.getRequestHeaders().getFirst("Cookie");
+		boolean session = cookie != null && cookie.contains("SESSION=ok");
+		if (path.equals("/login")) {
+			// Cookie authentication: a session cookie for the good password only
+			status = body.contains(GOOD_PASSWORD) ? 200 : 401;
+			if (status == 200) {
+				exchange.getResponseHeaders().add("Set-Cookie", "SESSION=ok; Path=/");
+			}
+			response = "{}";
+		}
+		else if (!session && !basic(GOOD_PASSWORD).equals(exchange.getRequestHeaders().getFirst("Authorization"))
+				|| path.equals("/api/forbidden")) {
 			status = 401;
 			response = "{\"error\":\"unauthorized\"}";
 		}
@@ -165,6 +176,19 @@ class JsHttpHelperTest {
 	 * @throws Exception if the driver can't be loaded
 	 */
 	private static void register(String name, String snapshotBody) throws Exception {
+		register(name, "{ type: \"http\", scheme: \"basic\" }", snapshotBody);
+	}
+
+	/**
+	 * Registers a driver with the given snapshot function body, an HTTP access with the given authentication, and
+	 * text configuration attributes.
+	 *
+	 * @param name the driver name
+	 * @param auth the authentication declaration of the HTTP access
+	 * @param snapshotBody the body of the snapshot function
+	 * @throws Exception if the driver can't be loaded
+	 */
+	private static void register(String name, String auth, String snapshotBody) throws Exception {
 		String driverJs = """
 			var Info = { name: "%s", author: "test", description: "Test driver of the HTTP client", version: "1.0" };
 			var Config = {
@@ -172,11 +196,11 @@ class JsHttpHelperTest {
 				"report": { type: "Text", title: "Report" },
 			};
 			var Device = {};
-			var HTTP = { http: { auth: { type: "http", scheme: "basic" } } };
+			var HTTP = { http: { auth: %s } };
 			function snapshot(client, device, config) {
 			%s
 			}
-			""".formatted(name, snapshotBody);
+			""".formatted(name, auth, snapshotBody);
 		TestDrivers.registry().getDrivers().put(name,
 			new DeviceDriver(new StringReader(driverJs), name + ".js", new Location(LocationType.EMBEDDED, name + ".js")));
 	}
@@ -296,6 +320,22 @@ class JsHttpHelperTest {
 		Assertions.assertEquals("401", text(config, "report"), "A later refusal is returned to the driver");
 		Assertions.assertEquals(List.of(basic("Wrong-Password"), basic(GOOD_PASSWORD), basic(GOOD_PASSWORD)),
 			this.received.stream().map(r -> r.headers().get("Authorization").get(0)).toList());
+	}
+
+	@Test
+	@DisplayName("With cookie authentication, a refused login moves on to the next credential set")
+	void cookieCredentialFallback() throws Exception {
+		register("HttpCookieFallbackDriver", "{ type: \"cookie\", path: \"/login\", contentType: \"json\", data: { password: \"$$NetshotPassword$$\" } }", """
+			var http = client.create("http");
+			config.set("version", http.get("/api/info").json().version);
+			""");
+		Config config = this.snapshot("HttpCookieFallbackDriver", account("wrong", "Wrong-Password"), account("good", GOOD_PASSWORD));
+
+		Assertions.assertEquals("7.4.1", text(config, "version"), this.taskContext.getLog());
+
+		Exception e = Assertions.assertThrows(Exception.class,
+			() -> this.snapshot("HttpCookieFallbackDriver", account("wrong1", "Wrong-1"), account("wrong2", "Wrong-2")));
+		Assertions.assertTrue(e.getMessage().contains("Couldn't find valid HTTP credentials (last status 401)"), e.getMessage());
 	}
 
 	@Test

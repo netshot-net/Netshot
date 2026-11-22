@@ -335,7 +335,8 @@ public class Http implements Client {
 	 * @param username the resolved username to substitute into the login body
 	 * @param password the resolved password to substitute into the login body
 	 * @return the session cookies to replay on every request
-	 * @throws IOException if the login request could not be sent, or came back with a non-2xx status
+	 * @throws IOException if the login request could not be sent ({@link HttpLoginException} if it came back with
+	 *         a non-2xx status)
 	 */
 	private Map<String, String> ensureCookieSession(HttpConfig httpConfig, AuthScheme auth,
 			String username, String password) throws IOException {
@@ -387,7 +388,7 @@ public class Http implements Client {
 				this.taskContext.trace("Status: {}", status);
 			}
 			if (status < 200 || status >= 300) {
-				throw new IOException("Cookie-auth login failed (HTTP status " + status + ").");
+				throw new HttpLoginException(status);
 			}
 			for (NewCookie cookie : response.getCookies().values()) {
 				this.sessionCookies.put(cookie.getName(), cookie.getValue());

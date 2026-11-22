@@ -27,6 +27,8 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -219,6 +221,90 @@ class HttpTest {
 		Assertions.assertEquals(200, second.getStatus());
 		Assertions.assertEquals(1, loginCalls.get(), "login should only happen once; the cookie must be replayed");
 		Assertions.assertEquals("$Version=1;SESSION=abc123", this.lastExchange.get().getRequestHeaders().getFirst("Cookie"));
+	}
+
+	/**
+	 * Serves a cookie login endpoint, which answers with the given status (and a session cookie on success).
+	 *
+	 * @param status the HTTP status of the login answers
+	 * @param calls the number of login calls, incremented
+	 * @param request the last login request, as "content type / body"
+	 */
+	private void loginEndpoint(int status, AtomicInteger calls, AtomicReference<String> request) {
+		this.server.createContext("/login", exchange -> {
+			calls.incrementAndGet();
+			request.set(exchange.getRequestHeaders().getFirst("Content-Type") + " / "
+				+ new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+			if (status == 200) {
+				exchange.getResponseHeaders().add("Set-Cookie", "SESSION=abc123; Path=/");
+			}
+			exchange.sendResponseHeaders(status, -1);
+			exchange.close();
+		});
+	}
+
+	private static HttpConfig cookieAuth(String contentType, Map<String, Object> data) {
+		AuthScheme auth = new AuthScheme();
+		auth.setType("cookie");
+		auth.setPath("/login");
+		auth.setContentType(contentType);
+		auth.setData(data);
+		HttpConfig config = new HttpConfig();
+		config.setAuth(auth);
+		return config;
+	}
+
+	private static final DeviceHttpAccount BOB = DeviceHttpAccount.builder().username(Secret.local("bob")).password(Secret.local("s3&cret"))
+		.name("cred").build();
+
+	@Test
+	@DisplayName("cookie auth with a form body sends the credentials form-encoded (POST by default)")
+	void cookieAuthForm() throws IOException {
+		AtomicInteger calls = new AtomicInteger();
+		AtomicReference<String> login = new AtomicReference<>();
+		this.loginEndpoint(200, calls, login);
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("user", "$$NetshotUsername$$");
+		data.put("pass", "$$NetshotPassword$$");
+
+		HttpResult result = newClient().request("GET", "/status", null, null, null, null, cookieAuth("form", data), BOB);
+
+		Assertions.assertEquals(200, result.getStatus());
+		Assertions.assertTrue(login.get().startsWith("application/x-www-form-urlencoded"), login.get());
+		Assertions.assertTrue(login.get().contains("user=bob"), login.get());
+		Assertions.assertTrue(login.get().contains("pass=s3%26cret"), login.get());
+	}
+
+	@Test
+	@DisplayName("cookie auth replaces the placeholders anywhere in a JSON body, in lists and nested objects too")
+	void cookieAuthNestedPlaceholders() throws IOException {
+		AtomicInteger calls = new AtomicInteger();
+		AtomicReference<String> login = new AtomicReference<>();
+		this.loginEndpoint(200, calls, login);
+		Map<String, Object> data = Map.of(
+			"identity", List.of("$$NetshotUsername$$", Map.of("secret", "$$NetshotPassword$$")),
+			"remember", true);
+
+		newClient().request("GET", "/status", null, null, null, null, cookieAuth("json", data), BOB);
+
+		Assertions.assertTrue(login.get().startsWith("application/json"), login.get());
+		Assertions.assertTrue(login.get().contains("\"identity\":[\"bob\",{\"secret\":\"s3&cret\"}]"), login.get());
+		Assertions.assertTrue(login.get().contains("\"remember\":true"), login.get());
+	}
+
+	@Test
+	@DisplayName("A refused cookie login fails the request, and the next request logs in again")
+	void cookieAuthRefused() throws IOException {
+		AtomicInteger calls = new AtomicInteger();
+		this.loginEndpoint(401, calls, new AtomicReference<>());
+		Http client = newClient();
+		HttpConfig config = cookieAuth("json", Map.of("user", "$$NetshotUsername$$"));
+
+		IOException error = Assertions.assertThrows(IOException.class,
+			() -> client.request("GET", "/status", null, null, null, null, config, BOB));
+		Assertions.assertEquals("Cookie-auth login failed (HTTP status 401).", error.getMessage());
+		Assertions.assertThrows(IOException.class, () -> client.request("GET", "/status", null, null, null, null, config, BOB));
+		Assertions.assertEquals(2, calls.get(), "Not logged in again");
 	}
 
 	@Test
