@@ -19,8 +19,10 @@
 package net.netshot.netshot.devicescript;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DriverValueType;
@@ -169,6 +171,65 @@ class UserDeviceScriptTest {
 		// "comment" is optional and not provided.
 		UserDeviceScript script = this.buildScript(SCRIPT_WITH_ALL_TYPES, values);
 		Assertions.assertDoesNotThrow(script::validateUserInputs);
+	}
+
+	@Test
+	@DisplayName("A script without Input has no input; the label defaults to the capitalized name, the description is kept")
+	void definitionDefaults() throws Exception {
+		Assertions.assertEquals(Map.of(), this.buildScript("function run(cli, device, config) {}", new HashMap<>()).extractInputDefinitions());
+
+		Map<String, UserInputDefinition> definitions = this.buildScript("""
+			var Input = { vlan: { description: "VLAN to add" } };
+			function run(cli, device, config) {}
+			""", new HashMap<>()).extractInputDefinitions();
+		UserInputDefinition vlan = definitions.get("vlan");
+		Assertions.assertEquals("Vlan", vlan.getLabel());
+		Assertions.assertEquals("VLAN to add", vlan.getDescription());
+		Assertions.assertEquals(DriverValueType.TEXT, vlan.getType());
+		Assertions.assertNull(vlan.getDefaultValue());
+	}
+
+	@Test
+	@DisplayName("An Input declared with const is found as well")
+	void constInput() throws Exception {
+		Map<String, UserInputDefinition> definitions = this.buildScript("""
+			const Input = { vlan: { label: "VLAN" } };
+			function run(cli, device, config) {}
+			""", new HashMap<>()).extractInputDefinitions();
+		Assertions.assertEquals(Set.of("vlan"), definitions.keySet());
+	}
+
+	@Test
+	@DisplayName("An invalid script or input definition is rejected with an explicit message")
+	void invalidDefinitions() {
+		Map<String, String> cases = new LinkedHashMap<>();
+		cases.put("var Input = {};", "'run' is not defined or is not a function.");
+		cases.put("var Input = 5; function run() {}", "Input should be an object");
+		cases.put("var Input = { 'host-name': {} }; function run() {}",
+			"Invalid input name 'host-name': allowed characters are {a to z, A to Z, 0 to 9, _}.");
+		cases.put("var Input = { a: { label: 5 } }; function run() {}", "The 'label' field in 'a' input definition should be a string.");
+		cases.put("var Input = { a: { description: 5 } }; function run() {}",
+			"The 'description' field in 'a' input definition should be a string.");
+		cases.put("var Input = { a: { optional: 'yes' } }; function run() {}",
+			"The 'optional' field in 'a' input definition should be a boolean.");
+		cases.put("var Input = { a: { type: 'number' } }; function run() {}",
+			"The 'type' field in 'a' input definition should be one of \"text\" or \"boolean\".");
+		cases.put("var Input = { a: { type: 'boolean', choices: ['x'] } }; function run() {}", "The 'choices' field is not applicable to 'a' input.");
+		cases.put("var Input = { a: { choices: [] } }; function run() {}",
+			"The 'choices' field in 'a' input definition should be a non-empty array of strings.");
+		cases.put("var Input = { a: { type: 'boolean', regExp: /x/ } }; function run() {}",
+			"The 'regExp' field is not applicable to boolean input 'a'.");
+		cases.put("var Input = { a: { regExp: 'x' } }; function run() {}", "The 'regExp' field in 'a' input definition should be a RegExp object.");
+		cases.put("var Input = { a: { type: 'boolean', default: 'true' } }; function run() {}",
+			"The 'default' field in 'a' input definition should be a boolean.");
+		cases.put("var Input = { a: { default: 1 } }; function run() {}", "The 'default' field in 'a' input definition should be a string.");
+		cases.put("var Input = { a: { choices: ['x', 'y'], default: 'z' } }; function run() {}",
+			"The 'default' field in 'a' input definition should be one of 'choices'.");
+		for (Map.Entry<String, String> entry : cases.entrySet()) {
+			UserDeviceScript script = this.buildScript(entry.getKey(), new HashMap<>());
+			IllegalArgumentException error = Assertions.assertThrows(IllegalArgumentException.class, script::extractInputDefinitions, entry.getKey());
+			Assertions.assertEquals(entry.getValue(), error.getMessage(), entry.getKey());
+		}
 	}
 
 }

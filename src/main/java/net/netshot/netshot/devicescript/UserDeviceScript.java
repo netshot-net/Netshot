@@ -148,7 +148,7 @@ public class UserDeviceScript extends DeviceScript {
 		}
 		catch (PolyglotException e) {
 			log.error("Error while running script using driver {}.", driver.getName(), e);
-			this.taskContext.error("Error while running script  using driver {}: '{}'.",
+			this.taskContext.error("Error while running script using driver {}: '{}'.",
 				driver.getName(), JsUtils.jsErrorToMessage(e));
 			if (e.getMessage().contains("Authentication failed")) {
 				throw new InvalidCredentialsException("Authentication failed");

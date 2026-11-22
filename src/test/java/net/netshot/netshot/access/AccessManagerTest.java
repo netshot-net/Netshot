@@ -20,6 +20,7 @@ package net.netshot.netshot.access;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -472,4 +473,30 @@ class AccessManagerTest {
 		Assertions.assertEquals(22, manager.resolvePort(ssh));
 	}
 
+	@Test
+	@DisplayName("An unresolvable management address is a warning: an access with its own address still works, the others fail clearly")
+	void unresolvableManagementAddress() throws IOException {
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		DeviceDraft device = new DeviceDraft(Device.create("CiscoIOS12", "router.invalid", domain, "test"));
+		FakeTaskContext taskContext = new FakeTaskContext();
+		AccessManager manager = AccessManager.forDevice(TestDrivers.registry(), TestConnectors.local(), device, taskContext, null);
+		Assertions.assertTrue(taskContext.getLog().contains("[WARN] Unable to resolve management address 'router.invalid'."), taskContext.getLog());
+
+		AccessDefinition ssh = sshAccess("ssh");
+		UnknownHostException error = Assertions.assertThrows(UnknownHostException.class, () -> manager.resolveAddress(ssh));
+		Assertions.assertEquals("Unable to resolve an address to connect to for access 'ssh'.", error.getMessage());
+		Assertions.assertEquals("router.invalid", manager.resolveHost(ssh), "The host name is still given to the HTTP accesses");
+
+		device.putDeviceAccess(DeviceAccess.of("ssh").toBuilder().address("192.168.1.50").build());
+		Assertions.assertEquals(NetworkAddress.getNetworkAddress(InetAddress.getByName("192.168.1.50")), manager.resolveAddress(ssh));
+		Assertions.assertEquals("192.168.1.50", manager.resolveHost(ssh));
+	}
+
+	@Test
+	@DisplayName("Without management address nor access address, there is no host to connect to")
+	void noHost() {
+		AccessManager manager = AccessManager.forDevice(TestDrivers.registry(), TestConnectors.local(), fakeDevice(), new FakeTaskContext(), null);
+		UnknownHostException error = Assertions.assertThrows(UnknownHostException.class, () -> manager.resolveHost(sshAccess("ssh")));
+		Assertions.assertEquals("Unable to resolve a host to connect to for access 'ssh'.", error.getMessage());
+	}
 }

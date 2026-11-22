@@ -18,16 +18,25 @@
  */
 package net.netshot.netshot.boot;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.classic.net.SyslogAppender;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
@@ -76,5 +85,105 @@ class LoggingSetupTest {
 			}
 		}
 		return false;
+	}
+
+	@TempDir
+	Path tempDir;
+
+	private static Config config(String... items) {
+		Properties properties = new Properties();
+		for (int i = 0; i < items.length; i += 2) {
+			properties.setProperty(items[i], items[i + 1]);
+		}
+		return Config.of(properties, Map.of());
+	}
+
+	/** Gives the tests their logging back (logback-test.xml), after a test replaced it. */
+	private static void restoreTestLogging() throws Exception {
+		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+		context.reset();
+		new ContextInitializer(context).autoConfig();
+	}
+
+	private static String read(Path file) throws Exception {
+		return Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : "";
+	}
+
+	@Test
+	@DisplayName("The audit messages go to the audit file only, from the configured level")
+	void auditFile() throws Exception {
+		Path auditFile = this.tempDir.resolve("audit.log");
+		Logger aaa = (Logger) LoggerFactory.getLogger("AAA");
+		try {
+			LoggingSetup.initAuditLogging(config("netshot.log.audit.file", auditFile.toString(), "netshot.log.audit.level", "info"));
+			aaa.info("User admin logged in.");
+			aaa.debug("Debug detail.");
+
+			String audit = read(auditFile);
+			Assertions.assertTrue(audit.contains(" AAA: Audit starting.\n"), audit);
+			Assertions.assertTrue(audit.contains(" AAA: User admin logged in.\n"), audit);
+			Assertions.assertFalse(audit.contains("Debug detail."), audit);
+			Assertions.assertFalse(aaa.isAdditive(), "The audit messages also go to the main log");
+		}
+		finally {
+			restoreTestLogging();
+		}
+	}
+
+	@Test
+	@DisplayName("Without audit level, nothing is audited")
+	void auditOff() throws Exception {
+		Path auditFile = this.tempDir.resolve("audit.log");
+		Logger aaa = (Logger) LoggerFactory.getLogger("AAA");
+		try {
+			LoggingSetup.initAuditLogging(config("netshot.log.audit.file", auditFile.toString()));
+			aaa.error("User admin logged in.");
+			Assertions.assertEquals("", read(auditFile));
+		}
+		finally {
+			restoreTestLogging();
+		}
+	}
+
+	@Test
+	@DisplayName("The main log goes to the configured file, at the configured level, with the class levels of the file")
+	void mainFile() throws Exception {
+		Path logFile = this.tempDir.resolve("netshot.log");
+		try {
+			LoggingSetup.initMainLogging(config("netshot.log.file", logFile.toString(), "netshot.log.level", "info",
+				"netshot.log.class.net.netshot.lab.Verbose", "DEBUG"));
+			LoggerFactory.getLogger("net.netshot.lab.Normal").info("Normal info.");
+			LoggerFactory.getLogger("net.netshot.lab.Normal").debug("Normal debug.");
+			LoggerFactory.getLogger("net.netshot.lab.Verbose").debug("Verbose debug.");
+
+			String log = read(logFile);
+			Assertions.assertTrue(log.contains(" INFO  [main] Normal: Normal info.\n"), log);
+			Assertions.assertFalse(log.contains("Normal debug."), log);
+			Assertions.assertTrue(log.contains("Verbose: Verbose debug.\n"), log);
+			Assertions.assertEquals(Level.DEBUG, ((Logger) LoggerFactory.getLogger("net.netshot.lab.Verbose")).getLevel());
+		}
+		finally {
+			restoreTestLogging();
+		}
+	}
+
+	@Test
+	@DisplayName("A log file which can't be written fails the setup, and the current logging is kept")
+	void mainFileNotWritable() throws Exception {
+		Path notADirectory = Files.writeString(this.tempDir.resolve("file"), "x");
+		Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+		List<Appender<ILoggingEvent>> before = new ArrayList<>();
+		root.iteratorForAppenders().forEachRemaining(before::add);
+		try {
+			IllegalStateException error = Assertions.assertThrows(IllegalStateException.class,
+				() -> LoggingSetup.initMainLogging(config("netshot.log.file", notADirectory.resolve("netshot.log").toString())));
+			Assertions.assertTrue(error.getMessage().startsWith("Unable to log into file " + notADirectory.resolve("netshot.log")), error.getMessage());
+			List<Appender<ILoggingEvent>> after = new ArrayList<>();
+			root.iteratorForAppenders().forEachRemaining(after::add);
+			Assertions.assertEquals(before, after, "The current appenders were replaced");
+		}
+		finally {
+			restoreTestLogging();
+		}
 	}
 }

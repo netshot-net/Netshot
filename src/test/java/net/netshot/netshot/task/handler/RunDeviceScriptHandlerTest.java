@@ -179,6 +179,20 @@ class RunDeviceScriptHandlerTest {
 	}
 
 	@Test
+	@DisplayName("Fails with an authentication error when the device refuses the credentials")
+	void failsOnAuthentication() throws Exception {
+		Device device = SimulatedRouter.persist(CONTAINER, CONTAINER.getMappedPort(22), "wrong");
+
+		long id = this.runner.run(this.script(device, SCRIPT));
+
+		Task result = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, result.status());
+		Assertions.assertTrue(result.log().contains("[WARN] Authentication failed for access 'ssh' using credentials 'Lab SSH'."), result.log());
+		Assertions.assertTrue(result.log().contains("[ERROR] Error while running the script: Couldn't find valid credentials."), result.log());
+		Assertions.assertEquals(List.of(), this.runner.submitted());
+	}
+
+	@Test
 	@DisplayName("Is cancelled when the script is for another driver")
 	void cancelledForAnotherDriver() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);

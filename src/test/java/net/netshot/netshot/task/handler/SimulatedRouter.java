@@ -48,8 +48,20 @@ final class SimulatedRouter {
 	 * @return the saved device
 	 */
 	static Device persist(GenericContainer<?> container, int port) {
+		return persist(container, port, "admin");
+	}
+
+	/**
+	 * Saves a domain, its SSH account and a device pointing at the simulator.
+	 *
+	 * @param container the started Cisco IOS simulator
+	 * @param port the SSH port to use (the mapped port of the container, or another one to fail)
+	 * @param password the password of the SSH account ({@code admin} to log in)
+	 * @return the saved device
+	 */
+	static Device persist(GenericContainer<?> container, int port, String password) {
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
-		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(Secret.local("admin"))
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local(password)).superPassword(Secret.local("admin"))
 			.name("Lab SSH").mgmtDomain(domain).build());
 		return TestDevices.add(Device.create("CiscoIOS12", container.getHost(), domain, "tester").toBuilder()
 			.accesses(List.of(DeviceAccess.of("ssh").toBuilder().address(container.getHost()).port(port).build()))

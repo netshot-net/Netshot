@@ -18,6 +18,9 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -26,6 +29,7 @@ import net.netshot.netshot.testing.TestConfig;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
+import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
@@ -340,6 +344,47 @@ class JsRuleTest {
 		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.result(),
 			"The result is not INVALIDRULE");
 		Assertions.assertEquals(originalName, device.getName(), "The device name was changed");
+	}
+
+	@Test
+	@DisplayName("JS rule can only set the comments, and add or remove tags, with string values")
+	void deviceChangeRestrictions() {
+		Map<String, String> cases = new LinkedHashMap<>();
+		cases.put("device.set('comments', 5);", "The comments should be a string in device.set.");
+		cases.put("device.add('module', { slot: '1' });", "Only a 'tag' can be added to the device from a compliance rule.");
+		cases.put("device.add('tag', 5);", "The tag should be a string in device.add.");
+		cases.put("device.remove('interface', 'Gi0/0');", "Only a 'tag' can be removed from the device in a compliance rule.");
+		cases.put("device.remove('tag', 5);", "The tag should be a string in device.remove.");
+		cases.put("device.reset();", "device.reset is not a function");
+		String originalComments = device.getComments();
+		for (Map.Entry<String, String> entry : cases.entrySet()) {
+			FakeTaskContext context = new FakeTaskContext();
+			JavaScriptRule changing = rule.toBuilder().script("function check(device) { " + entry.getKey() + " return CONFORMING; }").build();
+			CheckResult result = evaluators.evaluate(changing, device, false, context);
+			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.result(), entry.getKey());
+			Assertions.assertTrue(context.getLog().contains(entry.getValue()), entry.getKey() + ": " + context.getLog());
+		}
+		Assertions.assertEquals(originalComments, device.getComments());
+	}
+
+	@Test
+	@DisplayName("Below the rule facade, the read-only device helper refuses the changes other than comments and tags")
+	void readOnlyHelper() throws Exception {
+		String originalName = device.getName();
+		JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), null, device, null, taskContext, true);
+		helper.set("name", "hacked");
+		helper.set("saved", Boolean.TRUE);
+		helper.set("memory", Double.valueOf(1));
+		helper.add("module", null);
+		helper.reset();
+		helper.set("comments", "Allowed");
+		Assertions.assertEquals(originalName, device.getName());
+		Assertions.assertEquals("Allowed", device.getComments());
+		String log = taskContext.getLog();
+		for (String expected : List.of("[ERROR] Setting key name is forbidden", "[ERROR] Setting key saved is forbidden",
+				"[ERROR] Setting key memory is forbidden", "[ERROR] Adding key module is forbidden", "[ERROR] Resetting key is forbidden")) {
+			Assertions.assertTrue(log.contains(expected), expected + " in " + log);
+		}
 	}
 
 	@Test
