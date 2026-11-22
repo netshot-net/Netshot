@@ -129,6 +129,15 @@ public final class JsUtils {
 	public static String jsErrorToMessage(Throwable e) {
 		if (e instanceof PolyglotException pe && pe.isGuestException()) {
 			SourceSection source = pe.getSourceLocation();
+			if (source == null) {
+				// A thrown Error object has no location of its own: take the script frame which threw it
+				for (PolyglotException.StackFrame frame : pe.getPolyglotStackTrace()) {
+					if (frame.isGuestFrame() && frame.getSourceLocation() != null) {
+						source = frame.getSourceLocation();
+						break;
+					}
+				}
+			}
 			if (source != null) {
 				return "%s at %s:%d:%d".formatted(
 					pe.getMessage(),
