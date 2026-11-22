@@ -199,13 +199,14 @@ public final class LoggingSetup {
 				className = className.trim();
 				ch.qos.logback.classic.Logger classLogger = (ch.qos.logback.classic.Logger)
 					LoggerFactory.getLogger(className);
-				try {
-					Level classLevel = Level.valueOf(propertyValue);
+				// Level.valueOf would turn an invalid level into DEBUG
+				Level classLevel = Level.toLevel(propertyValue, null);
+				if (classLevel == null) {
+					log.error("Invalid log level '{}' for class {}, its level is not changed.", propertyValue, className);
+				}
+				else {
 					classLogger.setLevel(classLevel);
 					log.info("Assigning level {} to class {}.", classLevel, className);
-				}
-				catch (Exception e) {
-					log.error("Invalid log level for class {}.", className);
 				}
 			}
 		}

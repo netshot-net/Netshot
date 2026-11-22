@@ -146,12 +146,12 @@ class LoggingSetupTest {
 	}
 
 	@Test
-	@DisplayName("The main log goes to the configured file, at the configured level, with the class levels of the file")
+	@DisplayName("The main log goes to the configured file, at the configured level, with the valid class levels of the file")
 	void mainFile() throws Exception {
 		Path logFile = this.tempDir.resolve("netshot.log");
 		try {
 			LoggingSetup.initMainLogging(config("netshot.log.file", logFile.toString(), "netshot.log.level", "info",
-				"netshot.log.class.net.netshot.lab.Verbose", "DEBUG"));
+				"netshot.log.class.net.netshot.lab.Verbose", "DEBUG", "netshot.log.class.net.netshot.lab.Loud", "LOUD"));
 			LoggerFactory.getLogger("net.netshot.lab.Normal").info("Normal info.");
 			LoggerFactory.getLogger("net.netshot.lab.Normal").debug("Normal debug.");
 			LoggerFactory.getLogger("net.netshot.lab.Verbose").debug("Verbose debug.");
@@ -161,6 +161,8 @@ class LoggingSetupTest {
 			Assertions.assertFalse(log.contains("Normal debug."), log);
 			Assertions.assertTrue(log.contains("Verbose: Verbose debug.\n"), log);
 			Assertions.assertEquals(Level.DEBUG, ((Logger) LoggerFactory.getLogger("net.netshot.lab.Verbose")).getLevel());
+			Assertions.assertTrue(log.contains("Invalid log level 'LOUD' for class net.netshot.lab.Loud, its level is not changed.\n"), log);
+			Assertions.assertNull(((Logger) LoggerFactory.getLogger("net.netshot.lab.Loud")).getLevel());
 		}
 		finally {
 			restoreTestLogging();

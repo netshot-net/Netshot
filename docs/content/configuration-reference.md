@@ -47,7 +47,7 @@ Rules:
 | `netshot.log.maxsize` | Maximum size (MB) of the log file before rotation. Default: `2`. | Yes |
 | `netshot.log.count` | Number of rotated log files to keep. Default: `5`. | Yes |
 | `netshot.log.level` | Global log level: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, `ALL`. Default: `WARN`. | Yes |
-| `netshot.log.class.<ClassName>` | Overrides the log level for a specific class or package logger, e.g. `netshot.log.class.org.apache.sshd = DEBUG`. Only read from the configuration file, not from environment variables. | Yes |
+| `netshot.log.class.<ClassName>` | Overrides the log level for a specific class or package logger, e.g. `netshot.log.class.org.apache.sshd = DEBUG`. Only read from the configuration file, not from environment variables. An invalid level is reported as an error and leaves the logger level unchanged. | Yes |
 | `netshot.log.audit.file` | Enables audit logging (authentication, authorization) to the given file. Also requires `netshot.log.audit.level`. | Yes |
 | `netshot.log.audit.level` | Log level for audit messages. | Yes |
 | `netshot.log.audit.count` | Number of rotated audit log files to keep. Default: `5`. | Yes |
