@@ -16,7 +16,7 @@ https://www.netshot.net
   * Oracle Acme Packet OS
   * Citrix NetScaler SDX
   * ...
-  * Check the [complete list of included drivers](main/resources/drivers)
+  * Check the [complete list of included drivers](src/main/resources/drivers)
 * Network inventory
 * Software compliance
 * Hardware compliance
