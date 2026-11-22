@@ -67,12 +67,19 @@ function startRawIO() {
 	process.stdin.resume();
 	process.stdin.setEncoding('utf8');
 	let buffer = '';
+	// Over Telnet, Enter arrives as CR LF: one end of line, not two
+	let lastCr = false;
 	process.stdin.on('data', (chunk) => {
 		for (const ch of chunk) {
 			if (mode === 'PAGING' && ch === ' ') {
 				printPaged(null);
 				continue;
 			}
+			if (ch === '\n' && lastCr) {
+				lastCr = false;
+				continue;
+			}
+			lastCr = ch === '\r';
 			if (ch === '\r' || ch === '\n') {
 				out('\r\n');
 				const line = buffer;

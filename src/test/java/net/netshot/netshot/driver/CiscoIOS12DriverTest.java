@@ -36,6 +36,7 @@ import org.testcontainers.junit.jupiter.Container;
 
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.domain.Domain;
@@ -67,7 +68,7 @@ class CiscoIOS12DriverTest {
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> CONTAINER = DeviceSimulators.ssh("Cisco_IOS");
+	private static final GenericContainer<?> CONTAINER = DeviceSimulators.ssh("Cisco_IOS").withExposedPorts(22, 23);
 
 	@Test
 	@DisplayName("CiscoIOS12 Snapshot")
@@ -123,6 +124,55 @@ class CiscoIOS12DriverTest {
 		finally {
 			accessManager.disconnectAll();
 		}
+	}
+
+	/**
+	 * Takes a snapshot of the simulated device over Telnet.
+	 *
+	 * @param password the Telnet password
+	 * @return the device
+	 */
+	private DeviceDraft telnetSnapshot(String password) throws Exception {
+		DeviceTelnetAccount credentials = DeviceTelnetAccount.builder().username(Secret.local("admin")).password(Secret.local(password))
+			.superPassword(Secret.local("admin")).name("telnet").build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		DeviceAccess telnetAccess = DeviceAccess.of("telnet").toBuilder()
+			.address(CONTAINER.getHost()).port(CONTAINER.getMappedPort(23)).build();
+		DeviceDraft device = new DeviceDraft(Device.create("CiscoIOS12", null, domain, "test").toBuilder()
+			.accesses(List.of(telnetAccess)).tags(new HashSet<>()).build());
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, this.taskContext, null,
+			new BinaryFileStorage(TestConfig.store()));
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, this.taskContext,
+			Set.of(credentials));
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
+		runMethod.setAccessible(true);
+		try {
+			runMethod.invoke(script, device, accessManager);
+		}
+		finally {
+			accessManager.disconnectAll();
+		}
+		return device;
+	}
+
+	@Test
+	@DisplayName("CiscoIOS12 Snapshot over Telnet (the device prompts for the credentials, then the enable password)")
+	void telnetSnapshot() throws Exception {
+		DeviceDraft device = this.telnetSnapshot("admin");
+
+		Assertions.assertEquals("router1", device.getName());
+		Assertions.assertEquals("15.5(3)S7b", device.getSoftwareVersion());
+		Config config = device.getNewConfig();
+		Assertions.assertNotNull(config, "No configuration: " + ((FakeTaskContext) this.taskContext).getLog());
+		Assertions.assertTrue(((ConfigLongTextAttribute) config.getAttribute("runningConfig")).text().contains("ip ssh version 2"));
+	}
+
+	@Test
+	@DisplayName("CiscoIOS12 Snapshot over Telnet with a wrong password fails at the login")
+	void telnetWrongPassword() throws Exception {
+		Assertions.assertThrows(Exception.class, () -> this.telnetSnapshot("wrong"));
+		String log = ((FakeTaskContext) this.taskContext).getLog();
+		Assertions.assertTrue(log.contains("In mode usernameAgain: Authentication failed - Telnet authentication failure."), log);
 	}
 
 	@Test

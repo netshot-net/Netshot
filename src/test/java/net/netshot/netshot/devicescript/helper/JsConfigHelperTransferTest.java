@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -36,6 +37,8 @@ import org.apache.sshd.scp.server.ScpCommandFactory;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
+import org.apache.sshd.sftp.client.extensions.CopyFileExtension;
+import org.apache.sshd.sftp.client.extensions.openssh.OpenSSHFsyncExtension;
 import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.graalvm.polyglot.proxy.ProxyArray;
 import org.graalvm.polyglot.proxy.ProxyObject;
@@ -451,6 +454,38 @@ class JsConfigHelperTransferTest {
 				List<Path> written = files.filter(f -> f.getFileName().toString().endsWith(".bin")).toList();
 				Assertions.assertEquals(2, written.size(), "Written once each " + written);
 				Assertions.assertEquals(written.get(0).getParent(), written.get(1).getParent(), "Both in the folder of the ticket: " + written);
+			}
+			helper.release();
+		}
+
+		@Test
+		@DisplayName("In an SFTP session, the links, copies, locks, syncs and time changes are refused; the folder can be listed")
+		void sftpOtherOperations() throws Exception {
+			JsConfigHelper helper = helper(null, this.sshServer);
+			ProxyObject ticket = helper.requestUpload("sftp", null);
+			try (ClientSession session = this.login(ticket);
+				SftpClient sftp = SftpClientFactory.instance().createSftpClient(session)) {
+				try (OutputStream out = sftp.write("upload.bin")) {
+					out.write(PAYLOAD);
+				}
+				List<String> names = new ArrayList<>();
+				sftp.readDir(".").forEach(entry -> names.add(entry.getFilename()));
+				Assertions.assertTrue(names.contains("upload.bin"), names.toString());
+
+				Assertions.assertThrows(IOException.class, () -> sftp.link("upload.bin", "hard.bin", false), "hard link");
+				Assertions.assertThrows(IOException.class, () -> sftp.readLink("upload.bin"), "readlink");
+				Assertions.assertThrows(IOException.class,
+					() -> sftp.setStat("upload.bin", new SftpClient.Attributes().modifyTime(1000)), "time change");
+				Assertions.assertThrows(IOException.class,
+					() -> sftp.getExtension(CopyFileExtension.class).copyFile("upload.bin", "copy.bin", false), "copy");
+				try (SftpClient.CloseableHandle handle = sftp.open("upload.bin", SftpClient.OpenMode.Read)) {
+					Assertions.assertThrows(IOException.class, () -> sftp.lock(handle, 0, 1, 0), "lock");
+				}
+				try (SftpClient.CloseableHandle handle = sftp.open("upload.bin", SftpClient.OpenMode.Write)) {
+					Assertions.assertThrows(IOException.class, () -> sftp.getExtension(OpenSSHFsyncExtension.class).fsync(handle), "fsync");
+				}
+				Assertions.assertThrows(IOException.class, () -> sftp.stat("hard.bin"), "Hard link created");
+				Assertions.assertThrows(IOException.class, () -> sftp.stat("copy.bin"), "Copy created");
 			}
 			helper.release();
 		}
