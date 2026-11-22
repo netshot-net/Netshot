@@ -21,7 +21,7 @@ var Info = {
 	name: "HPEArubaOSSwitch",
 	description: "HPE ArubaOS-Switch",
 	author: "Netshot Team",
-	version: "1.8"
+	version: "1.9"
 };
 
 var Config = {
@@ -538,7 +538,8 @@ function analyzeTrap(trap, debug) {
 }
 
 function snmpAutoDiscover(sysObjectID, sysDesc) {
-	if (sysObjectID.startsWith("1.3.6.1.4.1.11.2.3.7.11.") && sysDesc.match(/HP /)) {
+	// Older ProCurve switches report "ProCurve J9279A Switch 2510G-24, revision Y.11.41, ..."
+	if (sysObjectID.startsWith("1.3.6.1.4.1.11.2.3.7.11.") && sysDesc.match(/(HP|ProCurve) /)) {
 		return true;
 	}
 	return false;
