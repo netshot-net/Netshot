@@ -485,6 +485,8 @@ Other methods: `tryNextCredentials()` (manual credential fallback, see above), `
 | `host`, `port` | The address of Netshot as the devices of the domain see it (the server address of the domain, or its cluster override) and the external port of the SSH server (`netshot.sshserver.externalport`). |
 | `hostkeys` | The public host keys of the SSH server, by key algorithm: `{"ssh-ed25519": "AAAAC3Nz...", "ecdsa-sha2-nistp256": "AAAAE2Vj...", "ssh-rsa": "AAAAB3Nz..."}`, one per key type of `netshot.sshserver.hostkeyalgorithms`. |
 
+Over SFTP, the device can list the folder of its upload, set the permissions or the times of its file (ignored: the file stays private to Netshot) and sync it; links, copies, locks, ownership changes and downloads are refused.
+
 To let the device verify Netshot's host key rather than accept any, declare the keys on the device before it connects, in the form its platform expects. Most take a `known_hosts` line, built as:
 
 ```javascript

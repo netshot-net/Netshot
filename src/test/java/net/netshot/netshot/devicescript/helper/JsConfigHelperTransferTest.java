@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -459,7 +460,7 @@ class JsConfigHelperTransferTest {
 		}
 
 		@Test
-		@DisplayName("In an SFTP session, the links, copies, locks, syncs and time changes are refused; the folder can be listed")
+		@DisplayName("In an SFTP session, the links, copies and locks are refused; the folder can be listed, the time changes are ignored, the syncs done")
 		void sftpOtherOperations() throws Exception {
 			JsConfigHelper helper = helper(null, this.sshServer);
 			ProxyObject ticket = helper.requestUpload("sftp", null);
@@ -474,15 +475,16 @@ class JsConfigHelperTransferTest {
 
 				Assertions.assertThrows(IOException.class, () -> sftp.link("upload.bin", "hard.bin", false), "hard link");
 				Assertions.assertThrows(IOException.class, () -> sftp.readLink("upload.bin"), "readlink");
-				Assertions.assertThrows(IOException.class,
-					() -> sftp.setStat("upload.bin", new SftpClient.Attributes().modifyTime(1000)), "time change");
+				FileTime before = sftp.stat("upload.bin").getModifyTime();
+				sftp.setStat("upload.bin", new SftpClient.Attributes().modifyTime(1000));
+				Assertions.assertEquals(before, sftp.stat("upload.bin").getModifyTime(), "Time changed");
 				Assertions.assertThrows(IOException.class,
 					() -> sftp.getExtension(CopyFileExtension.class).copyFile("upload.bin", "copy.bin", false), "copy");
 				try (SftpClient.CloseableHandle handle = sftp.open("upload.bin", SftpClient.OpenMode.Read)) {
 					Assertions.assertThrows(IOException.class, () -> sftp.lock(handle, 0, 1, 0), "lock");
 				}
 				try (SftpClient.CloseableHandle handle = sftp.open("upload.bin", SftpClient.OpenMode.Write)) {
-					Assertions.assertThrows(IOException.class, () -> sftp.getExtension(OpenSSHFsyncExtension.class).fsync(handle), "fsync");
+					sftp.getExtension(OpenSSHFsyncExtension.class).fsync(handle);
 				}
 				Assertions.assertThrows(IOException.class, () -> sftp.stat("hard.bin"), "Hard link created");
 				Assertions.assertThrows(IOException.class, () -> sftp.stat("copy.bin"), "Copy created");

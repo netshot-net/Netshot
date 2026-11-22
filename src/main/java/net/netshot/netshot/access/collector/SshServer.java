@@ -25,6 +25,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.channels.Channel;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +81,7 @@ import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionContext;
 import org.apache.sshd.common.session.SessionListener;
 import org.apache.sshd.common.util.buffer.Buffer;
+import org.apache.sshd.common.util.io.IoUtils;
 import org.apache.sshd.core.CoreModuleProperties;
 import org.apache.sshd.scp.common.ScpSourceStreamResolver;
 import org.apache.sshd.scp.common.ScpTargetStreamResolver;
@@ -969,9 +971,19 @@ public final class SshServer implements Service {
 			log.info("Ignored SFTP permission change ({}) of {} in session {}", perms, file, subsystem.getSession());
 		}
 
+		/**
+		 * Ignores the file times given by the device (e.g. {@code sftp put -p}, or {@code scp -p} over SFTP), which
+		 * would otherwise report the whole upload as failed: the time of the received file doesn't matter. Any other
+		 * attribute is refused.
+		 */
 		@Override
 		public void setFileAttribute(SftpSubsystemProxy subsystem, Path file, String view, String attribute, Object value,
 				LinkOption... options) throws IOException {
+			if ("basic".equals(view) && (IoUtils.LASTMOD_TIME_VIEW_ATTR.equals(attribute) || IoUtils.LASTACC_TIME_VIEW_ATTR.equals(attribute)
+					|| IoUtils.CREATE_TIME_VIEW_ATTR.equals(attribute))) {
+				log.info("Ignored SFTP time change ({} = {}) of {} in session {}", attribute, value, file, subsystem.getSession());
+				return;
+			}
 			throwForbiddenException(subsystem, "setFileAttribute");
 		}
 
@@ -987,10 +999,16 @@ public final class SshServer implements Service {
 			throwForbiddenException(subsystem, "setGroupOwner");
 		}
 
+		/**
+		 * Writes the data of a file opened by the device to the disk ({@code fsync@openssh.com}), as some clients do
+		 * before closing the file.
+		 */
 		@Override
 		public void syncFileData(SftpSubsystemProxy subsystem, FileHandle fileHandle, Path file, String handle,
 				Channel channel) throws IOException {
-			throwForbiddenException(subsystem, "syncFileData");
+			if (channel instanceof FileChannel fileChannel) {
+				fileChannel.force(true);
+			}
 		}
 
 		@Override
