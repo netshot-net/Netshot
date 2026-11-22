@@ -18,244 +18,244 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>diagnostic.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>diagnostic.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>diagnostic.enabled</code>.
-     */
-    public void setEnabled(Boolean value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.enabled</code>.
+	 */
+	public void setEnabled(Boolean value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.enabled</code>.
-     */
-    public Boolean getEnabled() {
-        return (Boolean) get(1);
-    }
+	/**
+	 * Getter for <code>diagnostic.enabled</code>.
+	 */
+	public Boolean getEnabled() {
+		return (Boolean) get(1);
+	}
 
-    /**
-     * Setter for <code>diagnostic.name</code>.
-     */
-    public void setName(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.name</code>.
+	 */
+	public void setName(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.name</code>.
-     */
-    public String getName() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>diagnostic.name</code>.
+	 */
+	public String getName() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>diagnostic.result_type</code>.
-     */
-    public void setResultType(String value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.result_type</code>.
+	 */
+	public void setResultType(String value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.result_type</code>.
-     */
-    public String getResultType() {
-        return (String) get(3);
-    }
+	/**
+	 * Getter for <code>diagnostic.result_type</code>.
+	 */
+	public String getResultType() {
+		return (String) get(3);
+	}
 
-    /**
-     * Setter for <code>diagnostic.target_group</code>.
-     */
-    public void setTargetGroup(Long value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.target_group</code>.
+	 */
+	public void setTargetGroup(Long value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.target_group</code>.
-     */
-    public Long getTargetGroup() {
-        return (Long) get(4);
-    }
+	/**
+	 * Getter for <code>diagnostic.target_group</code>.
+	 */
+	public Long getTargetGroup() {
+		return (Long) get(4);
+	}
 
-    /**
-     * Setter for <code>diagnostic.type</code>.
-     */
-    public void setType(String value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.type</code>.
+	 */
+	public void setType(String value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.type</code>.
-     */
-    public String getType() {
-        return (String) get(5);
-    }
+	/**
+	 * Getter for <code>diagnostic.type</code>.
+	 */
+	public String getType() {
+		return (String) get(5);
+	}
 
-    /**
-     * Setter for <code>diagnostic.script</code>.
-     */
-    public void setScript(String value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.script</code>.
+	 */
+	public void setScript(String value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.script</code>.
-     */
-    public String getScript() {
-        return (String) get(6);
-    }
+	/**
+	 * Getter for <code>diagnostic.script</code>.
+	 */
+	public String getScript() {
+		return (String) get(6);
+	}
 
-    /**
-     * Setter for <code>diagnostic.cli_mode</code>.
-     */
-    public void setCliMode(String value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.cli_mode</code>.
+	 */
+	public void setCliMode(String value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.cli_mode</code>.
-     */
-    public String getCliMode() {
-        return (String) get(7);
-    }
+	/**
+	 * Getter for <code>diagnostic.cli_mode</code>.
+	 */
+	public String getCliMode() {
+		return (String) get(7);
+	}
 
-    /**
-     * Setter for <code>diagnostic.command</code>.
-     */
-    public void setCommand(String value) {
-        set(8, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.command</code>.
+	 */
+	public void setCommand(String value) {
+		set(8, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.command</code>.
-     */
-    public String getCommand() {
-        return (String) get(8);
-    }
+	/**
+	 * Getter for <code>diagnostic.command</code>.
+	 */
+	public String getCommand() {
+		return (String) get(8);
+	}
 
-    /**
-     * Setter for <code>diagnostic.device_driver</code>.
-     */
-    public void setDeviceDriver(String value) {
-        set(9, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.device_driver</code>.
+	 */
+	public void setDeviceDriver(String value) {
+		set(9, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.device_driver</code>.
-     */
-    public String getDeviceDriver() {
-        return (String) get(9);
-    }
+	/**
+	 * Getter for <code>diagnostic.device_driver</code>.
+	 */
+	public String getDeviceDriver() {
+		return (String) get(9);
+	}
 
-    /**
-     * Setter for <code>diagnostic.modifier_pattern</code>.
-     */
-    public void setModifierPattern(String value) {
-        set(10, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.modifier_pattern</code>.
+	 */
+	public void setModifierPattern(String value) {
+		set(10, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.modifier_pattern</code>.
-     */
-    public String getModifierPattern() {
-        return (String) get(10);
-    }
+	/**
+	 * Getter for <code>diagnostic.modifier_pattern</code>.
+	 */
+	public String getModifierPattern() {
+		return (String) get(10);
+	}
 
-    /**
-     * Setter for <code>diagnostic.modifier_replacement</code>.
-     */
-    public void setModifierReplacement(String value) {
-        set(11, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.modifier_replacement</code>.
+	 */
+	public void setModifierReplacement(String value) {
+		set(11, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.modifier_replacement</code>.
-     */
-    public String getModifierReplacement() {
-        return (String) get(11);
-    }
+	/**
+	 * Getter for <code>diagnostic.modifier_replacement</code>.
+	 */
+	public String getModifierReplacement() {
+		return (String) get(11);
+	}
 
-    /**
-     * Setter for <code>diagnostic.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(12, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(12, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(12);
-    }
+	/**
+	 * Getter for <code>diagnostic.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(12);
+	}
 
-    /**
-     * Setter for <code>diagnostic.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(13, value);
-    }
+	/**
+	 * Setter for <code>diagnostic.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(13, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(13);
-    }
+	/**
+	 * Getter for <code>diagnostic.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(13);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DiagnosticRecord
-     */
-    public DiagnosticRecord() {
-        super(Diagnostic.DIAGNOSTIC);
-    }
+	/**
+	 * Create a detached DiagnosticRecord
+	 */
+	public DiagnosticRecord() {
+		super(Diagnostic.DIAGNOSTIC);
+	}
 
-    /**
-     * Create a detached, initialised DiagnosticRecord
-     */
-    public DiagnosticRecord(Long id, Boolean enabled, String name, String resultType, Long targetGroup, String type, String script, String cliMode, String command, String deviceDriver, String modifierPattern, String modifierReplacement, Integer version, Instant changeDate) {
-        super(Diagnostic.DIAGNOSTIC);
+	/**
+	 * Create a detached, initialised DiagnosticRecord
+	 */
+	public DiagnosticRecord(Long id, Boolean enabled, String name, String resultType, Long targetGroup, String type, String script, String cliMode, String command, String deviceDriver, String modifierPattern, String modifierReplacement, Integer version, Instant changeDate) {
+		super(Diagnostic.DIAGNOSTIC);
 
-        setId(id);
-        setEnabled(enabled);
-        setName(name);
-        setResultType(resultType);
-        setTargetGroup(targetGroup);
-        setType(type);
-        setScript(script);
-        setCliMode(cliMode);
-        setCommand(command);
-        setDeviceDriver(deviceDriver);
-        setModifierPattern(modifierPattern);
-        setModifierReplacement(modifierReplacement);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setEnabled(enabled);
+		setName(name);
+		setResultType(resultType);
+		setTargetGroup(targetGroup);
+		setType(type);
+		setScript(script);
+		setCliMode(cliMode);
+		setCommand(command);
+		setDeviceDriver(deviceDriver);
+		setModifierPattern(modifierPattern);
+		setModifierReplacement(modifierReplacement);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

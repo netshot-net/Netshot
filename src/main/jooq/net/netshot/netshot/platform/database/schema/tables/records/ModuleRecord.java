@@ -18,154 +18,154 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class ModuleRecord extends UpdatableRecordImpl<ModuleRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>module.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>module.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>module.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>module.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>module.part_number</code>.
-     */
-    public void setPartNumber(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>module.part_number</code>.
+	 */
+	public void setPartNumber(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>module.part_number</code>.
-     */
-    public String getPartNumber() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>module.part_number</code>.
+	 */
+	public String getPartNumber() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>module.serial_number</code>.
-     */
-    public void setSerialNumber(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>module.serial_number</code>.
+	 */
+	public void setSerialNumber(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>module.serial_number</code>.
-     */
-    public String getSerialNumber() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>module.serial_number</code>.
+	 */
+	public String getSerialNumber() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>module.slot</code>.
-     */
-    public void setSlot(String value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>module.slot</code>.
+	 */
+	public void setSlot(String value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>module.slot</code>.
-     */
-    public String getSlot() {
-        return (String) get(3);
-    }
+	/**
+	 * Getter for <code>module.slot</code>.
+	 */
+	public String getSlot() {
+		return (String) get(3);
+	}
 
-    /**
-     * Setter for <code>module.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>module.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>module.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(4);
-    }
+	/**
+	 * Getter for <code>module.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(4);
+	}
 
-    /**
-     * Setter for <code>module.first_seen_date</code>.
-     */
-    public void setFirstSeenDate(Instant value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>module.first_seen_date</code>.
+	 */
+	public void setFirstSeenDate(Instant value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>module.first_seen_date</code>.
-     */
-    public Instant getFirstSeenDate() {
-        return (Instant) get(5);
-    }
+	/**
+	 * Getter for <code>module.first_seen_date</code>.
+	 */
+	public Instant getFirstSeenDate() {
+		return (Instant) get(5);
+	}
 
-    /**
-     * Setter for <code>module.last_seen_date</code>.
-     */
-    public void setLastSeenDate(Instant value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>module.last_seen_date</code>.
+	 */
+	public void setLastSeenDate(Instant value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>module.last_seen_date</code>.
-     */
-    public Instant getLastSeenDate() {
-        return (Instant) get(6);
-    }
+	/**
+	 * Getter for <code>module.last_seen_date</code>.
+	 */
+	public Instant getLastSeenDate() {
+		return (Instant) get(6);
+	}
 
-    /**
-     * Setter for <code>module.removed</code>.
-     */
-    public void setRemoved(Boolean value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>module.removed</code>.
+	 */
+	public void setRemoved(Boolean value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>module.removed</code>.
-     */
-    public Boolean getRemoved() {
-        return (Boolean) get(7);
-    }
+	/**
+	 * Getter for <code>module.removed</code>.
+	 */
+	public Boolean getRemoved() {
+		return (Boolean) get(7);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached ModuleRecord
-     */
-    public ModuleRecord() {
-        super(Module.MODULE);
-    }
+	/**
+	 * Create a detached ModuleRecord
+	 */
+	public ModuleRecord() {
+		super(Module.MODULE);
+	}
 
-    /**
-     * Create a detached, initialised ModuleRecord
-     */
-    public ModuleRecord(Long id, String partNumber, String serialNumber, String slot, Long device, Instant firstSeenDate, Instant lastSeenDate, Boolean removed) {
-        super(Module.MODULE);
+	/**
+	 * Create a detached, initialised ModuleRecord
+	 */
+	public ModuleRecord(Long id, String partNumber, String serialNumber, String slot, Long device, Instant firstSeenDate, Instant lastSeenDate, Boolean removed) {
+		super(Module.MODULE);
 
-        setId(id);
-        setPartNumber(partNumber);
-        setSerialNumber(serialNumber);
-        setSlot(slot);
-        setDevice(device);
-        setFirstSeenDate(firstSeenDate);
-        setLastSeenDate(lastSeenDate);
-        setRemoved(removed);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setPartNumber(partNumber);
+		setSerialNumber(serialNumber);
+		setSlot(slot);
+		setDevice(device);
+		setFirstSeenDate(firstSeenDate);
+		setLastSeenDate(lastSeenDate);
+		setRemoved(removed);
+		resetTouchedOnNotNull();
+	}
 }

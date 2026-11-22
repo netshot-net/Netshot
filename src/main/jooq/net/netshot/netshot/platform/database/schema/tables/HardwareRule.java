@@ -47,295 +47,295 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class HardwareRule extends TableImpl<HardwareRuleRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>hardware_rule</code>
-     */
-    public static final HardwareRule HARDWARE_RULE = new HardwareRule();
+	/**
+	 * The reference instance of <code>hardware_rule</code>
+	 */
+	public static final HardwareRule HARDWARE_RULE = new HardwareRule();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<HardwareRuleRecord> getRecordType() {
-        return HardwareRuleRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<HardwareRuleRecord> getRecordType() {
+		return HardwareRuleRecord.class;
+	}
 
-    /**
-     * The column <code>hardware_rule.id</code>.
-     */
-    public final TableField<HardwareRuleRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
+	/**
+	 * The column <code>hardware_rule.id</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
 
-    /**
-     * The column <code>hardware_rule.driver</code>.
-     */
-    public final TableField<HardwareRuleRecord, String> DRIVER = createField(DSL.name("driver"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>hardware_rule.driver</code>.
+	 */
+	public final TableField<HardwareRuleRecord, String> DRIVER = createField(DSL.name("driver"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>hardware_rule.end_of_life</code>.
-     */
-    public final TableField<HardwareRuleRecord, Instant> END_OF_LIFE = createField(DSL.name("end_of_life"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>hardware_rule.end_of_life</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Instant> END_OF_LIFE = createField(DSL.name("end_of_life"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    /**
-     * The column <code>hardware_rule.end_of_sale</code>.
-     */
-    public final TableField<HardwareRuleRecord, Instant> END_OF_SALE = createField(DSL.name("end_of_sale"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>hardware_rule.end_of_sale</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Instant> END_OF_SALE = createField(DSL.name("end_of_sale"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    /**
-     * The column <code>hardware_rule.family</code>.
-     */
-    public final TableField<HardwareRuleRecord, String> FAMILY = createField(DSL.name("family"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>hardware_rule.family</code>.
+	 */
+	public final TableField<HardwareRuleRecord, String> FAMILY = createField(DSL.name("family"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>hardware_rule.family_reg_exp</code>.
-     */
-    public final TableField<HardwareRuleRecord, Boolean> FAMILY_REG_EXP = createField(DSL.name("family_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
+	/**
+	 * The column <code>hardware_rule.family_reg_exp</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Boolean> FAMILY_REG_EXP = createField(DSL.name("family_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
 
-    /**
-     * The column <code>hardware_rule.part_number</code>.
-     */
-    public final TableField<HardwareRuleRecord, String> PART_NUMBER = createField(DSL.name("part_number"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>hardware_rule.part_number</code>.
+	 */
+	public final TableField<HardwareRuleRecord, String> PART_NUMBER = createField(DSL.name("part_number"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>hardware_rule.part_number_reg_exp</code>.
-     */
-    public final TableField<HardwareRuleRecord, Boolean> PART_NUMBER_REG_EXP = createField(DSL.name("part_number_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
+	/**
+	 * The column <code>hardware_rule.part_number_reg_exp</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Boolean> PART_NUMBER_REG_EXP = createField(DSL.name("part_number_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
 
-    /**
-     * The column <code>hardware_rule.target_group</code>.
-     */
-    public final TableField<HardwareRuleRecord, Long> TARGET_GROUP = createField(DSL.name("target_group"), SQLDataType.BIGINT, this, "");
+	/**
+	 * The column <code>hardware_rule.target_group</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Long> TARGET_GROUP = createField(DSL.name("target_group"), SQLDataType.BIGINT, this, "");
 
-    /**
-     * The column <code>hardware_rule.version</code>.
-     */
-    public final TableField<HardwareRuleRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+	/**
+	 * The column <code>hardware_rule.version</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
 
-    /**
-     * The column <code>hardware_rule.change_date</code>.
-     */
-    public final TableField<HardwareRuleRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>hardware_rule.change_date</code>.
+	 */
+	public final TableField<HardwareRuleRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    private HardwareRule(Name alias, Table<HardwareRuleRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private HardwareRule(Name alias, Table<HardwareRuleRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private HardwareRule(Name alias, Table<HardwareRuleRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private HardwareRule(Name alias, Table<HardwareRuleRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>hardware_rule</code> table reference
-     */
-    public HardwareRule(String alias) {
-        this(DSL.name(alias), HARDWARE_RULE);
-    }
+	/**
+	 * Create an aliased <code>hardware_rule</code> table reference
+	 */
+	public HardwareRule(String alias) {
+		this(DSL.name(alias), HARDWARE_RULE);
+	}
 
-    /**
-     * Create an aliased <code>hardware_rule</code> table reference
-     */
-    public HardwareRule(Name alias) {
-        this(alias, HARDWARE_RULE);
-    }
+	/**
+	 * Create an aliased <code>hardware_rule</code> table reference
+	 */
+	public HardwareRule(Name alias) {
+		this(alias, HARDWARE_RULE);
+	}
 
-    /**
-     * Create a <code>hardware_rule</code> table reference
-     */
-    public HardwareRule() {
-        this(DSL.name("hardware_rule"), null);
-    }
+	/**
+	 * Create a <code>hardware_rule</code> table reference
+	 */
+	public HardwareRule() {
+		this(DSL.name("hardware_rule"), null);
+	}
 
-    public <O extends Record> HardwareRule(Table<O> path, ForeignKey<O, HardwareRuleRecord> childPath, InverseForeignKey<O, HardwareRuleRecord> parentPath) {
-        super(path, childPath, parentPath, HARDWARE_RULE);
-    }
+	public <O extends Record> HardwareRule(Table<O> path, ForeignKey<O, HardwareRuleRecord> childPath, InverseForeignKey<O, HardwareRuleRecord> parentPath) {
+		super(path, childPath, parentPath, HARDWARE_RULE);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class HardwareRulePath extends HardwareRule implements Path<HardwareRuleRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class HardwareRulePath extends HardwareRule implements Path<HardwareRuleRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> HardwareRulePath(Table<O> path, ForeignKey<O, HardwareRuleRecord> childPath, InverseForeignKey<O, HardwareRuleRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private HardwareRulePath(Name alias, Table<HardwareRuleRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> HardwareRulePath(Table<O> path, ForeignKey<O, HardwareRuleRecord> childPath, InverseForeignKey<O, HardwareRuleRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private HardwareRulePath(Name alias, Table<HardwareRuleRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public HardwareRulePath as(String alias) {
-            return new HardwareRulePath(DSL.name(alias), this);
-        }
+		@Override
+		public HardwareRulePath as(String alias) {
+			return new HardwareRulePath(DSL.name(alias), this);
+		}
 
-        @Override
-        public HardwareRulePath as(Name alias) {
-            return new HardwareRulePath(alias, this);
-        }
+		@Override
+		public HardwareRulePath as(Name alias) {
+			return new HardwareRulePath(alias, this);
+		}
 
-        @Override
-        public HardwareRulePath as(Table<?> alias) {
-            return new HardwareRulePath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public HardwareRulePath as(Table<?> alias) {
+			return new HardwareRulePath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_HARDWARE_RULE_TARGET_GROUP);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_HARDWARE_RULE_TARGET_GROUP);
+	}
 
-    @Override
-    public Identity<HardwareRuleRecord, Long> getIdentity() {
-        return (Identity<HardwareRuleRecord, Long>) super.getIdentity();
-    }
+	@Override
+	public Identity<HardwareRuleRecord, Long> getIdentity() {
+		return (Identity<HardwareRuleRecord, Long>) super.getIdentity();
+	}
 
-    @Override
-    public UniqueKey<HardwareRuleRecord> getPrimaryKey() {
-        return Keys.HARDWARE_RULE_PKEY;
-    }
+	@Override
+	public UniqueKey<HardwareRuleRecord> getPrimaryKey() {
+		return Keys.HARDWARE_RULE_PKEY;
+	}
 
-    @Override
-    public List<ForeignKey<HardwareRuleRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.HARDWARE_RULE__FK_HARDWARE_RULE_TARGET_GROUP);
-    }
+	@Override
+	public List<ForeignKey<HardwareRuleRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.HARDWARE_RULE__FK_HARDWARE_RULE_TARGET_GROUP);
+	}
 
-    private transient DeviceGroupPath _deviceGroup;
+	private transient DeviceGroupPath _deviceGroup;
 
-    /**
-     * Get the implicit join path to the <code>device_group</code> table.
-     */
-    public DeviceGroupPath deviceGroup() {
-        if (_deviceGroup == null)
-            _deviceGroup = new DeviceGroupPath(this, Keys.HARDWARE_RULE__FK_HARDWARE_RULE_TARGET_GROUP, null);
+	/**
+	 * Get the implicit join path to the <code>device_group</code> table.
+	 */
+	public DeviceGroupPath deviceGroup() {
+		if (_deviceGroup == null)
+			_deviceGroup = new DeviceGroupPath(this, Keys.HARDWARE_RULE__FK_HARDWARE_RULE_TARGET_GROUP, null);
 
-        return _deviceGroup;
-    }
+		return _deviceGroup;
+	}
 
-    @Override
-    public HardwareRule as(String alias) {
-        return new HardwareRule(DSL.name(alias), this);
-    }
+	@Override
+	public HardwareRule as(String alias) {
+		return new HardwareRule(DSL.name(alias), this);
+	}
 
-    @Override
-    public HardwareRule as(Name alias) {
-        return new HardwareRule(alias, this);
-    }
+	@Override
+	public HardwareRule as(Name alias) {
+		return new HardwareRule(alias, this);
+	}
 
-    @Override
-    public HardwareRule as(Table<?> alias) {
-        return new HardwareRule(alias.getQualifiedName(), this);
-    }
+	@Override
+	public HardwareRule as(Table<?> alias) {
+		return new HardwareRule(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public HardwareRule rename(String name) {
-        return new HardwareRule(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public HardwareRule rename(String name) {
+		return new HardwareRule(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public HardwareRule rename(Name name) {
-        return new HardwareRule(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public HardwareRule rename(Name name) {
+		return new HardwareRule(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public HardwareRule rename(Table<?> name) {
-        return new HardwareRule(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public HardwareRule rename(Table<?> name) {
+		return new HardwareRule(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public HardwareRule where(Condition condition) {
-        return new HardwareRule(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public HardwareRule where(Condition condition) {
+		return new HardwareRule(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public HardwareRule where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public HardwareRule where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public HardwareRule where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public HardwareRule where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public HardwareRule where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public HardwareRule where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public HardwareRule where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public HardwareRule where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public HardwareRule where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public HardwareRule where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public HardwareRule where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public HardwareRule where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public HardwareRule where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public HardwareRule where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public HardwareRule whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public HardwareRule whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public HardwareRule whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public HardwareRule whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

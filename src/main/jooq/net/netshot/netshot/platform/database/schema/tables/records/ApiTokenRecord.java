@@ -18,109 +18,109 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class ApiTokenRecord extends UpdatableRecordImpl<ApiTokenRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>api_token.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>api_token.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>api_token.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>api_token.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>api_token.hashed_token</code>.
-     */
-    public void setHashedToken(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>api_token.hashed_token</code>.
+	 */
+	public void setHashedToken(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>api_token.hashed_token</code>.
-     */
-    public String getHashedToken() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>api_token.hashed_token</code>.
+	 */
+	public String getHashedToken() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>api_token.level</code>.
-     */
-    public void setLevel(Integer value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>api_token.level</code>.
+	 */
+	public void setLevel(Integer value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>api_token.level</code>.
-     */
-    public Integer getLevel() {
-        return (Integer) get(2);
-    }
+	/**
+	 * Getter for <code>api_token.level</code>.
+	 */
+	public Integer getLevel() {
+		return (Integer) get(2);
+	}
 
-    /**
-     * Setter for <code>api_token.description</code>.
-     */
-    public void setDescription(String value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>api_token.description</code>.
+	 */
+	public void setDescription(String value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>api_token.description</code>.
-     */
-    public String getDescription() {
-        return (String) get(3);
-    }
+	/**
+	 * Getter for <code>api_token.description</code>.
+	 */
+	public String getDescription() {
+		return (String) get(3);
+	}
 
-    /**
-     * Setter for <code>api_token.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>api_token.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>api_token.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(4);
-    }
+	/**
+	 * Getter for <code>api_token.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(4);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached ApiTokenRecord
-     */
-    public ApiTokenRecord() {
-        super(ApiToken.API_TOKEN);
-    }
+	/**
+	 * Create a detached ApiTokenRecord
+	 */
+	public ApiTokenRecord() {
+		super(ApiToken.API_TOKEN);
+	}
 
-    /**
-     * Create a detached, initialised ApiTokenRecord
-     */
-    public ApiTokenRecord(Long id, String hashedToken, Integer level, String description, Instant changeDate) {
-        super(ApiToken.API_TOKEN);
+	/**
+	 * Create a detached, initialised ApiTokenRecord
+	 */
+	public ApiTokenRecord(Long id, String hashedToken, Integer level, String description, Instant changeDate) {
+		super(ApiToken.API_TOKEN);
 
-        setId(id);
-        setHashedToken(hashedToken);
-        setLevel(level);
-        setDescription(description);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setHashedToken(hashedToken);
+		setLevel(level);
+		setDescription(description);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

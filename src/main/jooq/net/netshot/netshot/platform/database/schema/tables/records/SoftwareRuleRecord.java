@@ -18,229 +18,229 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class SoftwareRuleRecord extends UpdatableRecordImpl<SoftwareRuleRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>software_rule.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>software_rule.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>software_rule.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>software_rule.driver</code>.
-     */
-    public void setDriver(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>software_rule.driver</code>.
+	 */
+	public void setDriver(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.driver</code>.
-     */
-    public String getDriver() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>software_rule.driver</code>.
+	 */
+	public String getDriver() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>software_rule.family</code>.
-     */
-    public void setFamily(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>software_rule.family</code>.
+	 */
+	public void setFamily(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.family</code>.
-     */
-    public String getFamily() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>software_rule.family</code>.
+	 */
+	public String getFamily() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>software_rule.family_reg_exp</code>.
-     */
-    public void setFamilyRegExp(Boolean value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>software_rule.family_reg_exp</code>.
+	 */
+	public void setFamilyRegExp(Boolean value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.family_reg_exp</code>.
-     */
-    public Boolean getFamilyRegExp() {
-        return (Boolean) get(3);
-    }
+	/**
+	 * Getter for <code>software_rule.family_reg_exp</code>.
+	 */
+	public Boolean getFamilyRegExp() {
+		return (Boolean) get(3);
+	}
 
-    /**
-     * Setter for <code>software_rule.level</code>.
-     */
-    public void setLevel(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>software_rule.level</code>.
+	 */
+	public void setLevel(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.level</code>.
-     */
-    public String getLevel() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>software_rule.level</code>.
+	 */
+	public String getLevel() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>software_rule.priority</code>.
-     */
-    public void setPriority(Double value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>software_rule.priority</code>.
+	 */
+	public void setPriority(Double value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.priority</code>.
-     */
-    public Double getPriority() {
-        return (Double) get(5);
-    }
+	/**
+	 * Getter for <code>software_rule.priority</code>.
+	 */
+	public Double getPriority() {
+		return (Double) get(5);
+	}
 
-    /**
-     * Setter for <code>software_rule.software_version</code>.
-     */
-    public void setSoftwareVersion(String value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>software_rule.software_version</code>.
+	 */
+	public void setSoftwareVersion(String value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.software_version</code>.
-     */
-    public String getSoftwareVersion() {
-        return (String) get(6);
-    }
+	/**
+	 * Getter for <code>software_rule.software_version</code>.
+	 */
+	public String getSoftwareVersion() {
+		return (String) get(6);
+	}
 
-    /**
-     * Setter for <code>software_rule.version_reg_exp</code>.
-     */
-    public void setVersionRegExp(Boolean value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>software_rule.version_reg_exp</code>.
+	 */
+	public void setVersionRegExp(Boolean value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.version_reg_exp</code>.
-     */
-    public Boolean getVersionRegExp() {
-        return (Boolean) get(7);
-    }
+	/**
+	 * Getter for <code>software_rule.version_reg_exp</code>.
+	 */
+	public Boolean getVersionRegExp() {
+		return (Boolean) get(7);
+	}
 
-    /**
-     * Setter for <code>software_rule.target_group</code>.
-     */
-    public void setTargetGroup(Long value) {
-        set(8, value);
-    }
+	/**
+	 * Setter for <code>software_rule.target_group</code>.
+	 */
+	public void setTargetGroup(Long value) {
+		set(8, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.target_group</code>.
-     */
-    public Long getTargetGroup() {
-        return (Long) get(8);
-    }
+	/**
+	 * Getter for <code>software_rule.target_group</code>.
+	 */
+	public Long getTargetGroup() {
+		return (Long) get(8);
+	}
 
-    /**
-     * Setter for <code>software_rule.part_number</code>.
-     */
-    public void setPartNumber(String value) {
-        set(9, value);
-    }
+	/**
+	 * Setter for <code>software_rule.part_number</code>.
+	 */
+	public void setPartNumber(String value) {
+		set(9, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.part_number</code>.
-     */
-    public String getPartNumber() {
-        return (String) get(9);
-    }
+	/**
+	 * Getter for <code>software_rule.part_number</code>.
+	 */
+	public String getPartNumber() {
+		return (String) get(9);
+	}
 
-    /**
-     * Setter for <code>software_rule.part_number_reg_exp</code>.
-     */
-    public void setPartNumberRegExp(Boolean value) {
-        set(10, value);
-    }
+	/**
+	 * Setter for <code>software_rule.part_number_reg_exp</code>.
+	 */
+	public void setPartNumberRegExp(Boolean value) {
+		set(10, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.part_number_reg_exp</code>.
-     */
-    public Boolean getPartNumberRegExp() {
-        return (Boolean) get(10);
-    }
+	/**
+	 * Getter for <code>software_rule.part_number_reg_exp</code>.
+	 */
+	public Boolean getPartNumberRegExp() {
+		return (Boolean) get(10);
+	}
 
-    /**
-     * Setter for <code>software_rule.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(11, value);
-    }
+	/**
+	 * Setter for <code>software_rule.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(11, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(11);
-    }
+	/**
+	 * Getter for <code>software_rule.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(11);
+	}
 
-    /**
-     * Setter for <code>software_rule.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(12, value);
-    }
+	/**
+	 * Setter for <code>software_rule.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(12, value);
+	}
 
-    /**
-     * Getter for <code>software_rule.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(12);
-    }
+	/**
+	 * Getter for <code>software_rule.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(12);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached SoftwareRuleRecord
-     */
-    public SoftwareRuleRecord() {
-        super(SoftwareRule.SOFTWARE_RULE);
-    }
+	/**
+	 * Create a detached SoftwareRuleRecord
+	 */
+	public SoftwareRuleRecord() {
+		super(SoftwareRule.SOFTWARE_RULE);
+	}
 
-    /**
-     * Create a detached, initialised SoftwareRuleRecord
-     */
-    public SoftwareRuleRecord(Long id, String driver, String family, Boolean familyRegExp, String level, Double priority, String softwareVersion, Boolean versionRegExp, Long targetGroup, String partNumber, Boolean partNumberRegExp, Integer version, Instant changeDate) {
-        super(SoftwareRule.SOFTWARE_RULE);
+	/**
+	 * Create a detached, initialised SoftwareRuleRecord
+	 */
+	public SoftwareRuleRecord(Long id, String driver, String family, Boolean familyRegExp, String level, Double priority, String softwareVersion, Boolean versionRegExp, Long targetGroup, String partNumber, Boolean partNumberRegExp, Integer version, Instant changeDate) {
+		super(SoftwareRule.SOFTWARE_RULE);
 
-        setId(id);
-        setDriver(driver);
-        setFamily(family);
-        setFamilyRegExp(familyRegExp);
-        setLevel(level);
-        setPriority(priority);
-        setSoftwareVersion(softwareVersion);
-        setVersionRegExp(versionRegExp);
-        setTargetGroup(targetGroup);
-        setPartNumber(partNumber);
-        setPartNumberRegExp(partNumberRegExp);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setDriver(driver);
+		setFamily(family);
+		setFamilyRegExp(familyRegExp);
+		setLevel(level);
+		setPriority(priority);
+		setSoftwareVersion(softwareVersion);
+		setVersionRegExp(versionRegExp);
+		setTargetGroup(targetGroup);
+		setPartNumber(partNumber);
+		setPartNumberRegExp(partNumberRegExp);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

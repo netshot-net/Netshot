@@ -16,64 +16,64 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class PolicyTargetGroupsRecord extends UpdatableRecordImpl<PolicyTargetGroupsRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>policy_target_groups.policy</code>.
-     */
-    public void setPolicy(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>policy_target_groups.policy</code>.
+	 */
+	public void setPolicy(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>policy_target_groups.policy</code>.
-     */
-    public Long getPolicy() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>policy_target_groups.policy</code>.
+	 */
+	public Long getPolicy() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>policy_target_groups.target_groups</code>.
-     */
-    public void setTargetGroups(Long value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>policy_target_groups.target_groups</code>.
+	 */
+	public void setTargetGroups(Long value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>policy_target_groups.target_groups</code>.
-     */
-    public Long getTargetGroups() {
-        return (Long) get(1);
-    }
+	/**
+	 * Getter for <code>policy_target_groups.target_groups</code>.
+	 */
+	public Long getTargetGroups() {
+		return (Long) get(1);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record2<Long, Long> key() {
-        return (Record2) super.key();
-    }
+	@Override
+	public Record2<Long, Long> key() {
+		return (Record2) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached PolicyTargetGroupsRecord
-     */
-    public PolicyTargetGroupsRecord() {
-        super(PolicyTargetGroups.POLICY_TARGET_GROUPS);
-    }
+	/**
+	 * Create a detached PolicyTargetGroupsRecord
+	 */
+	public PolicyTargetGroupsRecord() {
+		super(PolicyTargetGroups.POLICY_TARGET_GROUPS);
+	}
 
-    /**
-     * Create a detached, initialised PolicyTargetGroupsRecord
-     */
-    public PolicyTargetGroupsRecord(Long policy, Long targetGroups) {
-        super(PolicyTargetGroups.POLICY_TARGET_GROUPS);
+	/**
+	 * Create a detached, initialised PolicyTargetGroupsRecord
+	 */
+	public PolicyTargetGroupsRecord(Long policy, Long targetGroups) {
+		super(PolicyTargetGroups.POLICY_TARGET_GROUPS);
 
-        setPolicy(policy);
-        setTargetGroups(targetGroups);
-        resetTouchedOnNotNull();
-    }
+		setPolicy(policy);
+		setTargetGroups(targetGroups);
+		resetTouchedOnNotNull();
+	}
 }

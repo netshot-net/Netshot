@@ -16,154 +16,154 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceAttributeRecord extends UpdatableRecordImpl<DeviceAttributeRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>device_attribute.type</code>.
-     */
-    public void setType(String value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.type</code>.
+	 */
+	public void setType(String value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.type</code>.
-     */
-    public String getType() {
-        return (String) get(0);
-    }
+	/**
+	 * Getter for <code>device_attribute.type</code>.
+	 */
+	public String getType() {
+		return (String) get(0);
+	}
 
-    /**
-     * Setter for <code>device_attribute.id</code>.
-     */
-    public void setId(Long value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.id</code>.
+	 */
+	public void setId(Long value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(1);
-    }
+	/**
+	 * Getter for <code>device_attribute.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(1);
+	}
 
-    /**
-     * Setter for <code>device_attribute.name</code>.
-     */
-    public void setName(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.name</code>.
+	 */
+	public void setName(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.name</code>.
-     */
-    public String getName() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>device_attribute.name</code>.
+	 */
+	public String getName() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>device_attribute.number</code>.
-     */
-    public void setNumber(Double value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.number</code>.
+	 */
+	public void setNumber(Double value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.number</code>.
-     */
-    public Double getNumber() {
-        return (Double) get(3);
-    }
+	/**
+	 * Getter for <code>device_attribute.number</code>.
+	 */
+	public Double getNumber() {
+		return (Double) get(3);
+	}
 
-    /**
-     * Setter for <code>device_attribute.text</code>.
-     */
-    public void setText(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.text</code>.
+	 */
+	public void setText(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.text</code>.
-     */
-    public String getText() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>device_attribute.text</code>.
+	 */
+	public String getText() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>device_attribute.assumption</code>.
-     */
-    public void setAssumption(Boolean value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.assumption</code>.
+	 */
+	public void setAssumption(Boolean value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.assumption</code>.
-     */
-    public Boolean getAssumption() {
-        return (Boolean) get(5);
-    }
+	/**
+	 * Getter for <code>device_attribute.assumption</code>.
+	 */
+	public Boolean getAssumption() {
+		return (Boolean) get(5);
+	}
 
-    /**
-     * Setter for <code>device_attribute.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(6);
-    }
+	/**
+	 * Getter for <code>device_attribute.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(6);
+	}
 
-    /**
-     * Setter for <code>device_attribute.long_text</code>.
-     */
-    public void setLongText(Long value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>device_attribute.long_text</code>.
+	 */
+	public void setLongText(Long value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>device_attribute.long_text</code>.
-     */
-    public Long getLongText() {
-        return (Long) get(7);
-    }
+	/**
+	 * Getter for <code>device_attribute.long_text</code>.
+	 */
+	public Long getLongText() {
+		return (Long) get(7);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DeviceAttributeRecord
-     */
-    public DeviceAttributeRecord() {
-        super(DeviceAttribute.DEVICE_ATTRIBUTE);
-    }
+	/**
+	 * Create a detached DeviceAttributeRecord
+	 */
+	public DeviceAttributeRecord() {
+		super(DeviceAttribute.DEVICE_ATTRIBUTE);
+	}
 
-    /**
-     * Create a detached, initialised DeviceAttributeRecord
-     */
-    public DeviceAttributeRecord(String type, Long id, String name, Double number, String text, Boolean assumption, Long device, Long longText) {
-        super(DeviceAttribute.DEVICE_ATTRIBUTE);
+	/**
+	 * Create a detached, initialised DeviceAttributeRecord
+	 */
+	public DeviceAttributeRecord(String type, Long id, String name, Double number, String text, Boolean assumption, Long device, Long longText) {
+		super(DeviceAttribute.DEVICE_ATTRIBUTE);
 
-        setType(type);
-        setId(id);
-        setName(name);
-        setNumber(number);
-        setText(text);
-        setAssumption(assumption);
-        setDevice(device);
-        setLongText(longText);
-        resetTouchedOnNotNull();
-    }
+		setType(type);
+		setId(id);
+		setName(name);
+		setNumber(number);
+		setText(text);
+		setAssumption(assumption);
+		setDevice(device);
+		setLongText(longText);
+		resetTouchedOnNotNull();
+	}
 }

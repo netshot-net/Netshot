@@ -41,240 +41,240 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DebugLog extends TableImpl<DebugLogRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>debug_log</code>
-     */
-    public static final DebugLog DEBUG_LOG = new DebugLog();
+	/**
+	 * The reference instance of <code>debug_log</code>
+	 */
+	public static final DebugLog DEBUG_LOG = new DebugLog();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<DebugLogRecord> getRecordType() {
-        return DebugLogRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<DebugLogRecord> getRecordType() {
+		return DebugLogRecord.class;
+	}
 
-    /**
-     * The column <code>debug_log.id</code>.
-     */
-    public final TableField<DebugLogRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
+	/**
+	 * The column <code>debug_log.id</code>.
+	 */
+	public final TableField<DebugLogRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
 
-    /**
-     * The column <code>debug_log.text</code>.
-     */
-    public final TableField<DebugLogRecord, String> TEXT = createField(DSL.name("text"), SQLDataType.CLOB, this, "");
+	/**
+	 * The column <code>debug_log.text</code>.
+	 */
+	public final TableField<DebugLogRecord, String> TEXT = createField(DSL.name("text"), SQLDataType.CLOB, this, "");
 
-    private DebugLog(Name alias, Table<DebugLogRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private DebugLog(Name alias, Table<DebugLogRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private DebugLog(Name alias, Table<DebugLogRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private DebugLog(Name alias, Table<DebugLogRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>debug_log</code> table reference
-     */
-    public DebugLog(String alias) {
-        this(DSL.name(alias), DEBUG_LOG);
-    }
+	/**
+	 * Create an aliased <code>debug_log</code> table reference
+	 */
+	public DebugLog(String alias) {
+		this(DSL.name(alias), DEBUG_LOG);
+	}
 
-    /**
-     * Create an aliased <code>debug_log</code> table reference
-     */
-    public DebugLog(Name alias) {
-        this(alias, DEBUG_LOG);
-    }
+	/**
+	 * Create an aliased <code>debug_log</code> table reference
+	 */
+	public DebugLog(Name alias) {
+		this(alias, DEBUG_LOG);
+	}
 
-    /**
-     * Create a <code>debug_log</code> table reference
-     */
-    public DebugLog() {
-        this(DSL.name("debug_log"), null);
-    }
+	/**
+	 * Create a <code>debug_log</code> table reference
+	 */
+	public DebugLog() {
+		this(DSL.name("debug_log"), null);
+	}
 
-    public <O extends Record> DebugLog(Table<O> path, ForeignKey<O, DebugLogRecord> childPath, InverseForeignKey<O, DebugLogRecord> parentPath) {
-        super(path, childPath, parentPath, DEBUG_LOG);
-    }
+	public <O extends Record> DebugLog(Table<O> path, ForeignKey<O, DebugLogRecord> childPath, InverseForeignKey<O, DebugLogRecord> parentPath) {
+		super(path, childPath, parentPath, DEBUG_LOG);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class DebugLogPath extends DebugLog implements Path<DebugLogRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class DebugLogPath extends DebugLog implements Path<DebugLogRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> DebugLogPath(Table<O> path, ForeignKey<O, DebugLogRecord> childPath, InverseForeignKey<O, DebugLogRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private DebugLogPath(Name alias, Table<DebugLogRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> DebugLogPath(Table<O> path, ForeignKey<O, DebugLogRecord> childPath, InverseForeignKey<O, DebugLogRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private DebugLogPath(Name alias, Table<DebugLogRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public DebugLogPath as(String alias) {
-            return new DebugLogPath(DSL.name(alias), this);
-        }
+		@Override
+		public DebugLogPath as(String alias) {
+			return new DebugLogPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public DebugLogPath as(Name alias) {
-            return new DebugLogPath(alias, this);
-        }
+		@Override
+		public DebugLogPath as(Name alias) {
+			return new DebugLogPath(alias, this);
+		}
 
-        @Override
-        public DebugLogPath as(Table<?> alias) {
-            return new DebugLogPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public DebugLogPath as(Table<?> alias) {
+			return new DebugLogPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public Identity<DebugLogRecord, Long> getIdentity() {
-        return (Identity<DebugLogRecord, Long>) super.getIdentity();
-    }
+	@Override
+	public Identity<DebugLogRecord, Long> getIdentity() {
+		return (Identity<DebugLogRecord, Long>) super.getIdentity();
+	}
 
-    @Override
-    public UniqueKey<DebugLogRecord> getPrimaryKey() {
-        return Keys.DEBUG_LOG_PKEY;
-    }
+	@Override
+	public UniqueKey<DebugLogRecord> getPrimaryKey() {
+		return Keys.DEBUG_LOG_PKEY;
+	}
 
-    private transient TaskPath _task;
+	private transient TaskPath _task;
 
-    /**
-     * Get the implicit to-many join path to the <code>task</code> table
-     */
-    public TaskPath task() {
-        if (_task == null)
-            _task = new TaskPath(this, null, Keys.TASK__FK_TASK_DEBUG_LOG.getInverseKey());
+	/**
+	 * Get the implicit to-many join path to the <code>task</code> table
+	 */
+	public TaskPath task() {
+		if (_task == null)
+			_task = new TaskPath(this, null, Keys.TASK__FK_TASK_DEBUG_LOG.getInverseKey());
 
-        return _task;
-    }
+		return _task;
+	}
 
-    @Override
-    public DebugLog as(String alias) {
-        return new DebugLog(DSL.name(alias), this);
-    }
+	@Override
+	public DebugLog as(String alias) {
+		return new DebugLog(DSL.name(alias), this);
+	}
 
-    @Override
-    public DebugLog as(Name alias) {
-        return new DebugLog(alias, this);
-    }
+	@Override
+	public DebugLog as(Name alias) {
+		return new DebugLog(alias, this);
+	}
 
-    @Override
-    public DebugLog as(Table<?> alias) {
-        return new DebugLog(alias.getQualifiedName(), this);
-    }
+	@Override
+	public DebugLog as(Table<?> alias) {
+		return new DebugLog(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DebugLog rename(String name) {
-        return new DebugLog(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DebugLog rename(String name) {
+		return new DebugLog(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DebugLog rename(Name name) {
-        return new DebugLog(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DebugLog rename(Name name) {
+		return new DebugLog(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DebugLog rename(Table<?> name) {
-        return new DebugLog(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DebugLog rename(Table<?> name) {
+		return new DebugLog(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DebugLog where(Condition condition) {
-        return new DebugLog(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DebugLog where(Condition condition) {
+		return new DebugLog(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DebugLog where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DebugLog where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DebugLog where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DebugLog where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DebugLog where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DebugLog where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DebugLog where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DebugLog where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DebugLog where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DebugLog where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DebugLog where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DebugLog where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DebugLog where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DebugLog where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DebugLog whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DebugLog whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DebugLog whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DebugLog whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

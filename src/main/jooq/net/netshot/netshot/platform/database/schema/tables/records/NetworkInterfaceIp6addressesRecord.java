@@ -18,94 +18,94 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class NetworkInterfaceIp6addressesRecord extends UpdatableRecordImpl<NetworkInterfaceIp6addressesRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>network_interface_ip6addresses.network_interface</code>.
-     */
-    public void setNetworkInterface(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>network_interface_ip6addresses.network_interface</code>.
+	 */
+	public void setNetworkInterface(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>network_interface_ip6addresses.network_interface</code>.
-     */
-    public Long getNetworkInterface() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>network_interface_ip6addresses.network_interface</code>.
+	 */
+	public Long getNetworkInterface() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>network_interface_ip6addresses.address_usage</code>.
-     */
-    public void setAddressUsage(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>network_interface_ip6addresses.address_usage</code>.
+	 */
+	public void setAddressUsage(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>network_interface_ip6addresses.address_usage</code>.
-     */
-    public String getAddressUsage() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>network_interface_ip6addresses.address_usage</code>.
+	 */
+	public String getAddressUsage() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>network_interface_ip6addresses.prefix_length</code>.
-     */
-    public void setPrefixLength(Integer value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>network_interface_ip6addresses.prefix_length</code>.
+	 */
+	public void setPrefixLength(Integer value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>network_interface_ip6addresses.prefix_length</code>.
-     */
-    public Integer getPrefixLength() {
-        return (Integer) get(2);
-    }
+	/**
+	 * Getter for <code>network_interface_ip6addresses.prefix_length</code>.
+	 */
+	public Integer getPrefixLength() {
+		return (Integer) get(2);
+	}
 
-    /**
-     * Setter for <code>network_interface_ip6addresses.address</code>.
-     */
-    public void setAddress(InetAddress value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>network_interface_ip6addresses.address</code>.
+	 */
+	public void setAddress(InetAddress value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>network_interface_ip6addresses.address</code>.
-     */
-    public InetAddress getAddress() {
-        return (InetAddress) get(3);
-    }
+	/**
+	 * Getter for <code>network_interface_ip6addresses.address</code>.
+	 */
+	public InetAddress getAddress() {
+		return (InetAddress) get(3);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record3<Long, InetAddress, Integer> key() {
-        return (Record3) super.key();
-    }
+	@Override
+	public Record3<Long, InetAddress, Integer> key() {
+		return (Record3) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached NetworkInterfaceIp6addressesRecord
-     */
-    public NetworkInterfaceIp6addressesRecord() {
-        super(NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES);
-    }
+	/**
+	 * Create a detached NetworkInterfaceIp6addressesRecord
+	 */
+	public NetworkInterfaceIp6addressesRecord() {
+		super(NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES);
+	}
 
-    /**
-     * Create a detached, initialised NetworkInterfaceIp6addressesRecord
-     */
-    public NetworkInterfaceIp6addressesRecord(Long networkInterface, String addressUsage, Integer prefixLength, InetAddress address) {
-        super(NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES);
+	/**
+	 * Create a detached, initialised NetworkInterfaceIp6addressesRecord
+	 */
+	public NetworkInterfaceIp6addressesRecord(Long networkInterface, String addressUsage, Integer prefixLength, InetAddress address) {
+		super(NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES);
 
-        setNetworkInterface(networkInterface);
-        setAddressUsage(addressUsage);
-        setPrefixLength(prefixLength);
-        setAddress(address);
-        resetTouchedOnNotNull();
-    }
+		setNetworkInterface(networkInterface);
+		setAddressUsage(addressUsage);
+		setPrefixLength(prefixLength);
+		setAddress(address);
+		resetTouchedOnNotNull();
+	}
 }

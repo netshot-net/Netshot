@@ -18,79 +18,79 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class ExemptionRecord extends UpdatableRecordImpl<ExemptionRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>exemption.expiration_date</code>.
-     */
-    public void setExpirationDate(Instant value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>exemption.expiration_date</code>.
+	 */
+	public void setExpirationDate(Instant value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>exemption.expiration_date</code>.
-     */
-    public Instant getExpirationDate() {
-        return (Instant) get(0);
-    }
+	/**
+	 * Getter for <code>exemption.expiration_date</code>.
+	 */
+	public Instant getExpirationDate() {
+		return (Instant) get(0);
+	}
 
-    /**
-     * Setter for <code>exemption.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>exemption.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>exemption.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(1);
-    }
+	/**
+	 * Getter for <code>exemption.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(1);
+	}
 
-    /**
-     * Setter for <code>exemption.rule</code>.
-     */
-    public void setRule(Long value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>exemption.rule</code>.
+	 */
+	public void setRule(Long value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>exemption.rule</code>.
-     */
-    public Long getRule() {
-        return (Long) get(2);
-    }
+	/**
+	 * Getter for <code>exemption.rule</code>.
+	 */
+	public Long getRule() {
+		return (Long) get(2);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record2<Long, Long> key() {
-        return (Record2) super.key();
-    }
+	@Override
+	public Record2<Long, Long> key() {
+		return (Record2) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached ExemptionRecord
-     */
-    public ExemptionRecord() {
-        super(Exemption.EXEMPTION);
-    }
+	/**
+	 * Create a detached ExemptionRecord
+	 */
+	public ExemptionRecord() {
+		super(Exemption.EXEMPTION);
+	}
 
-    /**
-     * Create a detached, initialised ExemptionRecord
-     */
-    public ExemptionRecord(Instant expirationDate, Long device, Long rule) {
-        super(Exemption.EXEMPTION);
+	/**
+	 * Create a detached, initialised ExemptionRecord
+	 */
+	public ExemptionRecord(Instant expirationDate, Long device, Long rule) {
+		super(Exemption.EXEMPTION);
 
-        setExpirationDate(expirationDate);
-        setDevice(device);
-        setRule(rule);
-        resetTouchedOnNotNull();
-    }
+		setExpirationDate(expirationDate);
+		setDevice(device);
+		setRule(rule);
+		resetTouchedOnNotNull();
+	}
 }

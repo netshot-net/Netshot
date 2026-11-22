@@ -15,55 +15,55 @@ import org.jooq.impl.TableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceVirtualDevicesRecord extends TableRecordImpl<DeviceVirtualDevicesRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>device_virtual_devices.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>device_virtual_devices.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>device_virtual_devices.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>device_virtual_devices.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>device_virtual_devices.virtual_devices</code>.
-     */
-    public void setVirtualDevices(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>device_virtual_devices.virtual_devices</code>.
+	 */
+	public void setVirtualDevices(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>device_virtual_devices.virtual_devices</code>.
-     */
-    public String getVirtualDevices() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>device_virtual_devices.virtual_devices</code>.
+	 */
+	public String getVirtualDevices() {
+		return (String) get(1);
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DeviceVirtualDevicesRecord
-     */
-    public DeviceVirtualDevicesRecord() {
-        super(DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES);
-    }
+	/**
+	 * Create a detached DeviceVirtualDevicesRecord
+	 */
+	public DeviceVirtualDevicesRecord() {
+		super(DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES);
+	}
 
-    /**
-     * Create a detached, initialised DeviceVirtualDevicesRecord
-     */
-    public DeviceVirtualDevicesRecord(Long device, String virtualDevices) {
-        super(DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES);
+	/**
+	 * Create a detached, initialised DeviceVirtualDevicesRecord
+	 */
+	public DeviceVirtualDevicesRecord(Long device, String virtualDevices) {
+		super(DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES);
 
-        setDevice(device);
-        setVirtualDevices(virtualDevices);
-        resetTouchedOnNotNull();
-    }
+		setDevice(device);
+		setVirtualDevices(virtualDevices);
+		resetTouchedOnNotNull();
+	}
 }

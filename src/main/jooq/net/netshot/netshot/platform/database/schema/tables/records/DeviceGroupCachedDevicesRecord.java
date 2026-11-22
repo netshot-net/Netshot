@@ -16,79 +16,79 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceGroupCachedDevicesRecord extends UpdatableRecordImpl<DeviceGroupCachedDevicesRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>device_group_cached_devices.owner_groups</code>.
-     */
-    public void setOwnerGroups(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>device_group_cached_devices.owner_groups</code>.
+	 */
+	public void setOwnerGroups(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>device_group_cached_devices.owner_groups</code>.
-     */
-    public Long getOwnerGroups() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>device_group_cached_devices.owner_groups</code>.
+	 */
+	public Long getOwnerGroups() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>device_group_cached_devices.cached_devices</code>.
-     */
-    public void setCachedDevices(Long value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>device_group_cached_devices.cached_devices</code>.
+	 */
+	public void setCachedDevices(Long value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>device_group_cached_devices.cached_devices</code>.
-     */
-    public Long getCachedDevices() {
-        return (Long) get(1);
-    }
+	/**
+	 * Getter for <code>device_group_cached_devices.cached_devices</code>.
+	 */
+	public Long getCachedDevices() {
+		return (Long) get(1);
+	}
 
-    /**
-     * Setter for <code>device_group_cached_devices.list_position</code>.
-     */
-    public void setListPosition(Integer value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>device_group_cached_devices.list_position</code>.
+	 */
+	public void setListPosition(Integer value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>device_group_cached_devices.list_position</code>.
-     */
-    public Integer getListPosition() {
-        return (Integer) get(2);
-    }
+	/**
+	 * Getter for <code>device_group_cached_devices.list_position</code>.
+	 */
+	public Integer getListPosition() {
+		return (Integer) get(2);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record2<Long, Long> key() {
-        return (Record2) super.key();
-    }
+	@Override
+	public Record2<Long, Long> key() {
+		return (Record2) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DeviceGroupCachedDevicesRecord
-     */
-    public DeviceGroupCachedDevicesRecord() {
-        super(DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES);
-    }
+	/**
+	 * Create a detached DeviceGroupCachedDevicesRecord
+	 */
+	public DeviceGroupCachedDevicesRecord() {
+		super(DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES);
+	}
 
-    /**
-     * Create a detached, initialised DeviceGroupCachedDevicesRecord
-     */
-    public DeviceGroupCachedDevicesRecord(Long ownerGroups, Long cachedDevices, Integer listPosition) {
-        super(DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES);
+	/**
+	 * Create a detached, initialised DeviceGroupCachedDevicesRecord
+	 */
+	public DeviceGroupCachedDevicesRecord(Long ownerGroups, Long cachedDevices, Integer listPosition) {
+		super(DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES);
 
-        setOwnerGroups(ownerGroups);
-        setCachedDevices(cachedDevices);
-        setListPosition(listPosition);
-        resetTouchedOnNotNull();
-    }
+		setOwnerGroups(ownerGroups);
+		setCachedDevices(cachedDevices);
+		setListPosition(listPosition);
+		resetTouchedOnNotNull();
+	}
 }

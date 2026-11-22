@@ -18,124 +18,124 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class ConfigRecord extends UpdatableRecordImpl<ConfigRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>config.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>config.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>config.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>config.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>config.author</code>.
-     */
-    public void setAuthor(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>config.author</code>.
+	 */
+	public void setAuthor(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>config.author</code>.
-     */
-    public String getAuthor() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>config.author</code>.
+	 */
+	public String getAuthor() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>config.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>config.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>config.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(2);
-    }
+	/**
+	 * Getter for <code>config.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(2);
+	}
 
-    /**
-     * Setter for <code>config.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>config.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>config.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(3);
-    }
+	/**
+	 * Getter for <code>config.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(3);
+	}
 
-    /**
-     * Setter for <code>config.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>config.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>config.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(4);
-    }
+	/**
+	 * Getter for <code>config.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(4);
+	}
 
-    /**
-     * Setter for <code>config.custom_hash</code>.
-     */
-    public void setCustomHash(String value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>config.custom_hash</code>.
+	 */
+	public void setCustomHash(String value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>config.custom_hash</code>.
-     */
-    public String getCustomHash() {
-        return (String) get(5);
-    }
+	/**
+	 * Getter for <code>config.custom_hash</code>.
+	 */
+	public String getCustomHash() {
+		return (String) get(5);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached ConfigRecord
-     */
-    public ConfigRecord() {
-        super(Config.CONFIG);
-    }
+	/**
+	 * Create a detached ConfigRecord
+	 */
+	public ConfigRecord() {
+		super(Config.CONFIG);
+	}
 
-    /**
-     * Create a detached, initialised ConfigRecord
-     */
-    public ConfigRecord(Long id, String author, Instant changeDate, Integer version, Long device, String customHash) {
-        super(Config.CONFIG);
+	/**
+	 * Create a detached, initialised ConfigRecord
+	 */
+	public ConfigRecord(Long id, String author, Instant changeDate, Integer version, Long device, String customHash) {
+		super(Config.CONFIG);
 
-        setId(id);
-        setAuthor(author);
-        setChangeDate(changeDate);
-        setVersion(version);
-        setDevice(device);
-        setCustomHash(customHash);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setAuthor(author);
+		setChangeDate(changeDate);
+		setVersion(version);
+		setDevice(device);
+		setCustomHash(customHash);
+		resetTouchedOnNotNull();
+	}
 }

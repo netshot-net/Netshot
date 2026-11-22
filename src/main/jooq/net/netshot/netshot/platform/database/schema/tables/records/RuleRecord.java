@@ -18,289 +18,289 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class RuleRecord extends UpdatableRecordImpl<RuleRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>rule.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>rule.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>rule.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>rule.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>rule.enabled</code>.
-     */
-    public void setEnabled(Boolean value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>rule.enabled</code>.
+	 */
+	public void setEnabled(Boolean value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>rule.enabled</code>.
-     */
-    public Boolean getEnabled() {
-        return (Boolean) get(1);
-    }
+	/**
+	 * Getter for <code>rule.enabled</code>.
+	 */
+	public Boolean getEnabled() {
+		return (Boolean) get(1);
+	}
 
-    /**
-     * Setter for <code>rule.name</code>.
-     */
-    public void setName(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>rule.name</code>.
+	 */
+	public void setName(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>rule.name</code>.
-     */
-    public String getName() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>rule.name</code>.
+	 */
+	public String getName() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>rule.policy</code>.
-     */
-    public void setPolicy(Long value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>rule.policy</code>.
+	 */
+	public void setPolicy(Long value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>rule.policy</code>.
-     */
-    public Long getPolicy() {
-        return (Long) get(3);
-    }
+	/**
+	 * Getter for <code>rule.policy</code>.
+	 */
+	public Long getPolicy() {
+		return (Long) get(3);
+	}
 
-    /**
-     * Setter for <code>rule.type</code>.
-     */
-    public void setType(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>rule.type</code>.
+	 */
+	public void setType(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>rule.type</code>.
-     */
-    public String getType() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>rule.type</code>.
+	 */
+	public String getType() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>rule.script</code>.
-     */
-    public void setScript(String value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>rule.script</code>.
+	 */
+	public void setScript(String value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>rule.script</code>.
-     */
-    public String getScript() {
-        return (String) get(5);
-    }
+	/**
+	 * Getter for <code>rule.script</code>.
+	 */
+	public String getScript() {
+		return (String) get(5);
+	}
 
-    /**
-     * Setter for <code>rule.any_block</code>.
-     */
-    public void setAnyBlock(Boolean value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>rule.any_block</code>.
+	 */
+	public void setAnyBlock(Boolean value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>rule.any_block</code>.
-     */
-    public Boolean getAnyBlock() {
-        return (Boolean) get(6);
-    }
+	/**
+	 * Getter for <code>rule.any_block</code>.
+	 */
+	public Boolean getAnyBlock() {
+		return (Boolean) get(6);
+	}
 
-    /**
-     * Setter for <code>rule.context</code>.
-     */
-    public void setContext(String value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>rule.context</code>.
+	 */
+	public void setContext(String value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>rule.context</code>.
-     */
-    public String getContext() {
-        return (String) get(7);
-    }
+	/**
+	 * Getter for <code>rule.context</code>.
+	 */
+	public String getContext() {
+		return (String) get(7);
+	}
 
-    /**
-     * Setter for <code>rule.device_driver</code>.
-     */
-    public void setDeviceDriver(String value) {
-        set(8, value);
-    }
+	/**
+	 * Setter for <code>rule.device_driver</code>.
+	 */
+	public void setDeviceDriver(String value) {
+		set(8, value);
+	}
 
-    /**
-     * Getter for <code>rule.device_driver</code>.
-     */
-    public String getDeviceDriver() {
-        return (String) get(8);
-    }
+	/**
+	 * Getter for <code>rule.device_driver</code>.
+	 */
+	public String getDeviceDriver() {
+		return (String) get(8);
+	}
 
-    /**
-     * Setter for <code>rule.field</code>.
-     */
-    public void setField(String value) {
-        set(9, value);
-    }
+	/**
+	 * Setter for <code>rule.field</code>.
+	 */
+	public void setField(String value) {
+		set(9, value);
+	}
 
-    /**
-     * Getter for <code>rule.field</code>.
-     */
-    public String getField() {
-        return (String) get(9);
-    }
+	/**
+	 * Getter for <code>rule.field</code>.
+	 */
+	public String getField() {
+		return (String) get(9);
+	}
 
-    /**
-     * Setter for <code>rule.invert</code>.
-     */
-    public void setInvert(Boolean value) {
-        set(10, value);
-    }
+	/**
+	 * Setter for <code>rule.invert</code>.
+	 */
+	public void setInvert(Boolean value) {
+		set(10, value);
+	}
 
-    /**
-     * Getter for <code>rule.invert</code>.
-     */
-    public Boolean getInvert() {
-        return (Boolean) get(10);
-    }
+	/**
+	 * Getter for <code>rule.invert</code>.
+	 */
+	public Boolean getInvert() {
+		return (Boolean) get(10);
+	}
 
-    /**
-     * Setter for <code>rule.match_all</code>.
-     */
-    public void setMatchAll(Boolean value) {
-        set(11, value);
-    }
+	/**
+	 * Setter for <code>rule.match_all</code>.
+	 */
+	public void setMatchAll(Boolean value) {
+		set(11, value);
+	}
 
-    /**
-     * Getter for <code>rule.match_all</code>.
-     */
-    public Boolean getMatchAll() {
-        return (Boolean) get(11);
-    }
+	/**
+	 * Getter for <code>rule.match_all</code>.
+	 */
+	public Boolean getMatchAll() {
+		return (Boolean) get(11);
+	}
 
-    /**
-     * Setter for <code>rule.normalize</code>.
-     */
-    public void setNormalize(Boolean value) {
-        set(12, value);
-    }
+	/**
+	 * Setter for <code>rule.normalize</code>.
+	 */
+	public void setNormalize(Boolean value) {
+		set(12, value);
+	}
 
-    /**
-     * Getter for <code>rule.normalize</code>.
-     */
-    public Boolean getNormalize() {
-        return (Boolean) get(12);
-    }
+	/**
+	 * Getter for <code>rule.normalize</code>.
+	 */
+	public Boolean getNormalize() {
+		return (Boolean) get(12);
+	}
 
-    /**
-     * Setter for <code>rule.reg_exp</code>.
-     */
-    public void setRegExp(Boolean value) {
-        set(13, value);
-    }
+	/**
+	 * Setter for <code>rule.reg_exp</code>.
+	 */
+	public void setRegExp(Boolean value) {
+		set(13, value);
+	}
 
-    /**
-     * Getter for <code>rule.reg_exp</code>.
-     */
-    public Boolean getRegExp() {
-        return (Boolean) get(13);
-    }
+	/**
+	 * Getter for <code>rule.reg_exp</code>.
+	 */
+	public Boolean getRegExp() {
+		return (Boolean) get(13);
+	}
 
-    /**
-     * Setter for <code>rule.text</code>.
-     */
-    public void setText(String value) {
-        set(14, value);
-    }
+	/**
+	 * Setter for <code>rule.text</code>.
+	 */
+	public void setText(String value) {
+		set(14, value);
+	}
 
-    /**
-     * Getter for <code>rule.text</code>.
-     */
-    public String getText() {
-        return (String) get(14);
-    }
+	/**
+	 * Getter for <code>rule.text</code>.
+	 */
+	public String getText() {
+		return (String) get(14);
+	}
 
-    /**
-     * Setter for <code>rule.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(15, value);
-    }
+	/**
+	 * Setter for <code>rule.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(15, value);
+	}
 
-    /**
-     * Getter for <code>rule.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(15);
-    }
+	/**
+	 * Getter for <code>rule.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(15);
+	}
 
-    /**
-     * Setter for <code>rule.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(16, value);
-    }
+	/**
+	 * Setter for <code>rule.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(16, value);
+	}
 
-    /**
-     * Getter for <code>rule.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(16);
-    }
+	/**
+	 * Getter for <code>rule.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(16);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached RuleRecord
-     */
-    public RuleRecord() {
-        super(Rule.RULE);
-    }
+	/**
+	 * Create a detached RuleRecord
+	 */
+	public RuleRecord() {
+		super(Rule.RULE);
+	}
 
-    /**
-     * Create a detached, initialised RuleRecord
-     */
-    public RuleRecord(Long id, Boolean enabled, String name, Long policy, String type, String script, Boolean anyBlock, String context, String deviceDriver, String field, Boolean invert, Boolean matchAll, Boolean normalize, Boolean regExp, String text, Integer version, Instant changeDate) {
-        super(Rule.RULE);
+	/**
+	 * Create a detached, initialised RuleRecord
+	 */
+	public RuleRecord(Long id, Boolean enabled, String name, Long policy, String type, String script, Boolean anyBlock, String context, String deviceDriver, String field, Boolean invert, Boolean matchAll, Boolean normalize, Boolean regExp, String text, Integer version, Instant changeDate) {
+		super(Rule.RULE);
 
-        setId(id);
-        setEnabled(enabled);
-        setName(name);
-        setPolicy(policy);
-        setType(type);
-        setScript(script);
-        setAnyBlock(anyBlock);
-        setContext(context);
-        setDeviceDriver(deviceDriver);
-        setField(field);
-        setInvert(invert);
-        setMatchAll(matchAll);
-        setNormalize(normalize);
-        setRegExp(regExp);
-        setText(text);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setEnabled(enabled);
+		setName(name);
+		setPolicy(policy);
+		setType(type);
+		setScript(script);
+		setAnyBlock(anyBlock);
+		setContext(context);
+		setDeviceDriver(deviceDriver);
+		setField(field);
+		setInvert(invert);
+		setMatchAll(matchAll);
+		setNormalize(normalize);
+		setRegExp(regExp);
+		setText(text);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

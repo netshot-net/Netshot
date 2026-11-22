@@ -18,184 +18,184 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class HookRecord extends UpdatableRecordImpl<HookRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>hook.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>hook.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>hook.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>hook.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>hook.enabled</code>.
-     */
-    public void setEnabled(Boolean value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>hook.enabled</code>.
+	 */
+	public void setEnabled(Boolean value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>hook.enabled</code>.
-     */
-    public Boolean getEnabled() {
-        return (Boolean) get(1);
-    }
+	/**
+	 * Getter for <code>hook.enabled</code>.
+	 */
+	public Boolean getEnabled() {
+		return (Boolean) get(1);
+	}
 
-    /**
-     * Setter for <code>hook.name</code>.
-     */
-    public void setName(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>hook.name</code>.
+	 */
+	public void setName(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>hook.name</code>.
-     */
-    public String getName() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>hook.name</code>.
+	 */
+	public String getName() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>hook.type</code>.
-     */
-    public void setType(String value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>hook.type</code>.
+	 */
+	public void setType(String value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>hook.type</code>.
-     */
-    public String getType() {
-        return (String) get(3);
-    }
+	/**
+	 * Getter for <code>hook.type</code>.
+	 */
+	public String getType() {
+		return (String) get(3);
+	}
 
-    /**
-     * Setter for <code>hook.action</code>.
-     */
-    public void setAction(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>hook.action</code>.
+	 */
+	public void setAction(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>hook.action</code>.
-     */
-    public String getAction() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>hook.action</code>.
+	 */
+	public String getAction() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>hook.url</code>.
-     */
-    public void setUrl(String value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>hook.url</code>.
+	 */
+	public void setUrl(String value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>hook.url</code>.
-     */
-    public String getUrl() {
-        return (String) get(5);
-    }
+	/**
+	 * Getter for <code>hook.url</code>.
+	 */
+	public String getUrl() {
+		return (String) get(5);
+	}
 
-    /**
-     * Setter for <code>hook.https_ca_trust_mode</code>.
-     */
-    public void setHttpsCaTrustMode(String value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>hook.https_ca_trust_mode</code>.
+	 */
+	public void setHttpsCaTrustMode(String value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>hook.https_ca_trust_mode</code>.
-     */
-    public String getHttpsCaTrustMode() {
-        return (String) get(6);
-    }
+	/**
+	 * Getter for <code>hook.https_ca_trust_mode</code>.
+	 */
+	public String getHttpsCaTrustMode() {
+		return (String) get(6);
+	}
 
-    /**
-     * Setter for <code>hook.https_custom_ca_certificate</code>.
-     */
-    public void setHttpsCustomCaCertificate(String value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>hook.https_custom_ca_certificate</code>.
+	 */
+	public void setHttpsCustomCaCertificate(String value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>hook.https_custom_ca_certificate</code>.
-     */
-    public String getHttpsCustomCaCertificate() {
-        return (String) get(7);
-    }
+	/**
+	 * Getter for <code>hook.https_custom_ca_certificate</code>.
+	 */
+	public String getHttpsCustomCaCertificate() {
+		return (String) get(7);
+	}
 
-    /**
-     * Setter for <code>hook.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(8, value);
-    }
+	/**
+	 * Setter for <code>hook.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(8, value);
+	}
 
-    /**
-     * Getter for <code>hook.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(8);
-    }
+	/**
+	 * Getter for <code>hook.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(8);
+	}
 
-    /**
-     * Setter for <code>hook.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(9, value);
-    }
+	/**
+	 * Setter for <code>hook.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(9, value);
+	}
 
-    /**
-     * Getter for <code>hook.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(9);
-    }
+	/**
+	 * Getter for <code>hook.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(9);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached HookRecord
-     */
-    public HookRecord() {
-        super(Hook.HOOK);
-    }
+	/**
+	 * Create a detached HookRecord
+	 */
+	public HookRecord() {
+		super(Hook.HOOK);
+	}
 
-    /**
-     * Create a detached, initialised HookRecord
-     */
-    public HookRecord(Long id, Boolean enabled, String name, String type, String action, String url, String httpsCaTrustMode, String httpsCustomCaCertificate, Integer version, Instant changeDate) {
-        super(Hook.HOOK);
+	/**
+	 * Create a detached, initialised HookRecord
+	 */
+	public HookRecord(Long id, Boolean enabled, String name, String type, String action, String url, String httpsCaTrustMode, String httpsCustomCaCertificate, Integer version, Instant changeDate) {
+		super(Hook.HOOK);
 
-        setId(id);
-        setEnabled(enabled);
-        setName(name);
-        setType(type);
-        setAction(action);
-        setUrl(url);
-        setHttpsCaTrustMode(httpsCaTrustMode);
-        setHttpsCustomCaCertificate(httpsCustomCaCertificate);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setEnabled(enabled);
+		setName(name);
+		setType(type);
+		setAction(action);
+		setUrl(url);
+		setHttpsCaTrustMode(httpsCaTrustMode);
+		setHttpsCustomCaCertificate(httpsCustomCaCertificate);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

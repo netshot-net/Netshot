@@ -18,169 +18,169 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class UserRecord extends UpdatableRecordImpl<UserRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>user.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>user.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>user.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>user.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>user.hashed_password</code>.
-     */
-    public void setHashedPassword(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>user.hashed_password</code>.
+	 */
+	public void setHashedPassword(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>user.hashed_password</code>.
-     */
-    public String getHashedPassword() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>user.hashed_password</code>.
+	 */
+	public String getHashedPassword() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>user.level</code>.
-     */
-    public void setLevel(Integer value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>user.level</code>.
+	 */
+	public void setLevel(Integer value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>user.level</code>.
-     */
-    public Integer getLevel() {
-        return (Integer) get(2);
-    }
+	/**
+	 * Getter for <code>user.level</code>.
+	 */
+	public Integer getLevel() {
+		return (Integer) get(2);
+	}
 
-    /**
-     * Setter for <code>user.local</code>.
-     */
-    public void setLocal(Boolean value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>user.local</code>.
+	 */
+	public void setLocal(Boolean value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>user.local</code>.
-     */
-    public Boolean getLocal() {
-        return (Boolean) get(3);
-    }
+	/**
+	 * Getter for <code>user.local</code>.
+	 */
+	public Boolean getLocal() {
+		return (Boolean) get(3);
+	}
 
-    /**
-     * Setter for <code>user.username</code>.
-     */
-    public void setUsername(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>user.username</code>.
+	 */
+	public void setUsername(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>user.username</code>.
-     */
-    public String getUsername() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>user.username</code>.
+	 */
+	public String getUsername() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>user.last_password_change_date</code>.
-     */
-    public void setLastPasswordChangeDate(Instant value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>user.last_password_change_date</code>.
+	 */
+	public void setLastPasswordChangeDate(Instant value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>user.last_password_change_date</code>.
-     */
-    public Instant getLastPasswordChangeDate() {
-        return (Instant) get(5);
-    }
+	/**
+	 * Getter for <code>user.last_password_change_date</code>.
+	 */
+	public Instant getLastPasswordChangeDate() {
+		return (Instant) get(5);
+	}
 
-    /**
-     * Setter for <code>user.old_hashed_passwords</code>.
-     */
-    public void setOldHashedPasswords(String[] value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>user.old_hashed_passwords</code>.
+	 */
+	public void setOldHashedPasswords(String[] value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>user.old_hashed_passwords</code>.
-     */
-    public String[] getOldHashedPasswords() {
-        return (String[]) get(6);
-    }
+	/**
+	 * Getter for <code>user.old_hashed_passwords</code>.
+	 */
+	public String[] getOldHashedPasswords() {
+		return (String[]) get(6);
+	}
 
-    /**
-     * Setter for <code>user.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>user.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>user.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(7);
-    }
+	/**
+	 * Getter for <code>user.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(7);
+	}
 
-    /**
-     * Setter for <code>user.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(8, value);
-    }
+	/**
+	 * Setter for <code>user.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(8, value);
+	}
 
-    /**
-     * Getter for <code>user.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(8);
-    }
+	/**
+	 * Getter for <code>user.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(8);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached UserRecord
-     */
-    public UserRecord() {
-        super(User.USER);
-    }
+	/**
+	 * Create a detached UserRecord
+	 */
+	public UserRecord() {
+		super(User.USER);
+	}
 
-    /**
-     * Create a detached, initialised UserRecord
-     */
-    public UserRecord(Long id, String hashedPassword, Integer level, Boolean local, String username, Instant lastPasswordChangeDate, String[] oldHashedPasswords, Integer version, Instant changeDate) {
-        super(User.USER);
+	/**
+	 * Create a detached, initialised UserRecord
+	 */
+	public UserRecord(Long id, String hashedPassword, Integer level, Boolean local, String username, Instant lastPasswordChangeDate, String[] oldHashedPasswords, Integer version, Instant changeDate) {
+		super(User.USER);
 
-        setId(id);
-        setHashedPassword(hashedPassword);
-        setLevel(level);
-        setLocal(local);
-        setUsername(username);
-        setLastPasswordChangeDate(lastPasswordChangeDate);
-        setOldHashedPasswords(oldHashedPasswords);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setHashedPassword(hashedPassword);
+		setLevel(level);
+		setLocal(local);
+		setUsername(username);
+		setLastPasswordChangeDate(lastPasswordChangeDate);
+		setOldHashedPasswords(oldHashedPasswords);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

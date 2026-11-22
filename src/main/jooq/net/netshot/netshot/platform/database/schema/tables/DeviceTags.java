@@ -44,245 +44,245 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceTags extends TableImpl<DeviceTagsRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>device_tags</code>
-     */
-    public static final DeviceTags DEVICE_TAGS = new DeviceTags();
+	/**
+	 * The reference instance of <code>device_tags</code>
+	 */
+	public static final DeviceTags DEVICE_TAGS = new DeviceTags();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<DeviceTagsRecord> getRecordType() {
-        return DeviceTagsRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<DeviceTagsRecord> getRecordType() {
+		return DeviceTagsRecord.class;
+	}
 
-    /**
-     * The column <code>device_tags.device</code>.
-     */
-    public final TableField<DeviceTagsRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>device_tags.device</code>.
+	 */
+	public final TableField<DeviceTagsRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>device_tags.tag</code>.
-     */
-    public final TableField<DeviceTagsRecord, String> TAG = createField(DSL.name("tag"), SQLDataType.VARCHAR(255).nullable(false), this, "");
+	/**
+	 * The column <code>device_tags.tag</code>.
+	 */
+	public final TableField<DeviceTagsRecord, String> TAG = createField(DSL.name("tag"), SQLDataType.VARCHAR(255).nullable(false), this, "");
 
-    private DeviceTags(Name alias, Table<DeviceTagsRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private DeviceTags(Name alias, Table<DeviceTagsRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private DeviceTags(Name alias, Table<DeviceTagsRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private DeviceTags(Name alias, Table<DeviceTagsRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>device_tags</code> table reference
-     */
-    public DeviceTags(String alias) {
-        this(DSL.name(alias), DEVICE_TAGS);
-    }
+	/**
+	 * Create an aliased <code>device_tags</code> table reference
+	 */
+	public DeviceTags(String alias) {
+		this(DSL.name(alias), DEVICE_TAGS);
+	}
 
-    /**
-     * Create an aliased <code>device_tags</code> table reference
-     */
-    public DeviceTags(Name alias) {
-        this(alias, DEVICE_TAGS);
-    }
+	/**
+	 * Create an aliased <code>device_tags</code> table reference
+	 */
+	public DeviceTags(Name alias) {
+		this(alias, DEVICE_TAGS);
+	}
 
-    /**
-     * Create a <code>device_tags</code> table reference
-     */
-    public DeviceTags() {
-        this(DSL.name("device_tags"), null);
-    }
+	/**
+	 * Create a <code>device_tags</code> table reference
+	 */
+	public DeviceTags() {
+		this(DSL.name("device_tags"), null);
+	}
 
-    public <O extends Record> DeviceTags(Table<O> path, ForeignKey<O, DeviceTagsRecord> childPath, InverseForeignKey<O, DeviceTagsRecord> parentPath) {
-        super(path, childPath, parentPath, DEVICE_TAGS);
-    }
+	public <O extends Record> DeviceTags(Table<O> path, ForeignKey<O, DeviceTagsRecord> childPath, InverseForeignKey<O, DeviceTagsRecord> parentPath) {
+		super(path, childPath, parentPath, DEVICE_TAGS);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class DeviceTagsPath extends DeviceTags implements Path<DeviceTagsRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class DeviceTagsPath extends DeviceTags implements Path<DeviceTagsRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> DeviceTagsPath(Table<O> path, ForeignKey<O, DeviceTagsRecord> childPath, InverseForeignKey<O, DeviceTagsRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private DeviceTagsPath(Name alias, Table<DeviceTagsRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> DeviceTagsPath(Table<O> path, ForeignKey<O, DeviceTagsRecord> childPath, InverseForeignKey<O, DeviceTagsRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private DeviceTagsPath(Name alias, Table<DeviceTagsRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public DeviceTagsPath as(String alias) {
-            return new DeviceTagsPath(DSL.name(alias), this);
-        }
+		@Override
+		public DeviceTagsPath as(String alias) {
+			return new DeviceTagsPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public DeviceTagsPath as(Name alias) {
-            return new DeviceTagsPath(alias, this);
-        }
+		@Override
+		public DeviceTagsPath as(Name alias) {
+			return new DeviceTagsPath(alias, this);
+		}
 
-        @Override
-        public DeviceTagsPath as(Table<?> alias) {
-            return new DeviceTagsPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public DeviceTagsPath as(Table<?> alias) {
+			return new DeviceTagsPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_DEVICE_TAGS_TAG);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IDX_DEVICE_TAGS_TAG);
+	}
 
-    @Override
-    public UniqueKey<DeviceTagsRecord> getPrimaryKey() {
-        return Keys.PK_DEVICE_TAGS;
-    }
+	@Override
+	public UniqueKey<DeviceTagsRecord> getPrimaryKey() {
+		return Keys.PK_DEVICE_TAGS;
+	}
 
-    @Override
-    public List<ForeignKey<DeviceTagsRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.DEVICE_TAGS__FK_DEVICE_TAGS_DEVICE);
-    }
+	@Override
+	public List<ForeignKey<DeviceTagsRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.DEVICE_TAGS__FK_DEVICE_TAGS_DEVICE);
+	}
 
-    private transient DevicePath _device;
+	private transient DevicePath _device;
 
-    /**
-     * Get the implicit join path to the <code>device</code> table.
-     */
-    public DevicePath device() {
-        if (_device == null)
-            _device = new DevicePath(this, Keys.DEVICE_TAGS__FK_DEVICE_TAGS_DEVICE, null);
+	/**
+	 * Get the implicit join path to the <code>device</code> table.
+	 */
+	public DevicePath device() {
+		if (_device == null)
+			_device = new DevicePath(this, Keys.DEVICE_TAGS__FK_DEVICE_TAGS_DEVICE, null);
 
-        return _device;
-    }
+		return _device;
+	}
 
-    @Override
-    public DeviceTags as(String alias) {
-        return new DeviceTags(DSL.name(alias), this);
-    }
+	@Override
+	public DeviceTags as(String alias) {
+		return new DeviceTags(DSL.name(alias), this);
+	}
 
-    @Override
-    public DeviceTags as(Name alias) {
-        return new DeviceTags(alias, this);
-    }
+	@Override
+	public DeviceTags as(Name alias) {
+		return new DeviceTags(alias, this);
+	}
 
-    @Override
-    public DeviceTags as(Table<?> alias) {
-        return new DeviceTags(alias.getQualifiedName(), this);
-    }
+	@Override
+	public DeviceTags as(Table<?> alias) {
+		return new DeviceTags(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceTags rename(String name) {
-        return new DeviceTags(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceTags rename(String name) {
+		return new DeviceTags(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceTags rename(Name name) {
-        return new DeviceTags(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceTags rename(Name name) {
+		return new DeviceTags(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceTags rename(Table<?> name) {
-        return new DeviceTags(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceTags rename(Table<?> name) {
+		return new DeviceTags(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceTags where(Condition condition) {
-        return new DeviceTags(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceTags where(Condition condition) {
+		return new DeviceTags(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceTags where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceTags where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceTags where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceTags where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceTags where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceTags where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceTags where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceTags where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceTags where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceTags where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceTags where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceTags where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceTags where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceTags where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceTags whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceTags whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceTags whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceTags whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

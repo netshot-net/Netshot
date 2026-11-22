@@ -18,109 +18,109 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class CheckResultRecord extends UpdatableRecordImpl<CheckResultRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>check_result.check_date</code>.
-     */
-    public void setCheckDate(Instant value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>check_result.check_date</code>.
+	 */
+	public void setCheckDate(Instant value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>check_result.check_date</code>.
-     */
-    public Instant getCheckDate() {
-        return (Instant) get(0);
-    }
+	/**
+	 * Getter for <code>check_result.check_date</code>.
+	 */
+	public Instant getCheckDate() {
+		return (Instant) get(0);
+	}
 
-    /**
-     * Setter for <code>check_result.comment</code>.
-     */
-    public void setComment(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>check_result.comment</code>.
+	 */
+	public void setComment(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>check_result.comment</code>.
-     */
-    public String getComment() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>check_result.comment</code>.
+	 */
+	public String getComment() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>check_result.result</code>.
-     */
-    public void setResult(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>check_result.result</code>.
+	 */
+	public void setResult(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>check_result.result</code>.
-     */
-    public String getResult() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>check_result.result</code>.
+	 */
+	public String getResult() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>check_result.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>check_result.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>check_result.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(3);
-    }
+	/**
+	 * Getter for <code>check_result.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(3);
+	}
 
-    /**
-     * Setter for <code>check_result.rule</code>.
-     */
-    public void setRule(Long value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>check_result.rule</code>.
+	 */
+	public void setRule(Long value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>check_result.rule</code>.
-     */
-    public Long getRule() {
-        return (Long) get(4);
-    }
+	/**
+	 * Getter for <code>check_result.rule</code>.
+	 */
+	public Long getRule() {
+		return (Long) get(4);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record2<Long, Long> key() {
-        return (Record2) super.key();
-    }
+	@Override
+	public Record2<Long, Long> key() {
+		return (Record2) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached CheckResultRecord
-     */
-    public CheckResultRecord() {
-        super(CheckResult.CHECK_RESULT);
-    }
+	/**
+	 * Create a detached CheckResultRecord
+	 */
+	public CheckResultRecord() {
+		super(CheckResult.CHECK_RESULT);
+	}
 
-    /**
-     * Create a detached, initialised CheckResultRecord
-     */
-    public CheckResultRecord(Instant checkDate, String comment, String result, Long device, Long rule) {
-        super(CheckResult.CHECK_RESULT);
+	/**
+	 * Create a detached, initialised CheckResultRecord
+	 */
+	public CheckResultRecord(Instant checkDate, String comment, String result, Long device, Long rule) {
+		super(CheckResult.CHECK_RESULT);
 
-        setCheckDate(checkDate);
-        setComment(comment);
-        setResult(result);
-        setDevice(device);
-        setRule(rule);
-        resetTouchedOnNotNull();
-    }
+		setCheckDate(checkDate);
+		setComment(comment);
+		setResult(result);
+		setDevice(device);
+		setRule(rule);
+		resetTouchedOnNotNull();
+	}
 }

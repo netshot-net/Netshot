@@ -18,154 +18,154 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceJsScriptRecord extends UpdatableRecordImpl<DeviceJsScriptRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>device_js_script.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>device_js_script.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>device_js_script.author</code>.
-     */
-    public void setAuthor(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.author</code>.
+	 */
+	public void setAuthor(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.author</code>.
-     */
-    public String getAuthor() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>device_js_script.author</code>.
+	 */
+	public String getAuthor() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>device_js_script.device_driver</code>.
-     */
-    public void setDeviceDriver(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.device_driver</code>.
+	 */
+	public void setDeviceDriver(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.device_driver</code>.
-     */
-    public String getDeviceDriver() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>device_js_script.device_driver</code>.
+	 */
+	public String getDeviceDriver() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>device_js_script.name</code>.
-     */
-    public void setName(String value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.name</code>.
+	 */
+	public void setName(String value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.name</code>.
-     */
-    public String getName() {
-        return (String) get(3);
-    }
+	/**
+	 * Getter for <code>device_js_script.name</code>.
+	 */
+	public String getName() {
+		return (String) get(3);
+	}
 
-    /**
-     * Setter for <code>device_js_script.script</code>.
-     */
-    public void setScript(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.script</code>.
+	 */
+	public void setScript(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.script</code>.
-     */
-    public String getScript() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>device_js_script.script</code>.
+	 */
+	public String getScript() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>device_js_script.folder</code>.
-     */
-    public void setFolder(String value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.folder</code>.
+	 */
+	public void setFolder(String value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.folder</code>.
-     */
-    public String getFolder() {
-        return (String) get(5);
-    }
+	/**
+	 * Getter for <code>device_js_script.folder</code>.
+	 */
+	public String getFolder() {
+		return (String) get(5);
+	}
 
-    /**
-     * Setter for <code>device_js_script.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(6);
-    }
+	/**
+	 * Getter for <code>device_js_script.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(6);
+	}
 
-    /**
-     * Setter for <code>device_js_script.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>device_js_script.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>device_js_script.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(7);
-    }
+	/**
+	 * Getter for <code>device_js_script.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(7);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DeviceJsScriptRecord
-     */
-    public DeviceJsScriptRecord() {
-        super(DeviceJsScript.DEVICE_JS_SCRIPT);
-    }
+	/**
+	 * Create a detached DeviceJsScriptRecord
+	 */
+	public DeviceJsScriptRecord() {
+		super(DeviceJsScript.DEVICE_JS_SCRIPT);
+	}
 
-    /**
-     * Create a detached, initialised DeviceJsScriptRecord
-     */
-    public DeviceJsScriptRecord(Long id, String author, String deviceDriver, String name, String script, String folder, Integer version, Instant changeDate) {
-        super(DeviceJsScript.DEVICE_JS_SCRIPT);
+	/**
+	 * Create a detached, initialised DeviceJsScriptRecord
+	 */
+	public DeviceJsScriptRecord(Long id, String author, String deviceDriver, String name, String script, String folder, Integer version, Instant changeDate) {
+		super(DeviceJsScript.DEVICE_JS_SCRIPT);
 
-        setId(id);
-        setAuthor(author);
-        setDeviceDriver(deviceDriver);
-        setName(name);
-        setScript(script);
-        setFolder(folder);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setAuthor(author);
+		setDeviceDriver(deviceDriver);
+		setName(name);
+		setScript(script);
+		setFolder(folder);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

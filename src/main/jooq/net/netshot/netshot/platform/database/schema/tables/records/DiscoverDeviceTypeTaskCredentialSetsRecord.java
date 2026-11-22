@@ -16,68 +16,68 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DiscoverDeviceTypeTaskCredentialSetsRecord extends UpdatableRecordImpl<DiscoverDeviceTypeTaskCredentialSetsRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for
-     * <code>discover_device_type_task_credential_sets.discover_device_type_task</code>.
-     */
-    public void setDiscoverDeviceTypeTask(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for
+	 * <code>discover_device_type_task_credential_sets.discover_device_type_task</code>.
+	 */
+	public void setDiscoverDeviceTypeTask(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for
-     * <code>discover_device_type_task_credential_sets.discover_device_type_task</code>.
-     */
-    public Long getDiscoverDeviceTypeTask() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for
+	 * <code>discover_device_type_task_credential_sets.discover_device_type_task</code>.
+	 */
+	public Long getDiscoverDeviceTypeTask() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for
-     * <code>discover_device_type_task_credential_sets.credential_sets</code>.
-     */
-    public void setCredentialSets(Long value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for
+	 * <code>discover_device_type_task_credential_sets.credential_sets</code>.
+	 */
+	public void setCredentialSets(Long value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for
-     * <code>discover_device_type_task_credential_sets.credential_sets</code>.
-     */
-    public Long getCredentialSets() {
-        return (Long) get(1);
-    }
+	/**
+	 * Getter for
+	 * <code>discover_device_type_task_credential_sets.credential_sets</code>.
+	 */
+	public Long getCredentialSets() {
+		return (Long) get(1);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record2<Long, Long> key() {
-        return (Record2) super.key();
-    }
+	@Override
+	public Record2<Long, Long> key() {
+		return (Record2) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DiscoverDeviceTypeTaskCredentialSetsRecord
-     */
-    public DiscoverDeviceTypeTaskCredentialSetsRecord() {
-        super(DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
-    }
+	/**
+	 * Create a detached DiscoverDeviceTypeTaskCredentialSetsRecord
+	 */
+	public DiscoverDeviceTypeTaskCredentialSetsRecord() {
+		super(DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
+	}
 
-    /**
-     * Create a detached, initialised DiscoverDeviceTypeTaskCredentialSetsRecord
-     */
-    public DiscoverDeviceTypeTaskCredentialSetsRecord(Long discoverDeviceTypeTask, Long credentialSets) {
-        super(DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
+	/**
+	 * Create a detached, initialised DiscoverDeviceTypeTaskCredentialSetsRecord
+	 */
+	public DiscoverDeviceTypeTaskCredentialSetsRecord(Long discoverDeviceTypeTask, Long credentialSets) {
+		super(DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
 
-        setDiscoverDeviceTypeTask(discoverDeviceTypeTask);
-        setCredentialSets(credentialSets);
-        resetTouchedOnNotNull();
-    }
+		setDiscoverDeviceTypeTask(discoverDeviceTypeTask);
+		setCredentialSets(credentialSets);
+		resetTouchedOnNotNull();
+	}
 }

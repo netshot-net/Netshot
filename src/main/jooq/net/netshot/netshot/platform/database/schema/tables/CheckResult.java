@@ -47,272 +47,272 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class CheckResult extends TableImpl<CheckResultRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>check_result</code>
-     */
-    public static final CheckResult CHECK_RESULT = new CheckResult();
+	/**
+	 * The reference instance of <code>check_result</code>
+	 */
+	public static final CheckResult CHECK_RESULT = new CheckResult();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<CheckResultRecord> getRecordType() {
-        return CheckResultRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<CheckResultRecord> getRecordType() {
+		return CheckResultRecord.class;
+	}
 
-    /**
-     * The column <code>check_result.check_date</code>.
-     */
-    public final TableField<CheckResultRecord, Instant> CHECK_DATE = createField(DSL.name("check_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>check_result.check_date</code>.
+	 */
+	public final TableField<CheckResultRecord, Instant> CHECK_DATE = createField(DSL.name("check_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    /**
-     * The column <code>check_result.comment</code>.
-     */
-    public final TableField<CheckResultRecord, String> COMMENT = createField(DSL.name("comment"), SQLDataType.VARCHAR(10000), this, "");
+	/**
+	 * The column <code>check_result.comment</code>.
+	 */
+	public final TableField<CheckResultRecord, String> COMMENT = createField(DSL.name("comment"), SQLDataType.VARCHAR(10000), this, "");
 
-    /**
-     * The column <code>check_result.result</code>.
-     */
-    public final TableField<CheckResultRecord, String> RESULT = createField(DSL.name("result"), SQLDataType.VARCHAR(32), this, "");
+	/**
+	 * The column <code>check_result.result</code>.
+	 */
+	public final TableField<CheckResultRecord, String> RESULT = createField(DSL.name("result"), SQLDataType.VARCHAR(32), this, "");
 
-    /**
-     * The column <code>check_result.device</code>.
-     */
-    public final TableField<CheckResultRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>check_result.device</code>.
+	 */
+	public final TableField<CheckResultRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>check_result.rule</code>.
-     */
-    public final TableField<CheckResultRecord, Long> RULE = createField(DSL.name("rule"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>check_result.rule</code>.
+	 */
+	public final TableField<CheckResultRecord, Long> RULE = createField(DSL.name("rule"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    private CheckResult(Name alias, Table<CheckResultRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private CheckResult(Name alias, Table<CheckResultRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private CheckResult(Name alias, Table<CheckResultRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private CheckResult(Name alias, Table<CheckResultRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>check_result</code> table reference
-     */
-    public CheckResult(String alias) {
-        this(DSL.name(alias), CHECK_RESULT);
-    }
+	/**
+	 * Create an aliased <code>check_result</code> table reference
+	 */
+	public CheckResult(String alias) {
+		this(DSL.name(alias), CHECK_RESULT);
+	}
 
-    /**
-     * Create an aliased <code>check_result</code> table reference
-     */
-    public CheckResult(Name alias) {
-        this(alias, CHECK_RESULT);
-    }
+	/**
+	 * Create an aliased <code>check_result</code> table reference
+	 */
+	public CheckResult(Name alias) {
+		this(alias, CHECK_RESULT);
+	}
 
-    /**
-     * Create a <code>check_result</code> table reference
-     */
-    public CheckResult() {
-        this(DSL.name("check_result"), null);
-    }
+	/**
+	 * Create a <code>check_result</code> table reference
+	 */
+	public CheckResult() {
+		this(DSL.name("check_result"), null);
+	}
 
-    public <O extends Record> CheckResult(Table<O> path, ForeignKey<O, CheckResultRecord> childPath, InverseForeignKey<O, CheckResultRecord> parentPath) {
-        super(path, childPath, parentPath, CHECK_RESULT);
-    }
+	public <O extends Record> CheckResult(Table<O> path, ForeignKey<O, CheckResultRecord> childPath, InverseForeignKey<O, CheckResultRecord> parentPath) {
+		super(path, childPath, parentPath, CHECK_RESULT);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class CheckResultPath extends CheckResult implements Path<CheckResultRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class CheckResultPath extends CheckResult implements Path<CheckResultRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> CheckResultPath(Table<O> path, ForeignKey<O, CheckResultRecord> childPath, InverseForeignKey<O, CheckResultRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private CheckResultPath(Name alias, Table<CheckResultRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> CheckResultPath(Table<O> path, ForeignKey<O, CheckResultRecord> childPath, InverseForeignKey<O, CheckResultRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private CheckResultPath(Name alias, Table<CheckResultRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public CheckResultPath as(String alias) {
-            return new CheckResultPath(DSL.name(alias), this);
-        }
+		@Override
+		public CheckResultPath as(String alias) {
+			return new CheckResultPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public CheckResultPath as(Name alias) {
-            return new CheckResultPath(alias, this);
-        }
+		@Override
+		public CheckResultPath as(Name alias) {
+			return new CheckResultPath(alias, this);
+		}
 
-        @Override
-        public CheckResultPath as(Table<?> alias) {
-            return new CheckResultPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public CheckResultPath as(Table<?> alias) {
+			return new CheckResultPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_CHECK_RESULT_DEVICE_NONCONFORMING, Indexes.IX_CHECK_RESULT_RULE);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_CHECK_RESULT_DEVICE_NONCONFORMING, Indexes.IX_CHECK_RESULT_RULE);
+	}
 
-    @Override
-    public UniqueKey<CheckResultRecord> getPrimaryKey() {
-        return Keys.CHECK_RESULT_PKEY;
-    }
+	@Override
+	public UniqueKey<CheckResultRecord> getPrimaryKey() {
+		return Keys.CHECK_RESULT_PKEY;
+	}
 
-    @Override
-    public List<ForeignKey<CheckResultRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.CHECK_RESULT__FK_CHECK_RESULT_DEVICE, Keys.CHECK_RESULT__FK_CHECK_RESULT_RULE);
-    }
+	@Override
+	public List<ForeignKey<CheckResultRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.CHECK_RESULT__FK_CHECK_RESULT_DEVICE, Keys.CHECK_RESULT__FK_CHECK_RESULT_RULE);
+	}
 
-    private transient DevicePath _device;
+	private transient DevicePath _device;
 
-    /**
-     * Get the implicit join path to the <code>device</code> table.
-     */
-    public DevicePath device() {
-        if (_device == null)
-            _device = new DevicePath(this, Keys.CHECK_RESULT__FK_CHECK_RESULT_DEVICE, null);
+	/**
+	 * Get the implicit join path to the <code>device</code> table.
+	 */
+	public DevicePath device() {
+		if (_device == null)
+			_device = new DevicePath(this, Keys.CHECK_RESULT__FK_CHECK_RESULT_DEVICE, null);
 
-        return _device;
-    }
+		return _device;
+	}
 
-    private transient RulePath _rule;
+	private transient RulePath _rule;
 
-    /**
-     * Get the implicit join path to the <code>rule</code> table.
-     */
-    public RulePath rule() {
-        if (_rule == null)
-            _rule = new RulePath(this, Keys.CHECK_RESULT__FK_CHECK_RESULT_RULE, null);
+	/**
+	 * Get the implicit join path to the <code>rule</code> table.
+	 */
+	public RulePath rule() {
+		if (_rule == null)
+			_rule = new RulePath(this, Keys.CHECK_RESULT__FK_CHECK_RESULT_RULE, null);
 
-        return _rule;
-    }
+		return _rule;
+	}
 
-    @Override
-    public CheckResult as(String alias) {
-        return new CheckResult(DSL.name(alias), this);
-    }
+	@Override
+	public CheckResult as(String alias) {
+		return new CheckResult(DSL.name(alias), this);
+	}
 
-    @Override
-    public CheckResult as(Name alias) {
-        return new CheckResult(alias, this);
-    }
+	@Override
+	public CheckResult as(Name alias) {
+		return new CheckResult(alias, this);
+	}
 
-    @Override
-    public CheckResult as(Table<?> alias) {
-        return new CheckResult(alias.getQualifiedName(), this);
-    }
+	@Override
+	public CheckResult as(Table<?> alias) {
+		return new CheckResult(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public CheckResult rename(String name) {
-        return new CheckResult(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public CheckResult rename(String name) {
+		return new CheckResult(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public CheckResult rename(Name name) {
-        return new CheckResult(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public CheckResult rename(Name name) {
+		return new CheckResult(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public CheckResult rename(Table<?> name) {
-        return new CheckResult(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public CheckResult rename(Table<?> name) {
+		return new CheckResult(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public CheckResult where(Condition condition) {
-        return new CheckResult(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public CheckResult where(Condition condition) {
+		return new CheckResult(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public CheckResult where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public CheckResult where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public CheckResult where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public CheckResult where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public CheckResult where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public CheckResult where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public CheckResult where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public CheckResult where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public CheckResult where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public CheckResult where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public CheckResult where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public CheckResult where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public CheckResult where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public CheckResult where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public CheckResult whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public CheckResult whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public CheckResult whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public CheckResult whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

@@ -43,240 +43,240 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceVrfInstances extends TableImpl<DeviceVrfInstancesRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>device_vrf_instances</code>
-     */
-    public static final DeviceVrfInstances DEVICE_VRF_INSTANCES = new DeviceVrfInstances();
+	/**
+	 * The reference instance of <code>device_vrf_instances</code>
+	 */
+	public static final DeviceVrfInstances DEVICE_VRF_INSTANCES = new DeviceVrfInstances();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<DeviceVrfInstancesRecord> getRecordType() {
-        return DeviceVrfInstancesRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<DeviceVrfInstancesRecord> getRecordType() {
+		return DeviceVrfInstancesRecord.class;
+	}
 
-    /**
-     * The column <code>device_vrf_instances.device</code>.
-     */
-    public final TableField<DeviceVrfInstancesRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>device_vrf_instances.device</code>.
+	 */
+	public final TableField<DeviceVrfInstancesRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>device_vrf_instances.vrf_instances</code>.
-     */
-    public final TableField<DeviceVrfInstancesRecord, String> VRF_INSTANCES = createField(DSL.name("vrf_instances"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>device_vrf_instances.vrf_instances</code>.
+	 */
+	public final TableField<DeviceVrfInstancesRecord, String> VRF_INSTANCES = createField(DSL.name("vrf_instances"), SQLDataType.VARCHAR(255), this, "");
 
-    private DeviceVrfInstances(Name alias, Table<DeviceVrfInstancesRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private DeviceVrfInstances(Name alias, Table<DeviceVrfInstancesRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private DeviceVrfInstances(Name alias, Table<DeviceVrfInstancesRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private DeviceVrfInstances(Name alias, Table<DeviceVrfInstancesRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>device_vrf_instances</code> table reference
-     */
-    public DeviceVrfInstances(String alias) {
-        this(DSL.name(alias), DEVICE_VRF_INSTANCES);
-    }
+	/**
+	 * Create an aliased <code>device_vrf_instances</code> table reference
+	 */
+	public DeviceVrfInstances(String alias) {
+		this(DSL.name(alias), DEVICE_VRF_INSTANCES);
+	}
 
-    /**
-     * Create an aliased <code>device_vrf_instances</code> table reference
-     */
-    public DeviceVrfInstances(Name alias) {
-        this(alias, DEVICE_VRF_INSTANCES);
-    }
+	/**
+	 * Create an aliased <code>device_vrf_instances</code> table reference
+	 */
+	public DeviceVrfInstances(Name alias) {
+		this(alias, DEVICE_VRF_INSTANCES);
+	}
 
-    /**
-     * Create a <code>device_vrf_instances</code> table reference
-     */
-    public DeviceVrfInstances() {
-        this(DSL.name("device_vrf_instances"), null);
-    }
+	/**
+	 * Create a <code>device_vrf_instances</code> table reference
+	 */
+	public DeviceVrfInstances() {
+		this(DSL.name("device_vrf_instances"), null);
+	}
 
-    public <O extends Record> DeviceVrfInstances(Table<O> path, ForeignKey<O, DeviceVrfInstancesRecord> childPath, InverseForeignKey<O, DeviceVrfInstancesRecord> parentPath) {
-        super(path, childPath, parentPath, DEVICE_VRF_INSTANCES);
-    }
+	public <O extends Record> DeviceVrfInstances(Table<O> path, ForeignKey<O, DeviceVrfInstancesRecord> childPath, InverseForeignKey<O, DeviceVrfInstancesRecord> parentPath) {
+		super(path, childPath, parentPath, DEVICE_VRF_INSTANCES);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class DeviceVrfInstancesPath extends DeviceVrfInstances implements Path<DeviceVrfInstancesRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class DeviceVrfInstancesPath extends DeviceVrfInstances implements Path<DeviceVrfInstancesRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> DeviceVrfInstancesPath(Table<O> path, ForeignKey<O, DeviceVrfInstancesRecord> childPath, InverseForeignKey<O, DeviceVrfInstancesRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private DeviceVrfInstancesPath(Name alias, Table<DeviceVrfInstancesRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> DeviceVrfInstancesPath(Table<O> path, ForeignKey<O, DeviceVrfInstancesRecord> childPath, InverseForeignKey<O, DeviceVrfInstancesRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private DeviceVrfInstancesPath(Name alias, Table<DeviceVrfInstancesRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public DeviceVrfInstancesPath as(String alias) {
-            return new DeviceVrfInstancesPath(DSL.name(alias), this);
-        }
+		@Override
+		public DeviceVrfInstancesPath as(String alias) {
+			return new DeviceVrfInstancesPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public DeviceVrfInstancesPath as(Name alias) {
-            return new DeviceVrfInstancesPath(alias, this);
-        }
+		@Override
+		public DeviceVrfInstancesPath as(Name alias) {
+			return new DeviceVrfInstancesPath(alias, this);
+		}
 
-        @Override
-        public DeviceVrfInstancesPath as(Table<?> alias) {
-            return new DeviceVrfInstancesPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public DeviceVrfInstancesPath as(Table<?> alias) {
+			return new DeviceVrfInstancesPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_DEVICE_VRF_INSTANCES_DEVICE);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_DEVICE_VRF_INSTANCES_DEVICE);
+	}
 
-    @Override
-    public List<ForeignKey<DeviceVrfInstancesRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.DEVICE_VRF_INSTANCES__FK_DEVICE_VRF_INSTANCES_DEVICE);
-    }
+	@Override
+	public List<ForeignKey<DeviceVrfInstancesRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.DEVICE_VRF_INSTANCES__FK_DEVICE_VRF_INSTANCES_DEVICE);
+	}
 
-    private transient DevicePath _device;
+	private transient DevicePath _device;
 
-    /**
-     * Get the implicit join path to the <code>device</code> table.
-     */
-    public DevicePath device() {
-        if (_device == null)
-            _device = new DevicePath(this, Keys.DEVICE_VRF_INSTANCES__FK_DEVICE_VRF_INSTANCES_DEVICE, null);
+	/**
+	 * Get the implicit join path to the <code>device</code> table.
+	 */
+	public DevicePath device() {
+		if (_device == null)
+			_device = new DevicePath(this, Keys.DEVICE_VRF_INSTANCES__FK_DEVICE_VRF_INSTANCES_DEVICE, null);
 
-        return _device;
-    }
+		return _device;
+	}
 
-    @Override
-    public DeviceVrfInstances as(String alias) {
-        return new DeviceVrfInstances(DSL.name(alias), this);
-    }
+	@Override
+	public DeviceVrfInstances as(String alias) {
+		return new DeviceVrfInstances(DSL.name(alias), this);
+	}
 
-    @Override
-    public DeviceVrfInstances as(Name alias) {
-        return new DeviceVrfInstances(alias, this);
-    }
+	@Override
+	public DeviceVrfInstances as(Name alias) {
+		return new DeviceVrfInstances(alias, this);
+	}
 
-    @Override
-    public DeviceVrfInstances as(Table<?> alias) {
-        return new DeviceVrfInstances(alias.getQualifiedName(), this);
-    }
+	@Override
+	public DeviceVrfInstances as(Table<?> alias) {
+		return new DeviceVrfInstances(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceVrfInstances rename(String name) {
-        return new DeviceVrfInstances(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceVrfInstances rename(String name) {
+		return new DeviceVrfInstances(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceVrfInstances rename(Name name) {
-        return new DeviceVrfInstances(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceVrfInstances rename(Name name) {
+		return new DeviceVrfInstances(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceVrfInstances rename(Table<?> name) {
-        return new DeviceVrfInstances(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceVrfInstances rename(Table<?> name) {
+		return new DeviceVrfInstances(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceVrfInstances where(Condition condition) {
-        return new DeviceVrfInstances(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceVrfInstances where(Condition condition) {
+		return new DeviceVrfInstances(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceVrfInstances where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceVrfInstances where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceVrfInstances where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceVrfInstances where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceVrfInstances where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceVrfInstances where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceVrfInstances where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceVrfInstances where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceVrfInstances where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceVrfInstances where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceVrfInstances where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceVrfInstances where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceVrfInstances where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceVrfInstances where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceVrfInstances whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceVrfInstances whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceVrfInstances whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceVrfInstances whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

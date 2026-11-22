@@ -16,64 +16,64 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceTagsRecord extends UpdatableRecordImpl<DeviceTagsRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>device_tags.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>device_tags.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>device_tags.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>device_tags.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>device_tags.tag</code>.
-     */
-    public void setTag(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>device_tags.tag</code>.
+	 */
+	public void setTag(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>device_tags.tag</code>.
-     */
-    public String getTag() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>device_tags.tag</code>.
+	 */
+	public String getTag() {
+		return (String) get(1);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record2<Long, String> key() {
-        return (Record2) super.key();
-    }
+	@Override
+	public Record2<Long, String> key() {
+		return (Record2) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DeviceTagsRecord
-     */
-    public DeviceTagsRecord() {
-        super(DeviceTags.DEVICE_TAGS);
-    }
+	/**
+	 * Create a detached DeviceTagsRecord
+	 */
+	public DeviceTagsRecord() {
+		super(DeviceTags.DEVICE_TAGS);
+	}
 
-    /**
-     * Create a detached, initialised DeviceTagsRecord
-     */
-    public DeviceTagsRecord(Long device, String tag) {
-        super(DeviceTags.DEVICE_TAGS);
+	/**
+	 * Create a detached, initialised DeviceTagsRecord
+	 */
+	public DeviceTagsRecord(Long device, String tag) {
+		super(DeviceTags.DEVICE_TAGS);
 
-        setDevice(device);
-        setTag(tag);
-        resetTouchedOnNotNull();
-    }
+		setDevice(device);
+		setTag(tag);
+		resetTouchedOnNotNull();
+	}
 }

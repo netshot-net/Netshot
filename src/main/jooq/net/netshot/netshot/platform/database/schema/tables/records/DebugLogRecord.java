@@ -16,64 +16,64 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DebugLogRecord extends UpdatableRecordImpl<DebugLogRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>debug_log.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>debug_log.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>debug_log.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>debug_log.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>debug_log.text</code>.
-     */
-    public void setText(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>debug_log.text</code>.
+	 */
+	public void setText(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>debug_log.text</code>.
-     */
-    public String getText() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>debug_log.text</code>.
+	 */
+	public String getText() {
+		return (String) get(1);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DebugLogRecord
-     */
-    public DebugLogRecord() {
-        super(DebugLog.DEBUG_LOG);
-    }
+	/**
+	 * Create a detached DebugLogRecord
+	 */
+	public DebugLogRecord() {
+		super(DebugLog.DEBUG_LOG);
+	}
 
-    /**
-     * Create a detached, initialised DebugLogRecord
-     */
-    public DebugLogRecord(Long id, String text) {
-        super(DebugLog.DEBUG_LOG);
+	/**
+	 * Create a detached, initialised DebugLogRecord
+	 */
+	public DebugLogRecord(Long id, String text) {
+		super(DebugLog.DEBUG_LOG);
 
-        setId(id);
-        setText(text);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setText(text);
+		resetTouchedOnNotNull();
+	}
 }

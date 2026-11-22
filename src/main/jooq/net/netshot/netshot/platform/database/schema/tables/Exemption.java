@@ -47,262 +47,262 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Exemption extends TableImpl<ExemptionRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>exemption</code>
-     */
-    public static final Exemption EXEMPTION = new Exemption();
+	/**
+	 * The reference instance of <code>exemption</code>
+	 */
+	public static final Exemption EXEMPTION = new Exemption();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<ExemptionRecord> getRecordType() {
-        return ExemptionRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<ExemptionRecord> getRecordType() {
+		return ExemptionRecord.class;
+	}
 
-    /**
-     * The column <code>exemption.expiration_date</code>.
-     */
-    public final TableField<ExemptionRecord, Instant> EXPIRATION_DATE = createField(DSL.name("expiration_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>exemption.expiration_date</code>.
+	 */
+	public final TableField<ExemptionRecord, Instant> EXPIRATION_DATE = createField(DSL.name("expiration_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    /**
-     * The column <code>exemption.device</code>.
-     */
-    public final TableField<ExemptionRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>exemption.device</code>.
+	 */
+	public final TableField<ExemptionRecord, Long> DEVICE = createField(DSL.name("device"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>exemption.rule</code>.
-     */
-    public final TableField<ExemptionRecord, Long> RULE = createField(DSL.name("rule"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>exemption.rule</code>.
+	 */
+	public final TableField<ExemptionRecord, Long> RULE = createField(DSL.name("rule"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    private Exemption(Name alias, Table<ExemptionRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private Exemption(Name alias, Table<ExemptionRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private Exemption(Name alias, Table<ExemptionRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private Exemption(Name alias, Table<ExemptionRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>exemption</code> table reference
-     */
-    public Exemption(String alias) {
-        this(DSL.name(alias), EXEMPTION);
-    }
+	/**
+	 * Create an aliased <code>exemption</code> table reference
+	 */
+	public Exemption(String alias) {
+		this(DSL.name(alias), EXEMPTION);
+	}
 
-    /**
-     * Create an aliased <code>exemption</code> table reference
-     */
-    public Exemption(Name alias) {
-        this(alias, EXEMPTION);
-    }
+	/**
+	 * Create an aliased <code>exemption</code> table reference
+	 */
+	public Exemption(Name alias) {
+		this(alias, EXEMPTION);
+	}
 
-    /**
-     * Create a <code>exemption</code> table reference
-     */
-    public Exemption() {
-        this(DSL.name("exemption"), null);
-    }
+	/**
+	 * Create a <code>exemption</code> table reference
+	 */
+	public Exemption() {
+		this(DSL.name("exemption"), null);
+	}
 
-    public <O extends Record> Exemption(Table<O> path, ForeignKey<O, ExemptionRecord> childPath, InverseForeignKey<O, ExemptionRecord> parentPath) {
-        super(path, childPath, parentPath, EXEMPTION);
-    }
+	public <O extends Record> Exemption(Table<O> path, ForeignKey<O, ExemptionRecord> childPath, InverseForeignKey<O, ExemptionRecord> parentPath) {
+		super(path, childPath, parentPath, EXEMPTION);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class ExemptionPath extends Exemption implements Path<ExemptionRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class ExemptionPath extends Exemption implements Path<ExemptionRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> ExemptionPath(Table<O> path, ForeignKey<O, ExemptionRecord> childPath, InverseForeignKey<O, ExemptionRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private ExemptionPath(Name alias, Table<ExemptionRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> ExemptionPath(Table<O> path, ForeignKey<O, ExemptionRecord> childPath, InverseForeignKey<O, ExemptionRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private ExemptionPath(Name alias, Table<ExemptionRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public ExemptionPath as(String alias) {
-            return new ExemptionPath(DSL.name(alias), this);
-        }
+		@Override
+		public ExemptionPath as(String alias) {
+			return new ExemptionPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public ExemptionPath as(Name alias) {
-            return new ExemptionPath(alias, this);
-        }
+		@Override
+		public ExemptionPath as(Name alias) {
+			return new ExemptionPath(alias, this);
+		}
 
-        @Override
-        public ExemptionPath as(Table<?> alias) {
-            return new ExemptionPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public ExemptionPath as(Table<?> alias) {
+			return new ExemptionPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_EXEMPTION_RULE);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_EXEMPTION_RULE);
+	}
 
-    @Override
-    public UniqueKey<ExemptionRecord> getPrimaryKey() {
-        return Keys.EXEMPTION_PKEY;
-    }
+	@Override
+	public UniqueKey<ExemptionRecord> getPrimaryKey() {
+		return Keys.EXEMPTION_PKEY;
+	}
 
-    @Override
-    public List<ForeignKey<ExemptionRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.EXEMPTION__FK_EXEMPTION_DEVICE, Keys.EXEMPTION__FK_EXEMPTION_RULE);
-    }
+	@Override
+	public List<ForeignKey<ExemptionRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.EXEMPTION__FK_EXEMPTION_DEVICE, Keys.EXEMPTION__FK_EXEMPTION_RULE);
+	}
 
-    private transient DevicePath _device;
+	private transient DevicePath _device;
 
-    /**
-     * Get the implicit join path to the <code>device</code> table.
-     */
-    public DevicePath device() {
-        if (_device == null)
-            _device = new DevicePath(this, Keys.EXEMPTION__FK_EXEMPTION_DEVICE, null);
+	/**
+	 * Get the implicit join path to the <code>device</code> table.
+	 */
+	public DevicePath device() {
+		if (_device == null)
+			_device = new DevicePath(this, Keys.EXEMPTION__FK_EXEMPTION_DEVICE, null);
 
-        return _device;
-    }
+		return _device;
+	}
 
-    private transient RulePath _rule;
+	private transient RulePath _rule;
 
-    /**
-     * Get the implicit join path to the <code>rule</code> table.
-     */
-    public RulePath rule() {
-        if (_rule == null)
-            _rule = new RulePath(this, Keys.EXEMPTION__FK_EXEMPTION_RULE, null);
+	/**
+	 * Get the implicit join path to the <code>rule</code> table.
+	 */
+	public RulePath rule() {
+		if (_rule == null)
+			_rule = new RulePath(this, Keys.EXEMPTION__FK_EXEMPTION_RULE, null);
 
-        return _rule;
-    }
+		return _rule;
+	}
 
-    @Override
-    public Exemption as(String alias) {
-        return new Exemption(DSL.name(alias), this);
-    }
+	@Override
+	public Exemption as(String alias) {
+		return new Exemption(DSL.name(alias), this);
+	}
 
-    @Override
-    public Exemption as(Name alias) {
-        return new Exemption(alias, this);
-    }
+	@Override
+	public Exemption as(Name alias) {
+		return new Exemption(alias, this);
+	}
 
-    @Override
-    public Exemption as(Table<?> alias) {
-        return new Exemption(alias.getQualifiedName(), this);
-    }
+	@Override
+	public Exemption as(Table<?> alias) {
+		return new Exemption(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Exemption rename(String name) {
-        return new Exemption(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Exemption rename(String name) {
+		return new Exemption(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Exemption rename(Name name) {
-        return new Exemption(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Exemption rename(Name name) {
+		return new Exemption(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Exemption rename(Table<?> name) {
-        return new Exemption(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Exemption rename(Table<?> name) {
+		return new Exemption(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Exemption where(Condition condition) {
-        return new Exemption(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Exemption where(Condition condition) {
+		return new Exemption(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Exemption where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Exemption where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Exemption where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Exemption where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Exemption where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Exemption where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Exemption where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Exemption where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Exemption where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Exemption where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Exemption where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Exemption where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Exemption where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Exemption where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Exemption whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Exemption whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Exemption whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Exemption whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

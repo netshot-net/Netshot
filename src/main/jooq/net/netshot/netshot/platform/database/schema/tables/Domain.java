@@ -50,295 +50,295 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Domain extends TableImpl<DomainRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>domain</code>
-     */
-    public static final Domain DOMAIN = new Domain();
+	/**
+	 * The reference instance of <code>domain</code>
+	 */
+	public static final Domain DOMAIN = new Domain();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<DomainRecord> getRecordType() {
-        return DomainRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<DomainRecord> getRecordType() {
+		return DomainRecord.class;
+	}
 
-    /**
-     * The column <code>domain.id</code>.
-     */
-    public final TableField<DomainRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
+	/**
+	 * The column <code>domain.id</code>.
+	 */
+	public final TableField<DomainRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
 
-    /**
-     * The column <code>domain.change_date</code>.
-     */
-    public final TableField<DomainRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>domain.change_date</code>.
+	 */
+	public final TableField<DomainRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    /**
-     * The column <code>domain.description</code>.
-     */
-    public final TableField<DomainRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>domain.description</code>.
+	 */
+	public final TableField<DomainRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>domain.name</code>.
-     */
-    public final TableField<DomainRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>domain.name</code>.
+	 */
+	public final TableField<DomainRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>domain.version</code>.
-     */
-    public final TableField<DomainRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false), this, "");
+	/**
+	 * The column <code>domain.version</code>.
+	 */
+	public final TableField<DomainRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false), this, "");
 
-    /**
-     * The column <code>domain.ipv4_address</code>.
-     */
-    public final TableField<DomainRecord, InetAddress> IPV4_ADDRESS = createField(DSL.name("ipv4_address"), DefaultDataType.getDefaultDataType("\"pg_catalog\".\"inet\""), this, "", new InetBinding());
+	/**
+	 * The column <code>domain.ipv4_address</code>.
+	 */
+	public final TableField<DomainRecord, InetAddress> IPV4_ADDRESS = createField(DSL.name("ipv4_address"), DefaultDataType.getDefaultDataType("\"pg_catalog\".\"inet\""), this, "", new InetBinding());
 
-    /**
-     * The column <code>domain.ipv6_address</code>.
-     */
-    public final TableField<DomainRecord, InetAddress> IPV6_ADDRESS = createField(DSL.name("ipv6_address"), DefaultDataType.getDefaultDataType("\"pg_catalog\".\"inet\""), this, "", new InetBinding());
+	/**
+	 * The column <code>domain.ipv6_address</code>.
+	 */
+	public final TableField<DomainRecord, InetAddress> IPV6_ADDRESS = createField(DSL.name("ipv6_address"), DefaultDataType.getDefaultDataType("\"pg_catalog\".\"inet\""), this, "", new InetBinding());
 
-    private Domain(Name alias, Table<DomainRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private Domain(Name alias, Table<DomainRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private Domain(Name alias, Table<DomainRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private Domain(Name alias, Table<DomainRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>domain</code> table reference
-     */
-    public Domain(String alias) {
-        this(DSL.name(alias), DOMAIN);
-    }
+	/**
+	 * Create an aliased <code>domain</code> table reference
+	 */
+	public Domain(String alias) {
+		this(DSL.name(alias), DOMAIN);
+	}
 
-    /**
-     * Create an aliased <code>domain</code> table reference
-     */
-    public Domain(Name alias) {
-        this(alias, DOMAIN);
-    }
+	/**
+	 * Create an aliased <code>domain</code> table reference
+	 */
+	public Domain(Name alias) {
+		this(alias, DOMAIN);
+	}
 
-    /**
-     * Create a <code>domain</code> table reference
-     */
-    public Domain() {
-        this(DSL.name("domain"), null);
-    }
+	/**
+	 * Create a <code>domain</code> table reference
+	 */
+	public Domain() {
+		this(DSL.name("domain"), null);
+	}
 
-    public <O extends Record> Domain(Table<O> path, ForeignKey<O, DomainRecord> childPath, InverseForeignKey<O, DomainRecord> parentPath) {
-        super(path, childPath, parentPath, DOMAIN);
-    }
+	public <O extends Record> Domain(Table<O> path, ForeignKey<O, DomainRecord> childPath, InverseForeignKey<O, DomainRecord> parentPath) {
+		super(path, childPath, parentPath, DOMAIN);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class DomainPath extends Domain implements Path<DomainRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class DomainPath extends Domain implements Path<DomainRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> DomainPath(Table<O> path, ForeignKey<O, DomainRecord> childPath, InverseForeignKey<O, DomainRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private DomainPath(Name alias, Table<DomainRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> DomainPath(Table<O> path, ForeignKey<O, DomainRecord> childPath, InverseForeignKey<O, DomainRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private DomainPath(Name alias, Table<DomainRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public DomainPath as(String alias) {
-            return new DomainPath(DSL.name(alias), this);
-        }
+		@Override
+		public DomainPath as(String alias) {
+			return new DomainPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public DomainPath as(Name alias) {
-            return new DomainPath(alias, this);
-        }
+		@Override
+		public DomainPath as(Name alias) {
+			return new DomainPath(alias, this);
+		}
 
-        @Override
-        public DomainPath as(Table<?> alias) {
-            return new DomainPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public DomainPath as(Table<?> alias) {
+			return new DomainPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public Identity<DomainRecord, Long> getIdentity() {
-        return (Identity<DomainRecord, Long>) super.getIdentity();
-    }
+	@Override
+	public Identity<DomainRecord, Long> getIdentity() {
+		return (Identity<DomainRecord, Long>) super.getIdentity();
+	}
 
-    @Override
-    public UniqueKey<DomainRecord> getPrimaryKey() {
-        return Keys.DOMAIN_PKEY;
-    }
+	@Override
+	public UniqueKey<DomainRecord> getPrimaryKey() {
+		return Keys.DOMAIN_PKEY;
+	}
 
-    @Override
-    public List<UniqueKey<DomainRecord>> getUniqueKeys() {
-        return Arrays.asList(Keys.UK_DOMAIN_NAME);
-    }
+	@Override
+	public List<UniqueKey<DomainRecord>> getUniqueKeys() {
+		return Arrays.asList(Keys.UK_DOMAIN_NAME);
+	}
 
-    private transient DeviceCredentialSetPath _deviceCredentialSet;
+	private transient DeviceCredentialSetPath _deviceCredentialSet;
 
-    /**
-     * Get the implicit to-many join path to the
-     * <code>device_credential_set</code> table
-     */
-    public DeviceCredentialSetPath deviceCredentialSet() {
-        if (_deviceCredentialSet == null)
-            _deviceCredentialSet = new DeviceCredentialSetPath(this, null, Keys.DEVICE_CREDENTIAL_SET__FK_DEVICE_CREDENTIAL_SET_MGMT_DOMAIN.getInverseKey());
+	/**
+	 * Get the implicit to-many join path to the <code>device_credential_set</code>
+	 * table
+	 */
+	public DeviceCredentialSetPath deviceCredentialSet() {
+		if (_deviceCredentialSet == null)
+			_deviceCredentialSet = new DeviceCredentialSetPath(this, null, Keys.DEVICE_CREDENTIAL_SET__FK_DEVICE_CREDENTIAL_SET_MGMT_DOMAIN.getInverseKey());
 
-        return _deviceCredentialSet;
-    }
+		return _deviceCredentialSet;
+	}
 
-    private transient DevicePath _device;
+	private transient DevicePath _device;
 
-    /**
-     * Get the implicit to-many join path to the <code>device</code> table
-     */
-    public DevicePath device() {
-        if (_device == null)
-            _device = new DevicePath(this, null, Keys.DEVICE__FK_DEVICE_MGMT_DOMAIN.getInverseKey());
+	/**
+	 * Get the implicit to-many join path to the <code>device</code> table
+	 */
+	public DevicePath device() {
+		if (_device == null)
+			_device = new DevicePath(this, null, Keys.DEVICE__FK_DEVICE_MGMT_DOMAIN.getInverseKey());
 
-        return _device;
-    }
+		return _device;
+	}
 
-    private transient TaskPath _task;
+	private transient TaskPath _task;
 
-    /**
-     * Get the implicit to-many join path to the <code>task</code> table
-     */
-    public TaskPath task() {
-        if (_task == null)
-            _task = new TaskPath(this, null, Keys.TASK__FK_TASK_DOMAIN.getInverseKey());
+	/**
+	 * Get the implicit to-many join path to the <code>task</code> table
+	 */
+	public TaskPath task() {
+		if (_task == null)
+			_task = new TaskPath(this, null, Keys.TASK__FK_TASK_DOMAIN.getInverseKey());
 
-        return _task;
-    }
+		return _task;
+	}
 
-    @Override
-    public Domain as(String alias) {
-        return new Domain(DSL.name(alias), this);
-    }
+	@Override
+	public Domain as(String alias) {
+		return new Domain(DSL.name(alias), this);
+	}
 
-    @Override
-    public Domain as(Name alias) {
-        return new Domain(alias, this);
-    }
+	@Override
+	public Domain as(Name alias) {
+		return new Domain(alias, this);
+	}
 
-    @Override
-    public Domain as(Table<?> alias) {
-        return new Domain(alias.getQualifiedName(), this);
-    }
+	@Override
+	public Domain as(Table<?> alias) {
+		return new Domain(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Domain rename(String name) {
-        return new Domain(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Domain rename(String name) {
+		return new Domain(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Domain rename(Name name) {
-        return new Domain(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Domain rename(Name name) {
+		return new Domain(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Domain rename(Table<?> name) {
-        return new Domain(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Domain rename(Table<?> name) {
+		return new Domain(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Domain where(Condition condition) {
-        return new Domain(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Domain where(Condition condition) {
+		return new Domain(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Domain where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Domain where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Domain where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Domain where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Domain where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Domain where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Domain where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Domain where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Domain where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Domain where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Domain where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Domain where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Domain where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Domain where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Domain whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Domain whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Domain whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Domain whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

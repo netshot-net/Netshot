@@ -40,230 +40,230 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceJsScript extends TableImpl<DeviceJsScriptRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>device_js_script</code>
-     */
-    public static final DeviceJsScript DEVICE_JS_SCRIPT = new DeviceJsScript();
+	/**
+	 * The reference instance of <code>device_js_script</code>
+	 */
+	public static final DeviceJsScript DEVICE_JS_SCRIPT = new DeviceJsScript();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<DeviceJsScriptRecord> getRecordType() {
-        return DeviceJsScriptRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<DeviceJsScriptRecord> getRecordType() {
+		return DeviceJsScriptRecord.class;
+	}
 
-    /**
-     * The column <code>device_js_script.id</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
+	/**
+	 * The column <code>device_js_script.id</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
 
-    /**
-     * The column <code>device_js_script.author</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, String> AUTHOR = createField(DSL.name("author"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>device_js_script.author</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, String> AUTHOR = createField(DSL.name("author"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>device_js_script.device_driver</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, String> DEVICE_DRIVER = createField(DSL.name("device_driver"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>device_js_script.device_driver</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, String> DEVICE_DRIVER = createField(DSL.name("device_driver"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>device_js_script.name</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>device_js_script.name</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>device_js_script.script</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, String> SCRIPT = createField(DSL.name("script"), SQLDataType.CLOB, this, "");
+	/**
+	 * The column <code>device_js_script.script</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, String> SCRIPT = createField(DSL.name("script"), SQLDataType.CLOB, this, "");
 
-    /**
-     * The column <code>device_js_script.folder</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, String> FOLDER = createField(DSL.name("folder"), SQLDataType.VARCHAR(1000), this, "");
+	/**
+	 * The column <code>device_js_script.folder</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, String> FOLDER = createField(DSL.name("folder"), SQLDataType.VARCHAR(1000), this, "");
 
-    /**
-     * The column <code>device_js_script.version</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+	/**
+	 * The column <code>device_js_script.version</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
 
-    /**
-     * The column <code>device_js_script.change_date</code>.
-     */
-    public final TableField<DeviceJsScriptRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>device_js_script.change_date</code>.
+	 */
+	public final TableField<DeviceJsScriptRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    private DeviceJsScript(Name alias, Table<DeviceJsScriptRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private DeviceJsScript(Name alias, Table<DeviceJsScriptRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private DeviceJsScript(Name alias, Table<DeviceJsScriptRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private DeviceJsScript(Name alias, Table<DeviceJsScriptRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>device_js_script</code> table reference
-     */
-    public DeviceJsScript(String alias) {
-        this(DSL.name(alias), DEVICE_JS_SCRIPT);
-    }
+	/**
+	 * Create an aliased <code>device_js_script</code> table reference
+	 */
+	public DeviceJsScript(String alias) {
+		this(DSL.name(alias), DEVICE_JS_SCRIPT);
+	}
 
-    /**
-     * Create an aliased <code>device_js_script</code> table reference
-     */
-    public DeviceJsScript(Name alias) {
-        this(alias, DEVICE_JS_SCRIPT);
-    }
+	/**
+	 * Create an aliased <code>device_js_script</code> table reference
+	 */
+	public DeviceJsScript(Name alias) {
+		this(alias, DEVICE_JS_SCRIPT);
+	}
 
-    /**
-     * Create a <code>device_js_script</code> table reference
-     */
-    public DeviceJsScript() {
-        this(DSL.name("device_js_script"), null);
-    }
+	/**
+	 * Create a <code>device_js_script</code> table reference
+	 */
+	public DeviceJsScript() {
+		this(DSL.name("device_js_script"), null);
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public Identity<DeviceJsScriptRecord, Long> getIdentity() {
-        return (Identity<DeviceJsScriptRecord, Long>) super.getIdentity();
-    }
+	@Override
+	public Identity<DeviceJsScriptRecord, Long> getIdentity() {
+		return (Identity<DeviceJsScriptRecord, Long>) super.getIdentity();
+	}
 
-    @Override
-    public UniqueKey<DeviceJsScriptRecord> getPrimaryKey() {
-        return Keys.DEVICE_JS_SCRIPT_PKEY;
-    }
+	@Override
+	public UniqueKey<DeviceJsScriptRecord> getPrimaryKey() {
+		return Keys.DEVICE_JS_SCRIPT_PKEY;
+	}
 
-    @Override
-    public List<UniqueKey<DeviceJsScriptRecord>> getUniqueKeys() {
-        return Arrays.asList(Keys.UK_DEVICE_JS_SCRIPT_NAME_FOLDER);
-    }
+	@Override
+	public List<UniqueKey<DeviceJsScriptRecord>> getUniqueKeys() {
+		return Arrays.asList(Keys.UK_DEVICE_JS_SCRIPT_NAME_FOLDER);
+	}
 
-    @Override
-    public DeviceJsScript as(String alias) {
-        return new DeviceJsScript(DSL.name(alias), this);
-    }
+	@Override
+	public DeviceJsScript as(String alias) {
+		return new DeviceJsScript(DSL.name(alias), this);
+	}
 
-    @Override
-    public DeviceJsScript as(Name alias) {
-        return new DeviceJsScript(alias, this);
-    }
+	@Override
+	public DeviceJsScript as(Name alias) {
+		return new DeviceJsScript(alias, this);
+	}
 
-    @Override
-    public DeviceJsScript as(Table<?> alias) {
-        return new DeviceJsScript(alias.getQualifiedName(), this);
-    }
+	@Override
+	public DeviceJsScript as(Table<?> alias) {
+		return new DeviceJsScript(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceJsScript rename(String name) {
-        return new DeviceJsScript(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceJsScript rename(String name) {
+		return new DeviceJsScript(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceJsScript rename(Name name) {
-        return new DeviceJsScript(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceJsScript rename(Name name) {
+		return new DeviceJsScript(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceJsScript rename(Table<?> name) {
-        return new DeviceJsScript(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceJsScript rename(Table<?> name) {
+		return new DeviceJsScript(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceJsScript where(Condition condition) {
-        return new DeviceJsScript(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceJsScript where(Condition condition) {
+		return new DeviceJsScript(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceJsScript where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceJsScript where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceJsScript where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceJsScript where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceJsScript where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceJsScript where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceJsScript where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceJsScript where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceJsScript where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceJsScript where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceJsScript where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceJsScript where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceJsScript where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceJsScript where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceJsScript whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceJsScript whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceJsScript whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceJsScript whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

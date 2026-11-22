@@ -18,184 +18,184 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DiagnosticResultRecord extends UpdatableRecordImpl<DiagnosticResultRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>diagnostic_result.type</code>.
-     */
-    public void setType(String value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.type</code>.
+	 */
+	public void setType(String value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.type</code>.
-     */
-    public String getType() {
-        return (String) get(0);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.type</code>.
+	 */
+	public String getType() {
+		return (String) get(0);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.id</code>.
-     */
-    public void setId(Long value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.id</code>.
+	 */
+	public void setId(Long value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(1);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(1);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.creation_date</code>.
-     */
-    public void setCreationDate(Instant value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.creation_date</code>.
+	 */
+	public void setCreationDate(Instant value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.creation_date</code>.
-     */
-    public Instant getCreationDate() {
-        return (Instant) get(2);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.creation_date</code>.
+	 */
+	public Instant getCreationDate() {
+		return (Instant) get(2);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.last_check_date</code>.
-     */
-    public void setLastCheckDate(Instant value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.last_check_date</code>.
+	 */
+	public void setLastCheckDate(Instant value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.last_check_date</code>.
-     */
-    public Instant getLastCheckDate() {
-        return (Instant) get(3);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.last_check_date</code>.
+	 */
+	public Instant getLastCheckDate() {
+		return (Instant) get(3);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.assumption</code>.
-     */
-    public void setAssumption(Boolean value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.assumption</code>.
+	 */
+	public void setAssumption(Boolean value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.assumption</code>.
-     */
-    public Boolean getAssumption() {
-        return (Boolean) get(4);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.assumption</code>.
+	 */
+	public Boolean getAssumption() {
+		return (Boolean) get(4);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.number</code>.
-     */
-    public void setNumber(Double value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.number</code>.
+	 */
+	public void setNumber(Double value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.number</code>.
-     */
-    public Double getNumber() {
-        return (Double) get(5);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.number</code>.
+	 */
+	public Double getNumber() {
+		return (Double) get(5);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.text</code>.
-     */
-    public void setText(String value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.text</code>.
+	 */
+	public void setText(String value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.text</code>.
-     */
-    public String getText() {
-        return (String) get(6);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.text</code>.
+	 */
+	public String getText() {
+		return (String) get(6);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(7);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(7);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.diagnostic</code>.
-     */
-    public void setDiagnostic(Long value) {
-        set(8, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.diagnostic</code>.
+	 */
+	public void setDiagnostic(Long value) {
+		set(8, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.diagnostic</code>.
-     */
-    public Long getDiagnostic() {
-        return (Long) get(8);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.diagnostic</code>.
+	 */
+	public Long getDiagnostic() {
+		return (Long) get(8);
+	}
 
-    /**
-     * Setter for <code>diagnostic_result.long_text</code>.
-     */
-    public void setLongText(Long value) {
-        set(9, value);
-    }
+	/**
+	 * Setter for <code>diagnostic_result.long_text</code>.
+	 */
+	public void setLongText(Long value) {
+		set(9, value);
+	}
 
-    /**
-     * Getter for <code>diagnostic_result.long_text</code>.
-     */
-    public Long getLongText() {
-        return (Long) get(9);
-    }
+	/**
+	 * Getter for <code>diagnostic_result.long_text</code>.
+	 */
+	public Long getLongText() {
+		return (Long) get(9);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DiagnosticResultRecord
-     */
-    public DiagnosticResultRecord() {
-        super(DiagnosticResult.DIAGNOSTIC_RESULT);
-    }
+	/**
+	 * Create a detached DiagnosticResultRecord
+	 */
+	public DiagnosticResultRecord() {
+		super(DiagnosticResult.DIAGNOSTIC_RESULT);
+	}
 
-    /**
-     * Create a detached, initialised DiagnosticResultRecord
-     */
-    public DiagnosticResultRecord(String type, Long id, Instant creationDate, Instant lastCheckDate, Boolean assumption, Double number, String text, Long device, Long diagnostic, Long longText) {
-        super(DiagnosticResult.DIAGNOSTIC_RESULT);
+	/**
+	 * Create a detached, initialised DiagnosticResultRecord
+	 */
+	public DiagnosticResultRecord(String type, Long id, Instant creationDate, Instant lastCheckDate, Boolean assumption, Double number, String text, Long device, Long diagnostic, Long longText) {
+		super(DiagnosticResult.DIAGNOSTIC_RESULT);
 
-        setType(type);
-        setId(id);
-        setCreationDate(creationDate);
-        setLastCheckDate(lastCheckDate);
-        setAssumption(assumption);
-        setNumber(number);
-        setText(text);
-        setDevice(device);
-        setDiagnostic(diagnostic);
-        setLongText(longText);
-        resetTouchedOnNotNull();
-    }
+		setType(type);
+		setId(id);
+		setCreationDate(creationDate);
+		setLastCheckDate(lastCheckDate);
+		setAssumption(assumption);
+		setNumber(number);
+		setText(text);
+		setDevice(device);
+		setDiagnostic(diagnostic);
+		setLongText(longText);
+		resetTouchedOnNotNull();
+	}
 }

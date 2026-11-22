@@ -16,79 +16,79 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class HookTriggerRecord extends UpdatableRecordImpl<HookTriggerRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>hook_trigger.type</code>.
-     */
-    public void setType(String value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>hook_trigger.type</code>.
+	 */
+	public void setType(String value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>hook_trigger.type</code>.
-     */
-    public String getType() {
-        return (String) get(0);
-    }
+	/**
+	 * Getter for <code>hook_trigger.type</code>.
+	 */
+	public String getType() {
+		return (String) get(0);
+	}
 
-    /**
-     * Setter for <code>hook_trigger.item</code>.
-     */
-    public void setItem(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>hook_trigger.item</code>.
+	 */
+	public void setItem(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>hook_trigger.item</code>.
-     */
-    public String getItem() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>hook_trigger.item</code>.
+	 */
+	public String getItem() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>hook_trigger.hook</code>.
-     */
-    public void setHook(Long value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>hook_trigger.hook</code>.
+	 */
+	public void setHook(Long value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>hook_trigger.hook</code>.
-     */
-    public Long getHook() {
-        return (Long) get(2);
-    }
+	/**
+	 * Getter for <code>hook_trigger.hook</code>.
+	 */
+	public Long getHook() {
+		return (Long) get(2);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record3<String, String, Long> key() {
-        return (Record3) super.key();
-    }
+	@Override
+	public Record3<String, String, Long> key() {
+		return (Record3) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached HookTriggerRecord
-     */
-    public HookTriggerRecord() {
-        super(HookTrigger.HOOK_TRIGGER);
-    }
+	/**
+	 * Create a detached HookTriggerRecord
+	 */
+	public HookTriggerRecord() {
+		super(HookTrigger.HOOK_TRIGGER);
+	}
 
-    /**
-     * Create a detached, initialised HookTriggerRecord
-     */
-    public HookTriggerRecord(String type, String item, Long hook) {
-        super(HookTrigger.HOOK_TRIGGER);
+	/**
+	 * Create a detached, initialised HookTriggerRecord
+	 */
+	public HookTriggerRecord(String type, String item, Long hook) {
+		super(HookTrigger.HOOK_TRIGGER);
 
-        setType(type);
-        setItem(item);
-        setHook(hook);
-        resetTouchedOnNotNull();
-    }
+		setType(type);
+		setItem(item);
+		setHook(hook);
+		resetTouchedOnNotNull();
+	}
 }

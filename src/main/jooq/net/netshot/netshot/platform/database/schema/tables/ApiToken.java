@@ -42,215 +42,215 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class ApiToken extends TableImpl<ApiTokenRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>api_token</code>
-     */
-    public static final ApiToken API_TOKEN = new ApiToken();
+	/**
+	 * The reference instance of <code>api_token</code>
+	 */
+	public static final ApiToken API_TOKEN = new ApiToken();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<ApiTokenRecord> getRecordType() {
-        return ApiTokenRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<ApiTokenRecord> getRecordType() {
+		return ApiTokenRecord.class;
+	}
 
-    /**
-     * The column <code>api_token.id</code>.
-     */
-    public final TableField<ApiTokenRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
+	/**
+	 * The column <code>api_token.id</code>.
+	 */
+	public final TableField<ApiTokenRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
 
-    /**
-     * The column <code>api_token.hashed_token</code>.
-     */
-    public final TableField<ApiTokenRecord, String> HASHED_TOKEN = createField(DSL.name("hashed_token"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>api_token.hashed_token</code>.
+	 */
+	public final TableField<ApiTokenRecord, String> HASHED_TOKEN = createField(DSL.name("hashed_token"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>api_token.level</code>.
-     */
-    public final TableField<ApiTokenRecord, Integer> LEVEL = createField(DSL.name("level"), SQLDataType.INTEGER.nullable(false), this, "");
+	/**
+	 * The column <code>api_token.level</code>.
+	 */
+	public final TableField<ApiTokenRecord, Integer> LEVEL = createField(DSL.name("level"), SQLDataType.INTEGER.nullable(false), this, "");
 
-    /**
-     * The column <code>api_token.description</code>.
-     */
-    public final TableField<ApiTokenRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>api_token.description</code>.
+	 */
+	public final TableField<ApiTokenRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>api_token.change_date</code>.
-     */
-    public final TableField<ApiTokenRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>api_token.change_date</code>.
+	 */
+	public final TableField<ApiTokenRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    private ApiToken(Name alias, Table<ApiTokenRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private ApiToken(Name alias, Table<ApiTokenRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private ApiToken(Name alias, Table<ApiTokenRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private ApiToken(Name alias, Table<ApiTokenRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>api_token</code> table reference
-     */
-    public ApiToken(String alias) {
-        this(DSL.name(alias), API_TOKEN);
-    }
+	/**
+	 * Create an aliased <code>api_token</code> table reference
+	 */
+	public ApiToken(String alias) {
+		this(DSL.name(alias), API_TOKEN);
+	}
 
-    /**
-     * Create an aliased <code>api_token</code> table reference
-     */
-    public ApiToken(Name alias) {
-        this(alias, API_TOKEN);
-    }
+	/**
+	 * Create an aliased <code>api_token</code> table reference
+	 */
+	public ApiToken(Name alias) {
+		this(alias, API_TOKEN);
+	}
 
-    /**
-     * Create a <code>api_token</code> table reference
-     */
-    public ApiToken() {
-        this(DSL.name("api_token"), null);
-    }
+	/**
+	 * Create a <code>api_token</code> table reference
+	 */
+	public ApiToken() {
+		this(DSL.name("api_token"), null);
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.HASHEDTOKENINDEX);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.HASHEDTOKENINDEX);
+	}
 
-    @Override
-    public Identity<ApiTokenRecord, Long> getIdentity() {
-        return (Identity<ApiTokenRecord, Long>) super.getIdentity();
-    }
+	@Override
+	public Identity<ApiTokenRecord, Long> getIdentity() {
+		return (Identity<ApiTokenRecord, Long>) super.getIdentity();
+	}
 
-    @Override
-    public UniqueKey<ApiTokenRecord> getPrimaryKey() {
-        return Keys.API_TOKEN_PKEY;
-    }
+	@Override
+	public UniqueKey<ApiTokenRecord> getPrimaryKey() {
+		return Keys.API_TOKEN_PKEY;
+	}
 
-    @Override
-    public ApiToken as(String alias) {
-        return new ApiToken(DSL.name(alias), this);
-    }
+	@Override
+	public ApiToken as(String alias) {
+		return new ApiToken(DSL.name(alias), this);
+	}
 
-    @Override
-    public ApiToken as(Name alias) {
-        return new ApiToken(alias, this);
-    }
+	@Override
+	public ApiToken as(Name alias) {
+		return new ApiToken(alias, this);
+	}
 
-    @Override
-    public ApiToken as(Table<?> alias) {
-        return new ApiToken(alias.getQualifiedName(), this);
-    }
+	@Override
+	public ApiToken as(Table<?> alias) {
+		return new ApiToken(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public ApiToken rename(String name) {
-        return new ApiToken(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public ApiToken rename(String name) {
+		return new ApiToken(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public ApiToken rename(Name name) {
-        return new ApiToken(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public ApiToken rename(Name name) {
+		return new ApiToken(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public ApiToken rename(Table<?> name) {
-        return new ApiToken(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public ApiToken rename(Table<?> name) {
+		return new ApiToken(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ApiToken where(Condition condition) {
-        return new ApiToken(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ApiToken where(Condition condition) {
+		return new ApiToken(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ApiToken where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ApiToken where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ApiToken where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ApiToken where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ApiToken where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ApiToken where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ApiToken where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ApiToken where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ApiToken where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ApiToken where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ApiToken where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ApiToken where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ApiToken where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ApiToken where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ApiToken whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ApiToken whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ApiToken whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ApiToken whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

@@ -16,79 +16,79 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class TaskDeviceListMembersRecord extends UpdatableRecordImpl<TaskDeviceListMembersRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>task_device_list_members.task_id</code>.
-     */
-    public void setTaskId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>task_device_list_members.task_id</code>.
+	 */
+	public void setTaskId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>task_device_list_members.task_id</code>.
-     */
-    public Long getTaskId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>task_device_list_members.task_id</code>.
+	 */
+	public Long getTaskId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>task_device_list_members.device_id</code>.
-     */
-    public void setDeviceId(Long value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>task_device_list_members.device_id</code>.
+	 */
+	public void setDeviceId(Long value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>task_device_list_members.device_id</code>.
-     */
-    public Long getDeviceId() {
-        return (Long) get(1);
-    }
+	/**
+	 * Getter for <code>task_device_list_members.device_id</code>.
+	 */
+	public Long getDeviceId() {
+		return (Long) get(1);
+	}
 
-    /**
-     * Setter for <code>task_device_list_members.list_position</code>.
-     */
-    public void setListPosition(Integer value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>task_device_list_members.list_position</code>.
+	 */
+	public void setListPosition(Integer value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>task_device_list_members.list_position</code>.
-     */
-    public Integer getListPosition() {
-        return (Integer) get(2);
-    }
+	/**
+	 * Getter for <code>task_device_list_members.list_position</code>.
+	 */
+	public Integer getListPosition() {
+		return (Integer) get(2);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record2<Long, Long> key() {
-        return (Record2) super.key();
-    }
+	@Override
+	public Record2<Long, Long> key() {
+		return (Record2) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached TaskDeviceListMembersRecord
-     */
-    public TaskDeviceListMembersRecord() {
-        super(TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS);
-    }
+	/**
+	 * Create a detached TaskDeviceListMembersRecord
+	 */
+	public TaskDeviceListMembersRecord() {
+		super(TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS);
+	}
 
-    /**
-     * Create a detached, initialised TaskDeviceListMembersRecord
-     */
-    public TaskDeviceListMembersRecord(Long taskId, Long deviceId, Integer listPosition) {
-        super(TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS);
+	/**
+	 * Create a detached, initialised TaskDeviceListMembersRecord
+	 */
+	public TaskDeviceListMembersRecord(Long taskId, Long deviceId, Integer listPosition) {
+		super(TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS);
 
-        setTaskId(taskId);
-        setDeviceId(deviceId);
-        setListPosition(listPosition);
-        resetTouchedOnNotNull();
-    }
+		setTaskId(taskId);
+		setDeviceId(deviceId);
+		setListPosition(listPosition);
+		resetTouchedOnNotNull();
+	}
 }

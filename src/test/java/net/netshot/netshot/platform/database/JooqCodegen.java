@@ -83,6 +83,7 @@ public final class JooqCodegen {
 							.withConverter(UtcInstantConverter.class.getName())
 							.withIncludeTypes("timestamp(\\(\\d+\\))?( without time zone)?")))
 				.withGenerate(new Generate()
+					.withIndentation("\t")
 					.withGeneratedAnnotation(false)
 					.withJavaTimeTypes(true)
 					.withRecords(true)

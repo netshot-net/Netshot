@@ -47,305 +47,305 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class SoftwareRule extends TableImpl<SoftwareRuleRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>software_rule</code>
-     */
-    public static final SoftwareRule SOFTWARE_RULE = new SoftwareRule();
+	/**
+	 * The reference instance of <code>software_rule</code>
+	 */
+	public static final SoftwareRule SOFTWARE_RULE = new SoftwareRule();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<SoftwareRuleRecord> getRecordType() {
-        return SoftwareRuleRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<SoftwareRuleRecord> getRecordType() {
+		return SoftwareRuleRecord.class;
+	}
 
-    /**
-     * The column <code>software_rule.id</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
+	/**
+	 * The column <code>software_rule.id</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
 
-    /**
-     * The column <code>software_rule.driver</code>.
-     */
-    public final TableField<SoftwareRuleRecord, String> DRIVER = createField(DSL.name("driver"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>software_rule.driver</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, String> DRIVER = createField(DSL.name("driver"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>software_rule.family</code>.
-     */
-    public final TableField<SoftwareRuleRecord, String> FAMILY = createField(DSL.name("family"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>software_rule.family</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, String> FAMILY = createField(DSL.name("family"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>software_rule.family_reg_exp</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Boolean> FAMILY_REG_EXP = createField(DSL.name("family_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
+	/**
+	 * The column <code>software_rule.family_reg_exp</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Boolean> FAMILY_REG_EXP = createField(DSL.name("family_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
 
-    /**
-     * The column <code>software_rule.level</code>.
-     */
-    public final TableField<SoftwareRuleRecord, String> LEVEL = createField(DSL.name("level"), SQLDataType.VARCHAR(32), this, "");
+	/**
+	 * The column <code>software_rule.level</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, String> LEVEL = createField(DSL.name("level"), SQLDataType.VARCHAR(32), this, "");
 
-    /**
-     * The column <code>software_rule.priority</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Double> PRIORITY = createField(DSL.name("priority"), SQLDataType.DOUBLE.nullable(false), this, "");
+	/**
+	 * The column <code>software_rule.priority</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Double> PRIORITY = createField(DSL.name("priority"), SQLDataType.DOUBLE.nullable(false), this, "");
 
-    /**
-     * The column <code>software_rule.software_version</code>.
-     */
-    public final TableField<SoftwareRuleRecord, String> SOFTWARE_VERSION = createField(DSL.name("software_version"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>software_rule.software_version</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, String> SOFTWARE_VERSION = createField(DSL.name("software_version"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>software_rule.version_reg_exp</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Boolean> VERSION_REG_EXP = createField(DSL.name("version_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
+	/**
+	 * The column <code>software_rule.version_reg_exp</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Boolean> VERSION_REG_EXP = createField(DSL.name("version_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
 
-    /**
-     * The column <code>software_rule.target_group</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Long> TARGET_GROUP = createField(DSL.name("target_group"), SQLDataType.BIGINT, this, "");
+	/**
+	 * The column <code>software_rule.target_group</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Long> TARGET_GROUP = createField(DSL.name("target_group"), SQLDataType.BIGINT, this, "");
 
-    /**
-     * The column <code>software_rule.part_number</code>.
-     */
-    public final TableField<SoftwareRuleRecord, String> PART_NUMBER = createField(DSL.name("part_number"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>software_rule.part_number</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, String> PART_NUMBER = createField(DSL.name("part_number"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>software_rule.part_number_reg_exp</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Boolean> PART_NUMBER_REG_EXP = createField(DSL.name("part_number_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
+	/**
+	 * The column <code>software_rule.part_number_reg_exp</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Boolean> PART_NUMBER_REG_EXP = createField(DSL.name("part_number_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
 
-    /**
-     * The column <code>software_rule.version</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+	/**
+	 * The column <code>software_rule.version</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
 
-    /**
-     * The column <code>software_rule.change_date</code>.
-     */
-    public final TableField<SoftwareRuleRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>software_rule.change_date</code>.
+	 */
+	public final TableField<SoftwareRuleRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    private SoftwareRule(Name alias, Table<SoftwareRuleRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private SoftwareRule(Name alias, Table<SoftwareRuleRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private SoftwareRule(Name alias, Table<SoftwareRuleRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private SoftwareRule(Name alias, Table<SoftwareRuleRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>software_rule</code> table reference
-     */
-    public SoftwareRule(String alias) {
-        this(DSL.name(alias), SOFTWARE_RULE);
-    }
+	/**
+	 * Create an aliased <code>software_rule</code> table reference
+	 */
+	public SoftwareRule(String alias) {
+		this(DSL.name(alias), SOFTWARE_RULE);
+	}
 
-    /**
-     * Create an aliased <code>software_rule</code> table reference
-     */
-    public SoftwareRule(Name alias) {
-        this(alias, SOFTWARE_RULE);
-    }
+	/**
+	 * Create an aliased <code>software_rule</code> table reference
+	 */
+	public SoftwareRule(Name alias) {
+		this(alias, SOFTWARE_RULE);
+	}
 
-    /**
-     * Create a <code>software_rule</code> table reference
-     */
-    public SoftwareRule() {
-        this(DSL.name("software_rule"), null);
-    }
+	/**
+	 * Create a <code>software_rule</code> table reference
+	 */
+	public SoftwareRule() {
+		this(DSL.name("software_rule"), null);
+	}
 
-    public <O extends Record> SoftwareRule(Table<O> path, ForeignKey<O, SoftwareRuleRecord> childPath, InverseForeignKey<O, SoftwareRuleRecord> parentPath) {
-        super(path, childPath, parentPath, SOFTWARE_RULE);
-    }
+	public <O extends Record> SoftwareRule(Table<O> path, ForeignKey<O, SoftwareRuleRecord> childPath, InverseForeignKey<O, SoftwareRuleRecord> parentPath) {
+		super(path, childPath, parentPath, SOFTWARE_RULE);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class SoftwareRulePath extends SoftwareRule implements Path<SoftwareRuleRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class SoftwareRulePath extends SoftwareRule implements Path<SoftwareRuleRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> SoftwareRulePath(Table<O> path, ForeignKey<O, SoftwareRuleRecord> childPath, InverseForeignKey<O, SoftwareRuleRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private SoftwareRulePath(Name alias, Table<SoftwareRuleRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> SoftwareRulePath(Table<O> path, ForeignKey<O, SoftwareRuleRecord> childPath, InverseForeignKey<O, SoftwareRuleRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private SoftwareRulePath(Name alias, Table<SoftwareRuleRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public SoftwareRulePath as(String alias) {
-            return new SoftwareRulePath(DSL.name(alias), this);
-        }
+		@Override
+		public SoftwareRulePath as(String alias) {
+			return new SoftwareRulePath(DSL.name(alias), this);
+		}
 
-        @Override
-        public SoftwareRulePath as(Name alias) {
-            return new SoftwareRulePath(alias, this);
-        }
+		@Override
+		public SoftwareRulePath as(Name alias) {
+			return new SoftwareRulePath(alias, this);
+		}
 
-        @Override
-        public SoftwareRulePath as(Table<?> alias) {
-            return new SoftwareRulePath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public SoftwareRulePath as(Table<?> alias) {
+			return new SoftwareRulePath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_SOFTWARE_RULE_TARGET_GROUP);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_SOFTWARE_RULE_TARGET_GROUP);
+	}
 
-    @Override
-    public Identity<SoftwareRuleRecord, Long> getIdentity() {
-        return (Identity<SoftwareRuleRecord, Long>) super.getIdentity();
-    }
+	@Override
+	public Identity<SoftwareRuleRecord, Long> getIdentity() {
+		return (Identity<SoftwareRuleRecord, Long>) super.getIdentity();
+	}
 
-    @Override
-    public UniqueKey<SoftwareRuleRecord> getPrimaryKey() {
-        return Keys.SOFTWARE_RULE_PKEY;
-    }
+	@Override
+	public UniqueKey<SoftwareRuleRecord> getPrimaryKey() {
+		return Keys.SOFTWARE_RULE_PKEY;
+	}
 
-    @Override
-    public List<ForeignKey<SoftwareRuleRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.SOFTWARE_RULE__FK_SOFTWARE_RULE_TARGET_GROUP);
-    }
+	@Override
+	public List<ForeignKey<SoftwareRuleRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.SOFTWARE_RULE__FK_SOFTWARE_RULE_TARGET_GROUP);
+	}
 
-    private transient DeviceGroupPath _deviceGroup;
+	private transient DeviceGroupPath _deviceGroup;
 
-    /**
-     * Get the implicit join path to the <code>device_group</code> table.
-     */
-    public DeviceGroupPath deviceGroup() {
-        if (_deviceGroup == null)
-            _deviceGroup = new DeviceGroupPath(this, Keys.SOFTWARE_RULE__FK_SOFTWARE_RULE_TARGET_GROUP, null);
+	/**
+	 * Get the implicit join path to the <code>device_group</code> table.
+	 */
+	public DeviceGroupPath deviceGroup() {
+		if (_deviceGroup == null)
+			_deviceGroup = new DeviceGroupPath(this, Keys.SOFTWARE_RULE__FK_SOFTWARE_RULE_TARGET_GROUP, null);
 
-        return _deviceGroup;
-    }
+		return _deviceGroup;
+	}
 
-    @Override
-    public SoftwareRule as(String alias) {
-        return new SoftwareRule(DSL.name(alias), this);
-    }
+	@Override
+	public SoftwareRule as(String alias) {
+		return new SoftwareRule(DSL.name(alias), this);
+	}
 
-    @Override
-    public SoftwareRule as(Name alias) {
-        return new SoftwareRule(alias, this);
-    }
+	@Override
+	public SoftwareRule as(Name alias) {
+		return new SoftwareRule(alias, this);
+	}
 
-    @Override
-    public SoftwareRule as(Table<?> alias) {
-        return new SoftwareRule(alias.getQualifiedName(), this);
-    }
+	@Override
+	public SoftwareRule as(Table<?> alias) {
+		return new SoftwareRule(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public SoftwareRule rename(String name) {
-        return new SoftwareRule(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public SoftwareRule rename(String name) {
+		return new SoftwareRule(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public SoftwareRule rename(Name name) {
-        return new SoftwareRule(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public SoftwareRule rename(Name name) {
+		return new SoftwareRule(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public SoftwareRule rename(Table<?> name) {
-        return new SoftwareRule(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public SoftwareRule rename(Table<?> name) {
+		return new SoftwareRule(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public SoftwareRule where(Condition condition) {
-        return new SoftwareRule(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public SoftwareRule where(Condition condition) {
+		return new SoftwareRule(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public SoftwareRule where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public SoftwareRule where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public SoftwareRule where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public SoftwareRule where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public SoftwareRule where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public SoftwareRule where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public SoftwareRule where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public SoftwareRule where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public SoftwareRule where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public SoftwareRule where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public SoftwareRule where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public SoftwareRule where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public SoftwareRule where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public SoftwareRule where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public SoftwareRule whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public SoftwareRule whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public SoftwareRule whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public SoftwareRule whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

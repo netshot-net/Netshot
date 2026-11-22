@@ -43,257 +43,257 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class TaskDeviceListMembers extends TableImpl<TaskDeviceListMembersRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>task_device_list_members</code>
-     */
-    public static final TaskDeviceListMembers TASK_DEVICE_LIST_MEMBERS = new TaskDeviceListMembers();
+	/**
+	 * The reference instance of <code>task_device_list_members</code>
+	 */
+	public static final TaskDeviceListMembers TASK_DEVICE_LIST_MEMBERS = new TaskDeviceListMembers();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<TaskDeviceListMembersRecord> getRecordType() {
-        return TaskDeviceListMembersRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<TaskDeviceListMembersRecord> getRecordType() {
+		return TaskDeviceListMembersRecord.class;
+	}
 
-    /**
-     * The column <code>task_device_list_members.task_id</code>.
-     */
-    public final TableField<TaskDeviceListMembersRecord, Long> TASK_ID = createField(DSL.name("task_id"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>task_device_list_members.task_id</code>.
+	 */
+	public final TableField<TaskDeviceListMembersRecord, Long> TASK_ID = createField(DSL.name("task_id"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>task_device_list_members.device_id</code>.
-     */
-    public final TableField<TaskDeviceListMembersRecord, Long> DEVICE_ID = createField(DSL.name("device_id"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>task_device_list_members.device_id</code>.
+	 */
+	public final TableField<TaskDeviceListMembersRecord, Long> DEVICE_ID = createField(DSL.name("device_id"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>task_device_list_members.list_position</code>.
-     */
-    public final TableField<TaskDeviceListMembersRecord, Integer> LIST_POSITION = createField(DSL.name("list_position"), SQLDataType.INTEGER.nullable(false), this, "");
+	/**
+	 * The column <code>task_device_list_members.list_position</code>.
+	 */
+	public final TableField<TaskDeviceListMembersRecord, Integer> LIST_POSITION = createField(DSL.name("list_position"), SQLDataType.INTEGER.nullable(false), this, "");
 
-    private TaskDeviceListMembers(Name alias, Table<TaskDeviceListMembersRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private TaskDeviceListMembers(Name alias, Table<TaskDeviceListMembersRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private TaskDeviceListMembers(Name alias, Table<TaskDeviceListMembersRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private TaskDeviceListMembers(Name alias, Table<TaskDeviceListMembersRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>task_device_list_members</code> table reference
-     */
-    public TaskDeviceListMembers(String alias) {
-        this(DSL.name(alias), TASK_DEVICE_LIST_MEMBERS);
-    }
+	/**
+	 * Create an aliased <code>task_device_list_members</code> table reference
+	 */
+	public TaskDeviceListMembers(String alias) {
+		this(DSL.name(alias), TASK_DEVICE_LIST_MEMBERS);
+	}
 
-    /**
-     * Create an aliased <code>task_device_list_members</code> table reference
-     */
-    public TaskDeviceListMembers(Name alias) {
-        this(alias, TASK_DEVICE_LIST_MEMBERS);
-    }
+	/**
+	 * Create an aliased <code>task_device_list_members</code> table reference
+	 */
+	public TaskDeviceListMembers(Name alias) {
+		this(alias, TASK_DEVICE_LIST_MEMBERS);
+	}
 
-    /**
-     * Create a <code>task_device_list_members</code> table reference
-     */
-    public TaskDeviceListMembers() {
-        this(DSL.name("task_device_list_members"), null);
-    }
+	/**
+	 * Create a <code>task_device_list_members</code> table reference
+	 */
+	public TaskDeviceListMembers() {
+		this(DSL.name("task_device_list_members"), null);
+	}
 
-    public <O extends Record> TaskDeviceListMembers(Table<O> path, ForeignKey<O, TaskDeviceListMembersRecord> childPath, InverseForeignKey<O, TaskDeviceListMembersRecord> parentPath) {
-        super(path, childPath, parentPath, TASK_DEVICE_LIST_MEMBERS);
-    }
+	public <O extends Record> TaskDeviceListMembers(Table<O> path, ForeignKey<O, TaskDeviceListMembersRecord> childPath, InverseForeignKey<O, TaskDeviceListMembersRecord> parentPath) {
+		super(path, childPath, parentPath, TASK_DEVICE_LIST_MEMBERS);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class TaskDeviceListMembersPath extends TaskDeviceListMembers implements Path<TaskDeviceListMembersRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class TaskDeviceListMembersPath extends TaskDeviceListMembers implements Path<TaskDeviceListMembersRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> TaskDeviceListMembersPath(Table<O> path, ForeignKey<O, TaskDeviceListMembersRecord> childPath, InverseForeignKey<O, TaskDeviceListMembersRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private TaskDeviceListMembersPath(Name alias, Table<TaskDeviceListMembersRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> TaskDeviceListMembersPath(Table<O> path, ForeignKey<O, TaskDeviceListMembersRecord> childPath, InverseForeignKey<O, TaskDeviceListMembersRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private TaskDeviceListMembersPath(Name alias, Table<TaskDeviceListMembersRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public TaskDeviceListMembersPath as(String alias) {
-            return new TaskDeviceListMembersPath(DSL.name(alias), this);
-        }
+		@Override
+		public TaskDeviceListMembersPath as(String alias) {
+			return new TaskDeviceListMembersPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public TaskDeviceListMembersPath as(Name alias) {
-            return new TaskDeviceListMembersPath(alias, this);
-        }
+		@Override
+		public TaskDeviceListMembersPath as(Name alias) {
+			return new TaskDeviceListMembersPath(alias, this);
+		}
 
-        @Override
-        public TaskDeviceListMembersPath as(Table<?> alias) {
-            return new TaskDeviceListMembersPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public TaskDeviceListMembersPath as(Table<?> alias) {
+			return new TaskDeviceListMembersPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public UniqueKey<TaskDeviceListMembersRecord> getPrimaryKey() {
-        return Keys.TASK_DEVICE_LIST_MEMBERS_PKEY;
-    }
+	@Override
+	public UniqueKey<TaskDeviceListMembersRecord> getPrimaryKey() {
+		return Keys.TASK_DEVICE_LIST_MEMBERS_PKEY;
+	}
 
-    @Override
-    public List<ForeignKey<TaskDeviceListMembersRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_DEVICE_ID, Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_TASK_ID);
-    }
+	@Override
+	public List<ForeignKey<TaskDeviceListMembersRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_DEVICE_ID, Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_TASK_ID);
+	}
 
-    private transient DevicePath _device;
+	private transient DevicePath _device;
 
-    /**
-     * Get the implicit join path to the <code>device</code> table.
-     */
-    public DevicePath device() {
-        if (_device == null)
-            _device = new DevicePath(this, Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_DEVICE_ID, null);
+	/**
+	 * Get the implicit join path to the <code>device</code> table.
+	 */
+	public DevicePath device() {
+		if (_device == null)
+			_device = new DevicePath(this, Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_DEVICE_ID, null);
 
-        return _device;
-    }
+		return _device;
+	}
 
-    private transient TaskPath _task;
+	private transient TaskPath _task;
 
-    /**
-     * Get the implicit join path to the <code>task</code> table.
-     */
-    public TaskPath task() {
-        if (_task == null)
-            _task = new TaskPath(this, Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_TASK_ID, null);
+	/**
+	 * Get the implicit join path to the <code>task</code> table.
+	 */
+	public TaskPath task() {
+		if (_task == null)
+			_task = new TaskPath(this, Keys.TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_TASK_ID, null);
 
-        return _task;
-    }
+		return _task;
+	}
 
-    @Override
-    public TaskDeviceListMembers as(String alias) {
-        return new TaskDeviceListMembers(DSL.name(alias), this);
-    }
+	@Override
+	public TaskDeviceListMembers as(String alias) {
+		return new TaskDeviceListMembers(DSL.name(alias), this);
+	}
 
-    @Override
-    public TaskDeviceListMembers as(Name alias) {
-        return new TaskDeviceListMembers(alias, this);
-    }
+	@Override
+	public TaskDeviceListMembers as(Name alias) {
+		return new TaskDeviceListMembers(alias, this);
+	}
 
-    @Override
-    public TaskDeviceListMembers as(Table<?> alias) {
-        return new TaskDeviceListMembers(alias.getQualifiedName(), this);
-    }
+	@Override
+	public TaskDeviceListMembers as(Table<?> alias) {
+		return new TaskDeviceListMembers(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public TaskDeviceListMembers rename(String name) {
-        return new TaskDeviceListMembers(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public TaskDeviceListMembers rename(String name) {
+		return new TaskDeviceListMembers(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public TaskDeviceListMembers rename(Name name) {
-        return new TaskDeviceListMembers(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public TaskDeviceListMembers rename(Name name) {
+		return new TaskDeviceListMembers(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public TaskDeviceListMembers rename(Table<?> name) {
-        return new TaskDeviceListMembers(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public TaskDeviceListMembers rename(Table<?> name) {
+		return new TaskDeviceListMembers(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public TaskDeviceListMembers where(Condition condition) {
-        return new TaskDeviceListMembers(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public TaskDeviceListMembers where(Condition condition) {
+		return new TaskDeviceListMembers(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public TaskDeviceListMembers where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public TaskDeviceListMembers where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public TaskDeviceListMembers where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public TaskDeviceListMembers where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public TaskDeviceListMembers where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public TaskDeviceListMembers where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public TaskDeviceListMembers where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public TaskDeviceListMembers where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public TaskDeviceListMembers where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public TaskDeviceListMembers where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public TaskDeviceListMembers where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public TaskDeviceListMembers where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public TaskDeviceListMembers where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public TaskDeviceListMembers where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public TaskDeviceListMembers whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public TaskDeviceListMembers whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public TaskDeviceListMembers whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public TaskDeviceListMembers whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

@@ -40,51 +40,51 @@ import org.jooq.impl.Internal;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Indexes {
 
-    // -------------------------------------------------------------------------
-    // INDEX definitions
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// INDEX definitions
+	// -------------------------------------------------------------------------
 
-    public static final Index DTYPEINDEX = Internal.createIndex(DSL.name("dtypeIndex"), Task.TASK, new OrderField[] { Task.TASK.DTYPE }, false);
-    public static final Index HASHEDTOKENINDEX = Internal.createIndex(DSL.name("hashedTokenIndex"), ApiToken.API_TOKEN, new OrderField[] { ApiToken.API_TOKEN.HASHED_TOKEN }, false);
-    public static final Index IDX_DEVICE_TAGS_TAG = Internal.createIndex(DSL.name("IDX_device_tags_tag"), DeviceTags.DEVICE_TAGS, new OrderField[] { DeviceTags.DEVICE_TAGS.TAG }, false);
-    public static final Index IX_CHECK_RESULT_DEVICE_NONCONFORMING = Internal.createIndex(DSL.name("ix_check_result_device_nonconforming"), CheckResult.CHECK_RESULT, new OrderField[] { CheckResult.CHECK_RESULT.DEVICE }, false);
-    public static final Index IX_CHECK_RESULT_RULE = Internal.createIndex(DSL.name("ix_check_result_rule"), CheckResult.CHECK_RESULT, new OrderField[] { CheckResult.CHECK_RESULT.RULE }, false);
-    public static final Index IX_CONFIG_ATTRIBUTE_CONFIG = Internal.createIndex(DSL.name("ix_config_attribute_config"), ConfigAttribute.CONFIG_ATTRIBUTE, new OrderField[] { ConfigAttribute.CONFIG_ATTRIBUTE.CONFIG }, false);
-    public static final Index IX_CONFIG_ATTRIBUTE_LONG_TEXT = Internal.createIndex(DSL.name("ix_config_attribute_long_text"), ConfigAttribute.CONFIG_ATTRIBUTE, new OrderField[] { ConfigAttribute.CONFIG_ATTRIBUTE.LONG_TEXT }, false);
-    public static final Index IX_CONFIG_CHANGE_DATE = Internal.createIndex(DSL.name("ix_config_change_date"), Config.CONFIG, new OrderField[] { Config.CONFIG.CHANGE_DATE.desc() }, false);
-    public static final Index IX_CONFIG_DEVICE = Internal.createIndex(DSL.name("ix_config_device"), Config.CONFIG, new OrderField[] { Config.CONFIG.DEVICE }, false);
-    public static final Index IX_DEVICE_ATTRIBUTE_DEVICE = Internal.createIndex(DSL.name("ix_device_attribute_device"), DeviceAttribute.DEVICE_ATTRIBUTE, new OrderField[] { DeviceAttribute.DEVICE_ATTRIBUTE.DEVICE }, false);
-    public static final Index IX_DEVICE_ATTRIBUTE_LONG_TEXT = Internal.createIndex(DSL.name("ix_device_attribute_long_text"), DeviceAttribute.DEVICE_ATTRIBUTE, new OrderField[] { DeviceAttribute.DEVICE_ATTRIBUTE.LONG_TEXT }, false);
-    public static final Index IX_DEVICE_CREDENTIAL_SET_MGMT_DOMAIN = Internal.createIndex(DSL.name("ix_device_credential_set_mgmt_domain"), DeviceCredentialSet.DEVICE_CREDENTIAL_SET, new OrderField[] { DeviceCredentialSet.DEVICE_CREDENTIAL_SET.MGMT_DOMAIN }, false);
-    public static final Index IX_DEVICE_EOL_MODULE = Internal.createIndex(DSL.name("ix_device_eol_module"), Device.DEVICE, new OrderField[] { Device.DEVICE.EOL_MODULE }, false);
-    public static final Index IX_DEVICE_EOS_MODULE = Internal.createIndex(DSL.name("ix_device_eos_module"), Device.DEVICE, new OrderField[] { Device.DEVICE.EOS_MODULE }, false);
-    public static final Index IX_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES = Internal.createIndex(DSL.name("ix_device_group_cached_devices_cached_devices"), DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES, new OrderField[] { DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES }, false);
-    public static final Index IX_DEVICE_LAST_CONFIG = Internal.createIndex(DSL.name("ix_device_last_config"), Device.DEVICE, new OrderField[] { Device.DEVICE.LAST_CONFIG }, false);
-    public static final Index IX_DEVICE_MGMT_DOMAIN = Internal.createIndex(DSL.name("ix_device_mgmt_domain"), Device.DEVICE, new OrderField[] { Device.DEVICE.MGMT_DOMAIN }, false);
-    public static final Index IX_DEVICE_NAME_ID = Internal.createIndex(DSL.name("ix_device_name_id"), Device.DEVICE, new OrderField[] { Device.DEVICE.NAME, Device.DEVICE.ID }, false);
-    public static final Index IX_DEVICE_VIRTUAL_DEVICES_DEVICE = Internal.createIndex(DSL.name("ix_device_virtual_devices_device"), DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES, new OrderField[] { DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES.DEVICE }, false);
-    public static final Index IX_DEVICE_VRF_INSTANCES_DEVICE = Internal.createIndex(DSL.name("ix_device_vrf_instances_device"), DeviceVrfInstances.DEVICE_VRF_INSTANCES, new OrderField[] { DeviceVrfInstances.DEVICE_VRF_INSTANCES.DEVICE }, false);
-    public static final Index IX_DIAGNOSTIC_RESULT_DEVICE = Internal.createIndex(DSL.name("ix_diagnostic_result_device"), DiagnosticResult.DIAGNOSTIC_RESULT, new OrderField[] { DiagnosticResult.DIAGNOSTIC_RESULT.DEVICE }, false);
-    public static final Index IX_DIAGNOSTIC_RESULT_DIAGNOSTIC = Internal.createIndex(DSL.name("ix_diagnostic_result_diagnostic"), DiagnosticResult.DIAGNOSTIC_RESULT, new OrderField[] { DiagnosticResult.DIAGNOSTIC_RESULT.DIAGNOSTIC }, false);
-    public static final Index IX_DIAGNOSTIC_RESULT_LONG_TEXT = Internal.createIndex(DSL.name("ix_diagnostic_result_long_text"), DiagnosticResult.DIAGNOSTIC_RESULT, new OrderField[] { DiagnosticResult.DIAGNOSTIC_RESULT.LONG_TEXT }, false);
-    public static final Index IX_DIAGNOSTIC_TARGET_GROUP = Internal.createIndex(DSL.name("ix_diagnostic_target_group"), Diagnostic.DIAGNOSTIC, new OrderField[] { Diagnostic.DIAGNOSTIC.TARGET_GROUP }, false);
-    public static final Index IX_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS = Internal.createIndex(DSL.name("ix_discover_device_type_task_credential_sets_credential_sets"), DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS, new OrderField[] { DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS.CREDENTIAL_SETS }, false);
-    public static final Index IX_EXEMPTION_RULE = Internal.createIndex(DSL.name("ix_exemption_rule"), Exemption.EXEMPTION, new OrderField[] { Exemption.EXEMPTION.RULE }, false);
-    public static final Index IX_HARDWARE_RULE_TARGET_GROUP = Internal.createIndex(DSL.name("ix_hardware_rule_target_group"), HardwareRule.HARDWARE_RULE, new OrderField[] { HardwareRule.HARDWARE_RULE.TARGET_GROUP }, false);
-    public static final Index IX_MODULE_DEVICE = Internal.createIndex(DSL.name("ix_module_device"), Module.MODULE, new OrderField[] { Module.MODULE.DEVICE }, false);
-    public static final Index IX_MODULE_REMOVED = Internal.createIndex(DSL.name("ix_module_removed"), Module.MODULE, new OrderField[] { Module.MODULE.REMOVED }, false);
-    public static final Index IX_NETWORK_INTERFACE_DEVICE = Internal.createIndex(DSL.name("ix_network_interface_device"), NetworkInterface.NETWORK_INTERFACE, new OrderField[] { NetworkInterface.NETWORK_INTERFACE.DEVICE }, false);
-    public static final Index IX_POLICY_TARGET_GROUPS_TARGET_GROUPS = Internal.createIndex(DSL.name("ix_policy_target_groups_target_groups"), PolicyTargetGroups.POLICY_TARGET_GROUPS, new OrderField[] { PolicyTargetGroups.POLICY_TARGET_GROUPS.TARGET_GROUPS }, false);
-    public static final Index IX_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK = Internal.createIndex(DSL.name("ix_scan_subnets_task_subnets_scan_subnets_task"), ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS, new OrderField[] { ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS.SCAN_SUBNETS_TASK }, false);
-    public static final Index IX_SOFTWARE_RULE_TARGET_GROUP = Internal.createIndex(DSL.name("ix_software_rule_target_group"), SoftwareRule.SOFTWARE_RULE, new OrderField[] { SoftwareRule.SOFTWARE_RULE.TARGET_GROUP }, false);
-    public static final Index IX_TASK_CHANGE_DATE = Internal.createIndex(DSL.name("ix_task_change_date"), Task.TASK, new OrderField[] { Task.TASK.CHANGE_DATE.desc() }, false);
-    public static final Index IX_TASK_CREATION_DATE = Internal.createIndex(DSL.name("ix_task_creation_date"), Task.TASK, new OrderField[] { Task.TASK.CREATION_DATE.desc() }, false);
-    public static final Index IX_TASK_DEBUG_LOG = Internal.createIndex(DSL.name("ix_task_debug_log"), Task.TASK, new OrderField[] { Task.TASK.DEBUG_LOG }, false);
-    public static final Index IX_TASK_DEVICE = Internal.createIndex(DSL.name("ix_task_device"), Task.TASK, new OrderField[] { Task.TASK.DEVICE }, false);
-    public static final Index IX_TASK_DISCOVER_RESULT_DEVICE = Internal.createIndex(DSL.name("ix_task_discover_result_device"), Task.TASK, new OrderField[] { Task.TASK.DISCOVER_RESULT_DEVICE }, false);
-    public static final Index IX_TASK_EXECUTION_DATE = Internal.createIndex(DSL.name("ix_task_execution_date"), Task.TASK, new OrderField[] { Task.TASK.EXECUTION_DATE.desc() }, false);
-    public static final Index IX_TASK_RUNNER_ID = Internal.createIndex(DSL.name("ix_task_runner_id"), Task.TASK, new OrderField[] { Task.TASK.RUNNER_ID }, false);
-    public static final Index PARENTTASKINDEX = Internal.createIndex(DSL.name("parentTaskIndex"), Task.TASK, new OrderField[] { Task.TASK.PARENT_TASK_ID }, false);
-    public static final Index STATUSINDEX = Internal.createIndex(DSL.name("statusIndex"), Task.TASK, new OrderField[] { Task.TASK.STATUS }, false);
-    public static final Index USERNAMEINDEX = Internal.createIndex(DSL.name("usernameIndex"), User.USER, new OrderField[] { User.USER.USERNAME }, false);
+	public static final Index DTYPEINDEX = Internal.createIndex(DSL.name("dtypeIndex"), Task.TASK, new OrderField[] { Task.TASK.DTYPE }, false);
+	public static final Index HASHEDTOKENINDEX = Internal.createIndex(DSL.name("hashedTokenIndex"), ApiToken.API_TOKEN, new OrderField[] { ApiToken.API_TOKEN.HASHED_TOKEN }, false);
+	public static final Index IDX_DEVICE_TAGS_TAG = Internal.createIndex(DSL.name("IDX_device_tags_tag"), DeviceTags.DEVICE_TAGS, new OrderField[] { DeviceTags.DEVICE_TAGS.TAG }, false);
+	public static final Index IX_CHECK_RESULT_DEVICE_NONCONFORMING = Internal.createIndex(DSL.name("ix_check_result_device_nonconforming"), CheckResult.CHECK_RESULT, new OrderField[] { CheckResult.CHECK_RESULT.DEVICE }, false);
+	public static final Index IX_CHECK_RESULT_RULE = Internal.createIndex(DSL.name("ix_check_result_rule"), CheckResult.CHECK_RESULT, new OrderField[] { CheckResult.CHECK_RESULT.RULE }, false);
+	public static final Index IX_CONFIG_ATTRIBUTE_CONFIG = Internal.createIndex(DSL.name("ix_config_attribute_config"), ConfigAttribute.CONFIG_ATTRIBUTE, new OrderField[] { ConfigAttribute.CONFIG_ATTRIBUTE.CONFIG }, false);
+	public static final Index IX_CONFIG_ATTRIBUTE_LONG_TEXT = Internal.createIndex(DSL.name("ix_config_attribute_long_text"), ConfigAttribute.CONFIG_ATTRIBUTE, new OrderField[] { ConfigAttribute.CONFIG_ATTRIBUTE.LONG_TEXT }, false);
+	public static final Index IX_CONFIG_CHANGE_DATE = Internal.createIndex(DSL.name("ix_config_change_date"), Config.CONFIG, new OrderField[] { Config.CONFIG.CHANGE_DATE.desc() }, false);
+	public static final Index IX_CONFIG_DEVICE = Internal.createIndex(DSL.name("ix_config_device"), Config.CONFIG, new OrderField[] { Config.CONFIG.DEVICE }, false);
+	public static final Index IX_DEVICE_ATTRIBUTE_DEVICE = Internal.createIndex(DSL.name("ix_device_attribute_device"), DeviceAttribute.DEVICE_ATTRIBUTE, new OrderField[] { DeviceAttribute.DEVICE_ATTRIBUTE.DEVICE }, false);
+	public static final Index IX_DEVICE_ATTRIBUTE_LONG_TEXT = Internal.createIndex(DSL.name("ix_device_attribute_long_text"), DeviceAttribute.DEVICE_ATTRIBUTE, new OrderField[] { DeviceAttribute.DEVICE_ATTRIBUTE.LONG_TEXT }, false);
+	public static final Index IX_DEVICE_CREDENTIAL_SET_MGMT_DOMAIN = Internal.createIndex(DSL.name("ix_device_credential_set_mgmt_domain"), DeviceCredentialSet.DEVICE_CREDENTIAL_SET, new OrderField[] { DeviceCredentialSet.DEVICE_CREDENTIAL_SET.MGMT_DOMAIN }, false);
+	public static final Index IX_DEVICE_EOL_MODULE = Internal.createIndex(DSL.name("ix_device_eol_module"), Device.DEVICE, new OrderField[] { Device.DEVICE.EOL_MODULE }, false);
+	public static final Index IX_DEVICE_EOS_MODULE = Internal.createIndex(DSL.name("ix_device_eos_module"), Device.DEVICE, new OrderField[] { Device.DEVICE.EOS_MODULE }, false);
+	public static final Index IX_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES = Internal.createIndex(DSL.name("ix_device_group_cached_devices_cached_devices"), DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES, new OrderField[] { DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES }, false);
+	public static final Index IX_DEVICE_LAST_CONFIG = Internal.createIndex(DSL.name("ix_device_last_config"), Device.DEVICE, new OrderField[] { Device.DEVICE.LAST_CONFIG }, false);
+	public static final Index IX_DEVICE_MGMT_DOMAIN = Internal.createIndex(DSL.name("ix_device_mgmt_domain"), Device.DEVICE, new OrderField[] { Device.DEVICE.MGMT_DOMAIN }, false);
+	public static final Index IX_DEVICE_NAME_ID = Internal.createIndex(DSL.name("ix_device_name_id"), Device.DEVICE, new OrderField[] { Device.DEVICE.NAME, Device.DEVICE.ID }, false);
+	public static final Index IX_DEVICE_VIRTUAL_DEVICES_DEVICE = Internal.createIndex(DSL.name("ix_device_virtual_devices_device"), DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES, new OrderField[] { DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES.DEVICE }, false);
+	public static final Index IX_DEVICE_VRF_INSTANCES_DEVICE = Internal.createIndex(DSL.name("ix_device_vrf_instances_device"), DeviceVrfInstances.DEVICE_VRF_INSTANCES, new OrderField[] { DeviceVrfInstances.DEVICE_VRF_INSTANCES.DEVICE }, false);
+	public static final Index IX_DIAGNOSTIC_RESULT_DEVICE = Internal.createIndex(DSL.name("ix_diagnostic_result_device"), DiagnosticResult.DIAGNOSTIC_RESULT, new OrderField[] { DiagnosticResult.DIAGNOSTIC_RESULT.DEVICE }, false);
+	public static final Index IX_DIAGNOSTIC_RESULT_DIAGNOSTIC = Internal.createIndex(DSL.name("ix_diagnostic_result_diagnostic"), DiagnosticResult.DIAGNOSTIC_RESULT, new OrderField[] { DiagnosticResult.DIAGNOSTIC_RESULT.DIAGNOSTIC }, false);
+	public static final Index IX_DIAGNOSTIC_RESULT_LONG_TEXT = Internal.createIndex(DSL.name("ix_diagnostic_result_long_text"), DiagnosticResult.DIAGNOSTIC_RESULT, new OrderField[] { DiagnosticResult.DIAGNOSTIC_RESULT.LONG_TEXT }, false);
+	public static final Index IX_DIAGNOSTIC_TARGET_GROUP = Internal.createIndex(DSL.name("ix_diagnostic_target_group"), Diagnostic.DIAGNOSTIC, new OrderField[] { Diagnostic.DIAGNOSTIC.TARGET_GROUP }, false);
+	public static final Index IX_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS = Internal.createIndex(DSL.name("ix_discover_device_type_task_credential_sets_credential_sets"), DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS, new OrderField[] { DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS.CREDENTIAL_SETS }, false);
+	public static final Index IX_EXEMPTION_RULE = Internal.createIndex(DSL.name("ix_exemption_rule"), Exemption.EXEMPTION, new OrderField[] { Exemption.EXEMPTION.RULE }, false);
+	public static final Index IX_HARDWARE_RULE_TARGET_GROUP = Internal.createIndex(DSL.name("ix_hardware_rule_target_group"), HardwareRule.HARDWARE_RULE, new OrderField[] { HardwareRule.HARDWARE_RULE.TARGET_GROUP }, false);
+	public static final Index IX_MODULE_DEVICE = Internal.createIndex(DSL.name("ix_module_device"), Module.MODULE, new OrderField[] { Module.MODULE.DEVICE }, false);
+	public static final Index IX_MODULE_REMOVED = Internal.createIndex(DSL.name("ix_module_removed"), Module.MODULE, new OrderField[] { Module.MODULE.REMOVED }, false);
+	public static final Index IX_NETWORK_INTERFACE_DEVICE = Internal.createIndex(DSL.name("ix_network_interface_device"), NetworkInterface.NETWORK_INTERFACE, new OrderField[] { NetworkInterface.NETWORK_INTERFACE.DEVICE }, false);
+	public static final Index IX_POLICY_TARGET_GROUPS_TARGET_GROUPS = Internal.createIndex(DSL.name("ix_policy_target_groups_target_groups"), PolicyTargetGroups.POLICY_TARGET_GROUPS, new OrderField[] { PolicyTargetGroups.POLICY_TARGET_GROUPS.TARGET_GROUPS }, false);
+	public static final Index IX_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK = Internal.createIndex(DSL.name("ix_scan_subnets_task_subnets_scan_subnets_task"), ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS, new OrderField[] { ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS.SCAN_SUBNETS_TASK }, false);
+	public static final Index IX_SOFTWARE_RULE_TARGET_GROUP = Internal.createIndex(DSL.name("ix_software_rule_target_group"), SoftwareRule.SOFTWARE_RULE, new OrderField[] { SoftwareRule.SOFTWARE_RULE.TARGET_GROUP }, false);
+	public static final Index IX_TASK_CHANGE_DATE = Internal.createIndex(DSL.name("ix_task_change_date"), Task.TASK, new OrderField[] { Task.TASK.CHANGE_DATE.desc() }, false);
+	public static final Index IX_TASK_CREATION_DATE = Internal.createIndex(DSL.name("ix_task_creation_date"), Task.TASK, new OrderField[] { Task.TASK.CREATION_DATE.desc() }, false);
+	public static final Index IX_TASK_DEBUG_LOG = Internal.createIndex(DSL.name("ix_task_debug_log"), Task.TASK, new OrderField[] { Task.TASK.DEBUG_LOG }, false);
+	public static final Index IX_TASK_DEVICE = Internal.createIndex(DSL.name("ix_task_device"), Task.TASK, new OrderField[] { Task.TASK.DEVICE }, false);
+	public static final Index IX_TASK_DISCOVER_RESULT_DEVICE = Internal.createIndex(DSL.name("ix_task_discover_result_device"), Task.TASK, new OrderField[] { Task.TASK.DISCOVER_RESULT_DEVICE }, false);
+	public static final Index IX_TASK_EXECUTION_DATE = Internal.createIndex(DSL.name("ix_task_execution_date"), Task.TASK, new OrderField[] { Task.TASK.EXECUTION_DATE.desc() }, false);
+	public static final Index IX_TASK_RUNNER_ID = Internal.createIndex(DSL.name("ix_task_runner_id"), Task.TASK, new OrderField[] { Task.TASK.RUNNER_ID }, false);
+	public static final Index PARENTTASKINDEX = Internal.createIndex(DSL.name("parentTaskIndex"), Task.TASK, new OrderField[] { Task.TASK.PARENT_TASK_ID }, false);
+	public static final Index STATUSINDEX = Internal.createIndex(DSL.name("statusIndex"), Task.TASK, new OrderField[] { Task.TASK.STATUS }, false);
+	public static final Index USERNAMEINDEX = Internal.createIndex(DSL.name("usernameIndex"), User.USER, new OrderField[] { User.USER.USERNAME }, false);
 }

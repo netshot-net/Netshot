@@ -15,55 +15,55 @@ import org.jooq.impl.TableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceVrfInstancesRecord extends TableRecordImpl<DeviceVrfInstancesRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>device_vrf_instances.device</code>.
-     */
-    public void setDevice(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>device_vrf_instances.device</code>.
+	 */
+	public void setDevice(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>device_vrf_instances.device</code>.
-     */
-    public Long getDevice() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>device_vrf_instances.device</code>.
+	 */
+	public Long getDevice() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>device_vrf_instances.vrf_instances</code>.
-     */
-    public void setVrfInstances(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>device_vrf_instances.vrf_instances</code>.
+	 */
+	public void setVrfInstances(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>device_vrf_instances.vrf_instances</code>.
-     */
-    public String getVrfInstances() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>device_vrf_instances.vrf_instances</code>.
+	 */
+	public String getVrfInstances() {
+		return (String) get(1);
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DeviceVrfInstancesRecord
-     */
-    public DeviceVrfInstancesRecord() {
-        super(DeviceVrfInstances.DEVICE_VRF_INSTANCES);
-    }
+	/**
+	 * Create a detached DeviceVrfInstancesRecord
+	 */
+	public DeviceVrfInstancesRecord() {
+		super(DeviceVrfInstances.DEVICE_VRF_INSTANCES);
+	}
 
-    /**
-     * Create a detached, initialised DeviceVrfInstancesRecord
-     */
-    public DeviceVrfInstancesRecord(Long device, String vrfInstances) {
-        super(DeviceVrfInstances.DEVICE_VRF_INSTANCES);
+	/**
+	 * Create a detached, initialised DeviceVrfInstancesRecord
+	 */
+	public DeviceVrfInstancesRecord(Long device, String vrfInstances) {
+		super(DeviceVrfInstances.DEVICE_VRF_INSTANCES);
 
-        setDevice(device);
-        setVrfInstances(vrfInstances);
-        resetTouchedOnNotNull();
-    }
+		setDevice(device);
+		setVrfInstances(vrfInstances);
+		resetTouchedOnNotNull();
+	}
 }

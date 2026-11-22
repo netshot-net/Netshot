@@ -57,251 +57,251 @@ import org.jooq.impl.SchemaImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DefaultSchema extends SchemaImpl {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>DEFAULT_SCHEMA</code>
-     */
-    public static final DefaultSchema DEFAULT_SCHEMA = new DefaultSchema();
+	/**
+	 * The reference instance of <code>DEFAULT_SCHEMA</code>
+	 */
+	public static final DefaultSchema DEFAULT_SCHEMA = new DefaultSchema();
 
-    /**
-     * The table <code>api_token</code>.
-     */
-    public final ApiToken API_TOKEN = ApiToken.API_TOKEN;
+	/**
+	 * The table <code>api_token</code>.
+	 */
+	public final ApiToken API_TOKEN = ApiToken.API_TOKEN;
 
-    /**
-     * The table <code>check_result</code>.
-     */
-    public final CheckResult CHECK_RESULT = CheckResult.CHECK_RESULT;
+	/**
+	 * The table <code>check_result</code>.
+	 */
+	public final CheckResult CHECK_RESULT = CheckResult.CHECK_RESULT;
 
-    /**
-     * The table <code>config</code>.
-     */
-    public final Config CONFIG = Config.CONFIG;
+	/**
+	 * The table <code>config</code>.
+	 */
+	public final Config CONFIG = Config.CONFIG;
 
-    /**
-     * The table <code>config_attribute</code>.
-     */
-    public final ConfigAttribute CONFIG_ATTRIBUTE = ConfigAttribute.CONFIG_ATTRIBUTE;
+	/**
+	 * The table <code>config_attribute</code>.
+	 */
+	public final ConfigAttribute CONFIG_ATTRIBUTE = ConfigAttribute.CONFIG_ATTRIBUTE;
 
-    /**
-     * The table <code>debug_log</code>.
-     */
-    public final DebugLog DEBUG_LOG = DebugLog.DEBUG_LOG;
+	/**
+	 * The table <code>debug_log</code>.
+	 */
+	public final DebugLog DEBUG_LOG = DebugLog.DEBUG_LOG;
 
-    /**
-     * The table <code>device</code>.
-     */
-    public final Device DEVICE = Device.DEVICE;
+	/**
+	 * The table <code>device</code>.
+	 */
+	public final Device DEVICE = Device.DEVICE;
 
-    /**
-     * The table <code>device_access</code>.
-     */
-    public final DeviceAccess DEVICE_ACCESS = DeviceAccess.DEVICE_ACCESS;
+	/**
+	 * The table <code>device_access</code>.
+	 */
+	public final DeviceAccess DEVICE_ACCESS = DeviceAccess.DEVICE_ACCESS;
 
-    /**
-     * The table <code>device_attribute</code>.
-     */
-    public final DeviceAttribute DEVICE_ATTRIBUTE = DeviceAttribute.DEVICE_ATTRIBUTE;
+	/**
+	 * The table <code>device_attribute</code>.
+	 */
+	public final DeviceAttribute DEVICE_ATTRIBUTE = DeviceAttribute.DEVICE_ATTRIBUTE;
 
-    /**
-     * The table <code>device_credential_set</code>.
-     */
-    public final DeviceCredentialSet DEVICE_CREDENTIAL_SET = DeviceCredentialSet.DEVICE_CREDENTIAL_SET;
+	/**
+	 * The table <code>device_credential_set</code>.
+	 */
+	public final DeviceCredentialSet DEVICE_CREDENTIAL_SET = DeviceCredentialSet.DEVICE_CREDENTIAL_SET;
 
-    /**
-     * The table <code>device_group</code>.
-     */
-    public final DeviceGroup DEVICE_GROUP = DeviceGroup.DEVICE_GROUP;
+	/**
+	 * The table <code>device_group</code>.
+	 */
+	public final DeviceGroup DEVICE_GROUP = DeviceGroup.DEVICE_GROUP;
 
-    /**
-     * The table <code>device_group_cached_devices</code>.
-     */
-    public final DeviceGroupCachedDevices DEVICE_GROUP_CACHED_DEVICES = DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES;
+	/**
+	 * The table <code>device_group_cached_devices</code>.
+	 */
+	public final DeviceGroupCachedDevices DEVICE_GROUP_CACHED_DEVICES = DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES;
 
-    /**
-     * The table <code>device_js_script</code>.
-     */
-    public final DeviceJsScript DEVICE_JS_SCRIPT = DeviceJsScript.DEVICE_JS_SCRIPT;
+	/**
+	 * The table <code>device_js_script</code>.
+	 */
+	public final DeviceJsScript DEVICE_JS_SCRIPT = DeviceJsScript.DEVICE_JS_SCRIPT;
 
-    /**
-     * The table <code>device_tags</code>.
-     */
-    public final DeviceTags DEVICE_TAGS = DeviceTags.DEVICE_TAGS;
+	/**
+	 * The table <code>device_tags</code>.
+	 */
+	public final DeviceTags DEVICE_TAGS = DeviceTags.DEVICE_TAGS;
 
-    /**
-     * The table <code>device_virtual_devices</code>.
-     */
-    public final DeviceVirtualDevices DEVICE_VIRTUAL_DEVICES = DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES;
+	/**
+	 * The table <code>device_virtual_devices</code>.
+	 */
+	public final DeviceVirtualDevices DEVICE_VIRTUAL_DEVICES = DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES;
 
-    /**
-     * The table <code>device_vrf_instances</code>.
-     */
-    public final DeviceVrfInstances DEVICE_VRF_INSTANCES = DeviceVrfInstances.DEVICE_VRF_INSTANCES;
+	/**
+	 * The table <code>device_vrf_instances</code>.
+	 */
+	public final DeviceVrfInstances DEVICE_VRF_INSTANCES = DeviceVrfInstances.DEVICE_VRF_INSTANCES;
 
-    /**
-     * The table <code>diagnostic</code>.
-     */
-    public final Diagnostic DIAGNOSTIC = Diagnostic.DIAGNOSTIC;
+	/**
+	 * The table <code>diagnostic</code>.
+	 */
+	public final Diagnostic DIAGNOSTIC = Diagnostic.DIAGNOSTIC;
 
-    /**
-     * The table <code>diagnostic_result</code>.
-     */
-    public final DiagnosticResult DIAGNOSTIC_RESULT = DiagnosticResult.DIAGNOSTIC_RESULT;
+	/**
+	 * The table <code>diagnostic_result</code>.
+	 */
+	public final DiagnosticResult DIAGNOSTIC_RESULT = DiagnosticResult.DIAGNOSTIC_RESULT;
 
-    /**
-     * The table <code>discover_device_type_task_credential_sets</code>.
-     */
-    public final DiscoverDeviceTypeTaskCredentialSets DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS = DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS;
+	/**
+	 * The table <code>discover_device_type_task_credential_sets</code>.
+	 */
+	public final DiscoverDeviceTypeTaskCredentialSets DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS = DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS;
 
-    /**
-     * The table <code>domain</code>.
-     */
-    public final Domain DOMAIN = Domain.DOMAIN;
+	/**
+	 * The table <code>domain</code>.
+	 */
+	public final Domain DOMAIN = Domain.DOMAIN;
 
-    /**
-     * The table <code>exemption</code>.
-     */
-    public final Exemption EXEMPTION = Exemption.EXEMPTION;
+	/**
+	 * The table <code>exemption</code>.
+	 */
+	public final Exemption EXEMPTION = Exemption.EXEMPTION;
 
-    /**
-     * The table <code>hardware_rule</code>.
-     */
-    public final HardwareRule HARDWARE_RULE = HardwareRule.HARDWARE_RULE;
+	/**
+	 * The table <code>hardware_rule</code>.
+	 */
+	public final HardwareRule HARDWARE_RULE = HardwareRule.HARDWARE_RULE;
 
-    /**
-     * The table <code>hook</code>.
-     */
-    public final Hook HOOK = Hook.HOOK;
+	/**
+	 * The table <code>hook</code>.
+	 */
+	public final Hook HOOK = Hook.HOOK;
 
-    /**
-     * The table <code>hook_trigger</code>.
-     */
-    public final HookTrigger HOOK_TRIGGER = HookTrigger.HOOK_TRIGGER;
+	/**
+	 * The table <code>hook_trigger</code>.
+	 */
+	public final HookTrigger HOOK_TRIGGER = HookTrigger.HOOK_TRIGGER;
 
-    /**
-     * The table <code>long_text_configuration</code>.
-     */
-    public final LongTextConfiguration LONG_TEXT_CONFIGURATION = LongTextConfiguration.LONG_TEXT_CONFIGURATION;
+	/**
+	 * The table <code>long_text_configuration</code>.
+	 */
+	public final LongTextConfiguration LONG_TEXT_CONFIGURATION = LongTextConfiguration.LONG_TEXT_CONFIGURATION;
 
-    /**
-     * The table <code>module</code>.
-     */
-    public final Module MODULE = Module.MODULE;
+	/**
+	 * The table <code>module</code>.
+	 */
+	public final Module MODULE = Module.MODULE;
 
-    /**
-     * The table <code>network_interface</code>.
-     */
-    public final NetworkInterface NETWORK_INTERFACE = NetworkInterface.NETWORK_INTERFACE;
+	/**
+	 * The table <code>network_interface</code>.
+	 */
+	public final NetworkInterface NETWORK_INTERFACE = NetworkInterface.NETWORK_INTERFACE;
 
-    /**
-     * The table <code>network_interface_ip4addresses</code>.
-     */
-    public final NetworkInterfaceIp4addresses NETWORK_INTERFACE_IP4ADDRESSES = NetworkInterfaceIp4addresses.NETWORK_INTERFACE_IP4ADDRESSES;
+	/**
+	 * The table <code>network_interface_ip4addresses</code>.
+	 */
+	public final NetworkInterfaceIp4addresses NETWORK_INTERFACE_IP4ADDRESSES = NetworkInterfaceIp4addresses.NETWORK_INTERFACE_IP4ADDRESSES;
 
-    /**
-     * The table <code>network_interface_ip6addresses</code>.
-     */
-    public final NetworkInterfaceIp6addresses NETWORK_INTERFACE_IP6ADDRESSES = NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES;
+	/**
+	 * The table <code>network_interface_ip6addresses</code>.
+	 */
+	public final NetworkInterfaceIp6addresses NETWORK_INTERFACE_IP6ADDRESSES = NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES;
 
-    /**
-     * The table <code>policy</code>.
-     */
-    public final Policy POLICY = Policy.POLICY;
+	/**
+	 * The table <code>policy</code>.
+	 */
+	public final Policy POLICY = Policy.POLICY;
 
-    /**
-     * The table <code>policy_target_groups</code>.
-     */
-    public final PolicyTargetGroups POLICY_TARGET_GROUPS = PolicyTargetGroups.POLICY_TARGET_GROUPS;
+	/**
+	 * The table <code>policy_target_groups</code>.
+	 */
+	public final PolicyTargetGroups POLICY_TARGET_GROUPS = PolicyTargetGroups.POLICY_TARGET_GROUPS;
 
-    /**
-     * The table <code>rule</code>.
-     */
-    public final Rule RULE = Rule.RULE;
+	/**
+	 * The table <code>rule</code>.
+	 */
+	public final Rule RULE = Rule.RULE;
 
-    /**
-     * The table <code>scan_subnets_task_subnets</code>.
-     */
-    public final ScanSubnetsTaskSubnets SCAN_SUBNETS_TASK_SUBNETS = ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS;
+	/**
+	 * The table <code>scan_subnets_task_subnets</code>.
+	 */
+	public final ScanSubnetsTaskSubnets SCAN_SUBNETS_TASK_SUBNETS = ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS;
 
-    /**
-     * The table <code>software_rule</code>.
-     */
-    public final SoftwareRule SOFTWARE_RULE = SoftwareRule.SOFTWARE_RULE;
+	/**
+	 * The table <code>software_rule</code>.
+	 */
+	public final SoftwareRule SOFTWARE_RULE = SoftwareRule.SOFTWARE_RULE;
 
-    /**
-     * The table <code>task</code>.
-     */
-    public final Task TASK = Task.TASK;
+	/**
+	 * The table <code>task</code>.
+	 */
+	public final Task TASK = Task.TASK;
 
-    /**
-     * The table <code>task_device_list_members</code>.
-     */
-    public final TaskDeviceListMembers TASK_DEVICE_LIST_MEMBERS = TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS;
+	/**
+	 * The table <code>task_device_list_members</code>.
+	 */
+	public final TaskDeviceListMembers TASK_DEVICE_LIST_MEMBERS = TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS;
 
-    /**
-     * The table <code>user</code>.
-     */
-    public final User USER = User.USER;
+	/**
+	 * The table <code>user</code>.
+	 */
+	public final User USER = User.USER;
 
-    /**
-     * The table <code>vault_instance</code>.
-     */
-    public final VaultInstance VAULT_INSTANCE = VaultInstance.VAULT_INSTANCE;
+	/**
+	 * The table <code>vault_instance</code>.
+	 */
+	public final VaultInstance VAULT_INSTANCE = VaultInstance.VAULT_INSTANCE;
 
-    /**
-     * No further instances allowed
-     */
-    private DefaultSchema() {
-        super(DSL.name(""), null, DSL.comment("standard public schema"));
-    }
+	/**
+	 * No further instances allowed
+	 */
+	private DefaultSchema() {
+		super(DSL.name(""), null, DSL.comment("standard public schema"));
+	}
 
 
-    @Override
-    public Catalog getCatalog() {
-        return DefaultCatalog.DEFAULT_CATALOG;
-    }
+	@Override
+	public Catalog getCatalog() {
+		return DefaultCatalog.DEFAULT_CATALOG;
+	}
 
-    @Override
-    public final List<Table<?>> getTables() {
-        return Arrays.asList(
-            ApiToken.API_TOKEN,
-            CheckResult.CHECK_RESULT,
-            Config.CONFIG,
-            ConfigAttribute.CONFIG_ATTRIBUTE,
-            DebugLog.DEBUG_LOG,
-            Device.DEVICE,
-            DeviceAccess.DEVICE_ACCESS,
-            DeviceAttribute.DEVICE_ATTRIBUTE,
-            DeviceCredentialSet.DEVICE_CREDENTIAL_SET,
-            DeviceGroup.DEVICE_GROUP,
-            DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES,
-            DeviceJsScript.DEVICE_JS_SCRIPT,
-            DeviceTags.DEVICE_TAGS,
-            DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES,
-            DeviceVrfInstances.DEVICE_VRF_INSTANCES,
-            Diagnostic.DIAGNOSTIC,
-            DiagnosticResult.DIAGNOSTIC_RESULT,
-            DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS,
-            Domain.DOMAIN,
-            Exemption.EXEMPTION,
-            HardwareRule.HARDWARE_RULE,
-            Hook.HOOK,
-            HookTrigger.HOOK_TRIGGER,
-            LongTextConfiguration.LONG_TEXT_CONFIGURATION,
-            Module.MODULE,
-            NetworkInterface.NETWORK_INTERFACE,
-            NetworkInterfaceIp4addresses.NETWORK_INTERFACE_IP4ADDRESSES,
-            NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES,
-            Policy.POLICY,
-            PolicyTargetGroups.POLICY_TARGET_GROUPS,
-            Rule.RULE,
-            ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS,
-            SoftwareRule.SOFTWARE_RULE,
-            Task.TASK,
-            TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS,
-            User.USER,
-            VaultInstance.VAULT_INSTANCE
-        );
-    }
+	@Override
+	public final List<Table<?>> getTables() {
+		return Arrays.asList(
+			ApiToken.API_TOKEN,
+			CheckResult.CHECK_RESULT,
+			Config.CONFIG,
+			ConfigAttribute.CONFIG_ATTRIBUTE,
+			DebugLog.DEBUG_LOG,
+			Device.DEVICE,
+			DeviceAccess.DEVICE_ACCESS,
+			DeviceAttribute.DEVICE_ATTRIBUTE,
+			DeviceCredentialSet.DEVICE_CREDENTIAL_SET,
+			DeviceGroup.DEVICE_GROUP,
+			DeviceGroupCachedDevices.DEVICE_GROUP_CACHED_DEVICES,
+			DeviceJsScript.DEVICE_JS_SCRIPT,
+			DeviceTags.DEVICE_TAGS,
+			DeviceVirtualDevices.DEVICE_VIRTUAL_DEVICES,
+			DeviceVrfInstances.DEVICE_VRF_INSTANCES,
+			Diagnostic.DIAGNOSTIC,
+			DiagnosticResult.DIAGNOSTIC_RESULT,
+			DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS,
+			Domain.DOMAIN,
+			Exemption.EXEMPTION,
+			HardwareRule.HARDWARE_RULE,
+			Hook.HOOK,
+			HookTrigger.HOOK_TRIGGER,
+			LongTextConfiguration.LONG_TEXT_CONFIGURATION,
+			Module.MODULE,
+			NetworkInterface.NETWORK_INTERFACE,
+			NetworkInterfaceIp4addresses.NETWORK_INTERFACE_IP4ADDRESSES,
+			NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES,
+			Policy.POLICY,
+			PolicyTargetGroups.POLICY_TARGET_GROUPS,
+			Rule.RULE,
+			ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS,
+			SoftwareRule.SOFTWARE_RULE,
+			Task.TASK,
+			TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS,
+			User.USER,
+			VaultInstance.VAULT_INSTANCE
+		);
+	}
 }

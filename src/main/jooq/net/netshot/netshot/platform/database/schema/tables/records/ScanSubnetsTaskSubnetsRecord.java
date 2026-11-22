@@ -17,85 +17,85 @@ import org.jooq.impl.TableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class ScanSubnetsTaskSubnetsRecord extends TableRecordImpl<ScanSubnetsTaskSubnetsRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>scan_subnets_task_subnets.scan_subnets_task</code>.
-     */
-    public void setScanSubnetsTask(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>scan_subnets_task_subnets.scan_subnets_task</code>.
+	 */
+	public void setScanSubnetsTask(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>scan_subnets_task_subnets.scan_subnets_task</code>.
-     */
-    public Long getScanSubnetsTask() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>scan_subnets_task_subnets.scan_subnets_task</code>.
+	 */
+	public Long getScanSubnetsTask() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>scan_subnets_task_subnets.ipv4usage</code>.
-     */
-    public void setIpv4usage(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>scan_subnets_task_subnets.ipv4usage</code>.
+	 */
+	public void setIpv4usage(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>scan_subnets_task_subnets.ipv4usage</code>.
-     */
-    public String getIpv4usage() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>scan_subnets_task_subnets.ipv4usage</code>.
+	 */
+	public String getIpv4usage() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>scan_subnets_task_subnets.ipv4mask</code>.
-     */
-    public void setIpv4mask(Integer value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>scan_subnets_task_subnets.ipv4mask</code>.
+	 */
+	public void setIpv4mask(Integer value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>scan_subnets_task_subnets.ipv4mask</code>.
-     */
-    public Integer getIpv4mask() {
-        return (Integer) get(2);
-    }
+	/**
+	 * Getter for <code>scan_subnets_task_subnets.ipv4mask</code>.
+	 */
+	public Integer getIpv4mask() {
+		return (Integer) get(2);
+	}
 
-    /**
-     * Setter for <code>scan_subnets_task_subnets.ipv4address</code>.
-     */
-    public void setIpv4address(InetAddress value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>scan_subnets_task_subnets.ipv4address</code>.
+	 */
+	public void setIpv4address(InetAddress value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>scan_subnets_task_subnets.ipv4address</code>.
-     */
-    public InetAddress getIpv4address() {
-        return (InetAddress) get(3);
-    }
+	/**
+	 * Getter for <code>scan_subnets_task_subnets.ipv4address</code>.
+	 */
+	public InetAddress getIpv4address() {
+		return (InetAddress) get(3);
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached ScanSubnetsTaskSubnetsRecord
-     */
-    public ScanSubnetsTaskSubnetsRecord() {
-        super(ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS);
-    }
+	/**
+	 * Create a detached ScanSubnetsTaskSubnetsRecord
+	 */
+	public ScanSubnetsTaskSubnetsRecord() {
+		super(ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS);
+	}
 
-    /**
-     * Create a detached, initialised ScanSubnetsTaskSubnetsRecord
-     */
-    public ScanSubnetsTaskSubnetsRecord(Long scanSubnetsTask, String ipv4usage, Integer ipv4mask, InetAddress ipv4address) {
-        super(ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS);
+	/**
+	 * Create a detached, initialised ScanSubnetsTaskSubnetsRecord
+	 */
+	public ScanSubnetsTaskSubnetsRecord(Long scanSubnetsTask, String ipv4usage, Integer ipv4mask, InetAddress ipv4address) {
+		super(ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS);
 
-        setScanSubnetsTask(scanSubnetsTask);
-        setIpv4usage(ipv4usage);
-        setIpv4mask(ipv4mask);
-        setIpv4address(ipv4address);
-        resetTouchedOnNotNull();
-    }
+		setScanSubnetsTask(scanSubnetsTask);
+		setIpv4usage(ipv4usage);
+		setIpv4mask(ipv4mask);
+		setIpv4address(ipv4address);
+		resetTouchedOnNotNull();
+	}
 }

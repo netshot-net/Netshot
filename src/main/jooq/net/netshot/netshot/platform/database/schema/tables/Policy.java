@@ -47,276 +47,276 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Policy extends TableImpl<PolicyRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>policy</code>
-     */
-    public static final Policy POLICY = new Policy();
+	/**
+	 * The reference instance of <code>policy</code>
+	 */
+	public static final Policy POLICY = new Policy();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<PolicyRecord> getRecordType() {
-        return PolicyRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<PolicyRecord> getRecordType() {
+		return PolicyRecord.class;
+	}
 
-    /**
-     * The column <code>policy.id</code>.
-     */
-    public final TableField<PolicyRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
+	/**
+	 * The column <code>policy.id</code>.
+	 */
+	public final TableField<PolicyRecord, Long> ID = createField(DSL.name("id"), SQLDataType.BIGINT.nullable(false).generatedByDefaultAsIdentity(), this, "");
 
-    /**
-     * The column <code>policy.name</code>.
-     */
-    public final TableField<PolicyRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
+	/**
+	 * The column <code>policy.name</code>.
+	 */
+	public final TableField<PolicyRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
 
-    /**
-     * The column <code>policy.version</code>.
-     */
-    public final TableField<PolicyRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+	/**
+	 * The column <code>policy.version</code>.
+	 */
+	public final TableField<PolicyRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
 
-    /**
-     * The column <code>policy.change_date</code>.
-     */
-    public final TableField<PolicyRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+	/**
+	 * The column <code>policy.change_date</code>.
+	 */
+	public final TableField<PolicyRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
-    private Policy(Name alias, Table<PolicyRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private Policy(Name alias, Table<PolicyRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private Policy(Name alias, Table<PolicyRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private Policy(Name alias, Table<PolicyRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>policy</code> table reference
-     */
-    public Policy(String alias) {
-        this(DSL.name(alias), POLICY);
-    }
+	/**
+	 * Create an aliased <code>policy</code> table reference
+	 */
+	public Policy(String alias) {
+		this(DSL.name(alias), POLICY);
+	}
 
-    /**
-     * Create an aliased <code>policy</code> table reference
-     */
-    public Policy(Name alias) {
-        this(alias, POLICY);
-    }
+	/**
+	 * Create an aliased <code>policy</code> table reference
+	 */
+	public Policy(Name alias) {
+		this(alias, POLICY);
+	}
 
-    /**
-     * Create a <code>policy</code> table reference
-     */
-    public Policy() {
-        this(DSL.name("policy"), null);
-    }
+	/**
+	 * Create a <code>policy</code> table reference
+	 */
+	public Policy() {
+		this(DSL.name("policy"), null);
+	}
 
-    public <O extends Record> Policy(Table<O> path, ForeignKey<O, PolicyRecord> childPath, InverseForeignKey<O, PolicyRecord> parentPath) {
-        super(path, childPath, parentPath, POLICY);
-    }
+	public <O extends Record> Policy(Table<O> path, ForeignKey<O, PolicyRecord> childPath, InverseForeignKey<O, PolicyRecord> parentPath) {
+		super(path, childPath, parentPath, POLICY);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class PolicyPath extends Policy implements Path<PolicyRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class PolicyPath extends Policy implements Path<PolicyRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> PolicyPath(Table<O> path, ForeignKey<O, PolicyRecord> childPath, InverseForeignKey<O, PolicyRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private PolicyPath(Name alias, Table<PolicyRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> PolicyPath(Table<O> path, ForeignKey<O, PolicyRecord> childPath, InverseForeignKey<O, PolicyRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private PolicyPath(Name alias, Table<PolicyRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public PolicyPath as(String alias) {
-            return new PolicyPath(DSL.name(alias), this);
-        }
+		@Override
+		public PolicyPath as(String alias) {
+			return new PolicyPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public PolicyPath as(Name alias) {
-            return new PolicyPath(alias, this);
-        }
+		@Override
+		public PolicyPath as(Name alias) {
+			return new PolicyPath(alias, this);
+		}
 
-        @Override
-        public PolicyPath as(Table<?> alias) {
-            return new PolicyPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public PolicyPath as(Table<?> alias) {
+			return new PolicyPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public Identity<PolicyRecord, Long> getIdentity() {
-        return (Identity<PolicyRecord, Long>) super.getIdentity();
-    }
+	@Override
+	public Identity<PolicyRecord, Long> getIdentity() {
+		return (Identity<PolicyRecord, Long>) super.getIdentity();
+	}
 
-    @Override
-    public UniqueKey<PolicyRecord> getPrimaryKey() {
-        return Keys.POLICY_PKEY;
-    }
+	@Override
+	public UniqueKey<PolicyRecord> getPrimaryKey() {
+		return Keys.POLICY_PKEY;
+	}
 
-    @Override
-    public List<UniqueKey<PolicyRecord>> getUniqueKeys() {
-        return Arrays.asList(Keys.UK_POLICY_NAME);
-    }
+	@Override
+	public List<UniqueKey<PolicyRecord>> getUniqueKeys() {
+		return Arrays.asList(Keys.UK_POLICY_NAME);
+	}
 
-    private transient PolicyTargetGroupsPath _policyTargetGroups;
+	private transient PolicyTargetGroupsPath _policyTargetGroups;
 
-    /**
-     * Get the implicit to-many join path to the
-     * <code>policy_target_groups</code> table
-     */
-    public PolicyTargetGroupsPath policyTargetGroups() {
-        if (_policyTargetGroups == null)
-            _policyTargetGroups = new PolicyTargetGroupsPath(this, null, Keys.POLICY_TARGET_GROUPS__FK_POLICY_TARGET_GROUPS_POLICY.getInverseKey());
+	/**
+	 * Get the implicit to-many join path to the <code>policy_target_groups</code>
+	 * table
+	 */
+	public PolicyTargetGroupsPath policyTargetGroups() {
+		if (_policyTargetGroups == null)
+			_policyTargetGroups = new PolicyTargetGroupsPath(this, null, Keys.POLICY_TARGET_GROUPS__FK_POLICY_TARGET_GROUPS_POLICY.getInverseKey());
 
-        return _policyTargetGroups;
-    }
+		return _policyTargetGroups;
+	}
 
-    private transient RulePath _rule;
+	private transient RulePath _rule;
 
-    /**
-     * Get the implicit to-many join path to the <code>rule</code> table
-     */
-    public RulePath rule() {
-        if (_rule == null)
-            _rule = new RulePath(this, null, Keys.RULE__FK_RULE_POLICY.getInverseKey());
+	/**
+	 * Get the implicit to-many join path to the <code>rule</code> table
+	 */
+	public RulePath rule() {
+		if (_rule == null)
+			_rule = new RulePath(this, null, Keys.RULE__FK_RULE_POLICY.getInverseKey());
 
-        return _rule;
-    }
+		return _rule;
+	}
 
-    /**
-     * Get the implicit many-to-many join path to the <code>device_group</code>
-     * table
-     */
-    public DeviceGroupPath deviceGroup() {
-        return policyTargetGroups().deviceGroup();
-    }
+	/**
+	 * Get the implicit many-to-many join path to the <code>device_group</code>
+	 * table
+	 */
+	public DeviceGroupPath deviceGroup() {
+		return policyTargetGroups().deviceGroup();
+	}
 
-    @Override
-    public Policy as(String alias) {
-        return new Policy(DSL.name(alias), this);
-    }
+	@Override
+	public Policy as(String alias) {
+		return new Policy(DSL.name(alias), this);
+	}
 
-    @Override
-    public Policy as(Name alias) {
-        return new Policy(alias, this);
-    }
+	@Override
+	public Policy as(Name alias) {
+		return new Policy(alias, this);
+	}
 
-    @Override
-    public Policy as(Table<?> alias) {
-        return new Policy(alias.getQualifiedName(), this);
-    }
+	@Override
+	public Policy as(Table<?> alias) {
+		return new Policy(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Policy rename(String name) {
-        return new Policy(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Policy rename(String name) {
+		return new Policy(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Policy rename(Name name) {
-        return new Policy(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Policy rename(Name name) {
+		return new Policy(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public Policy rename(Table<?> name) {
-        return new Policy(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public Policy rename(Table<?> name) {
+		return new Policy(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Policy where(Condition condition) {
-        return new Policy(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Policy where(Condition condition) {
+		return new Policy(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Policy where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Policy where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Policy where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Policy where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Policy where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Policy where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Policy where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Policy where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Policy where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Policy where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Policy where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Policy where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public Policy where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public Policy where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Policy whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Policy whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public Policy whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public Policy whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

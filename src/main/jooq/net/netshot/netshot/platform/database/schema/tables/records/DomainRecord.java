@@ -19,139 +19,139 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DomainRecord extends UpdatableRecordImpl<DomainRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>domain.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>domain.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>domain.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>domain.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>domain.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>domain.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>domain.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(1);
-    }
+	/**
+	 * Getter for <code>domain.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(1);
+	}
 
-    /**
-     * Setter for <code>domain.description</code>.
-     */
-    public void setDescription(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>domain.description</code>.
+	 */
+	public void setDescription(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>domain.description</code>.
-     */
-    public String getDescription() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>domain.description</code>.
+	 */
+	public String getDescription() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>domain.name</code>.
-     */
-    public void setName(String value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>domain.name</code>.
+	 */
+	public void setName(String value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>domain.name</code>.
-     */
-    public String getName() {
-        return (String) get(3);
-    }
+	/**
+	 * Getter for <code>domain.name</code>.
+	 */
+	public String getName() {
+		return (String) get(3);
+	}
 
-    /**
-     * Setter for <code>domain.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>domain.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>domain.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(4);
-    }
+	/**
+	 * Getter for <code>domain.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(4);
+	}
 
-    /**
-     * Setter for <code>domain.ipv4_address</code>.
-     */
-    public void setIpv4Address(InetAddress value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>domain.ipv4_address</code>.
+	 */
+	public void setIpv4Address(InetAddress value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>domain.ipv4_address</code>.
-     */
-    public InetAddress getIpv4Address() {
-        return (InetAddress) get(5);
-    }
+	/**
+	 * Getter for <code>domain.ipv4_address</code>.
+	 */
+	public InetAddress getIpv4Address() {
+		return (InetAddress) get(5);
+	}
 
-    /**
-     * Setter for <code>domain.ipv6_address</code>.
-     */
-    public void setIpv6Address(InetAddress value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>domain.ipv6_address</code>.
+	 */
+	public void setIpv6Address(InetAddress value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>domain.ipv6_address</code>.
-     */
-    public InetAddress getIpv6Address() {
-        return (InetAddress) get(6);
-    }
+	/**
+	 * Getter for <code>domain.ipv6_address</code>.
+	 */
+	public InetAddress getIpv6Address() {
+		return (InetAddress) get(6);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DomainRecord
-     */
-    public DomainRecord() {
-        super(Domain.DOMAIN);
-    }
+	/**
+	 * Create a detached DomainRecord
+	 */
+	public DomainRecord() {
+		super(Domain.DOMAIN);
+	}
 
-    /**
-     * Create a detached, initialised DomainRecord
-     */
-    public DomainRecord(Long id, Instant changeDate, String description, String name, Integer version, InetAddress ipv4Address, InetAddress ipv6Address) {
-        super(Domain.DOMAIN);
+	/**
+	 * Create a detached, initialised DomainRecord
+	 */
+	public DomainRecord(Long id, Instant changeDate, String description, String name, Integer version, InetAddress ipv4Address, InetAddress ipv6Address) {
+		super(Domain.DOMAIN);
 
-        setId(id);
-        setChangeDate(changeDate);
-        setDescription(description);
-        setName(name);
-        setVersion(version);
-        setIpv4Address(ipv4Address);
-        setIpv6Address(ipv6Address);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setChangeDate(changeDate);
+		setDescription(description);
+		setName(name);
+		setVersion(version);
+		setIpv4Address(ipv4Address);
+		setIpv6Address(ipv6Address);
+		resetTouchedOnNotNull();
+	}
 }

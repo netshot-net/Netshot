@@ -18,94 +18,94 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class PolicyRecord extends UpdatableRecordImpl<PolicyRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>policy.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>policy.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>policy.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>policy.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>policy.name</code>.
-     */
-    public void setName(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>policy.name</code>.
+	 */
+	public void setName(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>policy.name</code>.
-     */
-    public String getName() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>policy.name</code>.
+	 */
+	public String getName() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>policy.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>policy.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>policy.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(2);
-    }
+	/**
+	 * Getter for <code>policy.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(2);
+	}
 
-    /**
-     * Setter for <code>policy.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>policy.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>policy.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(3);
-    }
+	/**
+	 * Getter for <code>policy.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(3);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached PolicyRecord
-     */
-    public PolicyRecord() {
-        super(Policy.POLICY);
-    }
+	/**
+	 * Create a detached PolicyRecord
+	 */
+	public PolicyRecord() {
+		super(Policy.POLICY);
+	}
 
-    /**
-     * Create a detached, initialised PolicyRecord
-     */
-    public PolicyRecord(Long id, String name, Integer version, Instant changeDate) {
-        super(Policy.POLICY);
+	/**
+	 * Create a detached, initialised PolicyRecord
+	 */
+	public PolicyRecord(Long id, String name, Integer version, Instant changeDate) {
+		super(Policy.POLICY);
 
-        setId(id);
-        setName(name);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setName(name);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

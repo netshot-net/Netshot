@@ -46,250 +46,250 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class ScanSubnetsTaskSubnets extends TableImpl<ScanSubnetsTaskSubnetsRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>scan_subnets_task_subnets</code>
-     */
-    public static final ScanSubnetsTaskSubnets SCAN_SUBNETS_TASK_SUBNETS = new ScanSubnetsTaskSubnets();
+	/**
+	 * The reference instance of <code>scan_subnets_task_subnets</code>
+	 */
+	public static final ScanSubnetsTaskSubnets SCAN_SUBNETS_TASK_SUBNETS = new ScanSubnetsTaskSubnets();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<ScanSubnetsTaskSubnetsRecord> getRecordType() {
-        return ScanSubnetsTaskSubnetsRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<ScanSubnetsTaskSubnetsRecord> getRecordType() {
+		return ScanSubnetsTaskSubnetsRecord.class;
+	}
 
-    /**
-     * The column <code>scan_subnets_task_subnets.scan_subnets_task</code>.
-     */
-    public final TableField<ScanSubnetsTaskSubnetsRecord, Long> SCAN_SUBNETS_TASK = createField(DSL.name("scan_subnets_task"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>scan_subnets_task_subnets.scan_subnets_task</code>.
+	 */
+	public final TableField<ScanSubnetsTaskSubnetsRecord, Long> SCAN_SUBNETS_TASK = createField(DSL.name("scan_subnets_task"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>scan_subnets_task_subnets.ipv4usage</code>.
-     */
-    public final TableField<ScanSubnetsTaskSubnetsRecord, String> IPV4USAGE = createField(DSL.name("ipv4usage"), SQLDataType.VARCHAR(32), this, "");
+	/**
+	 * The column <code>scan_subnets_task_subnets.ipv4usage</code>.
+	 */
+	public final TableField<ScanSubnetsTaskSubnetsRecord, String> IPV4USAGE = createField(DSL.name("ipv4usage"), SQLDataType.VARCHAR(32), this, "");
 
-    /**
-     * The column <code>scan_subnets_task_subnets.ipv4mask</code>.
-     */
-    public final TableField<ScanSubnetsTaskSubnetsRecord, Integer> IPV4MASK = createField(DSL.name("ipv4mask"), SQLDataType.INTEGER, this, "");
+	/**
+	 * The column <code>scan_subnets_task_subnets.ipv4mask</code>.
+	 */
+	public final TableField<ScanSubnetsTaskSubnetsRecord, Integer> IPV4MASK = createField(DSL.name("ipv4mask"), SQLDataType.INTEGER, this, "");
 
-    /**
-     * The column <code>scan_subnets_task_subnets.ipv4address</code>.
-     */
-    public final TableField<ScanSubnetsTaskSubnetsRecord, InetAddress> IPV4ADDRESS = createField(DSL.name("ipv4address"), DefaultDataType.getDefaultDataType("\"pg_catalog\".\"inet\""), this, "", new InetBinding());
+	/**
+	 * The column <code>scan_subnets_task_subnets.ipv4address</code>.
+	 */
+	public final TableField<ScanSubnetsTaskSubnetsRecord, InetAddress> IPV4ADDRESS = createField(DSL.name("ipv4address"), DefaultDataType.getDefaultDataType("\"pg_catalog\".\"inet\""), this, "", new InetBinding());
 
-    private ScanSubnetsTaskSubnets(Name alias, Table<ScanSubnetsTaskSubnetsRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private ScanSubnetsTaskSubnets(Name alias, Table<ScanSubnetsTaskSubnetsRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private ScanSubnetsTaskSubnets(Name alias, Table<ScanSubnetsTaskSubnetsRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private ScanSubnetsTaskSubnets(Name alias, Table<ScanSubnetsTaskSubnetsRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>scan_subnets_task_subnets</code> table reference
-     */
-    public ScanSubnetsTaskSubnets(String alias) {
-        this(DSL.name(alias), SCAN_SUBNETS_TASK_SUBNETS);
-    }
+	/**
+	 * Create an aliased <code>scan_subnets_task_subnets</code> table reference
+	 */
+	public ScanSubnetsTaskSubnets(String alias) {
+		this(DSL.name(alias), SCAN_SUBNETS_TASK_SUBNETS);
+	}
 
-    /**
-     * Create an aliased <code>scan_subnets_task_subnets</code> table reference
-     */
-    public ScanSubnetsTaskSubnets(Name alias) {
-        this(alias, SCAN_SUBNETS_TASK_SUBNETS);
-    }
+	/**
+	 * Create an aliased <code>scan_subnets_task_subnets</code> table reference
+	 */
+	public ScanSubnetsTaskSubnets(Name alias) {
+		this(alias, SCAN_SUBNETS_TASK_SUBNETS);
+	}
 
-    /**
-     * Create a <code>scan_subnets_task_subnets</code> table reference
-     */
-    public ScanSubnetsTaskSubnets() {
-        this(DSL.name("scan_subnets_task_subnets"), null);
-    }
+	/**
+	 * Create a <code>scan_subnets_task_subnets</code> table reference
+	 */
+	public ScanSubnetsTaskSubnets() {
+		this(DSL.name("scan_subnets_task_subnets"), null);
+	}
 
-    public <O extends Record> ScanSubnetsTaskSubnets(Table<O> path, ForeignKey<O, ScanSubnetsTaskSubnetsRecord> childPath, InverseForeignKey<O, ScanSubnetsTaskSubnetsRecord> parentPath) {
-        super(path, childPath, parentPath, SCAN_SUBNETS_TASK_SUBNETS);
-    }
+	public <O extends Record> ScanSubnetsTaskSubnets(Table<O> path, ForeignKey<O, ScanSubnetsTaskSubnetsRecord> childPath, InverseForeignKey<O, ScanSubnetsTaskSubnetsRecord> parentPath) {
+		super(path, childPath, parentPath, SCAN_SUBNETS_TASK_SUBNETS);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class ScanSubnetsTaskSubnetsPath extends ScanSubnetsTaskSubnets implements Path<ScanSubnetsTaskSubnetsRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class ScanSubnetsTaskSubnetsPath extends ScanSubnetsTaskSubnets implements Path<ScanSubnetsTaskSubnetsRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> ScanSubnetsTaskSubnetsPath(Table<O> path, ForeignKey<O, ScanSubnetsTaskSubnetsRecord> childPath, InverseForeignKey<O, ScanSubnetsTaskSubnetsRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private ScanSubnetsTaskSubnetsPath(Name alias, Table<ScanSubnetsTaskSubnetsRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> ScanSubnetsTaskSubnetsPath(Table<O> path, ForeignKey<O, ScanSubnetsTaskSubnetsRecord> childPath, InverseForeignKey<O, ScanSubnetsTaskSubnetsRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private ScanSubnetsTaskSubnetsPath(Name alias, Table<ScanSubnetsTaskSubnetsRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public ScanSubnetsTaskSubnetsPath as(String alias) {
-            return new ScanSubnetsTaskSubnetsPath(DSL.name(alias), this);
-        }
+		@Override
+		public ScanSubnetsTaskSubnetsPath as(String alias) {
+			return new ScanSubnetsTaskSubnetsPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public ScanSubnetsTaskSubnetsPath as(Name alias) {
-            return new ScanSubnetsTaskSubnetsPath(alias, this);
-        }
+		@Override
+		public ScanSubnetsTaskSubnetsPath as(Name alias) {
+			return new ScanSubnetsTaskSubnetsPath(alias, this);
+		}
 
-        @Override
-        public ScanSubnetsTaskSubnetsPath as(Table<?> alias) {
-            return new ScanSubnetsTaskSubnetsPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public ScanSubnetsTaskSubnetsPath as(Table<?> alias) {
+			return new ScanSubnetsTaskSubnetsPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK);
+	}
 
-    @Override
-    public List<ForeignKey<ScanSubnetsTaskSubnetsRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.SCAN_SUBNETS_TASK_SUBNETS__FK_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK);
-    }
+	@Override
+	public List<ForeignKey<ScanSubnetsTaskSubnetsRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.SCAN_SUBNETS_TASK_SUBNETS__FK_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK);
+	}
 
-    private transient TaskPath _task;
+	private transient TaskPath _task;
 
-    /**
-     * Get the implicit join path to the <code>task</code> table.
-     */
-    public TaskPath task() {
-        if (_task == null)
-            _task = new TaskPath(this, Keys.SCAN_SUBNETS_TASK_SUBNETS__FK_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK, null);
+	/**
+	 * Get the implicit join path to the <code>task</code> table.
+	 */
+	public TaskPath task() {
+		if (_task == null)
+			_task = new TaskPath(this, Keys.SCAN_SUBNETS_TASK_SUBNETS__FK_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK, null);
 
-        return _task;
-    }
+		return _task;
+	}
 
-    @Override
-    public ScanSubnetsTaskSubnets as(String alias) {
-        return new ScanSubnetsTaskSubnets(DSL.name(alias), this);
-    }
+	@Override
+	public ScanSubnetsTaskSubnets as(String alias) {
+		return new ScanSubnetsTaskSubnets(DSL.name(alias), this);
+	}
 
-    @Override
-    public ScanSubnetsTaskSubnets as(Name alias) {
-        return new ScanSubnetsTaskSubnets(alias, this);
-    }
+	@Override
+	public ScanSubnetsTaskSubnets as(Name alias) {
+		return new ScanSubnetsTaskSubnets(alias, this);
+	}
 
-    @Override
-    public ScanSubnetsTaskSubnets as(Table<?> alias) {
-        return new ScanSubnetsTaskSubnets(alias.getQualifiedName(), this);
-    }
+	@Override
+	public ScanSubnetsTaskSubnets as(Table<?> alias) {
+		return new ScanSubnetsTaskSubnets(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets rename(String name) {
-        return new ScanSubnetsTaskSubnets(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets rename(String name) {
+		return new ScanSubnetsTaskSubnets(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets rename(Name name) {
-        return new ScanSubnetsTaskSubnets(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets rename(Name name) {
+		return new ScanSubnetsTaskSubnets(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets rename(Table<?> name) {
-        return new ScanSubnetsTaskSubnets(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets rename(Table<?> name) {
+		return new ScanSubnetsTaskSubnets(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets where(Condition condition) {
-        return new ScanSubnetsTaskSubnets(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets where(Condition condition) {
+		return new ScanSubnetsTaskSubnets(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ScanSubnetsTaskSubnets where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ScanSubnetsTaskSubnets where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ScanSubnetsTaskSubnets where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ScanSubnetsTaskSubnets where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ScanSubnetsTaskSubnets where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ScanSubnetsTaskSubnets where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public ScanSubnetsTaskSubnets where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public ScanSubnetsTaskSubnets where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public ScanSubnetsTaskSubnets whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public ScanSubnetsTaskSubnets whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

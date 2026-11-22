@@ -45,264 +45,263 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DiscoverDeviceTypeTaskCredentialSets extends TableImpl<DiscoverDeviceTypeTaskCredentialSetsRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of
-     * <code>discover_device_type_task_credential_sets</code>
-     */
-    public static final DiscoverDeviceTypeTaskCredentialSets DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS = new DiscoverDeviceTypeTaskCredentialSets();
+	/**
+	 * The reference instance of
+	 * <code>discover_device_type_task_credential_sets</code>
+	 */
+	public static final DiscoverDeviceTypeTaskCredentialSets DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS = new DiscoverDeviceTypeTaskCredentialSets();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<DiscoverDeviceTypeTaskCredentialSetsRecord> getRecordType() {
-        return DiscoverDeviceTypeTaskCredentialSetsRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<DiscoverDeviceTypeTaskCredentialSetsRecord> getRecordType() {
+		return DiscoverDeviceTypeTaskCredentialSetsRecord.class;
+	}
 
-    /**
-     * The column
-     * <code>discover_device_type_task_credential_sets.discover_device_type_task</code>.
-     */
-    public final TableField<DiscoverDeviceTypeTaskCredentialSetsRecord, Long> DISCOVER_DEVICE_TYPE_TASK = createField(DSL.name("discover_device_type_task"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column
+	 * <code>discover_device_type_task_credential_sets.discover_device_type_task</code>.
+	 */
+	public final TableField<DiscoverDeviceTypeTaskCredentialSetsRecord, Long> DISCOVER_DEVICE_TYPE_TASK = createField(DSL.name("discover_device_type_task"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column
-     * <code>discover_device_type_task_credential_sets.credential_sets</code>.
-     */
-    public final TableField<DiscoverDeviceTypeTaskCredentialSetsRecord, Long> CREDENTIAL_SETS = createField(DSL.name("credential_sets"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column
+	 * <code>discover_device_type_task_credential_sets.credential_sets</code>.
+	 */
+	public final TableField<DiscoverDeviceTypeTaskCredentialSetsRecord, Long> CREDENTIAL_SETS = createField(DSL.name("credential_sets"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    private DiscoverDeviceTypeTaskCredentialSets(Name alias, Table<DiscoverDeviceTypeTaskCredentialSetsRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private DiscoverDeviceTypeTaskCredentialSets(Name alias, Table<DiscoverDeviceTypeTaskCredentialSetsRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private DiscoverDeviceTypeTaskCredentialSets(Name alias, Table<DiscoverDeviceTypeTaskCredentialSetsRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private DiscoverDeviceTypeTaskCredentialSets(Name alias, Table<DiscoverDeviceTypeTaskCredentialSetsRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>discover_device_type_task_credential_sets</code>
-     * table reference
-     */
-    public DiscoverDeviceTypeTaskCredentialSets(String alias) {
-        this(DSL.name(alias), DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
-    }
+	/**
+	 * Create an aliased <code>discover_device_type_task_credential_sets</code>
+	 * table reference
+	 */
+	public DiscoverDeviceTypeTaskCredentialSets(String alias) {
+		this(DSL.name(alias), DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
+	}
 
-    /**
-     * Create an aliased <code>discover_device_type_task_credential_sets</code>
-     * table reference
-     */
-    public DiscoverDeviceTypeTaskCredentialSets(Name alias) {
-        this(alias, DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
-    }
+	/**
+	 * Create an aliased <code>discover_device_type_task_credential_sets</code>
+	 * table reference
+	 */
+	public DiscoverDeviceTypeTaskCredentialSets(Name alias) {
+		this(alias, DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
+	}
 
-    /**
-     * Create a <code>discover_device_type_task_credential_sets</code> table
-     * reference
-     */
-    public DiscoverDeviceTypeTaskCredentialSets() {
-        this(DSL.name("discover_device_type_task_credential_sets"), null);
-    }
+	/**
+	 * Create a <code>discover_device_type_task_credential_sets</code> table
+	 * reference
+	 */
+	public DiscoverDeviceTypeTaskCredentialSets() {
+		this(DSL.name("discover_device_type_task_credential_sets"), null);
+	}
 
-    public <O extends Record> DiscoverDeviceTypeTaskCredentialSets(Table<O> path, ForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> childPath, InverseForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> parentPath) {
-        super(path, childPath, parentPath, DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
-    }
+	public <O extends Record> DiscoverDeviceTypeTaskCredentialSets(Table<O> path, ForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> childPath, InverseForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> parentPath) {
+		super(path, childPath, parentPath, DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class DiscoverDeviceTypeTaskCredentialSetsPath extends DiscoverDeviceTypeTaskCredentialSets implements Path<DiscoverDeviceTypeTaskCredentialSetsRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class DiscoverDeviceTypeTaskCredentialSetsPath extends DiscoverDeviceTypeTaskCredentialSets implements Path<DiscoverDeviceTypeTaskCredentialSetsRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> DiscoverDeviceTypeTaskCredentialSetsPath(Table<O> path, ForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> childPath, InverseForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private DiscoverDeviceTypeTaskCredentialSetsPath(Name alias, Table<DiscoverDeviceTypeTaskCredentialSetsRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> DiscoverDeviceTypeTaskCredentialSetsPath(Table<O> path, ForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> childPath, InverseForeignKey<O, DiscoverDeviceTypeTaskCredentialSetsRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private DiscoverDeviceTypeTaskCredentialSetsPath(Name alias, Table<DiscoverDeviceTypeTaskCredentialSetsRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public DiscoverDeviceTypeTaskCredentialSetsPath as(String alias) {
-            return new DiscoverDeviceTypeTaskCredentialSetsPath(DSL.name(alias), this);
-        }
+		@Override
+		public DiscoverDeviceTypeTaskCredentialSetsPath as(String alias) {
+			return new DiscoverDeviceTypeTaskCredentialSetsPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public DiscoverDeviceTypeTaskCredentialSetsPath as(Name alias) {
-            return new DiscoverDeviceTypeTaskCredentialSetsPath(alias, this);
-        }
+		@Override
+		public DiscoverDeviceTypeTaskCredentialSetsPath as(Name alias) {
+			return new DiscoverDeviceTypeTaskCredentialSetsPath(alias, this);
+		}
 
-        @Override
-        public DiscoverDeviceTypeTaskCredentialSetsPath as(Table<?> alias) {
-            return new DiscoverDeviceTypeTaskCredentialSetsPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public DiscoverDeviceTypeTaskCredentialSetsPath as(Table<?> alias) {
+			return new DiscoverDeviceTypeTaskCredentialSetsPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS);
+	}
 
-    @Override
-    public UniqueKey<DiscoverDeviceTypeTaskCredentialSetsRecord> getPrimaryKey() {
-        return Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_PKEY;
-    }
+	@Override
+	public UniqueKey<DiscoverDeviceTypeTaskCredentialSetsRecord> getPrimaryKey() {
+		return Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_PKEY;
+	}
 
-    @Override
-    public List<ForeignKey<DiscoverDeviceTypeTaskCredentialSetsRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS, Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_DISCOVER_DEVICE_TY);
-    }
+	@Override
+	public List<ForeignKey<DiscoverDeviceTypeTaskCredentialSetsRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS, Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_DISCOVER_DEVICE_TY);
+	}
 
-    private transient DeviceCredentialSetPath _deviceCredentialSet;
+	private transient DeviceCredentialSetPath _deviceCredentialSet;
 
-    /**
-     * Get the implicit join path to the <code>device_credential_set</code>
-     * table.
-     */
-    public DeviceCredentialSetPath deviceCredentialSet() {
-        if (_deviceCredentialSet == null)
-            _deviceCredentialSet = new DeviceCredentialSetPath(this, Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS, null);
+	/**
+	 * Get the implicit join path to the <code>device_credential_set</code> table.
+	 */
+	public DeviceCredentialSetPath deviceCredentialSet() {
+		if (_deviceCredentialSet == null)
+			_deviceCredentialSet = new DeviceCredentialSetPath(this, Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_CREDENTIAL_SETS, null);
 
-        return _deviceCredentialSet;
-    }
+		return _deviceCredentialSet;
+	}
 
-    private transient TaskPath _task;
+	private transient TaskPath _task;
 
-    /**
-     * Get the implicit join path to the <code>task</code> table.
-     */
-    public TaskPath task() {
-        if (_task == null)
-            _task = new TaskPath(this, Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_DISCOVER_DEVICE_TY, null);
+	/**
+	 * Get the implicit join path to the <code>task</code> table.
+	 */
+	public TaskPath task() {
+		if (_task == null)
+			_task = new TaskPath(this, Keys.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS__FK_DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS_DISCOVER_DEVICE_TY, null);
 
-        return _task;
-    }
+		return _task;
+	}
 
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets as(String alias) {
-        return new DiscoverDeviceTypeTaskCredentialSets(DSL.name(alias), this);
-    }
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets as(String alias) {
+		return new DiscoverDeviceTypeTaskCredentialSets(DSL.name(alias), this);
+	}
 
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets as(Name alias) {
-        return new DiscoverDeviceTypeTaskCredentialSets(alias, this);
-    }
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets as(Name alias) {
+		return new DiscoverDeviceTypeTaskCredentialSets(alias, this);
+	}
 
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets as(Table<?> alias) {
-        return new DiscoverDeviceTypeTaskCredentialSets(alias.getQualifiedName(), this);
-    }
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets as(Table<?> alias) {
+		return new DiscoverDeviceTypeTaskCredentialSets(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets rename(String name) {
-        return new DiscoverDeviceTypeTaskCredentialSets(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets rename(String name) {
+		return new DiscoverDeviceTypeTaskCredentialSets(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets rename(Name name) {
-        return new DiscoverDeviceTypeTaskCredentialSets(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets rename(Name name) {
+		return new DiscoverDeviceTypeTaskCredentialSets(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets rename(Table<?> name) {
-        return new DiscoverDeviceTypeTaskCredentialSets(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets rename(Table<?> name) {
+		return new DiscoverDeviceTypeTaskCredentialSets(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets where(Condition condition) {
-        return new DiscoverDeviceTypeTaskCredentialSets(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets where(Condition condition) {
+		return new DiscoverDeviceTypeTaskCredentialSets(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DiscoverDeviceTypeTaskCredentialSets where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DiscoverDeviceTypeTaskCredentialSets where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DiscoverDeviceTypeTaskCredentialSets where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DiscoverDeviceTypeTaskCredentialSets where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DiscoverDeviceTypeTaskCredentialSets where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DiscoverDeviceTypeTaskCredentialSets where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DiscoverDeviceTypeTaskCredentialSets where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DiscoverDeviceTypeTaskCredentialSets where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DiscoverDeviceTypeTaskCredentialSets whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DiscoverDeviceTypeTaskCredentialSets whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }

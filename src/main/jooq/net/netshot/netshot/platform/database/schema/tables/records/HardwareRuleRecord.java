@@ -18,199 +18,199 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class HardwareRuleRecord extends UpdatableRecordImpl<HardwareRuleRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>hardware_rule.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>hardware_rule.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.driver</code>.
-     */
-    public void setDriver(String value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.driver</code>.
+	 */
+	public void setDriver(String value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.driver</code>.
-     */
-    public String getDriver() {
-        return (String) get(1);
-    }
+	/**
+	 * Getter for <code>hardware_rule.driver</code>.
+	 */
+	public String getDriver() {
+		return (String) get(1);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.end_of_life</code>.
-     */
-    public void setEndOfLife(Instant value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.end_of_life</code>.
+	 */
+	public void setEndOfLife(Instant value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.end_of_life</code>.
-     */
-    public Instant getEndOfLife() {
-        return (Instant) get(2);
-    }
+	/**
+	 * Getter for <code>hardware_rule.end_of_life</code>.
+	 */
+	public Instant getEndOfLife() {
+		return (Instant) get(2);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.end_of_sale</code>.
-     */
-    public void setEndOfSale(Instant value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.end_of_sale</code>.
+	 */
+	public void setEndOfSale(Instant value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.end_of_sale</code>.
-     */
-    public Instant getEndOfSale() {
-        return (Instant) get(3);
-    }
+	/**
+	 * Getter for <code>hardware_rule.end_of_sale</code>.
+	 */
+	public Instant getEndOfSale() {
+		return (Instant) get(3);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.family</code>.
-     */
-    public void setFamily(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.family</code>.
+	 */
+	public void setFamily(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.family</code>.
-     */
-    public String getFamily() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>hardware_rule.family</code>.
+	 */
+	public String getFamily() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.family_reg_exp</code>.
-     */
-    public void setFamilyRegExp(Boolean value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.family_reg_exp</code>.
+	 */
+	public void setFamilyRegExp(Boolean value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.family_reg_exp</code>.
-     */
-    public Boolean getFamilyRegExp() {
-        return (Boolean) get(5);
-    }
+	/**
+	 * Getter for <code>hardware_rule.family_reg_exp</code>.
+	 */
+	public Boolean getFamilyRegExp() {
+		return (Boolean) get(5);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.part_number</code>.
-     */
-    public void setPartNumber(String value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.part_number</code>.
+	 */
+	public void setPartNumber(String value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.part_number</code>.
-     */
-    public String getPartNumber() {
-        return (String) get(6);
-    }
+	/**
+	 * Getter for <code>hardware_rule.part_number</code>.
+	 */
+	public String getPartNumber() {
+		return (String) get(6);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.part_number_reg_exp</code>.
-     */
-    public void setPartNumberRegExp(Boolean value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.part_number_reg_exp</code>.
+	 */
+	public void setPartNumberRegExp(Boolean value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.part_number_reg_exp</code>.
-     */
-    public Boolean getPartNumberRegExp() {
-        return (Boolean) get(7);
-    }
+	/**
+	 * Getter for <code>hardware_rule.part_number_reg_exp</code>.
+	 */
+	public Boolean getPartNumberRegExp() {
+		return (Boolean) get(7);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.target_group</code>.
-     */
-    public void setTargetGroup(Long value) {
-        set(8, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.target_group</code>.
+	 */
+	public void setTargetGroup(Long value) {
+		set(8, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.target_group</code>.
-     */
-    public Long getTargetGroup() {
-        return (Long) get(8);
-    }
+	/**
+	 * Getter for <code>hardware_rule.target_group</code>.
+	 */
+	public Long getTargetGroup() {
+		return (Long) get(8);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(9, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(9, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(9);
-    }
+	/**
+	 * Getter for <code>hardware_rule.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(9);
+	}
 
-    /**
-     * Setter for <code>hardware_rule.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(10, value);
-    }
+	/**
+	 * Setter for <code>hardware_rule.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(10, value);
+	}
 
-    /**
-     * Getter for <code>hardware_rule.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(10);
-    }
+	/**
+	 * Getter for <code>hardware_rule.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(10);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached HardwareRuleRecord
-     */
-    public HardwareRuleRecord() {
-        super(HardwareRule.HARDWARE_RULE);
-    }
+	/**
+	 * Create a detached HardwareRuleRecord
+	 */
+	public HardwareRuleRecord() {
+		super(HardwareRule.HARDWARE_RULE);
+	}
 
-    /**
-     * Create a detached, initialised HardwareRuleRecord
-     */
-    public HardwareRuleRecord(Long id, String driver, Instant endOfLife, Instant endOfSale, String family, Boolean familyRegExp, String partNumber, Boolean partNumberRegExp, Long targetGroup, Integer version, Instant changeDate) {
-        super(HardwareRule.HARDWARE_RULE);
+	/**
+	 * Create a detached, initialised HardwareRuleRecord
+	 */
+	public HardwareRuleRecord(Long id, String driver, Instant endOfLife, Instant endOfSale, String family, Boolean familyRegExp, String partNumber, Boolean partNumberRegExp, Long targetGroup, Integer version, Instant changeDate) {
+		super(HardwareRule.HARDWARE_RULE);
 
-        setId(id);
-        setDriver(driver);
-        setEndOfLife(endOfLife);
-        setEndOfSale(endOfSale);
-        setFamily(family);
-        setFamilyRegExp(familyRegExp);
-        setPartNumber(partNumber);
-        setPartNumberRegExp(partNumberRegExp);
-        setTargetGroup(targetGroup);
-        setVersion(version);
-        setChangeDate(changeDate);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setDriver(driver);
+		setEndOfLife(endOfLife);
+		setEndOfSale(endOfSale);
+		setFamily(family);
+		setFamilyRegExp(familyRegExp);
+		setPartNumber(partNumber);
+		setPartNumberRegExp(partNumberRegExp);
+		setTargetGroup(targetGroup);
+		setVersion(version);
+		setChangeDate(changeDate);
+		resetTouchedOnNotNull();
+	}
 }

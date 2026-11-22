@@ -18,154 +18,154 @@ import org.jooq.impl.UpdatableRecordImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceGroupRecord extends UpdatableRecordImpl<DeviceGroupRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * Setter for <code>device_group.id</code>.
-     */
-    public void setId(Long value) {
-        set(0, value);
-    }
+	/**
+	 * Setter for <code>device_group.id</code>.
+	 */
+	public void setId(Long value) {
+		set(0, value);
+	}
 
-    /**
-     * Getter for <code>device_group.id</code>.
-     */
-    public Long getId() {
-        return (Long) get(0);
-    }
+	/**
+	 * Getter for <code>device_group.id</code>.
+	 */
+	public Long getId() {
+		return (Long) get(0);
+	}
 
-    /**
-     * Setter for <code>device_group.change_date</code>.
-     */
-    public void setChangeDate(Instant value) {
-        set(1, value);
-    }
+	/**
+	 * Setter for <code>device_group.change_date</code>.
+	 */
+	public void setChangeDate(Instant value) {
+		set(1, value);
+	}
 
-    /**
-     * Getter for <code>device_group.change_date</code>.
-     */
-    public Instant getChangeDate() {
-        return (Instant) get(1);
-    }
+	/**
+	 * Getter for <code>device_group.change_date</code>.
+	 */
+	public Instant getChangeDate() {
+		return (Instant) get(1);
+	}
 
-    /**
-     * Setter for <code>device_group.folder</code>.
-     */
-    public void setFolder(String value) {
-        set(2, value);
-    }
+	/**
+	 * Setter for <code>device_group.folder</code>.
+	 */
+	public void setFolder(String value) {
+		set(2, value);
+	}
 
-    /**
-     * Getter for <code>device_group.folder</code>.
-     */
-    public String getFolder() {
-        return (String) get(2);
-    }
+	/**
+	 * Getter for <code>device_group.folder</code>.
+	 */
+	public String getFolder() {
+		return (String) get(2);
+	}
 
-    /**
-     * Setter for <code>device_group.hidden_from_reports</code>.
-     */
-    public void setHiddenFromReports(Boolean value) {
-        set(3, value);
-    }
+	/**
+	 * Setter for <code>device_group.hidden_from_reports</code>.
+	 */
+	public void setHiddenFromReports(Boolean value) {
+		set(3, value);
+	}
 
-    /**
-     * Getter for <code>device_group.hidden_from_reports</code>.
-     */
-    public Boolean getHiddenFromReports() {
-        return (Boolean) get(3);
-    }
+	/**
+	 * Getter for <code>device_group.hidden_from_reports</code>.
+	 */
+	public Boolean getHiddenFromReports() {
+		return (Boolean) get(3);
+	}
 
-    /**
-     * Setter for <code>device_group.name</code>.
-     */
-    public void setName(String value) {
-        set(4, value);
-    }
+	/**
+	 * Setter for <code>device_group.name</code>.
+	 */
+	public void setName(String value) {
+		set(4, value);
+	}
 
-    /**
-     * Getter for <code>device_group.name</code>.
-     */
-    public String getName() {
-        return (String) get(4);
-    }
+	/**
+	 * Getter for <code>device_group.name</code>.
+	 */
+	public String getName() {
+		return (String) get(4);
+	}
 
-    /**
-     * Setter for <code>device_group.version</code>.
-     */
-    public void setVersion(Integer value) {
-        set(5, value);
-    }
+	/**
+	 * Setter for <code>device_group.version</code>.
+	 */
+	public void setVersion(Integer value) {
+		set(5, value);
+	}
 
-    /**
-     * Getter for <code>device_group.version</code>.
-     */
-    public Integer getVersion() {
-        return (Integer) get(5);
-    }
+	/**
+	 * Getter for <code>device_group.version</code>.
+	 */
+	public Integer getVersion() {
+		return (Integer) get(5);
+	}
 
-    /**
-     * Setter for <code>device_group.type</code>.
-     */
-    public void setType(String value) {
-        set(6, value);
-    }
+	/**
+	 * Setter for <code>device_group.type</code>.
+	 */
+	public void setType(String value) {
+		set(6, value);
+	}
 
-    /**
-     * Getter for <code>device_group.type</code>.
-     */
-    public String getType() {
-        return (String) get(6);
-    }
+	/**
+	 * Getter for <code>device_group.type</code>.
+	 */
+	public String getType() {
+		return (String) get(6);
+	}
 
-    /**
-     * Setter for <code>device_group.query</code>.
-     */
-    public void setQuery(String value) {
-        set(7, value);
-    }
+	/**
+	 * Setter for <code>device_group.query</code>.
+	 */
+	public void setQuery(String value) {
+		set(7, value);
+	}
 
-    /**
-     * Getter for <code>device_group.query</code>.
-     */
-    public String getQuery() {
-        return (String) get(7);
-    }
+	/**
+	 * Getter for <code>device_group.query</code>.
+	 */
+	public String getQuery() {
+		return (String) get(7);
+	}
 
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Primary key information
+	// -------------------------------------------------------------------------
 
-    @Override
-    public Record1<Long> key() {
-        return (Record1) super.key();
-    }
+	@Override
+	public Record1<Long> key() {
+		return (Record1) super.key();
+	}
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Constructors
+	// -------------------------------------------------------------------------
 
-    /**
-     * Create a detached DeviceGroupRecord
-     */
-    public DeviceGroupRecord() {
-        super(DeviceGroup.DEVICE_GROUP);
-    }
+	/**
+	 * Create a detached DeviceGroupRecord
+	 */
+	public DeviceGroupRecord() {
+		super(DeviceGroup.DEVICE_GROUP);
+	}
 
-    /**
-     * Create a detached, initialised DeviceGroupRecord
-     */
-    public DeviceGroupRecord(Long id, Instant changeDate, String folder, Boolean hiddenFromReports, String name, Integer version, String type, String query) {
-        super(DeviceGroup.DEVICE_GROUP);
+	/**
+	 * Create a detached, initialised DeviceGroupRecord
+	 */
+	public DeviceGroupRecord(Long id, Instant changeDate, String folder, Boolean hiddenFromReports, String name, Integer version, String type, String query) {
+		super(DeviceGroup.DEVICE_GROUP);
 
-        setId(id);
-        setChangeDate(changeDate);
-        setFolder(folder);
-        setHiddenFromReports(hiddenFromReports);
-        setName(name);
-        setVersion(version);
-        setType(type);
-        setQuery(query);
-        resetTouchedOnNotNull();
-    }
+		setId(id);
+		setChangeDate(changeDate);
+		setFolder(folder);
+		setHiddenFromReports(hiddenFromReports);
+		setName(name);
+		setVersion(version);
+		setType(type);
+		setQuery(query);
+		resetTouchedOnNotNull();
+	}
 }

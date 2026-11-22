@@ -45,264 +45,262 @@ import org.jooq.impl.TableImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class DeviceGroupCachedDevices extends TableImpl<DeviceGroupCachedDevicesRecord> {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * The reference instance of <code>device_group_cached_devices</code>
-     */
-    public static final DeviceGroupCachedDevices DEVICE_GROUP_CACHED_DEVICES = new DeviceGroupCachedDevices();
+	/**
+	 * The reference instance of <code>device_group_cached_devices</code>
+	 */
+	public static final DeviceGroupCachedDevices DEVICE_GROUP_CACHED_DEVICES = new DeviceGroupCachedDevices();
 
-    /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<DeviceGroupCachedDevicesRecord> getRecordType() {
-        return DeviceGroupCachedDevicesRecord.class;
-    }
+	/**
+	 * The class holding records for this type
+	 */
+	@Override
+	public Class<DeviceGroupCachedDevicesRecord> getRecordType() {
+		return DeviceGroupCachedDevicesRecord.class;
+	}
 
-    /**
-     * The column <code>device_group_cached_devices.owner_groups</code>.
-     */
-    public final TableField<DeviceGroupCachedDevicesRecord, Long> OWNER_GROUPS = createField(DSL.name("owner_groups"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>device_group_cached_devices.owner_groups</code>.
+	 */
+	public final TableField<DeviceGroupCachedDevicesRecord, Long> OWNER_GROUPS = createField(DSL.name("owner_groups"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>device_group_cached_devices.cached_devices</code>.
-     */
-    public final TableField<DeviceGroupCachedDevicesRecord, Long> CACHED_DEVICES = createField(DSL.name("cached_devices"), SQLDataType.BIGINT.nullable(false), this, "");
+	/**
+	 * The column <code>device_group_cached_devices.cached_devices</code>.
+	 */
+	public final TableField<DeviceGroupCachedDevicesRecord, Long> CACHED_DEVICES = createField(DSL.name("cached_devices"), SQLDataType.BIGINT.nullable(false), this, "");
 
-    /**
-     * The column <code>device_group_cached_devices.list_position</code>.
-     */
-    public final TableField<DeviceGroupCachedDevicesRecord, Integer> LIST_POSITION = createField(DSL.name("list_position"), SQLDataType.INTEGER.nullable(false), this, "");
+	/**
+	 * The column <code>device_group_cached_devices.list_position</code>.
+	 */
+	public final TableField<DeviceGroupCachedDevicesRecord, Integer> LIST_POSITION = createField(DSL.name("list_position"), SQLDataType.INTEGER.nullable(false), this, "");
 
-    private DeviceGroupCachedDevices(Name alias, Table<DeviceGroupCachedDevicesRecord> aliased) {
-        this(alias, aliased, (Field<?>[]) null, null);
-    }
+	private DeviceGroupCachedDevices(Name alias, Table<DeviceGroupCachedDevicesRecord> aliased) {
+		this(alias, aliased, (Field<?>[]) null, null);
+	}
 
-    private DeviceGroupCachedDevices(Name alias, Table<DeviceGroupCachedDevicesRecord> aliased, Field<?>[] parameters, Condition where) {
-        super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
-    }
+	private DeviceGroupCachedDevices(Name alias, Table<DeviceGroupCachedDevicesRecord> aliased, Field<?>[] parameters, Condition where) {
+		super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
+	}
 
-    /**
-     * Create an aliased <code>device_group_cached_devices</code> table
-     * reference
-     */
-    public DeviceGroupCachedDevices(String alias) {
-        this(DSL.name(alias), DEVICE_GROUP_CACHED_DEVICES);
-    }
+	/**
+	 * Create an aliased <code>device_group_cached_devices</code> table reference
+	 */
+	public DeviceGroupCachedDevices(String alias) {
+		this(DSL.name(alias), DEVICE_GROUP_CACHED_DEVICES);
+	}
 
-    /**
-     * Create an aliased <code>device_group_cached_devices</code> table
-     * reference
-     */
-    public DeviceGroupCachedDevices(Name alias) {
-        this(alias, DEVICE_GROUP_CACHED_DEVICES);
-    }
+	/**
+	 * Create an aliased <code>device_group_cached_devices</code> table reference
+	 */
+	public DeviceGroupCachedDevices(Name alias) {
+		this(alias, DEVICE_GROUP_CACHED_DEVICES);
+	}
 
-    /**
-     * Create a <code>device_group_cached_devices</code> table reference
-     */
-    public DeviceGroupCachedDevices() {
-        this(DSL.name("device_group_cached_devices"), null);
-    }
+	/**
+	 * Create a <code>device_group_cached_devices</code> table reference
+	 */
+	public DeviceGroupCachedDevices() {
+		this(DSL.name("device_group_cached_devices"), null);
+	}
 
-    public <O extends Record> DeviceGroupCachedDevices(Table<O> path, ForeignKey<O, DeviceGroupCachedDevicesRecord> childPath, InverseForeignKey<O, DeviceGroupCachedDevicesRecord> parentPath) {
-        super(path, childPath, parentPath, DEVICE_GROUP_CACHED_DEVICES);
-    }
+	public <O extends Record> DeviceGroupCachedDevices(Table<O> path, ForeignKey<O, DeviceGroupCachedDevicesRecord> childPath, InverseForeignKey<O, DeviceGroupCachedDevicesRecord> parentPath) {
+		super(path, childPath, parentPath, DEVICE_GROUP_CACHED_DEVICES);
+	}
 
-    /**
-     * A subtype implementing {@link Path} for simplified path-based joins.
-     */
-    public static class DeviceGroupCachedDevicesPath extends DeviceGroupCachedDevices implements Path<DeviceGroupCachedDevicesRecord> {
+	/**
+	 * A subtype implementing {@link Path} for simplified path-based joins.
+	 */
+	public static class DeviceGroupCachedDevicesPath extends DeviceGroupCachedDevices implements Path<DeviceGroupCachedDevicesRecord> {
 
-        private static final long serialVersionUID = 1L;
-        public <O extends Record> DeviceGroupCachedDevicesPath(Table<O> path, ForeignKey<O, DeviceGroupCachedDevicesRecord> childPath, InverseForeignKey<O, DeviceGroupCachedDevicesRecord> parentPath) {
-            super(path, childPath, parentPath);
-        }
-        private DeviceGroupCachedDevicesPath(Name alias, Table<DeviceGroupCachedDevicesRecord> aliased) {
-            super(alias, aliased);
-        }
+		private static final long serialVersionUID = 1L;
+		public <O extends Record> DeviceGroupCachedDevicesPath(Table<O> path, ForeignKey<O, DeviceGroupCachedDevicesRecord> childPath, InverseForeignKey<O, DeviceGroupCachedDevicesRecord> parentPath) {
+			super(path, childPath, parentPath);
+		}
+		private DeviceGroupCachedDevicesPath(Name alias, Table<DeviceGroupCachedDevicesRecord> aliased) {
+			super(alias, aliased);
+		}
 
-        @Override
-        public DeviceGroupCachedDevicesPath as(String alias) {
-            return new DeviceGroupCachedDevicesPath(DSL.name(alias), this);
-        }
+		@Override
+		public DeviceGroupCachedDevicesPath as(String alias) {
+			return new DeviceGroupCachedDevicesPath(DSL.name(alias), this);
+		}
 
-        @Override
-        public DeviceGroupCachedDevicesPath as(Name alias) {
-            return new DeviceGroupCachedDevicesPath(alias, this);
-        }
+		@Override
+		public DeviceGroupCachedDevicesPath as(Name alias) {
+			return new DeviceGroupCachedDevicesPath(alias, this);
+		}
 
-        @Override
-        public DeviceGroupCachedDevicesPath as(Table<?> alias) {
-            return new DeviceGroupCachedDevicesPath(alias.getQualifiedName(), this);
-        }
-    }
+		@Override
+		public DeviceGroupCachedDevicesPath as(Table<?> alias) {
+			return new DeviceGroupCachedDevicesPath(alias.getQualifiedName(), this);
+		}
+	}
 
-    @Override
-    public Schema getSchema() {
-        return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
-    }
+	@Override
+	public Schema getSchema() {
+		return aliased() ? null : DefaultSchema.DEFAULT_SCHEMA;
+	}
 
-    @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES);
-    }
+	@Override
+	public List<Index> getIndexes() {
+		return Arrays.asList(Indexes.IX_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES);
+	}
 
-    @Override
-    public UniqueKey<DeviceGroupCachedDevicesRecord> getPrimaryKey() {
-        return Keys.DEVICE_GROUP_CACHED_DEVICES_PKEY;
-    }
+	@Override
+	public UniqueKey<DeviceGroupCachedDevicesRecord> getPrimaryKey() {
+		return Keys.DEVICE_GROUP_CACHED_DEVICES_PKEY;
+	}
 
-    @Override
-    public List<ForeignKey<DeviceGroupCachedDevicesRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES, Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_OWNER_GROUPS);
-    }
+	@Override
+	public List<ForeignKey<DeviceGroupCachedDevicesRecord, ?>> getReferences() {
+		return Arrays.asList(Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES, Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_OWNER_GROUPS);
+	}
 
-    private transient DevicePath _device;
+	private transient DevicePath _device;
 
-    /**
-     * Get the implicit join path to the <code>device</code> table.
-     */
-    public DevicePath device() {
-        if (_device == null)
-            _device = new DevicePath(this, Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES, null);
+	/**
+	 * Get the implicit join path to the <code>device</code> table.
+	 */
+	public DevicePath device() {
+		if (_device == null)
+			_device = new DevicePath(this, Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_CACHED_DEVICES, null);
 
-        return _device;
-    }
+		return _device;
+	}
 
-    private transient DeviceGroupPath _deviceGroup;
+	private transient DeviceGroupPath _deviceGroup;
 
-    /**
-     * Get the implicit join path to the <code>device_group</code> table.
-     */
-    public DeviceGroupPath deviceGroup() {
-        if (_deviceGroup == null)
-            _deviceGroup = new DeviceGroupPath(this, Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_OWNER_GROUPS, null);
+	/**
+	 * Get the implicit join path to the <code>device_group</code> table.
+	 */
+	public DeviceGroupPath deviceGroup() {
+		if (_deviceGroup == null)
+			_deviceGroup = new DeviceGroupPath(this, Keys.DEVICE_GROUP_CACHED_DEVICES__FK_DEVICE_GROUP_CACHED_DEVICES_OWNER_GROUPS, null);
 
-        return _deviceGroup;
-    }
+		return _deviceGroup;
+	}
 
-    @Override
-    public DeviceGroupCachedDevices as(String alias) {
-        return new DeviceGroupCachedDevices(DSL.name(alias), this);
-    }
+	@Override
+	public DeviceGroupCachedDevices as(String alias) {
+		return new DeviceGroupCachedDevices(DSL.name(alias), this);
+	}
 
-    @Override
-    public DeviceGroupCachedDevices as(Name alias) {
-        return new DeviceGroupCachedDevices(alias, this);
-    }
+	@Override
+	public DeviceGroupCachedDevices as(Name alias) {
+		return new DeviceGroupCachedDevices(alias, this);
+	}
 
-    @Override
-    public DeviceGroupCachedDevices as(Table<?> alias) {
-        return new DeviceGroupCachedDevices(alias.getQualifiedName(), this);
-    }
+	@Override
+	public DeviceGroupCachedDevices as(Table<?> alias) {
+		return new DeviceGroupCachedDevices(alias.getQualifiedName(), this);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceGroupCachedDevices rename(String name) {
-        return new DeviceGroupCachedDevices(DSL.name(name), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices rename(String name) {
+		return new DeviceGroupCachedDevices(DSL.name(name), null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceGroupCachedDevices rename(Name name) {
-        return new DeviceGroupCachedDevices(name, null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices rename(Name name) {
+		return new DeviceGroupCachedDevices(name, null);
+	}
 
-    /**
-     * Rename this table
-     */
-    @Override
-    public DeviceGroupCachedDevices rename(Table<?> name) {
-        return new DeviceGroupCachedDevices(name.getQualifiedName(), null);
-    }
+	/**
+	 * Rename this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices rename(Table<?> name) {
+		return new DeviceGroupCachedDevices(name.getQualifiedName(), null);
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceGroupCachedDevices where(Condition condition) {
-        return new DeviceGroupCachedDevices(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices where(Condition condition) {
+		return new DeviceGroupCachedDevices(getQualifiedName(), aliased() ? this : null, null, Internal.condition(this, condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceGroupCachedDevices where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices where(Collection<? extends Condition> conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceGroupCachedDevices where(Condition... conditions) {
-        return where(DSL.and(conditions));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices where(Condition... conditions) {
+		return where(DSL.and(conditions));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceGroupCachedDevices where(Field<Boolean> condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices where(Field<Boolean> condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceGroupCachedDevices where(SQL condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceGroupCachedDevices where(SQL condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceGroupCachedDevices where(@Stringly.SQL String condition) {
-        return where(DSL.condition(condition));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceGroupCachedDevices where(@Stringly.SQL String condition) {
+		return where(DSL.condition(condition));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceGroupCachedDevices where(@Stringly.SQL String condition, Object... binds) {
-        return where(DSL.condition(condition, binds));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceGroupCachedDevices where(@Stringly.SQL String condition, Object... binds) {
+		return where(DSL.condition(condition, binds));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    @PlainSQL
-    public DeviceGroupCachedDevices where(@Stringly.SQL String condition, QueryPart... parts) {
-        return where(DSL.condition(condition, parts));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	@PlainSQL
+	public DeviceGroupCachedDevices where(@Stringly.SQL String condition, QueryPart... parts) {
+		return where(DSL.condition(condition, parts));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceGroupCachedDevices whereExists(TableLike<?> select) {
-        return where(DSL.exists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices whereExists(TableLike<?> select) {
+		return where(DSL.exists(select));
+	}
 
-    /**
-     * Create an inline derived table from this table
-     */
-    @Override
-    public DeviceGroupCachedDevices whereNotExists(TableLike<?> select) {
-        return where(DSL.notExists(select));
-    }
+	/**
+	 * Create an inline derived table from this table
+	 */
+	@Override
+	public DeviceGroupCachedDevices whereNotExists(TableLike<?> select) {
+		return where(DSL.notExists(select));
+	}
 }
