@@ -1,0 +1,6 @@
+# Commits ignored by git blame (formatting-only changes).
+# GitHub uses this file automatically; locally, run once:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style(db): generate jOOQ classes with tab indentation
+84cfb60cf33871faf003bf38bfdee3eae2da898f
