@@ -251,7 +251,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
                 <Stack flex="1" minW="0" gap="2">
                   <InputGroup startElement={<LuSearch />}>
                     <Input
-                      placeholder="Search for a device to exempt"
+                      placeholder={t("policy.rule.searchDeviceToExempt")}
                       value={deviceQuery}
                       onChange={(e) => setDeviceQuery(e.target.value)}
                     />

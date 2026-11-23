@@ -244,7 +244,7 @@ export function EditTextRuleForm(props: EditTextRuleFormProps) {
                 control={attrForm.control}
                 name="attribute"
                 label={t("common.field")}
-                placeholder={t("common.selectAttribute")}
+                placeholder={t("common.selectAnAttribute")}
                 options={attrOptions}
               />
             </Stack>

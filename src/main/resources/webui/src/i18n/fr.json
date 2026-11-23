@@ -32,7 +32,7 @@
         "pressEnterToCreate": "Appuyez sur Entrée pour ajouter ce nouveau tag",
         "noOtherTag": "Aucun autre tag existant",
         "existingTag": "Tag existant",
-        "selectExistingTag": "Sélectionner un tag existant..."
+        "selectExistingTag": "Sélectionner un tag existant"
       },
       "add": "Ajouter un équipement",
       "snapshot": {
@@ -463,7 +463,6 @@
       "selectAll": "Tout sélectionner",
       "attribute": "Attribut",
       "attributes": "Attributs",
-      "selectAttribute": "Sélectionner un attribut...",
       "selectDeviceToBegin": "Sélectionnez un équipement pour commencer",
       "selectDiagnosticToBegin": "Sélectionnez un diagnostic pour commencer",
       "selectGroupToBegin": "Sélectionner un groupe pour commencer",
@@ -525,7 +524,6 @@
       "selectField": "Sélectionner un champ",
       "selectAnAttribute": "Sélectionner un attribut",
       "selectOutputFormat": "Sélectionner un format de sortie",
-      "selectAttributeEllipsis": "Sélectionner un attribut",
       "selectDeviceAttribute": "Sélectionner un attribut de l'équipement",
       "selectSpecificAttribute": "Sélectionner un attribut spécifique...",
       "genericAttributes": "Attributs génériques",
@@ -574,6 +572,7 @@
         "executedAfterJsScript": "Exécuté après le script JS sur l'équipement",
         "currentExemptions": "Exemptions courantes",
         "exemptedDevices": "Équipements exemptés",
+        "searchDeviceToExempt": "Rechercher un équipement à exempter...",
         "existingText": "Texte existant",
         "fieldToCheck": "Champ à vérifier",
         "checkSettings": "Paramètres de vérification",
@@ -973,7 +972,7 @@
       "selectAuthType": "Sélectionner un type d'authentification",
       "selectPrivType": "Sélectionner un type de privilège",
       "selectProtocol": "Sélectionner un protocole",
-      "selectCliMode": "Sélectionner le mode CLI",
+      "selectCliMode": "Sélectionner un mode CLI",
       "authKeySecret": "Clé d'authentification",
       "privKeySecret": "Clé de chiffrement"
     },
@@ -1030,13 +1029,11 @@
       "changePassword": "Changer le mot de passe",
       "changePasswordAndSignIn": "Changer le mot de passe et se connecter",
       "confirmPassword": "Confirmer le mot de passe",
-      "confirmNewPassword": "confirmez votre nouveau mot de passe",
+      "confirmNewPassword": "Confirmer le nouveau mot de passe",
       "currentPassword": "Mot de passe actuel",
       "enterNewPassword": "Entrer un nouveau mot de passe",
       "newPassword": "Nouveau mot de passe",
       "enterPassword": "Entrer le mot de passe",
-      "enterYourNewPassword": "entrez votre nouveau mot de passe",
-      "enterYourPassword": "entrez votre mot de passe",
       "enterYourUsername": "Entrer votre nom d'utilisateur",
       "goToLogin": "Se connecter",
       "logout": "Déconnexion",
@@ -1059,7 +1056,7 @@
       "needToChangePassword": "Vous devez changer votre mot de passe.",
       "sessionExpired": "Votre session a expiré",
       "confirming": "Conforme",
-      "connectingViaSso": "connexion via SSO...",
+      "connectingViaSso": "Connexion via SSO...",
       "ssoError": "Une erreur s'est produite lors de la connexion via SSO"
     },
     "script": {
@@ -1176,7 +1173,7 @@
       "testConnectionSuccess": "La connexion à l'instance Vault a réussi",
       "local": "Local",
       "selectSource": "Local ou Vault",
-      "pathPlaceholder": "chemin du secret/clé",
+      "pathPlaceholder": "Chemin du secret/clé",
       "pathHelperText": "Chemin du secret, terminé par la clé contenant la valeur, p. ex. « app/creds/username »."
     }
   }

@@ -27,7 +27,7 @@ export function GenericAttributePanel({ onInsert }: Props) {
         name="attribute"
         label={t("common.attribute")}
         options={attributes}
-        placeholder={t("common.selectAttributeEllipsis")}
+        placeholder={t("common.selectAnAttribute")}
         itemToValue={(item) => item.value.name}
       />
       {attribute && (

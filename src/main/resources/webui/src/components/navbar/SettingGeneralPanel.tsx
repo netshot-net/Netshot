@@ -125,7 +125,7 @@ export function SettingGeneralPanel() {
                   <FormControl
                     type={FormControlType.Password}
                     label={t("auth.currentPassword")}
-                    placeholder={t("auth.enterYourPassword")}
+                    placeholder={t("auth.enterPassword")}
                     required
                     control={form.control}
                     name="password"
@@ -133,7 +133,7 @@ export function SettingGeneralPanel() {
                   <FormControl
                     type={FormControlType.Password}
                     label={t("auth.password")}
-                    placeholder={t("auth.enterYourNewPassword")}
+                    placeholder={t("auth.enterNewPassword")}
                     required
                     control={form.control}
                     name="newPassword"

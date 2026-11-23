@@ -32,7 +32,7 @@
         "pressEnterToCreate": "Press Enter to add this new tag",
         "noOtherTag": "No other existing tag",
         "existingTag": "Existing tag",
-        "selectExistingTag": "Select an existing tag..."
+        "selectExistingTag": "Select an existing tag"
       },
       "add": "Add device",
       "snapshot": {
@@ -267,7 +267,7 @@
       "canCreate": "You can create diagnostics then execute them on this device",
       "selectDesc": "View diagnostic details and the devices it targets",
       "selectResultType": "Select a result type",
-      "select": "Select diagnostic",
+      "select": "Select a diagnostic",
       "noCliAccessForDriver": "This device type has no CLI access. Use a JavaScript or Python diagnostic instead (with client.create(\"http\") if the driver is HTTP-based)."
     },
     "time": {
@@ -463,11 +463,10 @@
       "selectAll": "Select all",
       "attribute": "Attribute",
       "attributes": "Attributes",
-      "selectAttribute": "Select attribute...",
       "selectDeviceToBegin": "Select a device to begin",
       "selectDiagnosticToBegin": "Select a diagnostic to begin",
       "selectGroupToBegin": "Select group to begin",
-      "selectGroup": "Select group",
+      "selectGroup": "Select a group",
       "selectGroups": "Select groups",
       "selectPolicies": "Select policies",
       "selectedDevices": "Selected devices",
@@ -525,8 +524,7 @@
       "selectField": "Select a field",
       "selectAnAttribute": "Select an attribute",
       "selectOutputFormat": "Select an output format",
-      "selectAttributeEllipsis": "Select attribute",
-      "selectDeviceAttribute": "Select device attribute",
+      "selectDeviceAttribute": "Select a device attribute",
       "selectSpecificAttribute": "Select specific attribute...",
       "genericAttributes": "Generic attributes",
       "typeSpecificAttributes": "Type-specific",
@@ -574,6 +572,7 @@
         "executedAfterJsScript": "Executed after JS script on device",
         "currentExemptions": "Current exemptions",
         "exemptedDevices": "Exempted devices",
+        "searchDeviceToExempt": "Search for a device to exempt...",
         "existingText": "Existing text",
         "fieldToCheck": "Field to check",
         "checkSettings": "Check settings",
@@ -878,7 +877,7 @@
       "aboutToRemove": "You are about to remove the user {{username}}",
       "canCreate": "You can create users with different roles to manage Netshot",
       "settingsUpdated": "Your settings have been successfully updated",
-      "selectRole": "Select role"
+      "selectRole": "Select a role"
     },
     "admin": {
       "title": "Administration",
@@ -973,7 +972,7 @@
       "selectAuthType": "Select an auth type",
       "selectPrivType": "Select a priv type",
       "selectProtocol": "Select a protocol",
-      "selectCliMode": "Select CLI mode",
+      "selectCliMode": "Select a CLI mode",
       "authKeySecret": "Authentication key",
       "privKeySecret": "Privacy key"
     },
@@ -1030,13 +1029,11 @@
       "changePassword": "Change password",
       "changePasswordAndSignIn": "Change password and Sign in",
       "confirmPassword": "Confirm password",
-      "confirmNewPassword": "confirm your new password",
+      "confirmNewPassword": "Confirm new password",
       "currentPassword": "Current password",
       "enterNewPassword": "Enter new password",
       "newPassword": "New password",
       "enterPassword": "Enter password",
-      "enterYourNewPassword": "enter your new password",
-      "enterYourPassword": "enter your password",
       "enterYourUsername": "Enter your username",
       "goToLogin": "Go to login",
       "logout": "Logout",
@@ -1059,7 +1056,7 @@
       "needToChangePassword": "You need to change your password.",
       "sessionExpired": "Your session has expired",
       "confirming": "Confirming",
-      "connectingViaSso": "connecting via SSO...",
+      "connectingViaSso": "Connecting via SSO...",
       "ssoError": "An error has occurred while connecting via SSO"
     },
     "script": {
@@ -1176,7 +1173,7 @@
       "testConnectionSuccess": "The connection to the Vault instance succeeded",
       "local": "Local",
       "selectSource": "Local or Vault-backed",
-      "pathPlaceholder": "secret path/key",
+      "pathPlaceholder": "Secret path/key",
       "pathHelperText": "Secret path, ending with the key holding the value, e.g. \"app/creds/username\"."
     }
   }
