@@ -12,6 +12,8 @@ import { Control, useController, useFieldArray, UseFormSetValue, useWatch } from
 import { useTranslation } from "react-i18next"
 import { LuChevronRight } from "react-icons/lu"
 import { useCredentialSets, useVaultInstanceChoices } from "../api"
+import { tKey } from "@/i18n/tKey"
+import type { ParseKeys } from "i18next"
 
 /** The types of credential sets, as the API names them. */
 export type CredentialSetType = NonNullable<Schemas["DeviceCredentialSetRequest"]["type"]>
@@ -78,6 +80,13 @@ const ACCESS_NAME_ACRONYMS: Record<string, string> = {
 }
 
 /** Turns an access's camelCase JS key (e.g. "alternateSsh") into a readable label ("Alternate SSH"). */
+/** Labels of the known access groups (others are humanized from their name). */
+const ACCESS_GROUP_LABEL_KEYS: Record<string, ParseKeys | undefined> = {
+  cli: tKey("device.accessGroupCli"),
+  http: tKey("device.accessGroupHttp"),
+  snmp: tKey("device.accessGroupSnmp"),
+}
+
 function humanizeAccessName(name: string): string {
   const spaced = name.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
   return spaced
@@ -353,43 +362,43 @@ export function SpecificCredentialFields({
 }
 
 const CREDENTIAL_MODE_OPTIONS = [
-  { label: "device.accessCredentialsNone", description: "device.accessCredentialsNoneDescription", value: "none" },
-  { label: "device.accessCredentialsGlobal", description: "device.accessCredentialsGlobalDescription", value: "global" },
-  { label: "device.accessCredentialsSpecific", description: "device.accessCredentialsSpecificDescription", value: "specific" },
+  { label: tKey("device.accessCredentialsNone"), description: tKey("device.accessCredentialsNoneDescription"), value: "none" },
+  { label: tKey("device.accessCredentialsGlobal"), description: tKey("device.accessCredentialsGlobalDescription"), value: "global" },
+  { label: tKey("device.accessCredentialsSpecific"), description: tKey("device.accessCredentialsSpecificDescription"), value: "specific" },
 ] as const
 
 const SSH_AUTH_METHOD_OPTIONS = [
-  { label: "auth.password", value: "password" },
-  { label: "network.sshPrivateKey", value: "key" },
+  { label: tKey("auth.password"), value: "password" },
+  { label: tKey("network.sshPrivateKey"), value: "key" },
 ] as const
 
 const SSH_HOST_KEY_VERIFICATION_OPTIONS = [
   {
-    label: "device.sshHostKeyVerificationTrustAny",
-    description: "device.sshHostKeyVerificationTrustAnyDescription",
+    label: tKey("device.sshHostKeyVerificationTrustAny"),
+    description: tKey("device.sshHostKeyVerificationTrustAnyDescription"),
     value: SshHostKeyVerification.TrustAny,
   },
   {
-    label: "device.sshHostKeyVerificationTrustKnown",
-    description: "device.sshHostKeyVerificationTrustKnownDescription",
+    label: tKey("device.sshHostKeyVerificationTrustKnown"),
+    description: tKey("device.sshHostKeyVerificationTrustKnownDescription"),
     value: SshHostKeyVerification.TrustKnown,
   },
 ] as const
 
 const HTTPS_CA_TRUST_MODE_OPTIONS = [
   {
-    label: "device.httpsCaTrustModeSystemTruststore",
-    description: "device.httpsCaTrustModeSystemTruststoreDescription",
+    label: tKey("device.httpsCaTrustModeSystemTruststore"),
+    description: tKey("device.httpsCaTrustModeSystemTruststoreDescription"),
     value: HttpsCaTrustMode.SystemTruststore,
   },
   {
-    label: "device.httpsCaTrustModeCustomCa",
-    description: "device.httpsCaTrustModeCustomCaDescription",
+    label: tKey("device.httpsCaTrustModeCustomCa"),
+    description: tKey("device.httpsCaTrustModeCustomCaDescription"),
     value: HttpsCaTrustMode.CustomCa,
   },
   {
-    label: "device.httpsCaTrustModeTrustAny",
-    description: "device.httpsCaTrustModeTrustAnyDescription",
+    label: tKey("device.httpsCaTrustModeTrustAny"),
+    description: tKey("device.httpsCaTrustModeTrustAnyDescription"),
     value: HttpsCaTrustMode.TrustAny,
   },
 ] as const
@@ -819,9 +828,8 @@ export default function DeviceAccessFields({ control, setValue, accessDefinition
   return (
     <Stack gap="5">
       {groupOrder.map((group) => {
-        const groupLabel = t(`device.accessGroup${group.charAt(0).toUpperCase()}${group.slice(1)}`, {
-          defaultValue: humanizeAccessName(group),
-        })
+        const groupLabelKey = ACCESS_GROUP_LABEL_KEYS[group]
+        const groupLabel = groupLabelKey ? t(groupLabelKey) : humanizeAccessName(group)
         return (
           <Stack key={group} gap="1">
             <Text fontWeight="medium">

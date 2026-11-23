@@ -189,7 +189,7 @@ export function EditTextRuleForm(props: EditTextRuleFormProps) {
       const driverOption = getOptionByDriver(attrDriver)
       if (driverOption) {
         driverOption.value.attributes.forEach((attr) => {
-          options.push({ label: t(attr.title), value: attr.name })
+          options.push({ label: attr.title, value: attr.name })
         })
       }
     }

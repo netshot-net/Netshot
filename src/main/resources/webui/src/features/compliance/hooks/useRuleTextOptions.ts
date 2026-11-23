@@ -1,12 +1,13 @@
 import { createOptionHook } from "@/hooks"
+import { tKey } from "@/i18n/tKey"
 
 export const useRuleTextOptions = createOptionHook([
   {
-    label: "policy.rule.textMustExist",
+    label: tKey("policy.rule.textMustExist"),
     value: false,
   },
   {
-    label: "policy.rule.textMustNotExist",
+    label: tKey("policy.rule.textMustNotExist"),
     value: true,
   },
 ])

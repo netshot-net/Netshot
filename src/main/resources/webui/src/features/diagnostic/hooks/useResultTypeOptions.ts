@@ -1,21 +1,22 @@
 import { createOptionHook } from "@/hooks"
 import { DiagnosticResultType } from "@/types"
+import { tKey } from "@/i18n/tKey"
 
 export const useResultTypeOptions = createOptionHook([
   {
-    label: "common.text",
+    label: tKey("common.text"),
     value: DiagnosticResultType.Text,
   },
   {
-    label: "diagnostic.longText",
+    label: tKey("diagnostic.longText"),
     value: DiagnosticResultType.LongText,
   },
   {
-    label: "common.numeric",
+    label: tKey("common.numeric"),
     value: DiagnosticResultType.Numeric,
   },
   {
-    label: "common.binary",
+    label: tKey("common.binary"),
     value: DiagnosticResultType.Binary,
   },
 ])

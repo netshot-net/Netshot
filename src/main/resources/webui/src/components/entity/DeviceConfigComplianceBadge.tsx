@@ -3,23 +3,24 @@ import { type Ref } from "react"
 import { LuCircleCheck, LuCircleX } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import IconBadge from "../IconBadge"
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 type Config = {
   colorPalette: string
   icon: React.ReactElement
-  labelKey: string
+  labelKey: TranslationKey
 }
 
 export const DEVICE_CONFIG_COMPLIANCE_CONFIG: Record<"compliant" | "nonCompliant", Config> = {
   compliant: {
     colorPalette: "green",
     icon: <LuCircleCheck />,
-    labelKey: "compliance.compliant",
+    labelKey: tKey("compliance.compliant"),
   },
   nonCompliant: {
     colorPalette: "red",
     icon: <LuCircleX />,
-    labelKey: "compliance.nonCompliant",
+    labelKey: tKey("compliance.nonCompliant"),
   },
 }
 

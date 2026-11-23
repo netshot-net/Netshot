@@ -48,7 +48,7 @@ export function ComplianceRuleResultPanel({ onInsert }: Props) {
 
   const complianceAttribute = rule
     ? {
-        name: t('ruleNameName2', 'Rule > {{name}} > {{name2}}', { name: policy?.name, name2: rule.name }),
+        name: `Rule > ${policy?.name} > ${rule.name}`,
         type: AttributeType.Enum,
         choices: [
           { label: t("compliance.conforming"), value: DeviceComplianceResultType.Conforming },

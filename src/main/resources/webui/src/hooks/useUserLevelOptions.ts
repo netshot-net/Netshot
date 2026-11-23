@@ -1,30 +1,31 @@
 import { Level } from "@/types"
 import { createOptionHook } from "./createOptionHook"
+import { tKey } from "@/i18n/tKey"
 
 export const useUserLevelOptions = createOptionHook([
   {
-    label: "user.role.admin",
-    description: "user.role.adminDescription",
+    label: tKey("user.role.admin"),
+    description: tKey("user.role.adminDescription"),
     value: Level.Admin,
   },
   {
-    label: "user.role.readWritePlusScripts",
-    description: "user.role.readWritePlusScriptsDescription",
+    label: tKey("user.role.readWritePlusScripts"),
+    description: tKey("user.role.readWritePlusScriptsDescription"),
     value: Level.ExecuteReadWrite,
   },
   {
-    label: "user.role.readWrite",
-    description: "user.role.readWriteDescription",
+    label: tKey("user.role.readWrite"),
+    description: tKey("user.role.readWriteDescription"),
     value: Level.ReadWrite,
   },
   {
-    label: "common.operator",
-    description: "user.role.operatorDescription",
+    label: tKey("common.operator"),
+    description: tKey("user.role.operatorDescription"),
     value: Level.Operator,
   },
   {
-    label: "user.role.readOnly",
-    description: "user.role.readOnlyDescription",
+    label: tKey("user.role.readOnly"),
+    description: tKey("user.role.readOnlyDescription"),
     value: Level.ReadOnly,
   },
 ])

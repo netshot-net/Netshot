@@ -120,14 +120,14 @@ export function AttributeForm({ attribute, onInsert }: Props) {
     if (val === null || val === undefined) return null
 
     if (isBinary) {
-      return t('nameIsVal', '[{{name}}] is {{val}}', { name: attribute.name, val })
+      return `[${attribute.name}] is ${val}`
     }
 
     if (isEnum) {
       const isNumeric = !isNaN(Number(val)) && val.trim() !== ""
       return isNumeric
-        ? t('nameIsVal', '[{{name}}] is {{val}}', { name: attribute.name, val })
-        : t('nameIsVal2', '[{{name}}] is "{{val}}"', { name: attribute.name, val })
+        ? `[${attribute.name}] is ${val}`
+        : `[${attribute.name}] is "${val}"`
     }
 
     if (!op) return null
@@ -139,7 +139,7 @@ export function AttributeForm({ attribute, onInsert }: Props) {
       attribute.type === AttributeType.Date
 
     const escaped = isTag ? val.replace(/\\/g, "\\\\").replace(/"/g, '\\"') : val
-    return t('nameOpVal', '[{{name}}] {{op}} {{val}}', { name: attribute.name, op, val: quoted ? `"${escaped}"` : val })
+    return `[${attribute.name}] ${op} ${quoted ? `"${escaped}"` : val}`
   }
 
   function handleInsert() {

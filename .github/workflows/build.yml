@@ -63,6 +63,10 @@ jobs:
       - name: Lint the WebUI
         run: docker run --rm webui-builder npm run lint
 
+      - name: Check the WebUI translation keys
+        # Missing keys (in en or fr), unused keys and hardcoded strings
+        run: docker run --rm webui-builder npm run i18n:check
+
       - name: Type-check the WebUI
         # Regenerate the Chakra UI typings first so the check reflects the project's actual
         # theme (custom tokens/recipes), not the generic defaults shipped in node_modules,

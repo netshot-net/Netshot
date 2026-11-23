@@ -1,8 +1,9 @@
 import { createOptionHook } from "@/hooks"
+import { tKey } from "@/i18n/tKey"
 
 export const useCliModeOptions = createOptionHook([
   {
-    label: "common.enable",
+    label: tKey("common.enable"),
     value: "enable",
   },
   {

@@ -166,7 +166,7 @@ export default function SoftwareRuleForm(props: SoftwareRuleFormProps) {
                         <Icon color={`${info.color}.500`} fontSize="lg">
                           <LuTrophy />
                         </Icon>
-                        <Text fontWeight="medium">{t(option.label)}</Text>
+                        <Text fontWeight="medium">{option.label}</Text>
                       </RadioCard.ItemContent>
                       <RadioCard.ItemIndicator />
                     </RadioCard.ItemControl>

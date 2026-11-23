@@ -3,6 +3,7 @@ import { Badge, BadgeProps, Icon } from "@chakra-ui/react"
 import { type Ref } from "react"
 import { LuCircleCheck, LuCircleX, LuCircleMinus, LuBan, LuTriangleAlert, LuMinus } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 export type DeviceComplianceTagProps = BadgeProps & {
   resultType: DeviceComplianceResultType
@@ -12,39 +13,39 @@ export type DeviceComplianceTagProps = BadgeProps & {
 type Config = {
   colorPalette: string
   icon: React.ReactElement
-  labelKey: string
+  labelKey: TranslationKey
 }
 
 const mapping: Record<DeviceComplianceResultType, Config> = {
   [DeviceComplianceResultType.Conforming]: {
     colorPalette: "green",
     icon: <LuCircleCheck />,
-    labelKey: "compliance.conforming",
+    labelKey: tKey("compliance.conforming"),
   },
   [DeviceComplianceResultType.NonConforming]: {
     colorPalette: "red",
     icon: <LuCircleX />,
-    labelKey: "compliance.nonConforming",
+    labelKey: tKey("compliance.nonConforming"),
   },
   [DeviceComplianceResultType.Disabled]: {
     colorPalette: "grey",
     icon: <LuCircleMinus />,
-    labelKey: "common.disabled",
+    labelKey: tKey("common.disabled"),
   },
   [DeviceComplianceResultType.Exempted]: {
     colorPalette: "blue",
     icon: <LuBan />,
-    labelKey: "policy.rule.exempted",
+    labelKey: tKey("policy.rule.exempted"),
   },
   [DeviceComplianceResultType.InvalidRule]: {
     colorPalette: "yellow",
     icon: <LuTriangleAlert />,
-    labelKey: "policy.rule.invalid",
+    labelKey: tKey("policy.rule.invalid"),
   },
   [DeviceComplianceResultType.NotApplication]: {
     colorPalette: "grey",
     icon: <LuMinus />,
-    labelKey: "compliance.notApplicable",
+    labelKey: tKey("compliance.notApplicable"),
   },
 }
 

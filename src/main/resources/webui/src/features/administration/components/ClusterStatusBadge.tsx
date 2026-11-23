@@ -4,33 +4,34 @@ import { LuCircleX, LuClock, LuCrown, LuServer } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import { ClusterMemberStatus } from "@/types"
 import IconBadge from "@/components/IconBadge"
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 type Config = {
   colorPalette: string
   icon: React.ReactElement
-  labelKey: string
+  labelKey: TranslationKey
 }
 
 export const CLUSTER_STATUS_CONFIG: Record<ClusterMemberStatus, Config> = {
   [ClusterMemberStatus.Master]: {
     colorPalette: "green",
     icon: <LuCrown />,
-    labelKey: "admin.clustering.master",
+    labelKey: tKey("admin.clustering.master"),
   },
   [ClusterMemberStatus.Member]: {
     colorPalette: "blue",
     icon: <LuServer />,
-    labelKey: "admin.clustering.member",
+    labelKey: tKey("admin.clustering.member"),
   },
   [ClusterMemberStatus.Negotiating]: {
     colorPalette: "yellow",
     icon: <LuClock />,
-    labelKey: "admin.clustering.negotiating",
+    labelKey: tKey("admin.clustering.negotiating"),
   },
   [ClusterMemberStatus.Expired]: {
     colorPalette: "red",
     icon: <LuCircleX />,
-    labelKey: "admin.clustering.expired",
+    labelKey: tKey("admin.clustering.expired"),
   },
 }
 

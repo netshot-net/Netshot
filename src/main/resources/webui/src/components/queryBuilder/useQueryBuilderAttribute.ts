@@ -245,7 +245,7 @@ export function useQueryBuilderAttribute() {
     }
 
     const options = attributes.map((attr) => ({
-      label: t(attr.title),
+      label: attr.title,
       value: {
         name: attr.name,
         type: attr.type,

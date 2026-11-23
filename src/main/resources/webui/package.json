@@ -10,6 +10,7 @@
     "lint": "eslint",
     "preview": "vite preview",
     "tsx": "tsc --noEmit",
+    "i18n:check": "i18next-cli status && i18next-cli status --unused && i18next-cli lint",
     "chakra:typegen": "npx @chakra-ui/cli typegen ./src/theme/system.ts",
     "api:types": "node scripts/generate-api-types.mjs"
   },

@@ -1,3 +1,5 @@
+import { tKey, type TranslationKey } from "@/i18n/tKey"
+
 export const QUERIES = {
   CONFIG_CHANGE: "config-change",
   REPORT_CONFIG_CHANGE_LIST: "report-config-change-list",
@@ -12,12 +14,12 @@ export const QUERIES = {
 }
 
 export type ConfigChangeRangePreset = {
-  label: string
+  label: TranslationKey
   ms: number
 }
 
 export const CONFIG_CHANGE_RANGE_PRESETS: ConfigChangeRangePreset[] = [
-  { label: "report.period.last24Hours", ms: 24 * 3_600_000 },
-  { label: "report.period.last7Days", ms: 7 * 86_400_000 },
-  { label: "report.period.last30Days", ms: 30 * 86_400_000 },
+  { label: tKey("report.period.last24Hours"), ms: 24 * 3_600_000 },
+  { label: tKey("report.period.last7Days"), ms: 7 * 86_400_000 },
+  { label: tKey("report.period.last30Days"), ms: 30 * 86_400_000 },
 ]

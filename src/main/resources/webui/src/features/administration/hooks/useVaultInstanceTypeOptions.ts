@@ -1,9 +1,10 @@
 import { createOptionHook } from "@/hooks"
 import { VaultInstanceType } from "@/types"
+import { tKey } from "@/i18n/tKey"
 
 export const useVaultInstanceTypeOptions = createOptionHook([
   {
-    label: "vault.typeVaultKv2",
+    label: tKey("vault.typeVaultKv2"),
     value: VaultInstanceType.HashicorpKv2,
   },
 ])

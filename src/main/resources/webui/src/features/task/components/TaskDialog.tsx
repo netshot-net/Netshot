@@ -33,6 +33,7 @@ import { useMemo } from "react"
 import { LuDownload, LuFileTerminal, LuScrollText } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
+import { tKey } from "@/i18n/tKey"
 
 const GROUP_SCHEDULING_TYPES = [
   TaskType.TakeGroupSnapshot,
@@ -242,17 +243,17 @@ export default function TaskDialog(props: TaskDialogProps) {
 
   const scheduleLabel = task?.repeating
     ? `${t("time.every")} ${task.scheduleFactor} ${t(
-        SCHEDULE_UNIT_KEY[task.scheduleType as TaskScheduleType] ?? "time.day",
+        SCHEDULE_UNIT_KEY[task.scheduleType as TaskScheduleType] ?? tKey("time.day", { count: 0 }),
         { count: task.scheduleFactor ?? 1 }
       )}`
     : t("task.once")
 
   const scheduleModeLabelKey =
     task?.scheduleMode === TaskScheduleMode.Parallel
-      ? "task.scheduleModeParallel"
+      ? tKey("task.scheduleModeParallel")
       : task?.stopOnFailure
-        ? "task.scheduleModeSequentialStop"
-        : "task.scheduleModeSequentialContinue"
+        ? tKey("task.scheduleModeSequentialStop")
+        : tKey("task.scheduleModeSequentialContinue")
 
   const cancelMutation = useMutation({
     mutationKey: MUTATIONS.TASK_CANCEL,
@@ -351,7 +352,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                       {task?.type ? (
                         <Stack direction="row" gap="2" alignItems="center">
                           <Icon size="sm">{TASK_TYPE_ICONS[task.type as TaskType]}</Icon>
-                          <Text>{t(`task.type.${task.type}`)}</Text>
+                          <Text>{t(`task.type.${task.type as TaskType}`)}</Text>
                         </Stack>
                       ) : (
                         <Text>{t("common.nA")}</Text>
@@ -668,7 +669,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                               }}
                             >
                               <Icon size="sm">{TASK_TYPE_ICONS[chainChild.type as TaskType]}</Icon>
-                              {t(`task.type.${chainChild.type}`)}
+                              {t(`task.type.${chainChild.type as TaskType}`)}
                             </Button>
                             <TaskStatusBadge status={chainChild.status as TaskStatus} />
                           </Flex>

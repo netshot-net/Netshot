@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { Link, useParams } from "react-router"
 import DeviceDiagnosticTrigger from "../components/DeviceDiagnosticTrigger"
 import { QUERIES } from "../constants"
@@ -29,7 +30,7 @@ type DiagnosticRow = {
 
 const columnHelper = createColumnHelper<DiagnosticRow>()
 
-function getDiagnosticResultValue(result: Schemas["DiagnosticResult"], t: (key: string) => string): string {
+function getDiagnosticResultValue(result: Schemas["DiagnosticResult"], t: TFunction): string {
   const value = result.value as unknown
   switch (result.type) {
     case DeviceAttributeType.Numeric:

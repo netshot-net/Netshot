@@ -21,7 +21,7 @@ export default function DeviceConfigurationViewTrigger({ id, filename, attribute
 
   const open = () => {
     dialog.open({
-      title: t(definition?.title),
+      title: definition?.title,
       description: <DeviceConfigurationView id={id} attribute={attribute} />,
       size: "xl",
       footerExtra: (

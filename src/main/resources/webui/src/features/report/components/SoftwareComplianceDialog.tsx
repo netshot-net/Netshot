@@ -2,7 +2,7 @@ import { Schemas } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { EmptyResult, VirtualizedDataTable } from "@/components"
 import { useDialogConfig } from "@/dialog"
-import { DeviceBadge, DeviceGroupBadge, DeviceSoftwareLevelBadge } from "@/components/entity"
+import { DEVICE_SOFTWARE_LEVEL_CONFIG, DeviceBadge, DeviceGroupBadge, DeviceSoftwareLevelBadge } from "@/components/entity"
 import { DeviceNetworkClass, DeviceSoftwareLevel } from "@/types"
 import { CloseButton, Dialog, Heading, Portal, Skeleton, Stack, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
@@ -123,7 +123,7 @@ export default function SoftwareComplianceDialog(props: SoftwareComplianceDialog
                     <EmptyResult
                       title={t("device.none")}
                       description={t("device.withLevelAppearsWhenSoftwareRuleValidated", {
-                        level: t(level),
+                        level: t(DEVICE_SOFTWARE_LEVEL_CONFIG[level].labelKey),
                       })}
                     />
                   )}

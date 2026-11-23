@@ -236,7 +236,7 @@ export default function DeviceConfigurationAttribute(props: DeviceConfigurationA
   return (
     <Flex alignItems="center" minH="32px">
       <Box flex="0 0 auto" w="240px">
-        <Text color="grey.400">{t(definition.title)}</Text>
+        <Text color="grey.400">{definition.title}</Text>
       </Box>
       {attribute ? (
         <ConfigAttributeValue config={config} attribute={attribute} definition={definition} />

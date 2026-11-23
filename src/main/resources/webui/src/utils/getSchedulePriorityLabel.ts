@@ -1,14 +1,15 @@
 import { SchedulePriority } from "@/types"
+import { tKey } from "@/i18n/tKey"
 
 export function getSchedulePriorityLabel(priority: SchedulePriority | undefined) {
   switch (priority) {
     case SchedulePriority.Low:
-      return "common.low"
+      return tKey("common.low")
     case SchedulePriority.Normal:
-      return "common.normal"
+      return tKey("common.normal")
     case SchedulePriority.High:
-      return "common.high"
+      return tKey("common.high")
     default:
-      return "common.nA"
+      return tKey("common.nA")
   }
 }

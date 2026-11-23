@@ -1,13 +1,14 @@
 import { createOptionHook } from "@/hooks"
 import { VaultAuthMethod } from "@/types"
+import { tKey } from "@/i18n/tKey"
 
 export const useVaultAuthMethodOptions = createOptionHook([
   {
-    label: "vault.authMethodAppRole",
+    label: tKey("vault.authMethodAppRole"),
     value: VaultAuthMethod.AppRole,
   },
   {
-    label: "vault.authMethodJwt",
+    label: tKey("vault.authMethodJwt"),
     value: VaultAuthMethod.Jwt,
   },
 ])

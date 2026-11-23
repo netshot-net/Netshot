@@ -34,6 +34,30 @@ import EnableRuleTrigger from "../components/EnableRuleTrigger"
 import RuleRemoveTrigger from "../components/RemoveRuleTrigger"
 import { QUERIES } from "../constants"
 import { RuleProvider } from "../contexts"
+import { tKey } from "@/i18n/tKey"
+import type { ParseKeys } from "i18next"
+
+/** Labels of the text rule conditions, on the configuration text (context) or on a device field. */
+const RULE_TEXT_LABEL_KEYS = {
+  mustContain: tKey("policy.rule.mustContain"),
+  mustNotContain: tKey("policy.rule.mustNotContain"),
+  mustBe: tKey("policy.rule.mustBe"),
+  mustNotBe: tKey("policy.rule.mustNotBe"),
+  mustMatch: tKey("policy.rule.mustMatch"),
+  mustNotMatch: tKey("policy.rule.mustNotMatch"),
+  mustFullyMatch: tKey("policy.rule.mustFullyMatch"),
+  mustNotFullyMatch: tKey("policy.rule.mustNotFullyMatch"),
+}
+const RULE_FIELD_LABEL_KEYS: Record<keyof typeof RULE_TEXT_LABEL_KEYS, ParseKeys> = {
+  mustContain: tKey("policy.rule.fieldMustContain"),
+  mustNotContain: tKey("policy.rule.fieldMustNotContain"),
+  mustBe: tKey("policy.rule.fieldMustBe"),
+  mustNotBe: tKey("policy.rule.fieldMustNotBe"),
+  mustMatch: tKey("policy.rule.fieldMustMatch"),
+  mustNotMatch: tKey("policy.rule.fieldMustNotMatch"),
+  mustFullyMatch: tKey("policy.rule.fieldMustFullyMatch"),
+  mustNotFullyMatch: tKey("policy.rule.fieldMustNotFullyMatch"),
+}
 
 export default function ConfigurationComplianceRuleScreen() {
   const { policyId, ruleId } = useParams()
@@ -77,8 +101,7 @@ export default function ConfigurationComplianceRuleScreen() {
   const textLabel = useMemo(() => {
     if (!rule) return t("policy.rule.mustContain")
     const { invert, regExp, matchAll, context } = rule
-    const prefix = context ? "" : "field"
-    const key = (k: string) => t(`policy.rule.${prefix}${prefix ? k.charAt(0).toUpperCase() + k.slice(1) : k}`)
+    const key = (k: keyof typeof RULE_TEXT_LABEL_KEYS) => t(context ? RULE_TEXT_LABEL_KEYS[k] : RULE_FIELD_LABEL_KEYS[k])
     if (regExp && matchAll) return invert ? key("mustNotFullyMatch") : key("mustFullyMatch")
     if (regExp) return invert ? key("mustNotMatch") : key("mustMatch")
     if (matchAll) return invert ? key("mustNotBe") : key("mustBe")

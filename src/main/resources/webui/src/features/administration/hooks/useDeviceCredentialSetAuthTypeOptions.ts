@@ -1,33 +1,34 @@
 import { createOptionHook } from "@/hooks"
 import { HashingAlgorithm } from "@/types"
+import { tKey } from "@/i18n/tKey"
 
 export const useDeviceCredentialSetAuthTypeOptions = createOptionHook([
   {
-    label: "network.noAuthentication",
+    label: tKey("network.noAuthentication"),
     value: HashingAlgorithm.NONE,
   },
   {
-    label: "network.md5",
+    label: tKey("network.md5"),
     value: HashingAlgorithm.MD5,
   },
   {
-    label: "network.sha",
+    label: tKey("network.sha"),
     value: HashingAlgorithm.SHA,
   },
   {
-    label: "network.sha224",
+    label: tKey("network.sha224"),
     value: HashingAlgorithm.HMAC128SHA224,
   },
   {
-    label: "network.sha256",
+    label: tKey("network.sha256"),
     value: HashingAlgorithm.HMAC192SHA256,
   },
   {
-    label: "network.sha384",
+    label: tKey("network.sha384"),
     value: HashingAlgorithm.HMAC256SHA384,
   },
   {
-    label: "network.sha512",
+    label: tKey("network.sha512"),
     value: HashingAlgorithm.HMAC384SHA512,
   },
 ])

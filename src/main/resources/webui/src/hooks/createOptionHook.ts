@@ -2,6 +2,7 @@ import { Option } from "@/types"
 import { TFunction } from "i18next"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import type { TranslationKey } from "@/i18n/tKey"
 
 export type CreateOptionHookConfig<T> = {
   translate?: boolean
@@ -28,8 +29,9 @@ export function createOptionHook<T extends Option<unknown, unknown>>(
 
         return {
           ...opt,
-          label: t(opt.label as string),
-          ...(opt.description ? { description: t(opt.description) } : {}),
+          // The keys are checked where the options are declared (tKey)
+          label: t(opt.label as TranslationKey),
+          ...(opt.description ? { description: t(opt.description as TranslationKey) } : {}),
         }
       })
     }, [t, translate, translateFn])

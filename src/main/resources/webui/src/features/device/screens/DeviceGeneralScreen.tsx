@@ -200,7 +200,7 @@ export default function DeviceGeneralScreen() {
               return (
                 <Flex alignItems="center" key={attrDef?.name}>
                   <Box flex="0 0 auto" w="200px">
-                    <Text color="grey.400">{t(attrDef?.title)}</Text>
+                    <Text color="grey.400">{attrDef?.title}</Text>
                   </Box>
                   <Skeleton loading={!!isLoading}>
                     <DeviceAttributeValue definition={attrDef} attribute={attr} />

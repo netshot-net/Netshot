@@ -10,6 +10,7 @@ import {
   LuTerminal,
   LuTrophy,
 } from "react-icons/lu";
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 export const QUERIES = {
   TASK_ACTIVE_ROWS: "task:active-rows",
@@ -58,25 +59,25 @@ export const TASK_TYPE_ICONS: Record<TaskType, ReactElement> = {
 };
 
 /** i18n key for the repeat unit of a schedule type (e.g. "every N days"). */
-export const SCHEDULE_UNIT_KEY: Partial<Record<TaskScheduleType, string>> = {
-  [TaskScheduleType.Hourly]: "time.hour",
-  [TaskScheduleType.Daily]: "time.day",
-  [TaskScheduleType.Weekly]: "time.week",
-  [TaskScheduleType.Monthly]: "time.month",
+export const SCHEDULE_UNIT_KEY: Partial<Record<TaskScheduleType, TranslationKey>> = {
+  [TaskScheduleType.Hourly]: tKey("time.hour", { count: 0 }),
+  [TaskScheduleType.Daily]: tKey("time.day", { count: 0 }),
+  [TaskScheduleType.Weekly]: tKey("time.week", { count: 0 }),
+  [TaskScheduleType.Monthly]: tKey("time.month", { count: 0 }),
 };
 
 export type TimeRangePreset = {
-  label: string;
+  label: TranslationKey;
   ms: number;
 };
 
 export const TIME_RANGE_PRESETS: TimeRangePreset[] = [
-  { label: "task.timeRange.last15Minutes", ms: 15 * 60000 },
-  { label: "task.timeRange.last1Hour", ms: 3600000 },
-  { label: "task.timeRange.last6Hours", ms: 6 * 3600000 },
-  { label: "task.timeRange.last24Hours", ms: 24 * 3600000 },
-  { label: "task.timeRange.last7Days", ms: 7 * 86400000 },
-  { label: "task.timeRange.last30Days", ms: 30 * 86400000 },
+  { label: tKey("task.timeRange.last15Minutes"), ms: 15 * 60000 },
+  { label: tKey("task.timeRange.last1Hour"), ms: 3600000 },
+  { label: tKey("task.timeRange.last6Hours"), ms: 6 * 3600000 },
+  { label: tKey("task.timeRange.last24Hours"), ms: 24 * 3600000 },
+  { label: tKey("task.timeRange.last7Days"), ms: 7 * 86400000 },
+  { label: tKey("task.timeRange.last30Days"), ms: 30 * 86400000 },
 ];
 
 /** Default History window: last 7 days. */

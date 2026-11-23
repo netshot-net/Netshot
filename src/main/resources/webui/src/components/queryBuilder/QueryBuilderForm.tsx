@@ -36,13 +36,13 @@ export function QueryBuilderForm({ value, onChange }: QueryBuilderFormProps) {
     let updatedQuery: string
 
     if (type === ConditionType.And || type === ConditionType.Or) {
-      updatedQuery = t("queryType", "({{query}}) {{type}} ()", { query: value, type })
+      updatedQuery = `(${value}) ${type} ()`
       setTimeout(() => {
         inputRef.current?.focus()
         inputRef.current?.setSelectionRange(updatedQuery.length - 1, updatedQuery.length - 1)
       })
     } else if (type === ConditionType.Not) {
-      updatedQuery = t("notQuery", "not ({{query}})", { query: value })
+      updatedQuery = `not (${value})`
     } else {
       updatedQuery = ""
     }

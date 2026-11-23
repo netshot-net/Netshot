@@ -1,26 +1,27 @@
 import { createOptionHook } from "@/hooks"
 import { TaskType } from "@/types"
+import { tKey } from "@/i18n/tKey"
 
 const options = [
   {
-    label: "device.snapshot.after",
-    description: "policy.rule.executedAfterSnapshot",
+    label: tKey("device.snapshot.after"),
+    description: tKey("policy.rule.executedAfterSnapshot"),
     value: {
       type: "POST_TASK" as const,
       item: TaskType.TakeSnapshot as string,
     },
   },
   {
-    label: "task.afterScript",
-    description: "policy.rule.executedAfterJsScript",
+    label: tKey("task.afterScript"),
+    description: tKey("policy.rule.executedAfterJsScript"),
     value: {
       type: "POST_TASK" as const,
       item: TaskType.RunDeviceScript as string,
     },
   },
   {
-    label: "task.afterDiagnostics",
-    description: "policy.rule.executedAfterDiagnostics",
+    label: tKey("task.afterDiagnostics"),
+    description: tKey("policy.rule.executedAfterDiagnostics"),
     value: {
       type: "POST_TASK" as const,
       item: TaskType.RunDiagnostic as string,
@@ -28,12 +29,4 @@ const options = [
   },
 ]
 
-export const useWebhookTriggerOptions = createOptionHook(options, {
-  translateFn(opt, t) {
-    return {
-      ...opt,
-      label: t(opt.label),
-      description: t(opt.description as string),
-    }
-  },
-})
+export const useWebhookTriggerOptions = createOptionHook(options)

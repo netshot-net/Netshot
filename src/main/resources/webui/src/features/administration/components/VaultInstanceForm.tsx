@@ -12,6 +12,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useFormContext, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useVaultAuthMethodOptions, useVaultInstanceTypeOptions } from "../hooks"
+import { tKey } from "@/i18n/tKey"
 
 export type VaultInstanceForm = {
   name: string
@@ -42,18 +43,18 @@ export type VaultInstanceFormProps = {
 
 const HTTPS_CA_TRUST_MODE_OPTIONS = [
   {
-    label: "device.httpsCaTrustModeSystemTruststore",
-    description: "device.httpsCaTrustModeSystemTruststoreDescription",
+    label: tKey("device.httpsCaTrustModeSystemTruststore"),
+    description: tKey("device.httpsCaTrustModeSystemTruststoreDescription"),
     value: HttpsCaTrustMode.SystemTruststore,
   },
   {
-    label: "device.httpsCaTrustModeCustomCa",
-    description: "device.httpsCaTrustModeCustomCaDescription",
+    label: tKey("device.httpsCaTrustModeCustomCa"),
+    description: tKey("device.httpsCaTrustModeCustomCaDescription"),
     value: HttpsCaTrustMode.CustomCa,
   },
   {
-    label: "device.httpsCaTrustModeTrustAny",
-    description: "device.httpsCaTrustModeTrustAnyDescription",
+    label: tKey("device.httpsCaTrustModeTrustAny"),
+    description: tKey("device.httpsCaTrustModeTrustAnyDescription"),
     value: HttpsCaTrustMode.TrustAny,
   },
 ] as const

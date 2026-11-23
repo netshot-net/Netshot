@@ -33,7 +33,7 @@ export function DiagnosticResultPanel({ onInsert }: Props) {
   }, [diagnostics, form])
 
   const attribute = diagnostic
-    ? { name: t('diagnosticName', 'Diagnostic > {{name}}', { name: diagnostic.name }), type: diagnostic.resultType }
+    ? { name: `Diagnostic > ${diagnostic.name}`, type: diagnostic.resultType }
     : null
 
   return (

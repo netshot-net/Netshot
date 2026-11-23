@@ -1,12 +1,13 @@
 import { createOptionHook } from "@/hooks"
+import { tKey } from "@/i18n/tKey"
 
 export const useRuleBlockOptions = createOptionHook([
   {
-    label: "policy.rule.allFoundBlocksMustBeValid",
+    label: tKey("policy.rule.allFoundBlocksMustBeValid"),
     value: false,
   },
   {
-    label: "policy.rule.atLeastOneBlockMustBeValid",
+    label: tKey("policy.rule.atLeastOneBlockMustBeValid"),
     value: true,
   },
 ])

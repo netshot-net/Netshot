@@ -13,53 +13,54 @@ import {
 import { useTranslation } from "react-i18next"
 import { TaskStatus } from "@/types"
 import IconBadge from "@/components/IconBadge"
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 type Config = {
   colorPalette: string
   icon: React.ReactElement
-  labelKey: string
+  labelKey: TranslationKey
 }
 
 export const TASK_STATUS_CONFIG: Record<TaskStatus, Config> = {
   [TaskStatus.New]: {
     colorPalette: "gray",
     icon: <LuCircleDot />,
-    labelKey: "common.new",
+    labelKey: tKey("common.new"),
   },
   [TaskStatus.Delayed]: {
     colorPalette: "gray",
     icon: <LuHourglass />,
-    labelKey: "common.delayed",
+    labelKey: tKey("common.delayed"),
   },
   [TaskStatus.Scheduled]: {
     colorPalette: "yellow",
     icon: <LuClock />,
-    labelKey: "common.scheduled",
+    labelKey: tKey("common.scheduled"),
   },
   [TaskStatus.Waiting]: {
     colorPalette: "gray",
     icon: <LuCircleDashed />,
-    labelKey: "common.waiting",
+    labelKey: tKey("common.waiting"),
   },
   [TaskStatus.Running]: {
     colorPalette: "blue",
     icon: <LuCirclePlay />,
-    labelKey: "common.running",
+    labelKey: tKey("common.running"),
   },
   [TaskStatus.Success]: {
     colorPalette: "green",
     icon: <LuCircleCheck />,
-    labelKey: "common.success",
+    labelKey: tKey("common.success"),
   },
   [TaskStatus.Failure]: {
     colorPalette: "red",
     icon: <LuCircleX />,
-    labelKey: "common.failure",
+    labelKey: tKey("common.failure"),
   },
   [TaskStatus.Cancelled]: {
     colorPalette: "gray",
     icon: <LuBan />,
-    labelKey: "common.cancelled",
+    labelKey: tKey("common.cancelled"),
   },
 }
 

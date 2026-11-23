@@ -1,35 +1,36 @@
 import { DeviceSoftwareLevel } from "@/types"
 import { createOptionHook } from "./createOptionHook"
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 type SoftwareLevelInfo = {
-  label: string
+  label: TranslationKey
   color: string
   isCompliant: boolean
 }
 
 const LEVELS: Record<DeviceSoftwareLevel, SoftwareLevelInfo> = {
   [DeviceSoftwareLevel.GOLD]: {
-    label: "compliance.software.gold",
+    label: tKey("compliance.software.gold"),
     color: "gold",
     isCompliant: true,
   },
   [DeviceSoftwareLevel.SILVER]: {
-    label: "compliance.software.silver",
+    label: tKey("compliance.software.silver"),
     color: "silver",
     isCompliant: true,
   },
   [DeviceSoftwareLevel.BRONZE]: {
-    label: "compliance.software.bronze",
+    label: tKey("compliance.software.bronze"),
     color: "bronze",
     isCompliant: true,
   },
   [DeviceSoftwareLevel.NON_COMPLIANT]: {
-    label: "compliance.nonCompliant",
+    label: tKey("compliance.nonCompliant"),
     color: "red",
     isCompliant: false,
   },
   [DeviceSoftwareLevel.UNKNOWN]: {
-    label: "common.unknownLabel",
+    label: tKey("common.unknownLabel"),
     color: "black",
     isCompliant: false,
   },

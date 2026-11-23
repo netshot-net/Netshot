@@ -15,6 +15,7 @@ import { Link } from "react-router"
 import { SCHEDULE_UNIT_KEY, TASK_TYPE_ICONS } from "../constants"
 import { useTaskTreeModeStore } from "../stores/useTaskTreeModeStore"
 import { buildTaskTree, computeNextExecutionDate, isRepeatingSchedule, TaskTreeRow } from "../utils"
+import { tKey } from "@/i18n/tKey"
 
 const columnHelper = createColumnHelper<TaskTreeRow<Task>>()
 
@@ -72,7 +73,7 @@ export default function TaskTable(props: TaskTableProps) {
               <Icon size="sm" flexShrink={0}>
                 {TASK_TYPE_ICONS[info.getValue() as TaskType]}
               </Icon>
-              <Text>{t(`task.type.${info.getValue()}`)}</Text>
+              <Text>{t(`task.type.${info.getValue() as TaskType}`)}</Text>
             </Stack>
           )
         },
@@ -171,7 +172,7 @@ export default function TaskTable(props: TaskTableProps) {
               {repeating && (
                 <Tooltip
                   content={`${t("time.every")} ${task.scheduleFactor} ${t(
-                    SCHEDULE_UNIT_KEY[task.scheduleType as TaskScheduleType] ?? "time.day",
+                    SCHEDULE_UNIT_KEY[task.scheduleType as TaskScheduleType] ?? tKey("time.day", { count: 0 }),
                     { count: task.scheduleFactor ?? 1 }
                   )}`}
                 >

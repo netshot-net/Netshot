@@ -79,7 +79,7 @@ export function useSigninWithOidcMutation() {
     },
     onError() {
       toast.error({
-        title: t("SSO error"),
+        title: t("auth.ssoErrorTitle"),
         description: t("auth.ssoError"),
       })
 

@@ -3,28 +3,29 @@ import { type Ref } from "react"
 import { LuShieldCheck, LuShieldAlert, LuShieldOff } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import IconBadge from "../IconBadge"
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 type Config = {
   colorPalette: string
   icon: React.ReactElement
-  labelKey: string
+  labelKey: TranslationKey
 }
 
 export const DEVICE_HARDWARE_COMPLIANCE_CONFIG: Record<"endOfLife" | "endOfSale" | "upToDate", Config> = {
   endOfLife: {
     colorPalette: "red",
     icon: <LuShieldOff />,
-    labelKey: "compliance.hardware.endOfLife",
+    labelKey: tKey("compliance.hardware.endOfLife"),
   },
   endOfSale: {
     colorPalette: "orange",
     icon: <LuShieldAlert />,
-    labelKey: "compliance.hardware.endOfSale",
+    labelKey: tKey("compliance.hardware.endOfSale"),
   },
   upToDate: {
     colorPalette: "green",
     icon: <LuShieldCheck />,
-    labelKey: "common.upToDate",
+    labelKey: tKey("common.upToDate"),
   },
 }
 

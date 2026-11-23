@@ -10,6 +10,7 @@ import { createColumnHelper } from "@tanstack/react-table"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 import { QUERIES } from "../constants"
+import { tKey } from "@/i18n/tKey"
 
 export type HardwareDeviceListButtonProps = {
   type: "eos" | "eol"
@@ -65,16 +66,16 @@ export default function HardwareDeviceListDialog(props: HardwareDeviceListButton
     }),
   ]
 
-  const title = type === "eol" ? "compliance.hardware.endOfLifeDevices" : "compliance.hardware.endOfSaleDevices"
+  const title = type === "eol" ? tKey("compliance.hardware.endOfLifeDevices") : tKey("compliance.hardware.endOfSaleDevices")
   const description = isNever
     ? type === "eol"
-      ? "compliance.hardware.endOfLifeDevicesNeverDescription"
-      : "compliance.hardware.endOfSaleDevicesNeverDescription"
+      ? tKey("compliance.hardware.endOfLifeDevicesNeverDescription")
+      : tKey("compliance.hardware.endOfSaleDevicesNeverDescription")
     : type === "eol"
-      ? "compliance.hardware.endOfLifeDevicesDescription"
-      : "compliance.hardware.endOfSaleDevicesDescription"
+      ? tKey("compliance.hardware.endOfLifeDevicesDescription")
+      : tKey("compliance.hardware.endOfSaleDevicesDescription")
   const emptyResultTitle =
-    type === "eol" ? "compliance.hardware.noDeviceWithEolStatus" : "compliance.hardware.noDeviceWithEosStatus"
+    type === "eol" ? tKey("compliance.hardware.noDeviceWithEolStatus") : tKey("compliance.hardware.noDeviceWithEosStatus")
 
   return (
     <Dialog.Root

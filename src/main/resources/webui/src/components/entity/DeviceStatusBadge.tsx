@@ -4,28 +4,29 @@ import { LuHammer, LuZap, LuZapOff } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import { DeviceStatus } from "@/types"
 import IconBadge from "../IconBadge"
+import { tKey, type TranslationKey } from "@/i18n/tKey"
 
 type Config = {
   colorPalette: string
   icon: React.ReactElement
-  labelKey: string
+  labelKey: TranslationKey
 }
 
 export const DEVICE_STATUS_CONFIG: Record<DeviceStatus, Config> = {
   [DeviceStatus.Production]: {
     colorPalette: "green",
     icon: <LuZap />,
-    labelKey: "device.status.production",
+    labelKey: tKey("device.status.production"),
   },
   [DeviceStatus.Disabled]: {
     colorPalette: "red",
     icon: <LuZapOff />,
-    labelKey: "common.disabled",
+    labelKey: tKey("common.disabled"),
   },
   [DeviceStatus.PreProduction]: {
     colorPalette: "orange",
     icon: <LuHammer />,
-    labelKey: "device.status.preproduction",
+    labelKey: tKey("device.status.preproduction"),
   },
 }
 
